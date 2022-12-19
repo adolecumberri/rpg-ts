@@ -5,7 +5,7 @@ import { Constructor, SkillManagerConstructor, ISkills } from "../interfaces/Ski
 import { CharacterClass } from "./Character";
 
 
-class SkillManagerClass {
+class SkillManager {
 
     character: CharacterClass;
 
@@ -52,4 +52,4 @@ class SkillManagerClass {
     }
 }
 
-export default SkillManagerClass
+export default SkillManager

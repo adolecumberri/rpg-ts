@@ -6,7 +6,7 @@ import { IStatusManagerConstructor, Constructor } from "../interfaces/StatusMana
 import { CharacterClass } from "./Character";
 import Status from "./Status";
 
-class StatusManagerClass {
+class StatusManager {
     character: CharacterClass;
 
     originalConfig: Constructor;
@@ -106,4 +106,4 @@ class StatusManagerClass {
     }
 }
 
-export default StatusManagerClass
+export default StatusManager

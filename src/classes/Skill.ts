@@ -3,7 +3,7 @@ import { Stats } from "../interfaces";
 import { Constructor, SkillConstructor } from "../interfaces/Skills.Interface";
 import { CharacterClass } from "./Character";
 
-class SkillClass {
+class Skill {
 
     activate: {
         (param?: any): any
@@ -37,4 +37,4 @@ class SkillClass {
     }
 }
 
-export default SkillClass
+export default Skill
