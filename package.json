@@ -1,33 +1,36 @@
 {
-    "name": "rpg_js",
-    "version": "0.8.1",
-    "description": "rpg utilities in JS/TS",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "files": [
-        "/dist"
-    ],
-    "scripts": {
-        "lint": "eslint src --ext .ts",
-        "test": "jest --coverage",
-        "pretty": "prettier --write \"./**/*.{js,jsx,json}\""
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/adolecumberri/RPG_Library.git"
-    },
-    "author": "Adolfo Reyes Agustin",
-    "license": "ISC",
-    "bugs": {
-        "url": "https://github.com/adolecumberri/RPG_Library/issues"
-    },
-    "homepage": "https://github.com/adolecumberri/RPG_Library#readme",
-    "devDependencies": {
-        "@types/jest": "^27.5.1",
-        "jest": "^28.1.0",
-        "lint": "^1.1.2",
-        "prettier": "^2.7.1",
-        "ts-jest": "^28.0.3",
-        "typescript": "^4.7.2"
-    }
+  "name": "rpg_js",
+  "version": "0.8.1",
+  "description": "rpg utilities in JS/TS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "lint": "eslint src --ext .ts",
+    "test": "jest --coverage",
+    "pretty": "prettier --write \"./**/*.{js,jsx,json}\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adolecumberri/rpg_js.git"
+  },
+  "author": "Adolfo Reyes Agustin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/adolecumberri/rpg_js/issues"
+  },
+  "homepage": "https://github.com/adolecumberri/rpg_js#readme",
+  "devDependencies": {
+    "@types/jest": "^27.5.1",
+    "jest": "^28.1.0",
+    "lint": "^1.1.2",
+    "prettier": "^2.7.1",
+    "ts-jest": "^28.0.3",
+    "typescript": "^4.7.2"
+  },
+  "dependencies": {
+    "rpg_js": "github:adolecumberri/rpg_js"
+  }
 }
