@@ -1,20 +1,14 @@
 {
   "name": "rpg-ts",
-<<<<<<< Updated upstream
-  "version": "0.8.1",
-=======
   "version": "0.8.7",
->>>>>>> Stashed changes
   "description": "rpg utilities in TS",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "/dist"
-  ],
+  "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "lint": "eslint src --ext .ts",
     "test": "jest --coverage",
-    "pretty": "prettier --write \"./**/*.{js,jsx,json}\""
+    "pretty": "prettier --write \"./**/*.{js,jsx,json}\"",
+    "prepublish": "tsc"
   },
   "repository": {
     "type": "git",

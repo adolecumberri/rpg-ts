@@ -17,7 +17,7 @@ import {
 } from "../interfaces/Status.Interface";
 import { CharacterClass } from "./Character";
 
-class StatusClass {
+class Status {
     appliedOn: IStatusAppliedOn = default_status.appliedOn;
 
     character: CharacterClass;
@@ -324,5 +324,5 @@ class StatusClass {
 
 }
 
-export default StatusClass
+export default Status
 

@@ -1,3 +1,4 @@
+import { getDefaultDefenceObject, getDefaultAttackObject, getStatsObject } from "./object";
 
 function uniqueID() {
     return Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
@@ -24,7 +25,7 @@ function getNestedPropByString<T extends {}>(obj: T, keySearched: string) {
         console.log(e)
     }
 
-    return !timesCounted ? undefined : solution as typeof obj[keyof typeof obj];
+    return !timesCounted ? undefined : solution as unknown as typeof obj[keyof typeof obj];
 }
 
 function isPrimitiveType(test) {
@@ -46,4 +47,11 @@ function mergeObjects(data) {
     return result
 }
 
-export { uniqueID, getNestedPropByString, isPrimitiveType, mergeObjects };
+export { 
+    uniqueID, 
+    getNestedPropByString, 
+    isPrimitiveType, 
+    mergeObjects, 
+    getDefaultDefenceObject,
+    getDefaultAttackObject,
+    getStatsObject };

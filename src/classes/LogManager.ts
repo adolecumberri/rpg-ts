@@ -6,7 +6,7 @@ import { CharacterClass } from "./Character";
 import Status from "./Status";
 
 
-class LogManagerClass {
+class LogManager {
 
     character: CharacterClass
 
@@ -63,4 +63,4 @@ class LogManagerClass {
     }
 }
 
-export default LogManagerClass
+export default LogManager
