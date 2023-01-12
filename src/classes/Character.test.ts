@@ -354,6 +354,8 @@ describe('Character tests', () => {
     })
 
     describe('char test', () => {
-        let test = new Character()
+        let test = new Character({
+            
+        })
     })
 })

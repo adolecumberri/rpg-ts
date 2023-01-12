@@ -105,7 +105,7 @@ type Constructor = Partial<{
     setMultipleStats(statsObject: Partial<Stats>): void
     setStats(statsObject: Partial<Stats>): void
     enrich<T extends { name: string }>(anything: T): T & Enriched
-}> & Record<string, any>
+}> & unknown
 
 type DefenceFunction<T> = {
     (param: T): DefenceObject

@@ -1,9 +1,8 @@
 
 import { AttackObject, DefenceObject, Enriched } from "./Common.Interface";
-import { DefenceFunction, CallBacks, Constructor, StatsKeys, Stats, AnyCharacterType } from './Character.interface'
+import { DefenceFunction, CallBacks, Constructor, StatsKeys, Stats, TCharacter } from './Character.interface'
 
 export {
-    AnyCharacterType,
     Stats,
     StatsKeys,
     AttackObject,
@@ -11,5 +10,6 @@ export {
     DefenceFunction,
     CallBacks,
     Constructor,
-    Enriched
+    Enriched, 
+    TCharacter
 };
