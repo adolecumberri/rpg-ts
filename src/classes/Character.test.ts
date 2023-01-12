@@ -15,6 +15,7 @@ import { checkAttack } from "../helper/errorControllers"
 import { ATTACK_TYPE } from "../constants/types"
 import M from "../constants/messages"
 import { attBuff, breakDefence, poison } from "../constants/testing/status"
+import { TCharacter } from "../interfaces/Character.interface"
 
 describe('Character tests', () => {
     let char: any
@@ -350,5 +351,9 @@ describe('Character tests', () => {
         test('rand', () => {
             expect(char.rand(1)).not.toBeNaN()
         })
+    })
+
+    describe('char test', () => {
+        let test = new Character()
     })
 })

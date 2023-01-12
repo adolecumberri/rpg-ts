@@ -4,6 +4,7 @@ import { ATTACK_TYPE, DEFENCE_TYPE } from "../constants/types";
 import { getNestedPropByString, isPrimitiveType, uniqueID } from "../helper";
 import { getDefaultAttackObject, getDefaultDefenceObject, getStatsObject } from "../helper/object";
 import { AttackObject, CallBacks, AnyCharacterType, Constructor, DefenceFunction, Enriched, Stats, StatsKeys } from "../interfaces";
+import { TCharacter } from "../interfaces/Character.interface";
 import LogManager from "./LogManager";
 import SkillManager from "./SkillManager";
 import Status from "./Status";
@@ -392,12 +393,12 @@ class CharacterClass {
     }
 }
 
-const Character = CharacterClass as AnyCharacterType
+const Character = CharacterClass as TCharacter
 
 export {
     Character,
     CharacterClass,
-    AnyCharacterType
+    TCharacter
 }
 
 export default Character

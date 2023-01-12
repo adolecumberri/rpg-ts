@@ -1,6 +1,10 @@
 {
   "name": "rpg-ts",
+<<<<<<< Updated upstream
   "version": "0.8.1",
+=======
+  "version": "0.8.7",
+>>>>>>> Stashed changes
   "description": "rpg utilities in TS",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
