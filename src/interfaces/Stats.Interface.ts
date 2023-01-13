@@ -12,4 +12,4 @@ interface Stats {
     [x: string]: any;
 }
 
-export { Stats };
+export {Stats};

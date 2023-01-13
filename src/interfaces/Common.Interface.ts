@@ -1,19 +1,19 @@
-import { CharacterClass } from "../classes/Character";
-import discriminators from "../constants/discriminators";
-import { IActivateReturn } from "./Status.interface";
+import {CharacterClass} from '../classes/Character';
+import discriminators from '../constants/discriminators';
+import {IActivateReturn} from './Status.interface';
 
-type AttackObjectTypes = "NORMAL" | "CRITICAL" | "MISS" | string;
-type IDeffenceObjectTypes = "NORMAL" | "EVASION" | string;
+type AttackObjectTypes = 'NORMAL' | 'CRITICAL' | 'MISS' | string;
+type IDeffenceObjectTypes = 'NORMAL' | 'EVASION' | string;
 
 interface AttackObject {
-    discriminator: typeof discriminators["ATTACK_OBJECT"];
+    discriminator: typeof discriminators['ATTACK_OBJECT'];
     value: number;
     type?: AttackObjectTypes;
     status?: IActivateReturn
 }
 
 interface DefenceObject {
-    discriminator: typeof discriminators["DEFENCE_OBJECT"];
+    discriminator: typeof discriminators['DEFENCE_OBJECT'];
     value: number;
     type?: IDeffenceObjectTypes;
 }
@@ -23,4 +23,4 @@ interface Enriched {
     callback?: (arg: any) => any
 }
 
-export { AttackObject, DefenceObject, AttackObjectTypes, IDeffenceObjectTypes, Enriched };
+export {AttackObject, DefenceObject, AttackObjectTypes, IDeffenceObjectTypes, Enriched};

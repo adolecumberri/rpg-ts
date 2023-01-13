@@ -1,14 +1,23 @@
 {
   "name": "rpg-ts",
-  "version": "0.8.8",
+  "version": "0.8.14",
   "description": "rpg utilities in TS",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.min.mjs",
+  "unpkg": "dist/index.umd.min.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --fix --ext .ts",
     "test": "jest --coverage",
     "pretty": "prettier --write \"./**/*.{js,jsx,json}\"",
-    "prepublish": "tsc"
+    "prepublish": "tsc",
+    "clean": "del dist",
+    "build": "npm run clean && npm run lint && tsc --project tsconfig.build.json && npm run bundle:esm",
+    "bundle:esm": "rollup dist/index.js --file dist/index.mjs --format esm"
   },
   "repository": {
     "type": "git",
@@ -22,9 +31,13 @@
   "homepage": "https://github.com/adolecumberri/rpg-ts#readme",
   "devDependencies": {
     "@types/jest": "^27.5.1",
+    "@typescript-eslint/eslint-plugin": "^5.48.1",
+    "@typescript-eslint/parser": "^5.48.1",
+    "eslint": "^8.31.0",
+    "eslint-config-google": "^0.14.0",
     "jest": "^28.1.0",
     "lint": "^1.1.2",
-    "prettier": "^2.7.1",
+    "rollup": "^3.10.0",
     "ts-jest": "^28.0.3",
     "typescript": "^4.7.2"
   }

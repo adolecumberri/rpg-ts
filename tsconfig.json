@@ -1,15 +1,19 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "esnext",
-        "declaration": true, //this creates the d.ts files.
-        "outDir": "./dist",
-        "sourceMap": true,
-        "experimentalDecorators": true
+      "declaration": true,
+      "lib": ["es6", "dom", "dom.iterable"],
+      "module": "commonjs",
+      "moduleResolution": "node",
+      "removeComments": true,
+      "sourceMap": true,
+      "target": "es6",
+      "outDir": "./dist"
     },
-    "include": ["src/**/*"],
+    "include": [
+      "src/**/*"
+    ],
     "exclude": [
-        "node_modules",
-        "dist"
-      ]
-}
+      "dist",
+      "node_modules"
+    ]
+  }

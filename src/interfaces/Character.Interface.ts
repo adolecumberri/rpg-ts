@@ -1,13 +1,14 @@
+/* eslint-disable no-unused-vars */
 
-import Character from "../classes/Character"
-import LogManager from "../classes/LogManager"
-import SkillManager from "../classes/SkillManager"
-import Status from "../classes/Status"
-import StatusManager from "../classes/StatusManager"
-import discriminators from "../constants/discriminators"
-import { AttackObject, DefenceObject, Enriched } from "./Common.Interface"
+import Character from '../classes/Character';
+import LogManager from '../classes/LogManager';
+import SkillManager from '../classes/SkillManager';
+import Status from '../classes/Status';
+import StatusManager from '../classes/StatusManager';
+import discriminators from '../constants/discriminators';
+import {AttackObject, DefenceObject, Enriched} from './Common.Interface';
 
-// type TCharacter<T extends object> = 
+// type TCharacter<T extends object> =
 
 type TCharacter = {
     new <T extends object>(arg?: T): T & {
@@ -113,10 +114,10 @@ type DefenceFunction<T> = {
 
 
 export {
-    CallBacks,
-    Stats,
-    DefenceFunction,
-    Constructor,
-    StatsKeys,
-    TCharacter
-}
+  CallBacks,
+  Stats,
+  DefenceFunction,
+  Constructor,
+  StatsKeys,
+  TCharacter,
+};

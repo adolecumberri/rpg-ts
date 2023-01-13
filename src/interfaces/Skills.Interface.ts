@@ -1,7 +1,7 @@
-import { CharacterClass } from "../classes/Character";
-import Skill from "../classes/Skill";
-import discriminators from "../constants/discriminators";
-import { Stats } from "./Stats.Interface";
+import {CharacterClass} from '../classes/Character';
+import Skill from '../classes/Skill';
+import discriminators from '../constants/discriminators';
+import {Stats} from './Stats.Interface';
 
 type IMySkill<T extends object> = T & {
     [x in keyof Skill]: Skill[x]
@@ -23,6 +23,6 @@ type Constructor = Partial<{
 }> & Record<string, any>
 
 export {
-    SkillConstructor,
-    Constructor
+  SkillConstructor,
+  Constructor,
 };

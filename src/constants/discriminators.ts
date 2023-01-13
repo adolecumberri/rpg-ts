@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 enum discriminators {
     CHARACTER,
     ATTACK_OBJECT,

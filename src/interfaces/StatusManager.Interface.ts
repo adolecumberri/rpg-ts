@@ -1,4 +1,4 @@
-import StatusManager from "../classes/StatusManager"
+import StatusManager from '../classes/StatusManager';
 
 type IMyStatus<T extends object> = T & {
     [x in keyof StatusManager]: StatusManager[x]
@@ -13,6 +13,6 @@ type Constructor = {
 } & Record<string, any>
 
 export {
-    IStatusManagerConstructor,
-    Constructor
-}
+  IStatusManagerConstructor,
+  Constructor,
+};

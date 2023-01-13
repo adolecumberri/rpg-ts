@@ -1,46 +1,46 @@
-import { basic_character } from "../constants/testing/character";
-import { poison } from "../constants/testing/status";
-import { getDefaultDefenceObject } from "../helper/object";
-import LogManagerClass from "./LogManager";
+import {BASIC_CHARACTER} from '../constants/testing/character';
+import {poison} from '../constants/testing/status';
+import {getDefaultDefenceObject} from '../helper/object';
+import LogManagerClass from './LogManager';
 
 
 describe('LogManager tests', () => {
-    let char = basic_character;
-    let LM = new LogManagerClass({
-        character: char,
-    })
+  const char = BASIC_CHARACTER;
+  const LM = new LogManagerClass({
+    character: char,
+  });
 
-    test('Log "weird" defence object type', ( )=> {
-        let defObject = getDefaultDefenceObject({type: 'PERFECT'})
-        
-        LM.addLogFromDefenceObject(defObject)
-        // console.log(LM.logs[0])
+  test('Log "weird" defence object type', ( )=> {
+    const defObject = getDefaultDefenceObject({type: 'PERFECT'});
 
-        expect(LM.logCounts).toBe(1)
-        LM.reset()
-        expect(LM.logs.length).toBe(0)
-    })
+    LM.addLogFromDefenceObject(defObject);
+    // console.log(LM.logs[0])
 
-    test('Log Manager can Add Status', () => {
-        LM.addLogStatus(poison, "added")
-        // console.log(LM.logs[0])
-        
-        expect(LM.logCounts).toBe(1)
-        LM.reset()
-        expect(LM.logs.length).toBe(0)
-    })
+    expect(LM.logCounts).toBe(1);
+    LM.reset();
+    expect(LM.logs.length).toBe(0);
+  });
 
-    test('Log Manager displays last log', () => {
-        LM.addLog("test log");
-        let lastLog = LM.getLastLog()
-        // console.log(lastLog)
+  test('Log Manager can Add Status', () => {
+    LM.addLogStatus(poison, 'added');
+    // console.log(LM.logs[0])
 
-        expect(lastLog).toBeTruthy()
-    })
+    expect(LM.logCounts).toBe(1);
+    LM.reset();
+    expect(LM.logs.length).toBe(0);
+  });
 
-    test('Log Managers laods header', () => {
-        let header = LM.getLogHeader();
-        // console.log(header)
-        expect(header).toBeTruthy;
-    })
-})
+  test('Log Manager displays last log', () => {
+    LM.addLog('test log');
+    const lastLog = LM.getLastLog();
+    // console.log(lastLog)
+
+    expect(lastLog).toBeTruthy();
+  });
+
+  test('Log Managers laods header', () => {
+    const header = LM.getLogHeader();
+    // console.log(header)
+    expect(header).toBeTruthy;
+  });
+});

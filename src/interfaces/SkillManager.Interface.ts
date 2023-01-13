@@ -1,6 +1,6 @@
-import { CharacterClass } from "../classes/Character";
-import Skill from "../classes/Skill";
-import SkillManager from "../classes/SkillManager";
+import {CharacterClass} from '../classes/Character';
+import Skill from '../classes/Skill';
+import SkillManager from '../classes/SkillManager';
 
 
 type MySkillManager<T extends object> = T & {
@@ -21,7 +21,7 @@ interface ISkills {
 }
 
 export {
-    SkillManagerConstructor,
-    Constructor,
-    ISkills
- };
+  SkillManagerConstructor,
+  Constructor,
+  ISkills,
+};
