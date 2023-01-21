@@ -8,24 +8,22 @@ import Status from './Status';
 
 
 class LogManager {
-  character: CharacterClass;
-
   logs: string[] = [];
 
   logCounts: number = 0;
-  constructor({character}: Constructor) {
-    this.character = character;
+  constructor(constructor : Constructor) {
+    Object.assign(this, constructor);
   }
 
-  addLog(newLog: string) {
-    this.logs.push(this.getLogHeader() + newLog);
+  addLog(newLog: string, character: CharacterClass) {
+    this.logs.push(this.getLogHeader(character) + newLog);
   }
 
-  addLogFromAttackObject(attObj: AttackObject) {
-    this.logs.push(this.getLogHeader() + `${attObj.value} on ${attObj.type.toLocaleUpperCase()} hit.`);
+  addLogFromAttackObject(attObj: AttackObject, character: CharacterClass) {
+    this.logs.push(this.getLogHeader(character) + `${attObj.value} on ${attObj.type.toLocaleUpperCase()} hit.`);
   }
 
-  addLogFromDefenceObject(defObj: DefenceObject) {
+  addLogFromDefenceObject(defObj: DefenceObject, character: CharacterClass) {
     let logBody = '';
     if (defObj.type.toLocaleUpperCase() === DEFENCE_TYPE.EVASION) {
       logBody = 'attack evaded';
@@ -35,13 +33,13 @@ class LogManager {
       logBody = `value: ${defObj.value} - defence type: ${defObj.type.toLocaleUpperCase()} `;
     }
 
-    logBody += `with DEFENCE=${this.character.stats.defence} and EVASION=${this.character.stats.evasion}`;
+    logBody += `with DEFENCE=${character.stats.defence} and EVASION=${character.stats.evasion}`;
 
-    this.logs.push(this.getLogHeader() + logBody);
+    this.logs.push(this.getLogHeader(character) + logBody);
   }
 
-  addLogStatus(status: Status, action: 'added' | 'removed') {
-    let solution = this.getLogHeader();
+  addLogStatus(status: Status, action: 'added' | 'removed', character: CharacterClass) {
+    let solution = this.getLogHeader(character);
     solution += ` ${action === 'added' ? 'adds' : 'removes'} ${
       status.name.toUpperCase()
     } (id:${status.id}) from his Status List`;
@@ -49,10 +47,10 @@ class LogManager {
     this.logs.push(solution);
   }
 
-  getLogHeader() {
+  getLogHeader( character: CharacterClass) {
     const d = new Date();
     const formattedDate = `${d.getDay()}/${d.getMonth()}/${d.getFullYear()} - ${d.getMinutes() + 1}:${d.getHours() + 1}`;
-    return `${++this.logCounts}.${formattedDate} - ${this.character.name ? this.character.name.toUpperCase() : 'character'} (id:${this.character.id}): `;
+    return `${++this.logCounts}.${formattedDate} - ${character.name ? character.name.toUpperCase() : 'character'} (id:${character.id}): `;
   }
 
   getLastLog() {
