@@ -11,8 +11,8 @@ class LogManager {
   logs: string[] = [];
 
   logCounts: number = 0;
-  constructor(constructor : Constructor) {
-    Object.assign(this, constructor);
+  constructor(constructor?: Constructor) {
+    constructor && Object.assign(this, constructor);
   }
 
   addLog(newLog: string, character: CharacterClass) {

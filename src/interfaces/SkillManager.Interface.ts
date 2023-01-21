@@ -12,9 +12,8 @@ type SkillManagerConstructor = {
 }
 
 type Constructor = Partial<{
-    character: CharacterClass;
     skills: ISkills;
-}> & Record<string, any>
+}> & Record<string, unknown>
 
 interface ISkills {
     [x:string]: Skill

@@ -88,9 +88,9 @@ class CharacterClass {
     this.id = id ? id : uniqueID();
     this.isAlive = isAlive === undefined ? true : isAlive;
     this.name = name;
-    this.StatusManager = new StatusManager({character: this});
-    this.SkillManager = new SkillManager({character: this});
-    this.LogManager = new LogManager({character: this});
+    this.StatusManager = new StatusManager();
+    this.SkillManager = new SkillManager();
+    this.LogManager = new LogManager();
   }
 
   /**

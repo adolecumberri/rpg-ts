@@ -6,10 +6,12 @@ import {Constructor, SkillManagerConstructor, ISkills} from '../interfaces/Skill
 class SkillManager {
   skills: ISkills = {};
 
-  constructor(arg: Constructor) {
-    Object.keys(arg).forEach((key) => {
-      this[key] = arg[key];
-    });
+  constructor(constructor?: Constructor) {
+    constructor && Object.assign(this, constructor);
+
+    // Object.keys(constructor).forEach((key) => {
+    //   this[key] = constructor[key];
+    // });
   }
 
   /**

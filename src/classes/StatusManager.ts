@@ -17,9 +17,11 @@ class StatusManager {
   constructor(config?: Constructor) {
     this.originalConfig = config;
 
-    Object.keys(config).forEach((key) => {
-      this[key] = config[key];
-    });
+    if (config) {
+      Object.keys(config).forEach((key) => {
+        this[key] = config[key];
+      });
+    }
   }
 
   /**
