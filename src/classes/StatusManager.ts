@@ -6,8 +6,6 @@ import {CharacterClass} from './Character';
 import Status from './Status';
 
 class StatusManager {
-  character: CharacterClass;
-
   originalConfig: Constructor;
 
   statusList: Status[] = [];
@@ -27,15 +25,15 @@ class StatusManager {
   /**
     * @param status single status or a list of status to add into StatusList
     */
-  addStatus(status: Status[] | Status): void {
+  addStatus(status: Status[] | Status, character: CharacterClass): void {
     if ((status as Status).discriminator === discriminators.STATUS) {
-      (status as Status).setCharacter(this.character);
+      (status as Status).setCharacter(character);
       (status as Status).onAdd();
       this.statusList.push(<Status>status);
       this.timesStatusHasBeenAdded++;
     } else {
       (status as Status[]).forEach((_, i, arr) => {
-        arr[i].setCharacter(this.character);
+        arr[i].setCharacter(character);
         arr[i].onAdd();
         this.timesStatusHasBeenAdded++;
       });

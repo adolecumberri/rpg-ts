@@ -97,10 +97,10 @@ class CharacterClass {
       *
       * @param status Status or Status[] to add into the statusManager
       */
-  addStatus = (status: Status | Status[]) => {
+  addStatus = (status: Status | Status[], character: CharacterClass) => {
     this.StatusManager.activate('BEFORE_ADD_STATUS');
 
-    this.StatusManager.addStatus(status);
+    this.StatusManager.addStatus(status, character);
 
     if ((status as Status).discriminator) {
       this.LogManager && this.LogManager.addLogStatus((status as Status), 'added', this);
