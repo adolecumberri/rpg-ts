@@ -10,8 +10,8 @@ const fireBall = new Skill({
   stats: {
     damage: 20,
   },
-  activate: function() {
-    return (this as Skill).character.stats?.attack + (this as Skill).stats.damage;
+  activate: function(character: defaultCharacter) {
+    return character.stats.attack + (this as Skill).stats.damage;
   },
 });
 

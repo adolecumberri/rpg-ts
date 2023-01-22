@@ -3,7 +3,7 @@ import {attackBoost, hardDefenceDebuff} from '../constants/testing/status';
 import {test_1_1_2, test_1_2_2, test_2_1_2, test_2_2_2} from '../constants/testing/status_by_default';
 import {ITemporal} from '../interfaces/Status.interface';
 import StatusClass from './Status';
-import {CharacterClass} from './Character';
+import Character from './Character';
 
 /**
 LEGEND:
@@ -24,12 +24,6 @@ durationType:       whenToApply             appliedOn
 */
 
 describe('Status Manager works as expected', () => {
-  // they do not have states to alter the character.
-  test_1_1_2.setCharacter(BASIC_CHARACTER);
-  test_1_2_2.setCharacter(BASIC_CHARACTER);
-  test_2_1_2.setCharacter(BASIC_CHARACTER);
-  test_2_2_2.setCharacter(BASIC_CHARACTER);
-
   test('example Status are as expected', () => {
     expect(test_1_1_2.whenToApply).toBe('ONCE');
     expect(test_1_1_2.duration.type).toBe('TEMPORAL');
@@ -53,7 +47,7 @@ describe('Status Manager works as expected', () => {
     expect(test_1_1_2.hasAlreadyBeenApplied).toBe(false);
     expect(test_1_1_2.isActive).toBe(true);
     expect(test_1_1_2.timesApplied).toBe(0);
-    test_1_1_2.activate();
+    test_1_1_2.activate(BASIC_CHARACTER);
     expect(test_1_1_2.hasAlreadyBeenApplied).toBe(true);
     expect(test_1_1_2.isActive).toBe(false);
     expect(test_1_1_2.timesApplied).toBe(1);
@@ -62,7 +56,7 @@ describe('Status Manager works as expected', () => {
     expect(test_1_2_2.hasAlreadyBeenApplied).toBe(false);
     expect(test_1_2_2.isActive).toBe(true);
     expect(test_1_2_2.timesApplied).toBe(0);
-    test_1_2_2.activate();
+    test_1_2_2.activate(BASIC_CHARACTER);
     expect(test_1_2_2.hasAlreadyBeenApplied).toBe(true);
     expect(test_1_2_2.isActive).toBe(false);
     expect(test_1_2_2.timesApplied).toBe(1);
@@ -71,7 +65,7 @@ describe('Status Manager works as expected', () => {
     expect(test_2_1_2.hasAlreadyBeenApplied).toBe(false);
     expect(test_2_1_2.isActive).toBe(true);
     expect(test_2_1_2.timesApplied).toBe(0);
-    test_2_1_2.activate();
+    test_2_1_2.activate(BASIC_CHARACTER);
     expect(test_2_1_2.hasAlreadyBeenApplied).toBe(true);
     expect(test_2_1_2.isActive).toBe(true);
     expect(test_2_1_2.timesApplied).toBe(1);
@@ -80,7 +74,7 @@ describe('Status Manager works as expected', () => {
     expect(test_2_2_2.hasAlreadyBeenApplied).toBe(false);
     expect(test_2_2_2.isActive).toBe(true);
     expect(test_2_2_2.timesApplied).toBe(0);
-    test_2_2_2.activate();
+    test_2_2_2.activate(BASIC_CHARACTER);
     expect(test_2_2_2.hasAlreadyBeenApplied).toBe(true);
     expect(test_2_2_2.isActive).toBe(true);
     expect(test_2_2_2.timesApplied).toBe(1);
@@ -105,13 +99,11 @@ describe('Status Manager works as expected', () => {
       name: 'test_cabronazo',
     });
 
-    const dead_character = new CharacterClass({
+    const dead_character = new Character({
       isAlive: false,
     });
 
-    newStatus.setCharacter(dead_character);
-
-    let activationSolution = newStatus.activate();
+    let activationSolution = newStatus.activate(dead_character);
     // because when character is dead it do not execute
     expect(activationSolution).toEqual({
       statsAffected: newStatus.statsAffected,
@@ -120,7 +112,7 @@ describe('Status Manager works as expected', () => {
     });
 
     dead_character.revive();
-    activationSolution = newStatus.activate();
+    activationSolution = newStatus.activate(dead_character);
 
     expect(activationSolution.value).toEqual({hp: 0});
     expect(activationSolution.statusLastExecution).toBe(true);
@@ -152,14 +144,15 @@ describe('Status Manager works as expected', () => {
       name: 'TEST',
       recovers: true,
     });
-    const character = new CharacterClass({});
-    newStatus.setCharacter(character);
-    newStatus.activate();
-    newStatus.activate();
+    const character = new Character({});
+
+    newStatus.activate(character);
+    newStatus.activate(character);
+
     expect(character.stats.total_hp).toBe(1500);
     expect(character.stats.hp).toBe(0);
 
-    newStatus.recoverStats();
+    newStatus.recoverStats(character);
     // logic error. the +2000 total_hp are recovered but the -500total_hp no.
     // that's why you get a final total_hp negative
     expect(character.stats.total_hp).toBe(0);
@@ -201,25 +194,24 @@ describe('Status Manager works as expected', () => {
     ]);
     expect(test_1_1_2.statsAffected.length).toBe(2);
 
-    test_1_1_2.setCharacter(
-        new CharacterClass({
-          stats: {
-            attack: 20,
-            defence: 100,
-            hp: 1000,
-          },
-        }),
-    );
 
-    expect(test_1_1_2.character.stats.attack).toBe(20);
-    expect(test_1_1_2.character.stats.defence).toBe(100);
-    expect(test_1_1_2.character.stats.hp).toBe(1000);
+    const char = new Character({
+      stats: {
+        attack: 20,
+        defence: 100,
+        hp: 1000,
+      },
+    });
 
-    const solution = test_1_1_2.activate();
+    expect(char.stats.attack).toBe(20);
+    expect(char.stats.defence).toBe(100);
+    expect(char.stats.hp).toBe(1000);
 
-    expect(test_1_1_2.character.stats.attack).toBe(30);
-    expect(test_1_1_2.character.stats.defence).toBe(80);
-    expect(test_1_1_2.character.stats.hp).toBe(1000);
+    const solution = test_1_1_2.activate(char);
+
+    expect(char.stats.attack).toBe(30);
+    expect(char.stats.defence).toBe(80);
+    expect(char.stats.hp).toBe(1000);
 
     console.log({solution});
   });

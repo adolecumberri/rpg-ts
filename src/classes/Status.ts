@@ -12,12 +12,10 @@ import {
   ITemporal,
   ITimesUsed,
 } from '../interfaces/Status.Interface';
-import {CharacterClass} from './Character';
+import {defaultCharacter} from './Character';
 
 class Status {
   appliedOn: IStatusAppliedOn = default_status.appliedOn;
-
-  character: CharacterClass;
 
   discriminator = discriminators.STATUS;
 
@@ -79,7 +77,7 @@ class Status {
     *
     * @returns
     */
-  activate: () => IActivateReturn = () => {
+  activate: (character: defaultCharacter) => IActivateReturn = (character) => {
     const ACTION = {
       [STATUS_TYPE.BUFF_FIXED]: this.loadBuffFixed,
       [STATUS_TYPE.BUFF_PERCENTAGE]: this.loadBuffPercentage,
@@ -93,10 +91,8 @@ class Status {
       statusLastExecution: false, // TODO_ corregir. poco descriptivo
     };
 
-    // clausula de guarda
-    if (!this.character.isAlive) {
-      return finalSolution;
-    }
+    // check if character is alive, if not, return finalSolution
+    if (!character.isAlive) return finalSolution;
 
     const execute = () => {
       this.hasAlreadyBeenApplied = true;
@@ -107,13 +103,13 @@ class Status {
       this.statsAffected.forEach(({type, from, to, value, source, recovers, ...rest}, i) => {
         // ACTION[stat.type] is a unction loaded with an object
         const statusSolution = ACTION[type]({
-          from: this.character[source][from],
-          to: this.character[source][to],
+          from: character[source][from],
+          to: character[source][to],
           operator: value,
         });
 
         // updates Character Stat "to" with the solution.
-        this.character.setStat(to, statusSolution.solution);
+        character.setStat(to, statusSolution.solution);
 
         // Stored in the global changes variable
         if (!this.totalStatsChanged[to]) this.totalStatsChanged[to] = 0;
@@ -121,7 +117,7 @@ class Status {
 
         // added Solution Value to the stat changed.
         if (!finalSolution.value[to]) finalSolution.value[to] = 0;
-        finalSolution.value[to] += this.character[source][to]; //
+        finalSolution.value[to] += character[source][to]; //
 
         // added one time used.
         this.statsAffected[i].timesUsed++;
@@ -280,10 +276,10 @@ class Status {
   /**
     * revert stats changed if stat.recovers === true
     */
-  recoverStats() {
+  recoverStats(character: defaultCharacter) {
     this.statsAffected.forEach((stat) => {
       if (stat.recovers) {
-        this.character.stats[stat.to] += -this.totalStatsChanged[stat.to];
+        character.stats[stat.to] += -this.totalStatsChanged[stat.to];
       }
     });
   }
@@ -308,10 +304,6 @@ class Status {
     if (this.whenToApply === 'ONCE') {
       this.hasAlreadyBeenApplied = false;
     }
-  }
-
-  setCharacter(c: CharacterClass) {
-    this.character = c;
   }
 
   /**

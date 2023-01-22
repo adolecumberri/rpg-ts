@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import {CharacterClass} from '../classes/Character';
+import {defaultCharacter} from '../classes/Character';
 import IStatus from '../classes/Status';
 import {STATUS_DURATIONS, STATUS_SOURCE, STATUS_WHEN_TO_APPLY} from '../constants/status';
 import {Stats} from './Character.interface';
@@ -67,7 +67,6 @@ type ITimesUsed = typeof STATUS_WHEN_TO_APPLY.ONCE | typeof STATUS_WHEN_TO_APPLY
 
 type Constructor = Partial<{
     appliedOn: IStatusAppliedOn;
-    character: CharacterClass;
     // discriminator: discriminators.STATUS;
     duration: IDuration;
     hasAlreadyBeenApplied: boolean;
@@ -91,7 +90,7 @@ type Constructor = Partial<{
     recovers: boolean
     // recoverStats: () => void;
     // resetStatus: () => void;
-    // setCharacter: (c: CharacterClass) => void;
+    // setCharacter: (c: defaultCharacter) => void;
     // setIsActive: (value: boolean) => void;
 }> & Record<string, any>
 

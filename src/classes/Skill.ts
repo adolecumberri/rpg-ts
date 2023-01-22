@@ -1,14 +1,11 @@
 import discriminators from '../constants/discriminators';
 import {Stats} from '../interfaces';
 import {Constructor, SkillConstructor} from '../interfaces/Skills.Interface';
-import {CharacterClass} from './Character';
 
 class Skill {
   activate: {
         (param?: any): any
     };
-
-  character: CharacterClass;
 
   discriminator = discriminators.SKILLS;
 
@@ -30,10 +27,6 @@ class Skill {
         return activate;
       })();
     }
-  }
-
-  setCharacter(c: CharacterClass) {
-    this.character = c;
   }
 }
 

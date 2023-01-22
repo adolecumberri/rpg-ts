@@ -4,9 +4,7 @@ import StatusManagerClass from './StatusManager';
 
 describe('Status Manager works as expected', () => {
   const char = BASIC_CHARACTER;
-  const SM = new StatusManagerClass({
-    character: char,
-  });
+  const SM = new StatusManagerClass();
 
   test('add and remove status', () => {
     SM.addStatus([test1,
@@ -14,10 +12,10 @@ describe('Status Manager works as expected', () => {
       test3], char);
     expect(SM.statusList.length).toBe(3);
     // TODO:
-    let solution = SM.activate('BEFORE_TURN');
+    let solution = SM.activate('BEFORE_TURN', char);
     // TODO:
     console.log(solution);
-    solution = SM.activate('BEFORE_TURN');
+    solution = SM.activate('BEFORE_TURN', char);
 
     console.log(solution);
   });

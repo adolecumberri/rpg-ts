@@ -98,7 +98,7 @@ class CharacterClass {
       * @param status Status or Status[] to add into the statusManager
       */
   addStatus = (status: Status | Status[], character: CharacterClass) => {
-    this.StatusManager.activate('BEFORE_ADD_STATUS');
+    this.StatusManager.activate('BEFORE_ADD_STATUS', this);
 
     this.StatusManager.addStatus(status, character);
 
@@ -110,7 +110,7 @@ class CharacterClass {
       });
     }
 
-    this.StatusManager.activate('AFTER_ADD_STATUS');
+    this.StatusManager.activate('AFTER_ADD_STATUS', this);
     this.callbacks['addStatus'] && this.callbacks['addStatus']();
   };
 
@@ -120,7 +120,7 @@ class CharacterClass {
       ** callbacks: attack
       */
   afterTurn = () => {
-    this.StatusManager.activate('AFTER_TURN');
+    this.StatusManager.activate('AFTER_TURN', this);
     this.LogManager && this.LogManager.addLog('after turn', this);
     this.callbacks['afterTurn'] && this.callbacks['afterTurn']();
   };
@@ -136,7 +136,7 @@ class CharacterClass {
   attack() {
     // if activate('BEFORE_ATTACK') returns an AttackObject, solution will be initializes with it
     let solution = getDefaultAttackObject(
-            this.StatusManager.activate('BEFORE_ATTACK') as any,
+            this.StatusManager.activate('BEFORE_ATTACK', this) as any,
     );
     const {accuracy, crit, crit_multiplier, attack} = this.stats;
 
@@ -150,7 +150,7 @@ class CharacterClass {
       solution.value = attack;
     }
 
-    this.StatusManager.activate('AFTER_ATTACK');
+    this.StatusManager.activate('AFTER_ATTACK', this);
 
     const callbackSolution = this.callbacks['attack'] && this.callbacks['attack']();
     solution = callbackSolution ? callbackSolution : solution;
@@ -166,7 +166,7 @@ class CharacterClass {
       ** callbacks: beforeTurn
       */
   beforeTurn = () => {
-    this.StatusManager.activate('BEFORE_TURN');
+    this.StatusManager.activate('BEFORE_TURN', this);
     this.LogManager && this.LogManager.addLog('before turn', this);
     this.callbacks['beforeTurn'] && this.callbacks['beforeTurn']();
   };
@@ -180,11 +180,11 @@ class CharacterClass {
       ** TODO: update before/after _attack
       */
   defend(attackObject: AttackObject) {
-    this.StatusManager.activate('BEFORE_DEFENCE');
+    this.StatusManager.activate('BEFORE_DEFENCE', this);
 
     let solution = this.defenceFunction(attackObject);
 
-    this.StatusManager.activate('AFTER_DEFENCE');
+    this.StatusManager.activate('AFTER_DEFENCE', this);
 
     const callbackSolution = this.callbacks['defend'] && this.callbacks['defend']();
     solution = callbackSolution ? callbackSolution : solution;
@@ -270,14 +270,14 @@ class CharacterClass {
        * @param status a Status to remove or an Id to eliminate
        */
   removeStatus(status: Status | number) {
-    this.StatusManager.activate('BEFORE_REMOVE_STATUS');
+    this.StatusManager.activate('BEFORE_REMOVE_STATUS', this);
 
     const removedStatus = typeof status === 'number' ?
             this.StatusManager.removeStatusById(status) :
             this.StatusManager.removeStatus(status);
 
     this.LogManager.addLogStatus(removedStatus, 'removed', this);
-    this.StatusManager.activate('AFTER_REMOVE_STATUS');
+    this.StatusManager.activate('AFTER_REMOVE_STATUS', this);
   };
 
   /**

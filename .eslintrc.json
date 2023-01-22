@@ -27,7 +27,8 @@
         "no-unused-vars": "off",
         "camelcase": "off",
         "valid-jsdoc": "off",
-        "linebreak-style": "off"
+        "linebreak-style": "off",
+        "object-curly-spacing":"off"
     },
     "ignorePatterns": [
         "dist",

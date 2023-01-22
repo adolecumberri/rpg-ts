@@ -1,8 +1,8 @@
 import discriminators from '../constants/discriminators';
-import {mergeObjects} from '../helper/index';
-import {IActivateReturn, IStatusAppliedOn} from '../interfaces/Status.Interface';
-import {Constructor} from '../interfaces/StatusManager.interface';
-import {defaultCharacter} from './Character';
+import { mergeObjects } from '../helper/index';
+import { IActivateReturn, IStatusAppliedOn } from '../interfaces/Status.Interface';
+import { Constructor } from '../interfaces/StatusManager.interface';
+import { defaultCharacter } from './Character';
 import Status from './Status';
 
 class StatusManager {
@@ -29,13 +29,11 @@ class StatusManager {
     */
   addStatus(status: Status[] | Status, character: defaultCharacter): void {
     if ((status as Status).discriminator === discriminators.STATUS) {
-      (status as Status).setCharacter(character);
       (status as Status).onAdd();
       this.statusList.push(<Status>status);
       this.timesStatusHasBeenAdded++;
     } else {
       (status as Status[]).forEach((_, i, arr) => {
-        arr[i].setCharacter(character);
         arr[i].onAdd();
         this.timesStatusHasBeenAdded++;
       });
@@ -48,7 +46,7 @@ class StatusManager {
     * @param appliedOn
     * @return Solution of every status applied
     */
-  activate(appliedOn: IStatusAppliedOn): { status: IActivateReturn } {
+  activate(appliedOn: IStatusAppliedOn, character: defaultCharacter): { status: IActivateReturn } {
     const finalSolution = {
       statsAffected: [],
       value: {},
@@ -57,7 +55,7 @@ class StatusManager {
 
     this.statusList.forEach((status) => {
       if (status.appliedOn === appliedOn) {
-        const statusSolution = status.activate();
+        const statusSolution = status.activate(character);
 
         finalSolution.statsAffected.push(statusSolution.statsAffected);
         finalSolution.value = mergeObjects([finalSolution.value, statusSolution.value]);
@@ -65,7 +63,7 @@ class StatusManager {
       if (!status.isActive) this.removeStatusById(status.id);
     });
 
-    return {status: finalSolution};
+    return { status: finalSolution };
   }
 
   /**

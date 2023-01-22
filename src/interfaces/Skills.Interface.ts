@@ -1,4 +1,5 @@
-import {CharacterClass} from '../classes/Character';
+
+import { defaultCharacter } from '../classes/Character';
 import Skill from '../classes/Skill';
 import discriminators from '../constants/discriminators';
 import {Stats} from './Stats.Interface';
@@ -15,7 +16,7 @@ type Constructor = Partial<{
     activate: {
         (param?: any): any
     };
-    character: CharacterClass;
+    character: defaultCharacter;
     discriminator: typeof discriminators.SKILLS;
     name: string;
     stats: Partial<Stats>;

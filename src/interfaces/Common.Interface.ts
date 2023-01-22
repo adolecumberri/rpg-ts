@@ -1,4 +1,4 @@
-import {CharacterClass} from '../classes/Character';
+import {defaultCharacter} from '../classes/Character';
 import discriminators from '../constants/discriminators';
 import {IActivateReturn} from './Status.interface';
 
@@ -19,7 +19,7 @@ interface DefenceObject {
 }
 
 interface Enriched {
-    character?: CharacterClass,
+    character?: defaultCharacter,
     callback?: (arg: any) => any
 }
 

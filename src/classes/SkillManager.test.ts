@@ -11,7 +11,6 @@ describe('Skill Manager works as expected', () => {
   );
 
   test('skill manager add skills as expected', () => {
-    testingSkills.fireBall.setCharacter( char );
     SM.add(testingSkills.fireBall);
     expect(SM.skills[testingSkills.fireBall.name]).toBeTruthy();
 
