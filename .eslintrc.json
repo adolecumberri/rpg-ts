@@ -26,6 +26,11 @@
         "require-jsdoc": "off",
         "no-unused-vars": "off",
         "camelcase": "off",
-        "valid-jsdoc": "off"
-    }
+        "valid-jsdoc": "off",
+        "linebreak-style": "off"
+    },
+    "ignorePatterns": [
+        "dist",
+        "node_modules"
+    ]
 }

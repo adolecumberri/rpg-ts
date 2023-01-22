@@ -1,4 +1,4 @@
-import Character, {CharacterClass} from '../../classes/Character';
+import {defaultCharacter} from '../../classes/Character';
 import Skill from '../../classes/Skill';
 import Status from '../../classes/Status';
 import {IStatAffected} from '../../interfaces/Status.interface';
@@ -21,7 +21,7 @@ const iceBall = new Skill({
     attack: 10,
     statusPrecision: 100,
   },
-  activate: function(victim: CharacterClass) {
+  activate: function(victim: defaultCharacter) {
     const damage = (this as Skill).stats.attack;
 
     if ((this as Skill).stats.statusPrecision) {
@@ -34,7 +34,7 @@ const iceBall = new Skill({
 
 const blessing = new Skill({
   name: 'blessing',
-  activate: function(user: CharacterClass) {
+  activate: function(user: defaultCharacter) {
     const attackUp: IStatAffected = {from: 'attack', to: 'attack', value: 10, type: 'BUFF_FIXED'};
     const deffenceUp: IStatAffected = {from: 'defence', to: 'defence', value: 10, type: 'BUFF_FIXED'};
 

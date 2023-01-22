@@ -5,7 +5,6 @@ import SkillManager from './SkillManager';
 import Status from './Status';
 import StatusManager from './StatusManager';
 
-
 export {
   Character,
   LogManager,

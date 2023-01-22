@@ -1,4 +1,3 @@
-import {CharacterClass} from '../classes/Character';
 import Skill from '../classes/Skill';
 import SkillManager from '../classes/SkillManager';
 

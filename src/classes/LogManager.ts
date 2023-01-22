@@ -1,9 +1,8 @@
 /* eslint-disable max-len */
-
 import {DEFENCE_TYPE} from '../constants/types';
 import {AttackObject, DefenceObject} from '../interfaces';
 import {Constructor} from '../interfaces/LogManager.Interface';
-import {CharacterClass} from './Character';
+import {defaultCharacter} from './Character';
 import Status from './Status';
 
 
@@ -17,6 +16,7 @@ class LogManager {
     this.character = character;
   }
 
+<<<<<<< Updated upstream
   addLog(newLog: string) {
     this.logs.push(this.getLogHeader() + newLog);
   }
@@ -26,6 +26,17 @@ class LogManager {
   }
 
   addLogFromDefenceObject(defObj: DefenceObject) {
+=======
+  addLog(newLog: string, character: defaultCharacter) {
+    this.logs.push(this.getLogHeader(character) + newLog);
+  }
+
+  addLogFromAttackObject(attObj: AttackObject, character: defaultCharacter) {
+    this.logs.push(this.getLogHeader(character) + `${attObj.value} on ${attObj.type.toLocaleUpperCase()} hit.`);
+  }
+
+  addLogFromDefenceObject(defObj: DefenceObject, character: defaultCharacter) {
+>>>>>>> Stashed changes
     let logBody = '';
     if (defObj.type.toLocaleUpperCase() === DEFENCE_TYPE.EVASION) {
       logBody = 'attack evaded';
@@ -40,8 +51,13 @@ class LogManager {
     this.logs.push(this.getLogHeader() + logBody);
   }
 
+<<<<<<< Updated upstream
   addLogStatus(status: Status, action: 'added' | 'removed') {
     let solution = this.getLogHeader();
+=======
+  addLogStatus(status: Status, action: 'added' | 'removed', character: defaultCharacter) {
+    let solution = this.getLogHeader(character);
+>>>>>>> Stashed changes
     solution += ` ${action === 'added' ? 'adds' : 'removes'} ${
       status.name.toUpperCase()
     } (id:${status.id}) from his Status List`;
@@ -49,7 +65,11 @@ class LogManager {
     this.logs.push(solution);
   }
 
+<<<<<<< Updated upstream
   getLogHeader() {
+=======
+  getLogHeader( character: defaultCharacter) {
+>>>>>>> Stashed changes
     const d = new Date();
     const formattedDate = `${d.getDay()}/${d.getMonth()}/${d.getFullYear()} - ${d.getMinutes() + 1}:${d.getHours() + 1}`;
     return `${++this.logCounts}.${formattedDate} - ${this.character.name ? this.character.name.toUpperCase() : 'character'} (id:${this.character.id}): `;

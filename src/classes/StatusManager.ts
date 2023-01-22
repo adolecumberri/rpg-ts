@@ -2,7 +2,7 @@ import discriminators from '../constants/discriminators';
 import {mergeObjects} from '../helper/index';
 import {IActivateReturn, IStatusAppliedOn} from '../interfaces/Status.Interface';
 import {Constructor} from '../interfaces/StatusManager.interface';
-import {CharacterClass} from './Character';
+import {defaultCharacter} from './Character';
 import Status from './Status';
 
 class StatusManager {
@@ -27,7 +27,11 @@ class StatusManager {
   /**
     * @param status single status or a list of status to add into StatusList
     */
+<<<<<<< Updated upstream
   addStatus(status: Status[] | Status): void {
+=======
+  addStatus(status: Status[] | Status, character: defaultCharacter): void {
+>>>>>>> Stashed changes
     if ((status as Status).discriminator === discriminators.STATUS) {
       (status as Status).setCharacter(this.character);
       (status as Status).onAdd();

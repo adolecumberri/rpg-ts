@@ -1,6 +1,5 @@
 import discriminators from '../discriminators';
 import {getStatsObject} from '../../helper/object';
-import {Stats} from '../../interfaces';
 
 const TESTING_STATS = {
   correct_basic_stats: getStatsObject({

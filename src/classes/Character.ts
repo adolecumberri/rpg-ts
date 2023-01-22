@@ -405,8 +405,7 @@ const Character = CharacterClass as TCharacter;
 
 export {
   Character,
-  CharacterClass,
-  TCharacter,
+  CharacterClass as defaultCharacter,
 };
 
 export default Character;
