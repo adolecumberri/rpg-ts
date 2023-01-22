@@ -6,7 +6,6 @@ describe('Skill Manager works as expected', () => {
   const char = BASIC_CHARACTER;
   const SM = new SkillManagerClass(
       {
-        character: char,
         skills: {},
       },
   );

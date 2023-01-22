@@ -88,25 +88,25 @@ class CharacterClass {
     this.id = id ? id : uniqueID();
     this.isAlive = isAlive === undefined ? true : isAlive;
     this.name = name;
-    this.StatusManager = new StatusManager({character: this});
-    this.SkillManager = new SkillManager({character: this});
-    this.LogManager = new LogManager({character: this});
+    this.StatusManager = new StatusManager();
+    this.SkillManager = new SkillManager();
+    this.LogManager = new LogManager();
   }
 
   /**
       *
       * @param status Status or Status[] to add into the statusManager
       */
-  addStatus = (status: Status | Status[]) => {
+  addStatus = (status: Status | Status[], character: CharacterClass) => {
     this.StatusManager.activate('BEFORE_ADD_STATUS');
 
-    this.StatusManager.addStatus(status);
+    this.StatusManager.addStatus(status, character);
 
     if ((status as Status).discriminator) {
-      this.LogManager && this.LogManager.addLogStatus((status as Status), 'added');
+      this.LogManager && this.LogManager.addLogStatus((status as Status), 'added', this);
     } else {
       (status as Status[]).forEach((stat) => {
-        this.LogManager && this.LogManager.addLogStatus(stat, 'added');
+        this.LogManager && this.LogManager.addLogStatus(stat, 'added', this);
       });
     }
 
@@ -121,7 +121,7 @@ class CharacterClass {
       */
   afterTurn = () => {
     this.StatusManager.activate('AFTER_TURN');
-    this.LogManager && this.LogManager.addLog('after turn');
+    this.LogManager && this.LogManager.addLog('after turn', this);
     this.callbacks['afterTurn'] && this.callbacks['afterTurn']();
   };
 
@@ -155,7 +155,7 @@ class CharacterClass {
     const callbackSolution = this.callbacks['attack'] && this.callbacks['attack']();
     solution = callbackSolution ? callbackSolution : solution;
 
-    this.LogManager && this.LogManager.addLogFromAttackObject(solution);
+    this.LogManager && this.LogManager.addLogFromAttackObject(solution, this);
 
     return solution;
   }
@@ -167,7 +167,7 @@ class CharacterClass {
       */
   beforeTurn = () => {
     this.StatusManager.activate('BEFORE_TURN');
-    this.LogManager && this.LogManager.addLog('before turn');
+    this.LogManager && this.LogManager.addLog('before turn', this);
     this.callbacks['beforeTurn'] && this.callbacks['beforeTurn']();
   };
 
@@ -189,7 +189,7 @@ class CharacterClass {
     const callbackSolution = this.callbacks['defend'] && this.callbacks['defend']();
     solution = callbackSolution ? callbackSolution : solution;
 
-    this.LogManager && this.LogManager.addLogFromDefenceObject(solution);
+    this.LogManager && this.LogManager.addLogFromDefenceObject(solution, this);
 
     return solution;
   }
@@ -276,7 +276,7 @@ class CharacterClass {
             this.StatusManager.removeStatusById(status) :
             this.StatusManager.removeStatus(status);
 
-    this.LogManager.addLogStatus(removedStatus, 'removed');
+    this.LogManager.addLogStatus(removedStatus, 'removed', this);
     this.StatusManager.activate('AFTER_REMOVE_STATUS');
   };
 
@@ -306,7 +306,7 @@ class CharacterClass {
       this[key] = this.enrich(value);
     }
 
-    this.LogManager.addLog(`attribute ${key} setted`);
+    this.LogManager.addLog(`attribute ${key} setted`, this);
   }
 
   /**
@@ -342,7 +342,7 @@ class CharacterClass {
     this.stats[key] = value;
 
     // LOG
-    this.LogManager.addLog(`stat setted: key:${key}, value:${value}`);
+    this.LogManager.addLog(`stat setted: key:${key}, value:${value}`, this);
 
     this.callbacks['setStat'] && this.callbacks['setStat']();
   };
@@ -357,7 +357,7 @@ class CharacterClass {
   setMultipleStats(statsObject: Partial<Stats>) {
     Object.keys(statsObject).forEach((key: StatsKeys) => {
       this.setStat(key, statsObject[key]);
-      this.LogManager.addLog(`stat setted: ${statsObject[key]}`);
+      this.LogManager.addLog(`stat setted: ${statsObject[key]}`, this);
     });
 
     this.callbacks['setStat'] && this.callbacks['setStat']();
@@ -374,7 +374,7 @@ class CharacterClass {
 
     this.stats = statsObject;
 
-    this.LogManager.addLog(`stats overrided`);
+    this.LogManager.addLog(`stats overrided`, this);
 
     this.callbacks['setStat'] && this.callbacks['setStat']();
   }
@@ -396,7 +396,7 @@ class CharacterClass {
     solution.character = this;
     // solution.callback = this.callbacks[anything.name]
 
-    this.LogManager.addLog(`${anything.name} enriched.`);
+    this.LogManager.addLog(`${anything.name} enriched.`, this);
     return solution as T;
   };
 }

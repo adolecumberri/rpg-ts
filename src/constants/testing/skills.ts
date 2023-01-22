@@ -25,7 +25,7 @@ const iceBall = new Skill({
     const damage = (this as Skill).stats.attack;
 
     if ((this as Skill).stats.statusPrecision) {
-      victim.StatusManager.addStatus(frozen);
+      victim.StatusManager.addStatus(frozen, victim);
     }
 
     victim.setStat('hp', victim.stats.hp - damage);
@@ -45,7 +45,7 @@ const blessing = new Skill({
       durationType: STATUS_DURATIONS.TEMPORAL,
     });
 
-    user.StatusManager.addStatus(statusBlessing);
+    user.StatusManager.addStatus(statusBlessing, user);
   },
 });
 

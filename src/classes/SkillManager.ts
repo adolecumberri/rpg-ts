@@ -2,19 +2,16 @@ import discriminators from '../constants/discriminators';
 import {uniqueID} from '../helper';
 import Skill from './Skill';
 import {Constructor, SkillManagerConstructor, ISkills} from '../interfaces/SkillManager.Interface';
-import {CharacterClass} from './Character';
-
 
 class SkillManager {
-  character: CharacterClass;
-
   skills: ISkills = {};
 
-  constructor(arg: Constructor) {
-    // added the rest of parameters to the Character. ANY allowed.
-    Object.keys(arg).forEach((key) => {
-      this[key] = arg[key];
-    });
+  constructor(constructor?: Constructor) {
+    constructor && Object.assign(this, constructor);
+
+    // Object.keys(constructor).forEach((key) => {
+    //   this[key] = constructor[key];
+    // });
   }
 
   /**

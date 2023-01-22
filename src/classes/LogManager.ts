@@ -7,26 +7,13 @@ import Status from './Status';
 
 
 class LogManager {
-  character: CharacterClass;
-
   logs: string[] = [];
 
   logCounts: number = 0;
-  constructor({character}: Constructor) {
-    this.character = character;
+  constructor(constructor?: Constructor) {
+    constructor && Object.assign(this, constructor);
   }
 
-<<<<<<< Updated upstream
-  addLog(newLog: string) {
-    this.logs.push(this.getLogHeader() + newLog);
-  }
-
-  addLogFromAttackObject(attObj: AttackObject) {
-    this.logs.push(this.getLogHeader() + `${attObj.value} on ${attObj.type.toLocaleUpperCase()} hit.`);
-  }
-
-  addLogFromDefenceObject(defObj: DefenceObject) {
-=======
   addLog(newLog: string, character: defaultCharacter) {
     this.logs.push(this.getLogHeader(character) + newLog);
   }
@@ -36,7 +23,6 @@ class LogManager {
   }
 
   addLogFromDefenceObject(defObj: DefenceObject, character: defaultCharacter) {
->>>>>>> Stashed changes
     let logBody = '';
     if (defObj.type.toLocaleUpperCase() === DEFENCE_TYPE.EVASION) {
       logBody = 'attack evaded';
@@ -46,18 +32,13 @@ class LogManager {
       logBody = `value: ${defObj.value} - defence type: ${defObj.type.toLocaleUpperCase()} `;
     }
 
-    logBody += `with DEFENCE=${this.character.stats.defence} and EVASION=${this.character.stats.evasion}`;
+    logBody += `with DEFENCE=${character.stats.defence} and EVASION=${character.stats.evasion}`;
 
-    this.logs.push(this.getLogHeader() + logBody);
+    this.logs.push(this.getLogHeader(character) + logBody);
   }
 
-<<<<<<< Updated upstream
-  addLogStatus(status: Status, action: 'added' | 'removed') {
-    let solution = this.getLogHeader();
-=======
   addLogStatus(status: Status, action: 'added' | 'removed', character: defaultCharacter) {
     let solution = this.getLogHeader(character);
->>>>>>> Stashed changes
     solution += ` ${action === 'added' ? 'adds' : 'removes'} ${
       status.name.toUpperCase()
     } (id:${status.id}) from his Status List`;
@@ -65,14 +46,10 @@ class LogManager {
     this.logs.push(solution);
   }
 
-<<<<<<< Updated upstream
-  getLogHeader() {
-=======
   getLogHeader( character: defaultCharacter) {
->>>>>>> Stashed changes
     const d = new Date();
     const formattedDate = `${d.getDay()}/${d.getMonth()}/${d.getFullYear()} - ${d.getMinutes() + 1}:${d.getHours() + 1}`;
-    return `${++this.logCounts}.${formattedDate} - ${this.character.name ? this.character.name.toUpperCase() : 'character'} (id:${this.character.id}): `;
+    return `${++this.logCounts}.${formattedDate} - ${character.name ? character.name.toUpperCase() : 'character'} (id:${character.id}): `;
   }
 
   getLastLog() {

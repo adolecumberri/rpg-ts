@@ -6,8 +6,6 @@ import {defaultCharacter} from './Character';
 import Status from './Status';
 
 class StatusManager {
-  character: CharacterClass;
-
   originalConfig: Constructor;
 
   statusList: Status[] = [];
@@ -19,27 +17,25 @@ class StatusManager {
   constructor(config?: Constructor) {
     this.originalConfig = config;
 
-    Object.keys(config).forEach((key) => {
-      this[key] = config[key];
-    });
+    if (config) {
+      Object.keys(config).forEach((key) => {
+        this[key] = config[key];
+      });
+    }
   }
 
   /**
     * @param status single status or a list of status to add into StatusList
     */
-<<<<<<< Updated upstream
-  addStatus(status: Status[] | Status): void {
-=======
   addStatus(status: Status[] | Status, character: defaultCharacter): void {
->>>>>>> Stashed changes
     if ((status as Status).discriminator === discriminators.STATUS) {
-      (status as Status).setCharacter(this.character);
+      (status as Status).setCharacter(character);
       (status as Status).onAdd();
       this.statusList.push(<Status>status);
       this.timesStatusHasBeenAdded++;
     } else {
       (status as Status[]).forEach((_, i, arr) => {
-        arr[i].setCharacter(this.character);
+        arr[i].setCharacter(character);
         arr[i].onAdd();
         this.timesStatusHasBeenAdded++;
       });

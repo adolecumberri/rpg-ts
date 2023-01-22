@@ -1,5 +1,5 @@
 import {BASIC_CHARACTER} from '../constants/testing/character';
-import {poison, attBuff, breakDefence, blindCurse, test1, test2, test3} from '../constants/testing/status';
+import {test1, test2, test3} from '../constants/testing/status';
 import StatusManagerClass from './StatusManager';
 
 describe('Status Manager works as expected', () => {
@@ -11,7 +11,7 @@ describe('Status Manager works as expected', () => {
   test('add and remove status', () => {
     SM.addStatus([test1,
       test2,
-      test3]);
+      test3], char);
     expect(SM.statusList.length).toBe(3);
     // TODO:
     let solution = SM.activate('BEFORE_TURN');
