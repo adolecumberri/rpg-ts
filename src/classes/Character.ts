@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import discriminators from '../constants/discriminators';
 import M from '../constants/messages';
 import {ATTACK_TYPE, DEFENCE_TYPE} from '../constants/types';
@@ -409,3 +410,5 @@ export {
 };
 
 export default Character;
+=======
+>>>>>>> Stashed changes
