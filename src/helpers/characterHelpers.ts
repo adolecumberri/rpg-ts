@@ -9,5 +9,5 @@ const getDefaultStatsObject = createDefaultObjectGetter<Stats>(DEFAULT_STATS_OBJ
 export {
   getDefaultDefenceObject,
   getDefaultAttackObject,
-  getDefaultStatsObject
+  getDefaultStatsObject,
 };

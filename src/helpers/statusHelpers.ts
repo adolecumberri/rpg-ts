@@ -1,8 +1,8 @@
 import { DEFAULT_STATUS_OBJECT } from '../constants';
-import { Status } from '../types';
-import { createDefaultObjectGetter } from './commonHelpers';
+import { Status } from '../classes';
+import { createDefaultObjectGetter } from './';
 
-const getDefaultStatus = createDefaultObjectGetter<Status>(DEFAULT_STATUS_OBJECT);
+const getDefaultStatus = createDefaultObjectGetter<Partial<Status>>(DEFAULT_STATUS_OBJECT);
 
 export {
   getDefaultStatus,

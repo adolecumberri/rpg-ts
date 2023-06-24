@@ -1,9 +1,14 @@
 
 import { ATTACK_TYPE_CONST, DEFAULT_STATS_OBJECT, DEFENCE_TYPE_CONST, STATUS_APPLICATION_MOMENTS } from '../constants';
-import { getDefaultAttackObject, getDefaultDefenceObject, getDefaultStatsObject, getRandomInt, uniqueID } from '../helpers';
+import {
+  getDefaultAttackObject,
+  getDefaultDefenceObject,
+  getDefaultStatsObject,
+  getRandomInt,
+  uniqueID,
+} from '../helpers';
 import { AttackResult, AttackType, Constructor, DefenceResult, Stats } from '../types';
-import Status from './Status';
-import StatusManager from './StatusManager';
+import { Status, StatusManager } from './';
 
 
 class Character {
@@ -29,12 +34,12 @@ class Character {
     totalHpProvided = Math.max(totalHpProvided, hpProvided);
 
     this.stats = Object.assign(
-      getDefaultStatsObject(),
-      con?.stats,
-      {
-        totalHp: totalHpProvided,
-        hp: hpProvided
-      }
+        getDefaultStatsObject(),
+        con?.stats,
+        {
+          totalHp: totalHpProvided,
+          hp: hpProvided,
+        },
     );
 
     this.originalStats = this.stats;
@@ -127,3 +132,7 @@ class Character {
 }
 
 export default Character;
+
+export {
+  Character,
+};

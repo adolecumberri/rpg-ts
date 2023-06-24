@@ -2,12 +2,13 @@ import {
   AffectedStatDescriptor,
   StatusActivationFunction,
   StatusApplicationMoment,
+  StatusConstructor,
   StatusDuration,
   StatusDurationTemporal,
   StatusUsageFrequency,
 } from '../types';
 import { uniqueID, getDefaultStatus } from '../helpers';
-import Character from './Character';
+import { Character } from './';
 import { STATUS_TYPES, STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../constants';
 
 class Status {
@@ -19,7 +20,7 @@ class Status {
   statsAffected: AffectedStatDescriptor[];
   hasBeenUsed?: boolean;
 
-  constructor(partial: Partial<Omit<Status, 'id'>> & Record<string, any>) {
+  constructor(partial: Partial<Omit<StatusConstructor, 'id'>> & Record<string, any>) {
     Object.assign(this, getDefaultStatus(), partial, { id: uniqueID() });
   }
 
@@ -100,3 +101,7 @@ class Status {
 }
 
 export default Status;
+
+export {
+  Status,
+};

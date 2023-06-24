@@ -1,5 +1,5 @@
 
-import { Stats, keysOfStats } from '.';
+import { keysOfStats } from '.';
 import { STATUS_DURATIONS, STATUS_APPLICATION_MOMENTS, STATUS_USAGE_FREQUENCY, STATUS_TYPES } from '../constants';
 
 interface StatusDurationPermanent {
@@ -39,7 +39,7 @@ interface AffectedStatDescriptor {
     recovers: boolean; // Indica si al acabarse el status la variación de estadísticas se devuelve.
 }
 
-interface Status {
+interface StatusConstructor {
     duration: StatusDuration;
     applyOn: StatusApplicationMoment;
     usageFrequency: StatusUsageFrequency;
@@ -55,6 +55,6 @@ export {
   StatusApplicationMoment,
   StatusUsageFrequency,
   AffectedStatDescriptor,
-  Status,
+  StatusConstructor,
   StatusActivationFunction,
 };

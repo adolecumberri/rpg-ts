@@ -1,4 +1,4 @@
-import Character from '../classes/Character';
+import {Character} from '../classes';
 import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST } from '../constants';
 
 type AttackType = keyof typeof ATTACK_TYPE_CONST;
@@ -42,5 +42,5 @@ export {
   DefenceResult,
   DefenceType,
   Stats,
-  keysOfStats
+  keysOfStats,
 };
