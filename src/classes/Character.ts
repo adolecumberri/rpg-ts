@@ -17,8 +17,6 @@ class Character {
     [ATTACK_TYPE_CONST.MISS]: (_: Stats) => 0
   };
 
-  defenceCalculation = (attack: number) => attack *  40 / (40 + this.stats.defence);
-  
   constructor(con?: Constructor) {
     con && Object.assign(this, con);
 
@@ -79,18 +77,13 @@ class Character {
         defence.value = 0;
       } else {
         // Si el ataque no es evitado, se calcula el daño.
-        
+
         defence.type = DEFENCE_TYPE_CONST.NORMAL; // asumiremos que el tipo es 'NORMAL' para un ataque que no es evitado.
         defence.value = this.defenceCalculation(attack.value);
       }
     }
 
     return defence;
-  }
-
-
-  die() {
-    this.isAlive = false;
   }
 
   calculateDamage(type: AttackType, stats: Stats): number {
@@ -101,11 +94,16 @@ class Character {
     return this.damageCalculation[type](stats);
   }
 
+  defenceCalculation = (attack: number) => attack * 40 / (40 + this.stats.defence);
+
+  die() {
+    this.isAlive = false;
+  }
+
   revive() {
     this.isAlive = true;
     // Aquí puedes implementar la lógica para restaurar las stats del personaje a sus valores originales (o a cualquier otro valor que consideres apropiado) cuando reviva
   }
-
 }
 
 export default Character;
