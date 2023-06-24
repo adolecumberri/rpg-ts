@@ -32,7 +32,7 @@ describe('status', () => {
                 {
                     type: "BUFF_FIXED",
                     from: "attack",
-                    to: "defense",
+                    to: "defence",
                     value: 10,
                     recovers: true
                 },
@@ -57,7 +57,7 @@ describe('status', () => {
     test('activate method should correctly activate status', () => {
         character.addStatus(status);
         character.statusManager.activate('AFTER_ATTACK');
-        expect(character.stats.defense).toBeGreaterThan(10);  // Asumiendo que la defensa original fue 10.
+        expect(character.stats.defence).toBeGreaterThan(10);  // Asumiendo que la defensa original fue 10.
         expect(character.stats.evasion).toBeLessThan(10);  // Asumiendo que la evasión original fue 10.
     });
 

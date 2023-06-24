@@ -1,5 +1,5 @@
 
-import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST, STATUS_APPLICATION_MOMENTS } from '../constants';
+import { ATTACK_TYPE_CONST, DEFAULT_STATS_OBJECT, DEFENCE_TYPE_CONST, STATUS_APPLICATION_MOMENTS } from '../constants';
 import { getDefaultAttackObject, getDefaultDefenceObject, getDefaultStatsObject, getRandomInt, uniqueID } from '../helpers';
 import { AttackResult, AttackType, Constructor, DefenceResult, Stats } from '../types';
 import Status from './Status';
@@ -23,17 +23,17 @@ class Character {
   constructor(con?: Constructor) {
     con && Object.assign(this, con);
 
-    // this.originalStats = con?.stats || getDefaultStatsObject();
+    let totalHpProvided = con?.stats?.totalHp ?? DEFAULT_STATS_OBJECT.totalHp;
+    const hpProvided = con?.stats?.hp ?? DEFAULT_STATS_OBJECT.hp;
 
-    const totalHpProvided = con?.stats?.totalHp ?? 0;
-    const hpProvided = con?.stats?.hp ?? 0;
+    totalHpProvided = Math.max(totalHpProvided, hpProvided);
 
     this.stats = Object.assign(
       getDefaultStatsObject(),
       con?.stats,
       {
-        totalHp: Math.max(totalHpProvided, hpProvided),
-        hp: hpProvided > this.stats.totalHp ? this.stats.totalHp : hpProvided
+        totalHp: totalHpProvided,
+        hp: hpProvided
       }
     );
 
