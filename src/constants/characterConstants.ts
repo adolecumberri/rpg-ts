@@ -1,6 +1,6 @@
 import { AttackResult, DefenceResult, Stats } from '../types';
 
-export const ATTACK_TYPE_CONST = {
+const ATTACK_TYPE_CONST = {
     NORMAL: 'NORMAL',
     MISS: 'MISS',
     CRITICAL: 'CRITICAL',
@@ -12,7 +12,7 @@ const DEFAULT_DEFENCE_OBJECT: DefenceResult = {
     value: 0,
 };
 
-export const DEFENCE_TYPE_CONST = {
+const DEFENCE_TYPE_CONST = {
     NORMAL: 'NORMAL',
     EVASION: 'EVASION',
     MISS: 'MISS',
@@ -35,6 +35,8 @@ const DEFAULT_STATS_OBJECT: Partial<Stats> = {
 };
 
 export {
+    ATTACK_TYPE_CONST,
+    DEFENCE_TYPE_CONST,
     DEFAULT_ATTACK_OBJECT,
     DEFAULT_DEFENCE_OBJECT,
     DEFAULT_STATS_OBJECT,

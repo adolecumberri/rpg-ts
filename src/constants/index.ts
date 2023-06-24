@@ -1,1 +1,2 @@
-export * from './characterConstants'
+export * from './characterConstants';
+export * from './statusConstants';

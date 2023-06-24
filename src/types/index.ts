@@ -1,1 +1,2 @@
-export * from './characterTypes'
+export * from './characterTypes';
+export * from './statusTypes';

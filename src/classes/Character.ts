@@ -17,6 +17,8 @@ class Character {
     [ATTACK_TYPE_CONST.MISS]: (_: Stats) => 0
   };
 
+  defenceCalculation = (attack: number) => attack *  40 / (40 + this.stats.defence);
+  
   constructor(con?: Constructor) {
     con && Object.assign(this, con);
 
@@ -77,9 +79,9 @@ class Character {
         defence.value = 0;
       } else {
         // Si el ataque no es evitado, se calcula el daño.
-        let damageModifier = 40 / (40 + this.stats.defence);
+        
         defence.type = DEFENCE_TYPE_CONST.NORMAL; // asumiremos que el tipo es 'NORMAL' para un ataque que no es evitado.
-        defence.value = attack.value * damageModifier;
+        defence.value = this.defenceCalculation(attack.value);
       }
     }
 
