@@ -4,6 +4,7 @@ export const ATTACK_TYPE_CONST = {
     NORMAL: 'NORMAL',
     MISS: 'MISS',
     CRITICAL: 'CRITICAL',
+    TRUE: 'TRUE',
 } as const;
 
 const DEFAULT_DEFENCE_OBJECT: DefenceResult = {
@@ -14,6 +15,7 @@ const DEFAULT_DEFENCE_OBJECT: DefenceResult = {
 export const DEFENCE_TYPE_CONST = {
     NORMAL: 'NORMAL',
     EVASION: 'EVASION',
+    MISS: 'MISS',
 } as const;
 
 const DEFAULT_ATTACK_OBJECT: AttackResult = {
