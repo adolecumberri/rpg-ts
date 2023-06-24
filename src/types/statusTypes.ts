@@ -1,6 +1,6 @@
 
-import { Stats } from ".";
-import { STATUS_DURATIONS, STATUS_APPLICATION_MOMENTS, STATUS_USAGE_FREQUENCY, STATUS_TYPES } from "../constants";
+import { Stats, keysOfStats } from '.';
+import { STATUS_DURATIONS, STATUS_APPLICATION_MOMENTS, STATUS_USAGE_FREQUENCY, STATUS_TYPES } from '../constants';
 
 interface StatusDurationPermanent {
     type: typeof STATUS_DURATIONS.PERMANENT;
@@ -30,8 +30,8 @@ type StatusUsageFrequency = keyof typeof STATUS_USAGE_FREQUENCY;
 
 interface AffectedStatDescriptor {
     type: StatusType;
-    from: keyof Stats;
-    to: keyof Stats;
+    from: keysOfStats;
+    to: keysOfStats;
     value: number;
     id?: number;
     timesUsed?: number;
@@ -48,13 +48,13 @@ interface Status {
 }
 
 export {
-    StatusDurationPermanent,
-    StatusDurationTemporal,
-    StatusType,
-    StatusDuration,
-    StatusApplicationMoment,
-    StatusUsageFrequency,
-    AffectedStatDescriptor,
-    Status,
-    StatusActivationFunction
+  StatusDurationPermanent,
+  StatusDurationTemporal,
+  StatusType,
+  StatusDuration,
+  StatusApplicationMoment,
+  StatusUsageFrequency,
+  AffectedStatDescriptor,
+  Status,
+  StatusActivationFunction,
 };
