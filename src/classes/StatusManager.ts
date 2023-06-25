@@ -34,6 +34,17 @@ class StatusManager {
   removeStatusById(id: number) {
     this.statusList = this.statusList.filter((status) => status.id !== id);
   }
+
+  removeAllStatuses() {
+    this.statusList = [];
+  }
+
+  recoverAll(): void {
+    for (const status of this.statusList) {
+      status.recover(this.character);
+    }
+  }
+
 }
 
 export default StatusManager;

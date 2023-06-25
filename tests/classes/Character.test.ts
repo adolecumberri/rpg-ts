@@ -2,7 +2,7 @@
 
 import Character from '../../src/classes/Character';
 import Status from '../../src/classes/Status';
-import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST } from '../../src/constants';
+import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST, STATUS_APPLICATION_MOMENTS } from '../../src/constants';
 import { getDefaultStatsObject } from '../../src/helpers';
 import { Stats } from '../../src/types';
 
@@ -209,6 +209,74 @@ describe('Character', () => {
         });
 
         // Similar tests can be written for CRITICAL attack, following the pattern above
+    });
+
+    describe('Character after and before battle work correctly', () => {
+
+        const character = new Character({ id: 1, statusManager: true });
+        let statusBefore: Status;
+        let statusAfter: Status;
+
+        beforeEach(() => {
+
+            character.statusManager!.removeAllStatuses();
+
+            statusBefore = new Status({
+                name: 'Test Status Before',
+                applyOn: STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE,
+                duration: { value: 10, type: "TEMPORAL" },
+                statsAffected: [
+                    {
+                        type: "BUFF_FIXED",
+                        from: "attack",
+                        to: "defence",
+                        value: 10,
+                        recovers: true
+                    },
+                    {
+                        type: "DEBUFF_PERCENTAGE",
+                        from: "accuracy",
+                        to: "evasion",
+                        value: 20,
+                        recovers: true
+                    }
+                ]
+            });
+
+            statusAfter = new Status({
+                name: 'Test Status After',
+                applyOn: STATUS_APPLICATION_MOMENTS.AFTER_BATTLE,
+                duration: { value: 10, type: "TEMPORAL" },
+                statsAffected: [
+                    {
+                        type: "BUFF_FIXED",
+                        from: "attack",
+                        to: "defence",
+                        value: 10,
+                        recovers: true
+                    },
+                ]
+            });
+
+            character.statusManager!.addStatus(statusBefore);
+            character.statusManager!.addStatus(statusAfter);
+        });
+
+      
+        test('should activate the correct status before a battle', () => {
+            character.beforeBattle();
+
+            expect(statusBefore.hasBeenUsed).toBe(true);
+            expect(statusAfter.hasBeenUsed).toBe(false);
+        });
+
+        test('should activate the correct status after a battle', () => {
+            character.afterBattle();
+
+            expect(statusBefore.hasBeenUsed).toBe(false);
+            expect(statusAfter.hasBeenUsed).toBe(true);
+        });
+
     });
 
 });

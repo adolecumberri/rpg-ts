@@ -7,7 +7,7 @@ import {
   getRandomInt,
   uniqueID,
 } from '../helpers';
-import { AttackResult, AttackType, Constructor, DefenceResult, Stats } from '../types';
+import { AttackResult, AttackType, CharacterConstructor, DefenceResult, Stats } from '../types';
 import { Status, StatusManager } from './';
 
 
@@ -17,7 +17,7 @@ class Character {
   name: string = '';
   originalStats: Partial<Stats> = {};
   stats: Stats;
-  statusManager: StatusManager | null;
+  statusManager: StatusManager | null = null;
 
   private damageCalculation = {
     [ATTACK_TYPE_CONST.CRITICAL]: (stats: Stats) => stats.attack * stats.critMultiplier,
@@ -25,7 +25,7 @@ class Character {
     [ATTACK_TYPE_CONST.MISS]: (_: Stats) => 0,
   };
 
-  constructor(con?: Constructor) {
+  constructor(con?: CharacterConstructor) {
     con && Object.assign(this, con);
 
     let totalHpProvided = con?.stats?.totalHp ?? DEFAULT_STATS_OBJECT.totalHp;
@@ -34,12 +34,12 @@ class Character {
     totalHpProvided = Math.max(totalHpProvided, hpProvided);
 
     this.stats = Object.assign(
-        getDefaultStatsObject(),
-        con?.stats,
-        {
-          totalHp: totalHpProvided,
-          hp: hpProvided,
-        },
+      getDefaultStatsObject(),
+      con?.stats,
+      {
+        totalHp: totalHpProvided,
+        hp: hpProvided,
+      },
     );
 
     this.originalStats = this.stats;
@@ -47,7 +47,7 @@ class Character {
   }
 
   addStatus(status: Status[] | Status) {
-    this.statusManager.addStatus(status);
+    this.statusManager?.addStatus(status);
   }
 
   attack() {
@@ -74,6 +74,17 @@ class Character {
     solution.value = damage;
 
     return solution;
+  }
+
+  afterBattle(): void {
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_BATTLE);
+    this.statusManager?.removeAllStatuses();
+    // Aquí pueden realizarse otras acciones necesarias después de la batalla.
+  }
+
+  beforeBattle(): void {
+    this.statusManager!.activate(STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE);
+    // Aquí pueden realizarse otras acciones necesarias antes de la batalla.
   }
 
   calculateDamage(type: AttackType, stats: Stats): number {
@@ -114,20 +125,20 @@ class Character {
   defenceCalculation = (attack: number) => attack * 40 / (40 + this.stats.defence);
 
   die() {
-    this.statusManager.activate(STATUS_APPLICATION_MOMENTS.BEFORE_DIE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_DIE);
     this.isAlive = false;
-    this.statusManager.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE);
   }
 
   removeStatus(id: number) {
-    this.statusManager.removeStatusById(id);
+    this.statusManager?.removeStatusById(id);
   }
 
   revive() {
-    this.statusManager.activate(STATUS_APPLICATION_MOMENTS.BEFORE_REVIVE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_REVIVE);
     this.isAlive = true;
     // Aquí puedes implementar la lógica para restaurar las stats del personaje a sus valores originales (o a cualquier otro valor que consideres apropiado) cuando reviva
-    this.statusManager.activate(STATUS_APPLICATION_MOMENTS.AFTER_REVIVE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_REVIVE);
   }
 }
 
