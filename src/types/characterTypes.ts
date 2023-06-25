@@ -30,7 +30,7 @@ interface Stats {
 
 type keysOfStats = keyof Stats;
 
-type Constructor = Partial< Omit<Character, 'statusManager' | 'stats'> & {
+type CharacterConstructor = Partial< Omit<Character, 'statusManager' | 'stats'> & {
     statusManager: boolean,
     stats: Partial<Stats>
 }> ;
@@ -38,7 +38,7 @@ type Constructor = Partial< Omit<Character, 'statusManager' | 'stats'> & {
 export {
   AttackResult,
   AttackType,
-  Constructor,
+  CharacterConstructor,
   DefenceResult,
   DefenceType,
   Stats,

@@ -20,8 +20,8 @@ class Status {
   statsAffected: AffectedStatDescriptor[];
   hasBeenUsed?: boolean;
 
-  constructor(partial: Partial<Omit<StatusConstructor, 'id'>> & Record<string, any>) {
-    Object.assign(this, getDefaultStatus(), partial, { id: uniqueID() });
+  constructor(con: StatusConstructor) {
+    Object.assign(this, getDefaultStatus(), con, { id: uniqueID() });
   }
 
   activate(character: Character) {

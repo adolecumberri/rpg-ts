@@ -1,5 +1,6 @@
 
 import { keysOfStats } from '.';
+import { Status } from '../classes';
 import { STATUS_DURATIONS, STATUS_APPLICATION_MOMENTS, STATUS_USAGE_FREQUENCY, STATUS_TYPES } from '../constants';
 
 interface StatusDurationPermanent {
@@ -39,13 +40,7 @@ interface AffectedStatDescriptor {
     recovers: boolean; // Indica si al acabarse el status la variación de estadísticas se devuelve.
 }
 
-interface StatusConstructor {
-    duration: StatusDuration;
-    applyOn: StatusApplicationMoment;
-    usageFrequency: StatusUsageFrequency;
-    statsAffected: AffectedStatDescriptor[];
-    hasBeenUsed?: boolean;
-}
+type StatusConstructor = Partial<Omit<Status, 'id'>> & Record<string, any>
 
 export {
   StatusDurationPermanent,
