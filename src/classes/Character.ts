@@ -7,7 +7,14 @@ import {
   getRandomInt,
   uniqueID,
 } from '../helpers';
-import { AttackResult, AttackType, CharacterConstructor, DefenceResult, DynamicCharacterConstructor, Stats } from '../types';
+import {
+  AttackResult,
+  AttackType,
+  CharacterConstructor,
+  DefenceResult,
+  DynamicCharacterConstructor,
+  Stats
+} from '../types';
 import { Status, StatusManager } from './';
 
 
@@ -34,12 +41,12 @@ class BaseCharacter {
     totalHpProvided = Math.max(totalHpProvided, hpProvided);
 
     this.stats = Object.assign(
-        getDefaultStatsObject(),
-        con?.stats,
-        {
-          totalHp: totalHpProvided,
-          hp: hpProvided,
-        },
+      getDefaultStatsObject(),
+      con?.stats,
+      {
+        totalHp: totalHpProvided,
+        hp: hpProvided,
+      },
     );
 
     this.originalStats = this.stats;
@@ -143,12 +150,12 @@ class BaseCharacter {
 }
 
 // con esto evito tener que usar typeof Status cada vez que lo uso fuera.
-const Character = BaseCharacter as DynamicCharacterConstructor
+const Character = BaseCharacter as DynamicCharacterConstructor;
 type Character = InstanceType<typeof BaseCharacter>
 
 export default Character;
 
 export {
   Character,
-  BaseCharacter
+  BaseCharacter,
 };

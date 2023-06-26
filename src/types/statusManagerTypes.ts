@@ -12,5 +12,5 @@ type DynamicStatusManagerConstructor = {
 
 export {
   StatusManagerConstructor,
-  DynamicStatusManagerConstructor
+  DynamicStatusManagerConstructor,
 };

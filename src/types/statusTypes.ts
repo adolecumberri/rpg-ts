@@ -49,14 +49,14 @@ type DynamicStatusConstructor = {
 }
 
 export {
-    AffectedStatDescriptor,
-    DynamicStatusConstructor,
-    StatusDurationPermanent,
-    StatusDurationTemporal,
-    StatusType,
-    StatusDuration,
-    StatusApplicationMoment,
-    StatusUsageFrequency,
-    StatusConstructor,
-    StatusActivationFunction,
+  AffectedStatDescriptor,
+  DynamicStatusConstructor,
+  StatusDurationPermanent,
+  StatusDurationTemporal,
+  StatusType,
+  StatusDuration,
+  StatusApplicationMoment,
+  StatusUsageFrequency,
+  StatusConstructor,
+  StatusActivationFunction,
 };

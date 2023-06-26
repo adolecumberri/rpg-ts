@@ -1,7 +1,7 @@
-import { TeamConstructor } from '../types';
+import { DynamicTeamConstructor, TeamConstructor } from '../types';
 import Character from './Character';
 
-class Team {
+class BaseTeam {
   id: number;
   members: Character[];
 
@@ -35,8 +35,13 @@ class Team {
   }
 }
 
+// con esto evito tener que usar typeof Status cada vez que lo uso fuera.
+const Team = BaseTeam as DynamicTeamConstructor;
+type Team = InstanceType<typeof BaseTeam>
+
 export default Team;
 
 export {
   Team,
+  BaseTeam,
 };

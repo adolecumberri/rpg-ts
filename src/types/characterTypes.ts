@@ -49,5 +49,5 @@ export {
   DefenceType,
   Stats,
   keysOfStats,
-  DynamicCharacterConstructor
+  DynamicCharacterConstructor,
 };

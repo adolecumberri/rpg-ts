@@ -47,13 +47,13 @@ class BaseStatusManager {
 }
 
 // con esto evito tener que usar typeof Status cada vez que lo uso fuera.
-const StatusManager = BaseStatusManager as DynamicStatusManagerConstructor
+const StatusManager = BaseStatusManager as DynamicStatusManagerConstructor;
 type StatusManager = InstanceType<typeof BaseStatusManager>
 
 export default StatusManager;
 
 export {
   StatusManager,
-  BaseStatusManager
+  BaseStatusManager,
 };
 
