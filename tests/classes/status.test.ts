@@ -51,18 +51,12 @@ describe('status', () => {
     test('activate method should correctly apply buffs and debuffs', () => {
         const originalStats = { ...character.stats };
         status.activate(character);
-        console.log('A', character.stats)
-        console.log('B', originalStats)
         expect(character.stats.defence).toBeGreaterThan(originalStats.defence);
         expect(character.stats.evasion).toBeLessThan(originalStats.evasion);
     });
 
     test('recover method should correctly recover character stats', () => {
-        console.log(character.stats);
-
         status.activate(character);
-
-        console.log(character.stats);
 
         const modifiedStats = { ...character.stats };
         status.recover(character);

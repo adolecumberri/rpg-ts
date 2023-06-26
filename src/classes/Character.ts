@@ -83,14 +83,14 @@ class BaseCharacter {
     return solution;
   }
 
-  afterBattle(): void {
+  afterBattle(): any {
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_BATTLE);
     this.statusManager?.removeAllStatuses();
     // Aquí pueden realizarse otras acciones necesarias después de la batalla.
   }
 
-  beforeBattle(): void {
-    this.statusManager!.activate(STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE);
+  beforeBattle(): any {
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE);
     // Aquí pueden realizarse otras acciones necesarias antes de la batalla.
   }
 
@@ -137,6 +137,10 @@ class BaseCharacter {
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE);
   }
 
+  receiveDamage(damage: number) {
+    this.updateHp(damage * -1);
+  }
+
   removeStatus(id: number) {
     this.statusManager?.removeStatusById(id);
   }
@@ -146,6 +150,14 @@ class BaseCharacter {
     this.isAlive = true;
     // Aquí puedes implementar la lógica para restaurar las stats del personaje a sus valores originales (o a cualquier otro valor que consideres apropiado) cuando reviva
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_REVIVE);
+  }
+
+  updateHp(amount: number): void {
+    this.stats.hp = Math.min(this.stats.totalHp, Math.max(0, this.stats.hp + amount));
+
+    if (this.stats.hp <= 0) {
+      this.die();
+    }
   }
 }
 

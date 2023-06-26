@@ -1,8 +1,9 @@
+import { uniqueID } from '../helpers';
 import { DynamicTeamConstructor, TeamConstructor } from '../types';
 import Character from './Character';
 
 class BaseTeam {
-  id: number;
+  id: number = uniqueID();
   members: Character[];
 
   constructor(con?: TeamConstructor) {
@@ -12,6 +13,10 @@ class BaseTeam {
 
   addMember<T extends Character>(character: T): void {
     this.members.push(character);
+  }
+
+  hasMember<T extends Character>(character: T): boolean {
+    return this.members.some((member) => member.id === character.id);
   }
 
   removeMemberById(id: number): void {

@@ -22,7 +22,7 @@ interface Stats {
     attackSpeed: number;
     crit: number;
     critMultiplier: number;
-    totalHp?: number;
+    totalHp: number;
     defence: number;
     evasion: number;
     hp: number;
