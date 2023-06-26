@@ -57,7 +57,6 @@ describe('Battle class tests', () => {
             battle.setBattleType(BATTLE_TYPES.INTERVAL_BASED);
             battle.fight(team1, team2);
 
-            debugger;
             // Asegúrate de que la batalla ha tenido lugar y los equipos han intercambiado daño
             expect(team1.getAliveMembers().length).toBeLessThan(team1.members.length);
             expect(team2.getAliveMembers().length).toBeLessThan(team2.members.length);

@@ -19,7 +19,7 @@ class Battle {
   battleType: BattleTypes = BATTLE_TYPES.TURN_BASED;
   private battleId: number = 0;
 
-  fight<T extends Combatant>(a: T, b: T): void {
+  fight<T extends Combatant>(a: T, b: T): number {
     this.battleId++;
     this.logs.set(this.battleId, DEFALUT_LOG_OBJECT);
 
@@ -40,6 +40,8 @@ class Battle {
         this.intervalBasedTeamFight(a as Team, b as Team);
       }
     }
+
+    return this.battleId;
   }
 
   private turnBasedCharacterFight(a: Character, b: Character): void {
