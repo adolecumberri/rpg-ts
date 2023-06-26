@@ -77,4 +77,11 @@ describe('Team class', () => {
         expect(deadMembers.length).toBe(1);
         expect(deadMembers[0].id).toBe(1);
     });
+
+    it('should add isDinamicImportWorking property to Team', () => {
+        const team = new Team({
+            isDinamicImportWorking: true,
+        });
+        expect(team.isDinamicImportWorking).toBeTruthy();
+    });
 });

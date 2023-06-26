@@ -61,4 +61,11 @@ describe('status', () => {
         expect(character.stats.evasion).toBeLessThan(10);  // Asumiendo que la evasión original fue 10.
     });
 
+    it('should add isDinamicImportWorking property to StatusManager', () => {
+        const statusManager = new StatusManager({
+            isDinamicImportWorking: true,
+        });
+        expect(statusManager.isDinamicImportWorking).toBeTruthy();
+    });
+
 });

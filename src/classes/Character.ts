@@ -13,7 +13,7 @@ import {
   CharacterConstructor,
   DefenceResult,
   DynamicCharacterConstructor,
-  Stats
+  Stats,
 } from '../types';
 import { Status, StatusManager } from './';
 
@@ -41,12 +41,12 @@ class BaseCharacter {
     totalHpProvided = Math.max(totalHpProvided, hpProvided);
 
     this.stats = Object.assign(
-      getDefaultStatsObject(),
-      con?.stats,
-      {
-        totalHp: totalHpProvided,
-        hp: hpProvided,
-      },
+        getDefaultStatsObject(),
+        con?.stats,
+        {
+          totalHp: totalHpProvided,
+          hp: hpProvided,
+        },
     );
 
     this.originalStats = this.stats;

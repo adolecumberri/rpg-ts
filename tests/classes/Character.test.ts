@@ -262,7 +262,7 @@ describe('Character', () => {
             character.statusManager!.addStatus(statusAfter);
         });
 
-      
+
         test('should activate the correct status before a battle', () => {
             character.beforeBattle();
 
@@ -277,6 +277,13 @@ describe('Character', () => {
             expect(statusAfter.hasBeenUsed).toBe(true);
         });
 
+    });
+
+    it('should add isDinamicImportWorking property to Character', () => {
+        const character = new Character({
+            isDinamicImportWorking: true,
+        });
+        expect(character.isDinamicImportWorking).toBeTruthy();
     });
 
 });

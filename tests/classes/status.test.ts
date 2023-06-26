@@ -58,11 +58,11 @@ describe('status', () => {
     });
 
     test('recover method should correctly recover character stats', () => {
-        console.log( character.stats );
+        console.log(character.stats);
 
         status.activate(character);
-        
-        console.log( character.stats );
+
+        console.log(character.stats);
 
         const modifiedStats = { ...character.stats };
         status.recover(character);
@@ -87,4 +87,12 @@ describe('status', () => {
         expect(status.statsAffected).toEqual([]);
         expect(status.hasBeenUsed).toBeFalsy();
     });
+
+    it('should add isDinamicImportWorking property to Status', () => {
+        const status = new Status({
+            isDinamicImportWorking: true,
+        });
+        expect(status.isDinamicImportWorking).toBeTruthy();
+    });
+
 })
