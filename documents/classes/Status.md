@@ -25,3 +25,9 @@ The Status class represents a status effect that can be applied to a character. 
 | loadDebuffFixed   | `({ to, value }): { valueFinal: number; valueApplied: number; }`                              | `Object`    | Applies a fixed-value debuff.                 |
 | loadDebuffPercentage|`({ from, to, value }): { valueFinal: number; valueApplied: number; }`                        | `Object`    | Applies a percentage-value debuff.            |
 | recover           | `(character: Character): void`                                                                | `void`      | Recovers the status effect on a character.    |
+
+## Dynamic Constructors
+
+| Method            | Arguments                         | Return        | Description                                                                                     |
+|-------------------|-----------------------------------|---------------|-------------------------------------------------------------------------------------------------|
+| dynamic constructor | `arg: DynamicStatusConstructor` | `Status`      | Initializes a new status effect. This constructor is dynamic and can handle additional properties outside of the standard ones, which can be useful when importing data from external sources. |

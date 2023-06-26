@@ -17,3 +17,10 @@ The StatusManager class manages the application and removal of status effects on
 | addStatus         | `(status: Status[] \| Status): void` | `void`      | Adds a status or a list of statuses to the status manager. |
 | activate          | `(applyOn: StatusApplicationMoment): void` | `void`| Activates all status effects that should be applied at the given moment. |
 | removeStatusById  | `(id: number): void`                | `void`      | Removes a status effect by its id.           |
+
+## Dynamic Constructors
+
+| Method            | Arguments                            | Return           | Description                                                                                     |
+|-------------------|--------------------------------------|------------------|-------------------------------------------------------------------------------------------------|
+| dynamic constructor | `arg: DynamicStatusManagerConstructor` | `StatusManager` | Initializes a new status manager. This constructor is dynamic and can handle additional properties outside of the standard ones, which can be useful when importing data from external sources. |
+

@@ -26,3 +26,9 @@ The Character class represents a character in the game, complete with stats and 
 | die               | `(): void`                                                                                                   | `void`      | Marks the character as dead.           |
 | removeStatus      | `(id: number): void`                                                                                         | `void`      | Removes a status from the character.   |
 | revive            | `(): void`                
+
+## Dynamic Constructors
+
+| Method            | Arguments                                      | Return        | Description                                                          |
+|-------------------|------------------------------------------------|---------------|----------------------------------------------------------------------|
+| dynamic constructor | `arg: DynamicCharacterConstructor` | `Character` | Initializes a new character. This constructor is dynamic and can handle additional properties outside of the standard ones, which can be useful when importing data from external sources. |
