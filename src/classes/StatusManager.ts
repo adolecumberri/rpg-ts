@@ -1,9 +1,9 @@
 
 import { STATUS_DURATIONS } from '../constants';
-import { StatusApplicationMoment, StatusManagerConstructor } from '../types';
+import { DynamicStatusManagerConstructor, StatusApplicationMoment, StatusManagerConstructor } from '../types';
 import { Character, Status } from './';
 
-class StatusManager {
+class BaseStatusManager {
   statusList: Status[] = [];
   character: Character;
 
@@ -46,8 +46,14 @@ class StatusManager {
   }
 }
 
+// con esto evito tener que usar typeof Status cada vez que lo uso fuera.
+const StatusManager = BaseStatusManager as DynamicStatusManagerConstructor
+type StatusManager = InstanceType<typeof BaseStatusManager>
+
 export default StatusManager;
 
 export {
   StatusManager,
+  BaseStatusManager
 };
+
