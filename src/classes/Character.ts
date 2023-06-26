@@ -34,12 +34,12 @@ class Character {
     totalHpProvided = Math.max(totalHpProvided, hpProvided);
 
     this.stats = Object.assign(
-      getDefaultStatsObject(),
-      con?.stats,
-      {
-        totalHp: totalHpProvided,
-        hp: hpProvided,
-      },
+        getDefaultStatsObject(),
+        con?.stats,
+        {
+          totalHp: totalHpProvided,
+          hp: hpProvided,
+        },
     );
 
     this.originalStats = this.stats;

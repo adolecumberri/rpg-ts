@@ -44,7 +44,6 @@ class StatusManager {
       status.recover(this.character);
     }
   }
-
 }
 
 export default StatusManager;

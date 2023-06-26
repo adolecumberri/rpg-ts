@@ -1,7 +1,7 @@
-import { Team } from "../classes";
+import { Team } from '../classes';
 
 type TeamConstructor = Partial<Team> & Record<string, any>
 
 export {
-    TeamConstructor
-}
+  TeamConstructor,
+};
