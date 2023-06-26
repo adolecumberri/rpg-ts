@@ -7,11 +7,11 @@ import {
   getRandomInt,
   uniqueID,
 } from '../helpers';
-import { AttackResult, AttackType, CharacterConstructor, DefenceResult, Stats } from '../types';
+import { AttackResult, AttackType, CharacterConstructor, DefenceResult, DynamicCharacterConstructor, Stats } from '../types';
 import { Status, StatusManager } from './';
 
 
-class Character {
+class BaseCharacter {
   id: number = uniqueID();
   isAlive: boolean = true;
   name: string = '';
@@ -19,7 +19,7 @@ class Character {
   stats: Stats;
   statusManager: StatusManager | null = null;
 
-  private damageCalculation = {
+  damageCalculation = {
     [ATTACK_TYPE_CONST.CRITICAL]: (stats: Stats) => stats.attack * stats.critMultiplier,
     [ATTACK_TYPE_CONST.NORMAL]: (stats: Stats) => stats.attack,
     [ATTACK_TYPE_CONST.MISS]: (_: Stats) => 0,
@@ -142,8 +142,13 @@ class Character {
   }
 }
 
+// con esto evito tener que usar typeof Status cada vez que lo uso fuera.
+const Character = BaseCharacter as DynamicCharacterConstructor
+type Character = InstanceType<typeof BaseCharacter>
+
 export default Character;
 
 export {
   Character,
+  BaseCharacter
 };

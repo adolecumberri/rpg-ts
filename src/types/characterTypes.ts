@@ -1,4 +1,4 @@
-import {Character} from '../classes';
+import {BaseCharacter, Character} from '../classes';
 import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST } from '../constants';
 
 type AttackType = keyof typeof ATTACK_TYPE_CONST;
@@ -30,10 +30,16 @@ interface Stats {
 
 type keysOfStats = keyof Stats;
 
-type CharacterConstructor = Partial< Omit<Character, 'statusManager' | 'stats'> & {
-    statusManager: boolean,
-    stats: Partial<Stats>
-}> ;
+type CharacterConstructor = Partial< Omit<BaseCharacter, 'statusManager' | 'stats'> & {
+    statusManager?: boolean,
+    stats?: Partial<Stats>
+}> | undefined ;
+
+type DynamicCharacterConstructor = {
+    new <T extends object>(arg?: T): T & {
+        [x in keyof BaseCharacter]: BaseCharacter[x]
+    }
+}
 
 export {
   AttackResult,
@@ -43,4 +49,5 @@ export {
   DefenceType,
   Stats,
   keysOfStats,
+  DynamicCharacterConstructor
 };

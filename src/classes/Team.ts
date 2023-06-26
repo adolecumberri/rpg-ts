@@ -10,7 +10,7 @@ class Team {
     this.members = this.members || [];
   }
 
-  addMember(character: Character): void {
+  addMember<T extends Character>(character: T): void {
     this.members.push(character);
   }
 
@@ -18,7 +18,7 @@ class Team {
     this.members = this.members.filter((character) => character.id !== id);
   }
 
-  removeMember(character: Character): void {
+  removeMember<T extends Character>(character: T): void {
     this.removeMemberById(character.id);
   }
 
