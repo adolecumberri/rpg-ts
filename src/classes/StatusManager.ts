@@ -11,11 +11,11 @@ class StatusManager {
     con && Object.assign(this, con);
   }
 
-  addStatus(status: Status[] | Status) {
+  addStatus<T extends Status>(status: T[] | T) {
     if (Array.isArray(status)) {
       this.statusList = this.statusList.concat(status);
     } else {
-      this.statusList.push(<Status>status);
+      this.statusList.push(status);
     }
   }
 

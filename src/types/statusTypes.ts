@@ -1,6 +1,6 @@
 
 import { keysOfStats } from '.';
-import { Status } from '../classes';
+import { BaseStatus, Status } from '../classes';
 import { STATUS_DURATIONS, STATUS_APPLICATION_MOMENTS, STATUS_USAGE_FREQUENCY, STATUS_TYPES } from '../constants';
 
 interface StatusDurationPermanent {
@@ -40,16 +40,23 @@ interface AffectedStatDescriptor {
     recovers: boolean; // Indica si al acabarse el status la variación de estadísticas se devuelve.
 }
 
-type StatusConstructor = Partial<Omit<Status, 'id'>> & Record<string, any>
+type StatusConstructor = Partial<Omit<typeof Status, 'id'>> & Record<string, any>
+
+type DynamicStatusConstructor = {
+    new <T extends object>(arg: T): T & {
+        [x in keyof BaseStatus]: BaseStatus[x]
+    }
+}
 
 export {
-  StatusDurationPermanent,
-  StatusDurationTemporal,
-  StatusType,
-  StatusDuration,
-  StatusApplicationMoment,
-  StatusUsageFrequency,
-  AffectedStatDescriptor,
-  StatusConstructor,
-  StatusActivationFunction,
+    AffectedStatDescriptor,
+    DynamicStatusConstructor,
+    StatusDurationPermanent,
+    StatusDurationTemporal,
+    StatusType,
+    StatusDuration,
+    StatusApplicationMoment,
+    StatusUsageFrequency,
+    StatusConstructor,
+    StatusActivationFunction,
 };

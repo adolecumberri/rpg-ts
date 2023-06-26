@@ -1,5 +1,6 @@
 import {
   AffectedStatDescriptor,
+  DynamicStatusConstructor,
   StatusActivationFunction,
   StatusApplicationMoment,
   StatusConstructor,
@@ -11,7 +12,7 @@ import { uniqueID, getDefaultStatus } from '../helpers';
 import { Character } from './';
 import { STATUS_TYPES, STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../constants';
 
-class Status {
+class BaseStatus {
   id: number = uniqueID();
   name: string = '';
   duration: StatusDuration;
@@ -100,8 +101,13 @@ class Status {
   }
 }
 
+// con esto evito tener que usar typeof Status cada vez que lo uso fuera.
+const Status = BaseStatus as DynamicStatusConstructor
+type Status = InstanceType<typeof BaseStatus>
+
 export default Status;
 
 export {
   Status,
+  BaseStatus
 };
