@@ -40,7 +40,7 @@ interface AffectedStatDescriptor {
     recovers: boolean; // Indica si al acabarse el status la variación de estadísticas se devuelve.
 }
 
-type StatusConstructor = Partial<Omit<typeof Status, 'id'>> & Record<string, any>
+type StatusConstructor = Partial<Omit<typeof Status, 'id'>>
 
 type DynamicStatusConstructor = {
     new <T extends object>(arg: T): T & {
