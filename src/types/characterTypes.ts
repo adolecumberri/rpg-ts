@@ -33,7 +33,7 @@ type keysOfStats = keyof Stats;
 type CharacterConstructor = Partial< Omit<BaseCharacter, 'statusManager' | 'stats'> & {
     statusManager?: boolean,
     stats?: Partial<Stats>
-}> | undefined ;
+}>;
 
 type DynamicCharacterConstructor = {
     new <T extends object>(arg?: T): T & {
