@@ -110,7 +110,18 @@ describe('Character', () => {
   });
 
   test('character creation assigns provided stats correctly', () => {
-    const stats: Stats = { totalHp: 200, hp: 200, attack: 20, accuracy: 90, crit: 20, critMultiplier: 2, defence: 10, evasion: 10, attackInterval: 1, attackSpeed: 1 };
+    const stats: Stats = {
+      totalHp: 200,
+      hp: 200,
+      attack: 20,
+      accuracy: 90,
+      crit: 20,
+      critMultiplier: 2,
+      defence: 10,
+      evasion: 10,
+      attackInterval: 1,
+      attackSpeed: 1,
+    };
     const character = new Character({ stats });
     expect(character.stats).toEqual(stats);
   });
@@ -130,21 +141,21 @@ describe('Character', () => {
 
   test('character status activation logic works correctly when character dies', () => {
     const status = new Status(
-        {
-          duration: { type: 'PERMANENT' },
-          applyOn: 'AFTER_DIE',
-          usageFrequency: 'PER_ACTION',
-          statsAffected: [
-            {
-              type: 'DEBUFF_PERCENTAGE',
-              from: 'totalHp',
-              to: 'hp',
-              value: 100,
-              recovers: false,
-            },
-          ],
-          hasBeenUsed: false,
-        },
+      {
+        duration: { type: 'PERMANENT' },
+        applyOn: 'AFTER_DIE',
+        usageFrequency: 'PER_ACTION',
+        statsAffected: [
+          {
+            type: 'DEBUFF_PERCENTAGE',
+            from: 'totalHp',
+            to: 'hp',
+            value: 100,
+            recovers: false,
+          },
+        ],
+        hasBeenUsed: false,
+      },
     );
     const character = new Character({ statusManager: true });
     character.addStatus(status);
@@ -215,47 +226,47 @@ describe('Character', () => {
     let statusAfter: Status;
 
     beforeEach(() => {
-            character.statusManager!.removeAllStatuses();
+      character.statusManager!.removeAllStatuses();
 
-            statusBefore = new Status({
-              name: 'Test Status Before',
-              applyOn: STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE,
-              duration: { value: 10, type: 'TEMPORAL' },
-              statsAffected: [
-                {
-                  type: 'BUFF_FIXED',
-                  from: 'attack',
-                  to: 'defence',
-                  value: 10,
-                  recovers: true,
-                },
-                {
-                  type: 'DEBUFF_PERCENTAGE',
-                  from: 'accuracy',
-                  to: 'evasion',
-                  value: 20,
-                  recovers: true,
-                },
-              ],
-            });
+      statusBefore = new Status({
+        name: 'Test Status Before',
+        applyOn: STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE,
+        duration: { value: 10, type: 'TEMPORAL' },
+        statsAffected: [
+          {
+            type: 'BUFF_FIXED',
+            from: 'attack',
+            to: 'defence',
+            value: 10,
+            recovers: true,
+          },
+          {
+            type: 'DEBUFF_PERCENTAGE',
+            from: 'accuracy',
+            to: 'evasion',
+            value: 20,
+            recovers: true,
+          },
+        ],
+      });
 
-            statusAfter = new Status({
-              name: 'Test Status After',
-              applyOn: STATUS_APPLICATION_MOMENTS.AFTER_BATTLE,
-              duration: { value: 10, type: 'TEMPORAL' },
-              statsAffected: [
-                {
-                  type: 'BUFF_FIXED',
-                  from: 'attack',
-                  to: 'defence',
-                  value: 10,
-                  recovers: true,
-                },
-              ],
-            });
+      statusAfter = new Status({
+        name: 'Test Status After',
+        applyOn: STATUS_APPLICATION_MOMENTS.AFTER_BATTLE,
+        duration: { value: 10, type: 'TEMPORAL' },
+        statsAffected: [
+          {
+            type: 'BUFF_FIXED',
+            from: 'attack',
+            to: 'defence',
+            value: 10,
+            recovers: true,
+          },
+        ],
+      });
 
-            character.statusManager!.addStatus(statusBefore);
-            character.statusManager!.addStatus(statusAfter);
+      character.statusManager!.addStatus(statusBefore);
+      character.statusManager!.addStatus(statusAfter);
     });
 
 

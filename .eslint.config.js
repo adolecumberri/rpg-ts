@@ -71,6 +71,8 @@ module.exports = {
 
     // Rules overriding
     rules: {
+        "indent": "off",
+        "padded-blocks": "off",
         // Fail if the file does not follow the Prettier formatting rules.
         // Uses the framework's prettier config.
         // https://github.com/prettier/eslint-plugin-prettier

@@ -1,37 +1,31 @@
 {
-    "env": {
-        "browser": true,
-        "es2021": true
-    },
-    "extends": [
-        "google"
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": ["google"],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 13,
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    "max-len": [
+      "error",
+      {
+        "code": 120,
+        "tabWidth": 4,
+        "ignoreComments": true //"comments": 80
+      }
     ],
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-        "ecmaVersion": 13,
-        "sourceType": "module"
-    },
-    "plugins": [
-        "@typescript-eslint"
-    ],
-    "rules": {
-        "max-len": [
-            "error",
-            {
-              "code": 120,
-              "tabWidth": 4,
-              "ignoreComments": true //"comments": 80
-            }
-          ],
-        "require-jsdoc": "off",
-        "no-unused-vars": "off",
-        "camelcase": "off",
-        "valid-jsdoc": "off",
-        "linebreak-style": "off",
-        "object-curly-spacing":"off"
-    },
-    "ignorePatterns": [
-        "dist",
-        "node_modules"
-    ]
+    "indent": "off",
+    "require-jsdoc": "off",
+    "no-unused-vars": "off",
+    "camelcase": "off",
+    "valid-jsdoc": "off",
+    "linebreak-style": "off",
+    "object-curly-spacing": "off"
+  },
+  "ignorePatterns": ["dist", "node_modules"]
 }

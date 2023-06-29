@@ -1,6 +1,6 @@
 import {
   AffectedStatDescriptor,
-  DynamicStatusConstructor,
+  // DynamicStatusConstructor,
   StatusActivationFunction,
   StatusApplicationMoment,
   StatusConstructor,
@@ -12,7 +12,7 @@ import { uniqueID, getDefaultStatus } from '../helpers';
 import { Character } from './';
 import { STATUS_TYPES, STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../constants';
 
-class BaseStatus {
+class Status {
   id: number = uniqueID();
   name: string = '';
   duration: StatusDuration;
@@ -21,7 +21,7 @@ class BaseStatus {
   statsAffected: AffectedStatDescriptor[];
   hasBeenUsed?: boolean;
 
-  constructor(con: StatusConstructor) {
+  constructor(con?: StatusConstructor) {
     Object.assign(this, getDefaultStatus(), con, { id: uniqueID() });
   }
 
@@ -102,12 +102,12 @@ class BaseStatus {
 }
 
 // con esto evito tener que usar typeof Status cada vez que lo uso fuera.
-const Status = BaseStatus as DynamicStatusConstructor;
-type Status = InstanceType<typeof BaseStatus>
+// const Status = BaseStatus as DynamicStatusConstructor;
+// type Status = InstanceType<typeof BaseStatus>
 
 export default Status;
 
 export {
   Status,
-  BaseStatus,
+  // BaseStatus,
 };

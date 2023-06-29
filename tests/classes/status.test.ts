@@ -81,10 +81,10 @@ describe('status', () => {
     expect(status.hasBeenUsed).toBeFalsy();
   });
 
-  it('should add isDinamicImportWorking property to Status', () => {
-    const status = new Status({
-      isDinamicImportWorking: true,
-    });
-    expect(status.isDinamicImportWorking).toBeTruthy();
-  });
+//   it('should add isDinamicImportWorking property to Status', () => {
+//     const status = new Status({
+//       isDinamicImportWorking: true,
+//     });
+//     expect(status.isDinamicImportWorking).toBeTruthy();
+//   });
 });
