@@ -34,3 +34,16 @@ We welcome contributions of all kinds from the community. If you're interested i
 RPG-TS is MIT licensed.
 
 see you.
+
+
+## Future features:
+
+mapas de tipos.
+rollo - fuego: a la planta x2, al agua x0.5
+
+generación de Mapas logicos:
+rollo:
+- malaga: {id: 1, conexiones: [2,3]}
+- cordoba: {id: 2, conexiones: [1]}
+- sevilla: {id: 3, conexiones: [1]}
+
