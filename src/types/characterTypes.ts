@@ -41,9 +41,29 @@ type DynamicCharacterConstructor = {
     }
 }
 
+type CharacterCallbacks = {
+    missAttack?: (c: BaseCharacter) => void,
+    criticalAttack?: (c: BaseCharacter) => void,
+    normalAttack?: (c: BaseCharacter) => void,
+    afterAnyAttack?: (c: BaseCharacter) => void,
+    missDefence?: (c: BaseCharacter) => void,
+    trueDefence?: (c: BaseCharacter) => void,
+    evasionDefence?: (c: BaseCharacter) => void,
+    normalDefence?: (c: BaseCharacter) => void,
+    afterAnyDefence?: (c: BaseCharacter) => void,
+    die?: (c: BaseCharacter) => void,
+    receiveDamage?: (c: BaseCharacter) => void,
+    removeStatus?: (c: BaseCharacter) => void,
+    revive?: (c: BaseCharacter) => void,
+    updateHp?: (c: BaseCharacter) => void,
+    beforeBattle?: (c: BaseCharacter) => void,
+    afterBattle?: (c: BaseCharacter) => void,
+};
+
 export {
   AttackResult,
   AttackType,
+  CharacterCallbacks,
   CharacterConstructor,
   DefenceResult,
   DefenceType,

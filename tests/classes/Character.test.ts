@@ -299,6 +299,7 @@ describe('Character', () => {
     beforeEach(() => {
       character = new Character({
         stats: getDefaultStatsObject(),
+        callbacks: {},
       });
     });
 
@@ -309,32 +310,31 @@ describe('Character', () => {
       const mockAfterAnyAttackCallback = jest.fn();
 
       character.stats.accuracy = 0; // Asegura un ataque perdido
-      character.attack({
-        missAttackCallback: mockMissAttackCallback,
-        afterAnyAttackCallback: mockAfterAnyAttackCallback,
-      });
+      character.callbacks = {
+        missAttack: mockMissAttackCallback,
+        afterAnyAttack: mockAfterAnyAttackCallback,
+      };
+      character.attack();
       expect(mockMissAttackCallback).toHaveBeenCalledWith(character);
       expect(mockAfterAnyAttackCallback).toHaveBeenCalledWith(character);
 
       character.stats.accuracy = 100; // Asegura un ataque normal o crítico
       character.stats.crit = 100; // Asegura un ataque crítico
-      character.attack({
-        criticalAttackCallback: mockCriticalAttackCallback,
-        afterAnyAttackCallback: mockAfterAnyAttackCallback,
-      });
+      character.callbacks = {
+        criticalAttack: mockCriticalAttackCallback,
+        afterAnyAttack: mockAfterAnyAttackCallback,
+      };
+      character.attack();
       expect(mockCriticalAttackCallback).toHaveBeenCalledWith(character);
 
       character.stats.crit = 0; // Asegura un ataque normal
-      character.attack({
-        normalAttackCallback: mockNormalAttackCallback,
-        afterAnyAttackCallback: mockAfterAnyAttackCallback,
-      });
+      character.callbacks = {
+        normalAttack: mockNormalAttackCallback,
+        afterAnyAttack: mockAfterAnyAttackCallback,
+      };
+      character.attack();
       expect(mockNormalAttackCallback).toHaveBeenCalledWith(character);
     });
-
-    // Repite un patrón similar para las otras funciones que contienen callbacks.
-    // No olvides ajustar las estadísticas del personaje para provocar los diferentes tipos de ataques/defensas.
-    // Aquí hay un ejemplo de cómo puedes hacerlo para la función 'defend':
 
     test('defend callbacks', () => {
       const mockMissDefenceCallback = jest.fn();
@@ -343,73 +343,98 @@ describe('Character', () => {
       const mockNormalDefenceCallback = jest.fn();
       const mockAfterAnyDefenceCallback = jest.fn();
 
-      character.defend({ type: ATTACK_TYPE_CONST.MISS, value: 0 }, {
-        missDefenceCallback: mockMissDefenceCallback,
-        afterAnyDefenceCallback: mockAfterAnyDefenceCallback,
-      });
+      character.callbacks = {
+        missDefence: mockMissDefenceCallback,
+        afterAnyDefence: mockAfterAnyDefenceCallback,
+      };
+      character.defend({ type: ATTACK_TYPE_CONST.MISS, value: 0 });
       expect(mockMissDefenceCallback).toHaveBeenCalledWith(character);
       expect(mockAfterAnyDefenceCallback).toHaveBeenCalledWith(character);
 
-      character.defend({ type: ATTACK_TYPE_CONST.TRUE, value: 10 }, {
-        trueDefenceCallback: mockTrueDefenceCallback,
-        afterAnyDefenceCallback: mockAfterAnyDefenceCallback,
-      });
+      character.callbacks = {
+        trueDefence: mockTrueDefenceCallback,
+        afterAnyDefence: mockAfterAnyDefenceCallback,
+      };
+      character.defend({ type: ATTACK_TYPE_CONST.TRUE, value: 10 });
       expect(mockTrueDefenceCallback).toHaveBeenCalledWith(character);
 
       character.stats.evasion = 100; // Asegura la evasión
-      character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10 }, {
-        evasionDefenceCallback: mockEvasionDefenceCallback,
-        afterAnyDefenceCallback: mockAfterAnyDefenceCallback,
-      });
+      character.callbacks = {
+        evasionDefence: mockEvasionDefenceCallback,
+        afterAnyDefence: mockAfterAnyDefenceCallback,
+      };
+      character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10 });
       expect(mockEvasionDefenceCallback).toHaveBeenCalledWith(character);
 
       character.stats.evasion = 0; // Asegura una defensa normal
-      character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10 }, {
-        normalDefenceCallback: mockNormalDefenceCallback,
-        afterAnyDefenceCallback: mockAfterAnyDefenceCallback,
-      });
+      character.callbacks = {
+        normalDefence: mockNormalDefenceCallback,
+        afterAnyDefence: mockAfterAnyDefenceCallback,
+      };
+      character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10 });
       expect(mockNormalDefenceCallback).toHaveBeenCalledWith(character);
     });
+
     test('die callback', () => {
       const mockDieCallback = jest.fn();
-      character.die(mockDieCallback);
+      character.callbacks = {
+        die: mockDieCallback,
+      };
+      character.die();
       expect(mockDieCallback).toHaveBeenCalledWith(character);
     });
 
     test('receiveDamage callback', () => {
       const mockReceiveDamageCallback = jest.fn();
-      character.receiveDamage(10, mockReceiveDamageCallback);
+      character.callbacks = {
+        receiveDamage: mockReceiveDamageCallback,
+      };
+      character.receiveDamage(10);
       expect(mockReceiveDamageCallback).toHaveBeenCalledWith(character);
     });
 
     test('removeStatus callback', () => {
       const mockRemoveStatusCallback = jest.fn();
-      // Asumiendo que tienes algún estado en tu personaje
-      character.removeStatus(1, mockRemoveStatusCallback); // Cambia '1' por el ID real del estado que quieres eliminar
+      character.callbacks = {
+        removeStatus: mockRemoveStatusCallback,
+      };
+      character.removeStatus(1); // Cambia '1' por el ID real del estado que quieres eliminar
       expect(mockRemoveStatusCallback).toHaveBeenCalledWith(character);
     });
 
     test('revive callback', () => {
       const mockReviveCallback = jest.fn();
-      character.revive(mockReviveCallback);
+      character.callbacks = {
+        revive: mockReviveCallback,
+      };
+      character.revive();
       expect(mockReviveCallback).toHaveBeenCalledWith(character);
     });
 
     test('updateHp callback', () => {
       const mockUpdateHpCallback = jest.fn();
-      character.updateHp(10, mockUpdateHpCallback); // Asegúrate de que el personaje tenga suficiente HP para que la operación sea válida
+      character.callbacks = {
+        updateHp: mockUpdateHpCallback,
+      };
+      character.updateHp(10); // Asegúrate de que el personaje tenga suficiente HP para que la operación sea válida
       expect(mockUpdateHpCallback).toHaveBeenCalledWith(character);
     });
 
     test('beforeBattle callback', () => {
       const mockBeforeBattleCallback = jest.fn();
-      character.beforeBattle(mockBeforeBattleCallback);
+      character.callbacks = {
+        beforeBattle: mockBeforeBattleCallback,
+      };
+      character.beforeBattle();
       expect(mockBeforeBattleCallback).toHaveBeenCalledWith(character);
     });
 
     test('afterBattle callback', () => {
       const mockAfterBattleCallback = jest.fn();
-      character.afterBattle(mockAfterBattleCallback);
+      character.callbacks = {
+        afterBattle: mockAfterBattleCallback,
+      };
+      character.afterBattle();
       expect(mockAfterBattleCallback).toHaveBeenCalledWith(character);
     });
   });
