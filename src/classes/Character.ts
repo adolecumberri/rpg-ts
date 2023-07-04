@@ -16,7 +16,7 @@ import {
   DynamicCharacterConstructor,
   Stats,
 } from '../types';
-import { Status, StatusManager } from './';
+import { ActionRecord, Status, StatusManager } from './';
 
 
 class BaseCharacter {
@@ -24,9 +24,14 @@ class BaseCharacter {
   isAlive: boolean = true;
   name: string = '';
   originalStats: Partial<Stats> = {};
+  skill: {
+    probability: 0,
+    use: () => {}
+  };
   stats: Stats;
   statusManager: StatusManager | null = null;
   callbacks: CharacterCallbacks = {};
+  actionRecord: ActionRecord | null = null;
 
   damageCalculation = {
     [ATTACK_TYPE_CONST.CRITICAL]: (stats: Stats) => stats.attack * stats.critMultiplier,
@@ -34,6 +39,10 @@ class BaseCharacter {
     [ATTACK_TYPE_CONST.MISS]: (_: Stats) => 0,
   };
 
+  /**
+ * Crea un nuevo personaje.
+ * @param {CharacterConstructor} con - Un objeto que contiene los datos iniciales para el personaje.
+ */
   constructor(con?: CharacterConstructor) {
     con && Object.assign(this, con);
 
@@ -43,22 +52,31 @@ class BaseCharacter {
     totalHpProvided = Math.max(totalHpProvided, hpProvided);
 
     this.stats = Object.assign(
-        getDefaultStatsObject(),
-        con?.stats,
-        {
-          totalHp: totalHpProvided,
-          hp: hpProvided,
-        },
+      getDefaultStatsObject(),
+      con?.stats,
+      {
+        totalHp: totalHpProvided,
+        hp: hpProvided,
+      },
     );
 
     this.originalStats = this.stats;
     this.statusManager = con?.statusManager ? new StatusManager({ character: this }) : null;
+    this.actionRecord = con?.actionRecord ? new ActionRecord() : null;
   }
 
+  /**
+ * Añade un nuevo estado al personaje.
+ * @param {Status[] | Status} status - El estado o estados a añadir.
+ */
   addStatus(status: Status[] | Status) {
     this.statusManager?.addStatus(status);
   }
 
+  /**
+ * Realiza un ataque.
+ * @returns {AttackResult} - Los detalles del ataque, incluyendo el tipo y el daño.
+ */
   attack(): AttackResult {
     const accuracyRoll = getRandomInt(100); // Genera un número entre 0 y 100.
     const critRoll = getRandomInt(100); // Genera un número entre 0 y 100.
@@ -84,6 +102,8 @@ class BaseCharacter {
     const solution = getDefaultAttackObject();
     solution.type = attackType;
     solution.value = damage;
+
+    this.actionRecord?.recordAttack(attackType, damage);
     this.callbacks.afterAnyAttack?.(this);
     return solution;
   }
@@ -101,6 +121,12 @@ class BaseCharacter {
     // Aquí pueden realizarse otras acciones necesarias antes de la batalla.
   }
 
+  /**
+   * Calcula el daño en función del tipo de ataque y las estadísticas.
+   * @param {AttackType} type - El tipo de ataque.
+   * @param {Stats} stats - Las estadísticas actuales del personaje.
+   * @returns {number} - El daño calculado.
+   */
   calculateDamage(type: AttackType, stats: Stats): number {
     if (!(type in this.damageCalculation)) {
       throw new Error(`Invalid attack type: ${type}`);
@@ -109,7 +135,12 @@ class BaseCharacter {
     return this.damageCalculation[type](stats);
   }
 
-  defend( attack: AttackResult ): DefenceResult {
+  /**
+  * Defiende de un ataque.
+  * @param {AttackResult} attack - El ataque a defender.
+  * @returns {DefenceResult} - Los detalles de la defensa, incluyendo el tipo y el daño absorbido.
+  */
+  defend(attack: AttackResult): DefenceResult {
     const defence: DefenceResult = getDefaultDefenceObject();
 
     // Si el ataque falla, no se hace daño.
@@ -137,10 +168,16 @@ class BaseCharacter {
       }
     }
 
+    this.actionRecord?.recordDefence(defence.type, defence.value);
     this.callbacks?.afterAnyDefence?.(this);
     return defence;
   }
 
+  /**
+  * Método para calcular la defensa.
+  * @param {number} attack - El valor del ataque a defender.
+  * @returns {number} - El daño después de aplicar la defensa.
+  */
   defenceCalculation = (attack: number) => attack * 40 / (40 + this.stats.defence);
 
   die() {
@@ -150,11 +187,19 @@ class BaseCharacter {
     this.callbacks.die?.(this);
   }
 
+  /**
+  * Aplica daño al personaje.
+  * @param {number} damage - El daño a aplicar.
+  */
   receiveDamage(damage: number) {
     this.updateHp(damage * -1);
     this.callbacks.receiveDamage?.(this);
   }
 
+  /**
+   * Elimina un estado del personaje por su ID.
+   * @param {number} id - El ID del estado a eliminar.
+   */
   removeStatus(id: number) {
     this.statusManager?.removeStatusById(id);
     this.callbacks.removeStatus?.(this);
@@ -168,6 +213,10 @@ class BaseCharacter {
     this.callbacks.revive?.(this);
   }
 
+  /**
+   * Actualiza la salud del personaje.
+   * @param {number} amount - La cantidad de salud a añadir o restar.
+   */
   updateHp(amount: number): void {
     this.stats.hp = Math.min(this.stats.totalHp, Math.max(0, this.stats.hp + amount));
 
