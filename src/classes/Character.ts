@@ -195,6 +195,7 @@ class BaseCharacter {
   */
   receiveDamage(damage: number) {
     this.updateHp(damage * -1);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_RECEIVE_DAMAGE);
     this.callbacks.receiveDamage?.(this);
   }
 
