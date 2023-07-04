@@ -31,7 +31,8 @@ describe('Berserk character tests', () => {
     const BERSERK_SKILL = (character: Character) => {
         if (
             character.stats.hp <= character.stats.totalHp * 0.3 &&
-            !character.statusManager?.statusList.includes(Rage)
+            !character.statusManager?.statusList.includes(Rage) &&
+            character.isAlive
         ) {
             character.statusManager?.addStatus(Rage);
             character.statusManager?.activate('AFTER_RECEIVE_DAMAGE');
@@ -40,28 +41,33 @@ describe('Berserk character tests', () => {
 
 
     const berserk = new Character({
-            name: 'berserkkkk',
-            statusManager: true,
-            actionRecord: true,
-            callbacks: {
-                receiveDamage: BERSERK_SKILL,
-            },
-            stats: {
-                hp: 100,
-            },
-        });
+        name: 'berserkkkk',
+        statusManager: true,
+        actionRecord: true,
+        callbacks: {
+            receiveDamage: BERSERK_SKILL,
+        },
+        stats: {
+            hp: 100,
+        },
+    });
 
     test('Berserk skill is activated upon receiving damage', () => {
-      const initialAttack = berserk.stats.attack;
-      const initialDefence = berserk.stats.defence;
-      debugger;
-      berserk.receiveDamage(80);
-      const finalAttack = berserk.stats.attack;
+        const initialAttack = berserk.stats.attack;
+        const initialDefence = berserk.stats.defence;
+        berserk.receiveDamage(80);
+        const finalAttack = berserk.stats.attack;
         const finalDefence = berserk.stats.defence;
 
-      expect(finalAttack).toBeGreaterThan(initialAttack);
-      expect(finalDefence).toBeLessThan(initialDefence);
-      expect(berserk.statusManager?.statusList).toContain(Rage);
-      expect(berserk.statusManager.statusList[0].hasBeenUsed).toBe(true);
+        expect(finalAttack).toBeGreaterThan(initialAttack);
+        expect(finalDefence).toBeLessThan(initialDefence);
+        expect(berserk.statusManager?.statusList).toContain(Rage);
+        expect(berserk.statusManager.statusList[0].hasBeenUsed).toBe(true);
+
+        berserk.receiveDamage(80);
+        expect(berserk.stats.hp).toBe(0); // no se baja de 0hp
+        expect(berserk.stats.attack).toBe(initialAttack); // los estados se depuran correctamente.
+        expect(berserk.statusManager.statusList.length).toBe(0); // los estados se depuran correctamente.
+        expect(berserk.isAlive).toBe(false); // el personaje muere.
     });
-  });
+});

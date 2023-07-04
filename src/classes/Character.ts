@@ -187,6 +187,7 @@ class BaseCharacter {
     this.isAlive = false;
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE);
     this.callbacks.die?.(this);
+    this.statusManager.removeAllStatuses();
   }
 
   /**

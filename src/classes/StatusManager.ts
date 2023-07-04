@@ -43,8 +43,8 @@ class StatusManager {
   }
 
   removeAllStatuses() {
-    this.statusList = [];
     this.recoverAll();
+    this.statusList = [];
   }
 
   recoverAll(): void {
