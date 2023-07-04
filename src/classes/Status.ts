@@ -101,10 +101,6 @@ class Status {
   }
 }
 
-// con esto evito tener que usar typeof Status cada vez que lo uso fuera.
-// const Status = BaseStatus as DynamicStatusConstructor;
-// type Status = InstanceType<typeof BaseStatus>
-
 export default Status;
 
 export {

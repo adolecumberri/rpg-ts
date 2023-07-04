@@ -104,6 +104,7 @@ class BaseCharacter {
     solution.value = damage;
 
     this.actionRecord?.recordAttack(attackType, damage);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_ATTACK);
     this.callbacks.afterAnyAttack?.(this);
     return solution;
   }
@@ -169,6 +170,7 @@ class BaseCharacter {
     }
 
     this.actionRecord?.recordDefence(defence.type, defence.value);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE);
     this.callbacks?.afterAnyDefence?.(this);
     return defence;
   }

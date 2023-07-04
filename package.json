@@ -13,6 +13,7 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --fix --ext .ts",
     "test": "jest --coverage",
+    "testto": "jest --watch",
     "pretty": "prettier --write \"./**/*.{js,jsx,json}\"",
     "prepublish": "tsc",
     "clean": "del dist",
