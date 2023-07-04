@@ -44,6 +44,7 @@ class StatusManager {
 
   removeAllStatuses() {
     this.statusList = [];
+    this.recoverAll();
   }
 
   recoverAll(): void {
