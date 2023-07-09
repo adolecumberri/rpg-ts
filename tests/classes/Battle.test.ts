@@ -21,7 +21,7 @@ describe('Battle class tests', () => {
     character2 = new Character({
       id: 2,
       name: 'Char2',
-      stats: { hp: 10, attack: 30, defense: 2, attackSpeed: 1, attackInterval: 3 },
+      stats: { hp: 10, attack: 3, defense: 2, attackSpeed: 1, attackInterval: 3 },
     });
 
     character3 = new Character({

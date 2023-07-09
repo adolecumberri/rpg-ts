@@ -6,7 +6,7 @@ describe('arquero', () => {
     test('archer with the "haste" skill.', () => {
         // haste will reduce the attack interval by 2 for 1 turn.
         // after the attack, the status will be removed and the original attack Interval will be restored.
-        const haste = new Status({
+        const hasteStatus = new Status({
             duration: { type: 'TEMPORAL', value: 1 },
             name: 'Haste',
             applyOn: 'AFTER_ATTACK',
@@ -19,34 +19,39 @@ describe('arquero', () => {
             }],
         });
 
-        const ARCHER_SKILL_PROBABILITY = 1;
+        const haste = (c: Character) => {
+            if (c === undefined) debugger;
+            if (c.skill.probability < Math.random()) {
+                c.statusManager?.addStatus(hasteStatus);
+                skillUsed = !skillUsed;
+            } else {
+                c.statusManager?.removeStatusById(hasteStatus.id);
+                skillUsed = !skillUsed;
+            }
+
+            return undefined;
+        };
+
+        const archer_skill = (c: AttackResult) => {
+            if (c.atacker) debugger;
+            c.atacker?.skill.use();
+        };
+
+        const ARCHER_SKILL_PROBABILITY = 100;
         let skillUsed = false;
 
         const archer = new Character({
             name: 'Archer',
-            skillProbability: ARCHER_SKILL_PROBABILITY,
+            skill: {
+                probability: ARCHER_SKILL_PROBABILITY,
+                use: haste,
+            },
             className: 'Archer',
             statusManager: true,
             actionRecord: true,
             callbacks: {
-                criticalAttack: ({ atacker }: AttackResult) => {
-                    if (!skillUsed) {
-                        atacker!.statusManager?.addStatus(haste);
-                        skillUsed = !skillUsed;
-                    } else {
-                        atacker!.statusManager?.removeStatusById(haste.id);
-                        skillUsed = !skillUsed;
-                    }
-                },
-                normalAttack: ({ atacker }: AttackResult) => {
-                    if (!skillUsed) {
-                        atacker!.statusManager?.addStatus(haste);
-                        skillUsed = !skillUsed;
-                    } else {
-                        atacker!.statusManager?.removeStatusById(haste.id);
-                        skillUsed = !skillUsed;
-                    }
-                },
+                criticalAttack: archer_skill,
+                normalAttack: archer_skill,
             } as CharacterCallbacks,
             stats: {
                 attackInterval: 3,

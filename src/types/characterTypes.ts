@@ -47,10 +47,10 @@ type DynamicCharacterConstructor = {
 }
 
 type CharacterCallbacks = {
-    missAttack?: (params: AttackResult) => void,
-    criticalAttack?: (params: AttackResult) => void,
-    normalAttack?: (params: AttackResult) => void,
-    afterAnyAttack?: (params: AttackResult) => void,
+    missAttack?: (params: AttackResult) => AttackResult | undefined,
+    criticalAttack?: (params: AttackResult) => AttackResult | undefined,
+    normalAttack?: (params: AttackResult) => AttackResult | undefined,
+    afterAnyAttack?: (params: AttackResult) => AttackResult | undefined,
     missDefence?: (params: { c: BaseCharacter, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
     trueDefence?: (params: { c: BaseCharacter, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
     evasionDefence?: (params: { c: BaseCharacter, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,

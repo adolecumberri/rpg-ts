@@ -21,8 +21,6 @@ const Riposte: CharacterCallbacks['afterAnyDefence'] = ({ c, attack, defence }) 
 
     const damageReflected = calculateReflectedDamage(attack?.value);
 
-    console.warn({aracker: attack?.atacker?.name, damageReflected});
-
     const defenceResult = attack.atacker!.defend({
         type: ATTACK_TYPE_CONST.SKILL,
         value: damageReflected,

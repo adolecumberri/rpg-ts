@@ -72,10 +72,6 @@ describe('Defender Class', () => {
         // Calcular la cantidad de daño reflejada
         const expectedReflectedDamage = spikeShield(attackResult);
 
-
-        console.log({
-            expectedReflectedDamage,
-        });
         Attacker.receiveDamage({
             type: 'SKILL',
             value: expectedReflectedDamage,

@@ -26,7 +26,7 @@ class BaseCharacter {
   originalStats: Partial<Stats> = {};
   skill: {
     probability: 0,
-    use: () => {}
+    use: any
   };
   stats: Stats;
   statusManager: StatusManager | null = null;
@@ -80,6 +80,7 @@ class BaseCharacter {
   attack(): AttackResult {
     const accuracyRoll = getRandomInt(0, 100); // Genera un número entre 0 y 100.
     const critRoll = getRandomInt(0, 100); // Genera un número entre 0 y 100.
+    let callbackResult: AttackResult | undefined;
 
     let attackType: AttackType;
 
@@ -101,20 +102,20 @@ class BaseCharacter {
     // Llama a los callbacks después de calcular el daño.
     switch (attackType) {
       case ATTACK_TYPE_CONST.MISS:
-        this.callbacks.missAttack?.(solution);
+        callbackResult = this.callbacks.missAttack?.(solution);
         break;
       case ATTACK_TYPE_CONST.CRITICAL:
-        this.callbacks.criticalAttack?.(solution);
+        callbackResult = this.callbacks.criticalAttack?.(solution);
         break;
       case ATTACK_TYPE_CONST.NORMAL:
-        this.callbacks.normalAttack?.(solution);
+        callbackResult = this.callbacks.normalAttack?.(solution);
         break;
     }
 
     this.actionRecord?.recordAttack(attackType, damage);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_ATTACK);
-    this.callbacks.afterAnyAttack?.(solution);
-    return solution;
+    callbackResult = this.callbacks.afterAnyAttack?.(solution);
+    return callbackResult || solution;
   }
 
   afterBattle(): any {
@@ -164,7 +165,6 @@ class BaseCharacter {
       callbackResult = this.callbacks?.trueDefence?.({c: this, defence, attack});
     } else { // Para ataques normales y críticos, se calcula el daño teniendo en cuenta la defensa y la evasión.
       const evasionRoll = getRandomInt(0, 100);
-      console.log('evasion_roll', evasionRoll, this.stats.evasion);
       if (evasionRoll <= this.stats.evasion) {
         defence.type = DEFENCE_TYPE_CONST.EVASION;
         defence.value = 0;
