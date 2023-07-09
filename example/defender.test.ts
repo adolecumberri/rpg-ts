@@ -1,7 +1,7 @@
 import { Character } from '../src/classes';
 import { AttackResult } from '../src/types';
 
-const spikeShield = (attack: AttackResult) => Math.floor( 7 + attack.value * 0.2);
+const spikeShield = (attackValue: number) => Math.floor( 7 + attackValue * 0.2);
 
 const Defender = new Character({
     name: 'Defender',
@@ -10,13 +10,13 @@ const Defender = new Character({
     statusManager: true,
     actionRecord: true,
     callbacks: {
-        receiveDamage: (attack: AttackResult) => {
-            if (attack.type === 'MISS') return;
-            const damage = spikeShield(attack);
-            attack.atacker?.receiveDamage({
-                type: 'EVASION',
+        receiveDamage: ({ c, defence: { value, type, attacker } }) => {
+            if (type === 'MISS') return;
+            const damage = spikeShield(value);
+            attacker.receiveDamage({
+                type: 'SKILL',
                 value: damage,
-                attacker: null,
+                attacker: c,
             });
         },
     },

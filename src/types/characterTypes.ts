@@ -63,6 +63,8 @@ type CharacterCallbacks = {
     updateHp?: (c: BaseCharacter) => void,
     beforeBattle?: (c: BaseCharacter) => void,
     afterBattle?: (c: BaseCharacter) => void,
+    beforeTurn?: (c: Character) => void;
+    afterTurn?: (c: Character) => void;
 };
 
 export {

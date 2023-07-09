@@ -31,6 +31,10 @@ class StatusManager {
     });
   }
 
+  hasStatus(id: number): boolean {
+    return this.statusList.some((status) => status.id === id);
+  }
+
   removeStatusById(id: number) {
     this.statusList = this.statusList.filter((status) => {
       if (status.id === id) {

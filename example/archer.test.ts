@@ -21,13 +21,13 @@ describe('arquero', () => {
         });
 
         const haste = (c: Character) => {
-            if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.used) {
+            if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.hasBeenUsed) {
                 c.statusManager?.addStatus(hasteStatus);
-                c.skill.used = true;
+                c.skill.hasBeenUsed = true;
                 // c.statusManager?.activate('AFTER_ATTACK');
             } else if (c.statusManager?.statusList.includes(hasteStatus)) {
                  c.statusManager?.removeStatusById(hasteStatus.id); //
-                 c.skill.used = false;
+                 c.skill.hasBeenUsed = false;
             }
         };
 

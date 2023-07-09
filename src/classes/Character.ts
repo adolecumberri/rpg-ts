@@ -25,9 +25,10 @@ class BaseCharacter {
   name: string = '';
   originalStats: Partial<Stats> = {};
   skill: {
+    isUsed: boolean;
     probability: number,
     use: any,
-    used: boolean
+    hasBeenUsed: boolean
   };
   stats: Stats;
   statusManager: StatusManager | null = null;
@@ -126,10 +127,24 @@ class BaseCharacter {
     // Aquí pueden realizarse otras acciones necesarias después de la batalla.
   }
 
+  afterTurn(): any {
+    const callbackResponse = this.callbacks.afterTurn?.(this);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_TURN);
+    // Aquí pueden realizarse otras acciones necesarias después del turno.
+    return callbackResponse;
+  }
+
   beforeBattle(): any {
+    const callbackResponse = this.callbacks.beforeBattle?.(this);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE);
-    this.callbacks.beforeBattle?.(this);
     // Aquí pueden realizarse otras acciones necesarias antes de la batalla.
+    return callbackResponse;
+  }
+
+  beforeTurn(): any {
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_TURN);
+    this.callbacks.beforeTurn?.(this);
+    // Aquí pueden realizarse otras acciones necesarias antes del turno.
   }
 
   /**
@@ -152,38 +167,37 @@ class BaseCharacter {
   * @returns {DefenceResult} - Los detalles de la defensa, incluyendo el tipo y el daño absorbido.
   */
   defend(attack: AttackResult): DefenceResult {
-    const defence: DefenceResult = getDefaultDefenceObject({attacker: attack.atacker});
+    const defence: DefenceResult = getDefaultDefenceObject({ attacker: attack.atacker });
     let callbackResult: DefenceResult | undefined;
 
     // Si el ataque falla, no se hace daño.
     if (attack.type === ATTACK_TYPE_CONST.MISS) {
       defence.type = DEFENCE_TYPE_CONST.MISS;
       defence.value = 0;
-      callbackResult = this.callbacks?.missDefence?.({c: this, defence, attack});
+      callbackResult = this.callbacks?.missDefence?.({ c: this, defence, attack });
     } else if (attack.type === ATTACK_TYPE_CONST.TRUE) { // Si el ataque es verdadero, pasa sin modificarse.
       defence.type = DEFENCE_TYPE_CONST.TRUE;
       defence.value = attack.value;
-      callbackResult = this.callbacks?.trueDefence?.({c: this, defence, attack});
+      callbackResult = this.callbacks?.trueDefence?.({ c: this, defence, attack });
     } else { // Para ataques normales y críticos, se calcula el daño teniendo en cuenta la defensa y la evasión.
       const evasionRoll = getRandomInt(0, 100);
       if (evasionRoll <= this.stats.evasion) {
         defence.type = DEFENCE_TYPE_CONST.EVASION;
         defence.value = 0;
-        callbackResult = this.callbacks?.evasionDefence?.({c: this, defence, attack});
+        callbackResult = this.callbacks?.evasionDefence?.({ c: this, defence, attack });
       } else {
         defence.type = DEFENCE_TYPE_CONST.NORMAL;
         defence.value = this.defenceCalculation(attack.value);
-        callbackResult = this.callbacks?.normalDefence?.({c: this, defence, attack});
+        callbackResult = this.callbacks?.normalDefence?.({ c: this, defence, attack });
       }
     }
 
     this.actionRecord?.recordDefence(defence.type, defence.value);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE);
-    callbackResult = this.callbacks?.afterAnyDefence?.({c: this, defence, attack});
+    callbackResult = this.callbacks?.afterAnyDefence?.({ c: this, defence, attack });
 
     return callbackResult || defence;
   }
-
 
   /**
   * Método para calcular la defensa.
@@ -207,7 +221,7 @@ class BaseCharacter {
   receiveDamage(defence: DefenceResult) {
     this.updateHp(defence.value * -1); // defence.value es el dañor que el personaje recibe.
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_RECEIVE_DAMAGE);
-    this.callbacks.receiveDamage?.({c: this, defence});
+    this.callbacks.receiveDamage?.({ c: this, defence });
   }
 
   /**

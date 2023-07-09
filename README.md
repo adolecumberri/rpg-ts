@@ -47,3 +47,5 @@ rollo:
 - cordoba: {id: 2, conexiones: [1]}
 - sevilla: {id: 3, conexiones: [1]}
 
+Comprobar que de un combate a otro todo se resetea correctamente.
+

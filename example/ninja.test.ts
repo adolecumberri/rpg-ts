@@ -26,7 +26,6 @@ const tripleAttack = ({ atacker, value }: AttackResult) => {
 
         results.value += newAttackValue * 0.7;
     }
-    debugger;
     return results;
 };
 
