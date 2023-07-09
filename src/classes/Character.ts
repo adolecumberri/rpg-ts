@@ -25,8 +25,9 @@ class BaseCharacter {
   name: string = '';
   originalStats: Partial<Stats> = {};
   skill: {
-    probability: 0,
-    use: any
+    probability: number,
+    use: any,
+    used: boolean
   };
   stats: Stats;
   statusManager: StatusManager | null = null;

@@ -1,3 +1,4 @@
+import { getRandomInt } from '../src/helpers';
 import { AttackResult, CharacterCallbacks, StatusDurationTemporal } from '../src/types';
 import { Character, Status } from './../src/classes';
 
@@ -20,31 +21,28 @@ describe('arquero', () => {
         });
 
         const haste = (c: Character) => {
-            if (c === undefined) debugger;
-            if (c.skill.probability < Math.random()) {
+            if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.used) {
                 c.statusManager?.addStatus(hasteStatus);
-                skillUsed = !skillUsed;
-            } else {
-                c.statusManager?.removeStatusById(hasteStatus.id);
-                skillUsed = !skillUsed;
+                c.skill.used = true;
+                // c.statusManager?.activate('AFTER_ATTACK');
+            } else if (c.statusManager?.statusList.includes(hasteStatus)) {
+                 c.statusManager?.removeStatusById(hasteStatus.id); //
+                 c.skill.used = false;
             }
-
-            return undefined;
         };
 
-        const archer_skill = (c: AttackResult) => {
-            if (c.atacker) debugger;
-            c.atacker?.skill.use();
+        const archer_skill = ({atacker}: AttackResult) => {
+            atacker?.skill.use(atacker);
         };
 
         const ARCHER_SKILL_PROBABILITY = 100;
-        let skillUsed = false;
 
         const archer = new Character({
             name: 'Archer',
             skill: {
                 probability: ARCHER_SKILL_PROBABILITY,
                 use: haste,
+                used: false,
             },
             className: 'Archer',
             statusManager: true,

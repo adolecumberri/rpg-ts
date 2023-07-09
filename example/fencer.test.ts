@@ -17,7 +17,7 @@ const Riposte: CharacterCallbacks['afterAnyDefence'] = ({ c, attack, defence }) 
         defence?.type === DEFENCE_TYPE_CONST.EVASION
     ) return;
 
-    if (skillProbability < getRandomInt()) return defence; // if skill miss returns default defence
+    if (skillProbability <= getRandomInt(0, 100)) return defence; // if skill miss returns default defence
 
     const damageReflected = calculateReflectedDamage(attack?.value);
 

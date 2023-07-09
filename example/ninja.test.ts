@@ -1,19 +1,32 @@
 import { Character } from '../src/classes';
 import { ATTACK_TYPE_CONST } from '../src/constants';
 import { getRandomInt } from '../src/helpers';
-import { AttackResult } from '../src/types';
+import { AttackResult, Stats } from '../src/types';
 
 const skillProbability = 100; // 19 real probability.
 
 const tripleAttack = ({ atacker, value }: AttackResult) => {
-    if (atacker!.skill.probability < getRandomInt()) return undefined;
+    if ( !atacker ) return undefined;
+    if ( atacker!.skill.probability < getRandomInt() ) return undefined;
     const results: AttackResult = { type: ATTACK_TYPE_CONST.SKILL, value: 0, atacker };
 
     for (let i = 0; i < 3; i++) {
-        const attackResult = atacker!.attack();
-        results.value += attackResult.value * 0.7;
-    }
+        const accuracyRoll = getRandomInt(); // Genera un número entre 0 y 100.
+        const critRoll = getRandomInt(); // Genera un número entre 0 y 100.
 
+        let newAttackValue = 0;
+
+        if (atacker.stats.accuracy < accuracyRoll ) {
+            newAttackValue = atacker.calculateDamage('MISS', atacker.stats);
+        } else if (atacker!.stats.crit > critRoll) {
+            newAttackValue = atacker.calculateDamage('CRITICAL', atacker.stats);
+        } else {
+            newAttackValue = atacker.calculateDamage('NORMAL', atacker.stats);
+        }
+
+        results.value += newAttackValue * 0.7;
+    }
+    debugger;
     return results;
 };
 
@@ -27,12 +40,11 @@ const ninja = new Character({
         use: tripleAttack,
     },
     callbacks: {
-        afterAnyAttack: (attackResult: AttackResult) => {
-            // Only use tripleAttack if it's a normal attack
-            if (attackResult.type !== ATTACK_TYPE_CONST.SKILL) {
-                return tripleAttack(attackResult);
-            }
-        },
+        afterAnyAttack: tripleAttack,
+    },
+    stats: {
+        attack: 10,
+        accuracy: 100,
     },
 });
 
@@ -54,11 +66,13 @@ describe('Ninja Character', () => {
         const dummyOpponent = new Character({ name: 'Dummy', stats: { hp: initialHp } });
 
         // Make Ninja attack the dummy opponent using the skill.
-        const attackResults = ninja.skill.use({ atacker: ninja, value: 0 });
+        const attackResults = ninja.attack();
 
         if (attackResults) {
             // Make the dummy opponent defend from the attack.
-            dummyOpponent.defend(attackResults);
+            const defenceResult = dummyOpponent.defend(attackResults);
+
+            dummyOpponent.receiveDamage(defenceResult);
 
             // Check that the attack was successful and the dummy opponent received damage.
             // Adjust these checks as needed based on the expected attack values.
