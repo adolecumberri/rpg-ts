@@ -6,6 +6,7 @@ type AttackType = keyof typeof ATTACK_TYPE_CONST;
 interface AttackResult {
     value: number;
     type: AttackType;
+    atacker: Character | null;
 }
 
 type DefenceType = keyof typeof DEFENCE_TYPE_CONST;
@@ -13,6 +14,7 @@ type DefenceType = keyof typeof DEFENCE_TYPE_CONST;
 interface DefenceResult {
     value: number;
     type: DefenceType;
+    attacker: Character | null;
 }
 
 interface Stats {
@@ -45,17 +47,17 @@ type DynamicCharacterConstructor = {
 }
 
 type CharacterCallbacks = {
-    missAttack?: (c: BaseCharacter) => void,
-    criticalAttack?: (c: BaseCharacter) => void,
-    normalAttack?: (c: BaseCharacter) => void,
-    afterAnyAttack?: (c: BaseCharacter) => void,
-    missDefence?: (c: BaseCharacter) => void,
-    trueDefence?: (c: BaseCharacter) => void,
-    evasionDefence?: (c: BaseCharacter) => void,
-    normalDefence?: (c: BaseCharacter) => void,
-    afterAnyDefence?: (c: BaseCharacter) => void,
+    missAttack?: (params: AttackResult) => void,
+    criticalAttack?: (params: AttackResult) => void,
+    normalAttack?: (params: AttackResult) => void,
+    afterAnyAttack?: (params: AttackResult) => void,
+    missDefence?: (params: {c?: BaseCharacter, attack?: AttackResult, defence?: DefenceResult}) => void,
+    trueDefence?: (params: {c?: BaseCharacter, attack?: AttackResult, defence?: DefenceResult}) => void,
+    evasionDefence?: (params: {c?: BaseCharacter, attack?: AttackResult, defence?: DefenceResult}) => void,
+    normalDefence?: (params: {c?: BaseCharacter, attack?: AttackResult, defence?: DefenceResult}) => void,
+    afterAnyDefence?: (params: {c?: BaseCharacter, attack?: AttackResult, defence?: DefenceResult}) => void,
     die?: (c: BaseCharacter) => void,
-    receiveDamage?: (c: BaseCharacter) => void,
+    receiveDamage?: (params: {c?: BaseCharacter, defence?: DefenceResult}) => void,
     removeStatus?: (c: BaseCharacter) => void,
     revive?: (c: BaseCharacter) => void,
     updateHp?: (c: BaseCharacter) => void,

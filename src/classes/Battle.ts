@@ -76,7 +76,7 @@ class Battle {
       const firstAttack = firstAttacker.attack();
       const firstDefence = secondAttacker.defend(firstAttack);
 
-      secondAttacker.receiveDamage(firstDefence.value);
+      secondAttacker.receiveDamage(firstDefence);
       this.logAction(firstAttacker, secondAttacker, firstAttack, firstDefence, turn);
 
       // Check if the second character is still alive before they attack
@@ -84,7 +84,7 @@ class Battle {
         const secondAttack = secondAttacker.attack();
         const secondDefence = firstAttacker.defend(secondAttack);
 
-        firstAttacker.receiveDamage(secondDefence.value);
+        firstAttacker.receiveDamage(secondDefence);
         this.logAction(secondAttacker, firstAttacker, secondAttack, secondDefence, turn);
       }
     }
@@ -110,24 +110,24 @@ class Battle {
       if (aNextAttackTime < bNextAttackTime) {
         const attack = a.attack();
         const defence = b.defend(attack);
-        b.receiveDamage(defence.value);
+        b.receiveDamage(defence);
         this.logAction(a, b, attack, defence, aNextAttackTime);
         aNextAttackTime += a.stats.attackInterval;
       } else if (bNextAttackTime < aNextAttackTime) {
         const attack = b.attack();
         const defence = a.defend(attack);
-        a.receiveDamage(defence.value);
+        a.receiveDamage(defence);
         this.logAction(b, a, attack, defence, bNextAttackTime);
         bNextAttackTime += b.stats.attackInterval;
       } else {
         const attackA = a.attack();
         const defenceA = b.defend(attackA);
-        b.receiveDamage(defenceA.value);
+        b.receiveDamage(defenceA);
         this.logAction(a, b, attackA, defenceA, aNextAttackTime);
 
         const attackB = b.attack();
         const defenceB = a.defend(attackB);
-        a.receiveDamage(defenceB.value);
+        a.receiveDamage(defenceB);
         this.logAction(b, a, attackB, defenceB, bNextAttackTime);
 
         aNextAttackTime += a.stats.attackInterval;
@@ -167,7 +167,7 @@ class Battle {
 
         const attack = attacker.attack();
         const defence = defender.defend(attack);
-        defender.receiveDamage(defence.value);
+        defender.receiveDamage(defence);
         this.logAction(attacker, defender, attack, defence, turn);
       }
     }
@@ -210,7 +210,7 @@ class Battle {
 
           const attack = attacker.attack();
           const defence = defender.defend(attack);
-          defender.receiveDamage(defence.value);
+          defender.receiveDamage(defence);
           this.logAction(attacker, defender, attack, defence, attackerInfo.nextAttackTime);
           attackerInfo.nextAttackTime += attacker.stats.attackInterval;
         }
@@ -328,12 +328,12 @@ class Battle {
 
     if (resultA?.value) {
       const defence = characterB.defend(resultA);
-      characterB.receiveDamage(defence.value);
+      characterB.receiveDamage(defence);
     }
 
     if (resultB?.value) {
       const defence = characterA.defend(resultB);
-      characterA.receiveDamage(defence.value);
+      characterA.receiveDamage(defence);
     }
   }
 
@@ -348,7 +348,7 @@ class Battle {
       if (result?.value) {
         const defender = this.randomCharacterFromTeam(teamB);
         const defence = defender.defend(result);
-        defender.receiveDamage(defence.value);
+        defender.receiveDamage(defence);
       }
     });
 
@@ -357,7 +357,7 @@ class Battle {
       if (result?.value) {
         const defender = this.randomCharacterFromTeam(teamA);
         const defence = defender.defend(result);
-        defender.receiveDamage(defence.value);
+        defender.receiveDamage(defence);
       }
     });
   }

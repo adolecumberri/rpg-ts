@@ -1,7 +1,7 @@
 import { Status, Character } from '../src/classes';
 
 describe('Berserk character tests', () => {
-    const Rage = new Status({
+    const rage = new Status({
         duration: { type: 'PERMANENT' },
         name: 'Rage',
         applyOn: 'AFTER_RECEIVE_DAMAGE',
@@ -31,10 +31,10 @@ describe('Berserk character tests', () => {
     const BERSERK_SKILL = (character: Character) => {
         if (
             character.stats.hp <= character.stats.totalHp * 0.3 &&
-            !character.statusManager?.statusList.includes(Rage) &&
+            !character.statusManager?.statusList.includes(rage) &&
             character.isAlive
         ) {
-            character.statusManager?.addStatus(Rage);
+            character.statusManager?.addStatus(rage);
             character.statusManager?.activate('AFTER_RECEIVE_DAMAGE');
         }
     };
@@ -53,18 +53,25 @@ describe('Berserk character tests', () => {
     });
 
     test('Berserk skill is activated upon receiving damage', () => {
+        const strongCharacter = new Character({
+            stats: { attack: 80 },
+        });
         const initialAttack = berserk.stats.attack;
         const initialDefence = berserk.stats.defence;
-        berserk.receiveDamage(80);
+        berserk.receiveDamage(
+            berserk.defend(strongCharacter.attack()),
+        );
         const finalAttack = berserk.stats.attack;
         const finalDefence = berserk.stats.defence;
 
         expect(finalAttack).toBeGreaterThan(initialAttack);
         expect(finalDefence).toBeLessThan(initialDefence);
-        expect(berserk.statusManager?.statusList).toContain(Rage);
+        expect(berserk.statusManager?.statusList).toContain(rage);
         expect(berserk.statusManager.statusList[0].hasBeenUsed).toBe(true);
 
-        berserk.receiveDamage(80);
+        berserk.receiveDamage(
+            berserk.defend(strongCharacter.attack()),
+        );
         expect(berserk.stats.hp).toBe(0); // no se baja de 0hp
         expect(berserk.stats.attack).toBe(initialAttack); // los estados se depuran correctamente.
         expect(berserk.statusManager.statusList.length).toBe(0); // los estados se depuran correctamente.

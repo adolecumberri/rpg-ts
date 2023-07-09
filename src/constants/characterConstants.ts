@@ -5,22 +5,27 @@ const ATTACK_TYPE_CONST = {
   MISS: 'MISS',
   CRITICAL: 'CRITICAL',
   TRUE: 'TRUE',
+  SKILL: 'SKILL',
 } as const;
 
 const DEFAULT_DEFENCE_OBJECT: DefenceResult = {
   type: ATTACK_TYPE_CONST.NORMAL,
   value: 0,
+  attacker: null,
 };
 
 const DEFENCE_TYPE_CONST = {
   NORMAL: 'NORMAL',
   EVASION: 'EVASION',
   MISS: 'MISS',
+  TRUE: 'TRUE',
+  SKILL: 'SKILL',
 } as const;
 
 const DEFAULT_ATTACK_OBJECT: AttackResult = {
   type: ATTACK_TYPE_CONST.NORMAL,
   value: 0,
+  atacker: null,
 };
 
 const DEFAULT_STATS_OBJECT: Stats = {

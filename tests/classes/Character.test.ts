@@ -159,9 +159,10 @@ describe('Character', () => {
     );
     const character = new Character({ statusManager: true });
     character.addStatus(status);
-    character.die();
+    character.die(); // Aquí se eliminan las listas de estados.
     expect(character.stats.hp).toBe(0);
-    expect(character.statusManager?.statusList[0].hasBeenUsed).toBe(true);
+    expect(character.statusManager?.statusList.length).toBeFalsy();
+    expect(status.hasBeenUsed).toBe(true);
   });
 
   test('character status removal logic works correctly', () => {
@@ -314,9 +315,9 @@ describe('Character', () => {
         missAttack: mockMissAttackCallback,
         afterAnyAttack: mockAfterAnyAttackCallback,
       };
-      character.attack();
-      expect(mockMissAttackCallback).toHaveBeenCalledWith(character);
-      expect(mockAfterAnyAttackCallback).toHaveBeenCalledWith(character);
+      const missAttack = character.attack();
+      expect(mockMissAttackCallback).toHaveBeenCalledWith(missAttack);
+      expect(mockAfterAnyAttackCallback).toHaveBeenCalledWith(missAttack);
 
       character.stats.accuracy = 100; // Asegura un ataque normal o crítico
       character.stats.crit = 100; // Asegura un ataque crítico
@@ -324,16 +325,16 @@ describe('Character', () => {
         criticalAttack: mockCriticalAttackCallback,
         afterAnyAttack: mockAfterAnyAttackCallback,
       };
-      character.attack();
-      expect(mockCriticalAttackCallback).toHaveBeenCalledWith(character);
+      const critAttack = character.attack();
+      expect(mockCriticalAttackCallback).toHaveBeenCalledWith(critAttack);
 
       character.stats.crit = 0; // Asegura un ataque normal
       character.callbacks = {
         normalAttack: mockNormalAttackCallback,
         afterAnyAttack: mockAfterAnyAttackCallback,
       };
-      character.attack();
-      expect(mockNormalAttackCallback).toHaveBeenCalledWith(character);
+      const normalAttack = character.attack();
+      expect(mockNormalAttackCallback).toHaveBeenCalledWith(normalAttack);
     });
 
     test('defend callbacks', () => {
@@ -347,32 +348,44 @@ describe('Character', () => {
         missDefence: mockMissDefenceCallback,
         afterAnyDefence: mockAfterAnyDefenceCallback,
       };
-      character.defend({ type: ATTACK_TYPE_CONST.MISS, value: 0 });
-      expect(mockMissDefenceCallback).toHaveBeenCalledWith(character);
-      expect(mockAfterAnyDefenceCallback).toHaveBeenCalledWith(character);
+      const missDefence = {
+        c: character,
+        defence: character.defend({ type: ATTACK_TYPE_CONST.MISS, value: 0, atacker: null }),
+      };
+      expect(mockMissDefenceCallback).toHaveBeenCalledWith(missDefence);
+      expect(mockAfterAnyDefenceCallback).toHaveBeenCalledWith(missDefence);
 
       character.callbacks = {
         trueDefence: mockTrueDefenceCallback,
         afterAnyDefence: mockAfterAnyDefenceCallback,
       };
-      character.defend({ type: ATTACK_TYPE_CONST.TRUE, value: 10 });
-      expect(mockTrueDefenceCallback).toHaveBeenCalledWith(character);
+      const trueDefence = {
+        c: character,
+        defence: character.defend({ type: ATTACK_TYPE_CONST.TRUE, value: 10, atacker: null }),
+      };
+      expect(mockTrueDefenceCallback).toHaveBeenCalledWith(trueDefence);
 
       character.stats.evasion = 100; // Asegura la evasión
       character.callbacks = {
         evasionDefence: mockEvasionDefenceCallback,
         afterAnyDefence: mockAfterAnyDefenceCallback,
       };
-      character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10 });
-      expect(mockEvasionDefenceCallback).toHaveBeenCalledWith(character);
+      const evasionDefence = {
+        c: character,
+        defence: character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: null }),
+      };
+      expect(mockEvasionDefenceCallback).toHaveBeenCalledWith(evasionDefence);
 
       character.stats.evasion = 0; // Asegura una defensa normal
       character.callbacks = {
         normalDefence: mockNormalDefenceCallback,
         afterAnyDefence: mockAfterAnyDefenceCallback,
       };
-      character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10 });
-      expect(mockNormalDefenceCallback).toHaveBeenCalledWith(character);
+      const normalDefence = {
+        c: character,
+        defence: character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: null }),
+      };
+      expect(mockNormalDefenceCallback).toHaveBeenCalledWith(normalDefence);
     });
 
     test('die callback', () => {
@@ -389,7 +402,11 @@ describe('Character', () => {
       character.callbacks = {
         receiveDamage: mockReceiveDamageCallback,
       };
-      character.receiveDamage(10);
+      character.receiveDamage({
+        value: 10,
+        type: 'NORMAL',
+        attacker: null,
+      });
       expect(mockReceiveDamageCallback).toHaveBeenCalledWith(character);
     });
 

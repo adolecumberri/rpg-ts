@@ -86,26 +86,34 @@ class BaseCharacter {
     if (accuracyRoll > this.stats.accuracy) {
       // Si el roll es mayor que la precisión del personaje, el ataque falla.
       attackType = ATTACK_TYPE_CONST.MISS;
-      this.callbacks.missAttack?.(this);
     } else if (critRoll < this.stats.crit) {
       // Si el roll es menor que la estadística de crítico del personaje, es un golpe crítico.
       attackType = ATTACK_TYPE_CONST.CRITICAL;
-      this.callbacks.criticalAttack?.(this);
     } else {
       // Si ninguna de las condiciones anteriores se cumple, es un golpe normal.
       attackType = ATTACK_TYPE_CONST.NORMAL;
-      this.callbacks.normalAttack?.(this);
     }
 
     const damage = this.calculateDamage(attackType, this.stats);
 
-    const solution = getDefaultAttackObject();
-    solution.type = attackType;
-    solution.value = damage;
+    const solution = getDefaultAttackObject({ atacker: this, type: attackType, value: damage });
+
+    // Llama a los callbacks después de calcular el daño.
+    switch (attackType) {
+      case ATTACK_TYPE_CONST.MISS:
+        this.callbacks.missAttack?.(solution);
+        break;
+      case ATTACK_TYPE_CONST.CRITICAL:
+        this.callbacks.criticalAttack?.(solution);
+        break;
+      case ATTACK_TYPE_CONST.NORMAL:
+        this.callbacks.normalAttack?.(solution);
+        break;
+    }
 
     this.actionRecord?.recordAttack(attackType, damage);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_ATTACK);
-    this.callbacks.afterAnyAttack?.(this);
+    this.callbacks.afterAnyAttack?.(solution);
     return solution;
   }
 
@@ -142,36 +150,35 @@ class BaseCharacter {
   * @returns {DefenceResult} - Los detalles de la defensa, incluyendo el tipo y el daño absorbido.
   */
   defend(attack: AttackResult): DefenceResult {
-    const defence: DefenceResult = getDefaultDefenceObject();
+    const defence: DefenceResult = getDefaultDefenceObject({attacker: attack.atacker});
 
     // Si el ataque falla, no se hace daño.
     if (attack.type === ATTACK_TYPE_CONST.MISS) {
       defence.type = DEFENCE_TYPE_CONST.MISS;
       defence.value = 0;
-      this.callbacks?.missDefence?.(this);
+      this.callbacks?.missDefence?.({c: this, defence});
     } else if (attack.type === ATTACK_TYPE_CONST.TRUE) { // Si el ataque es verdadero, pasa sin modificarse.
       defence.type = DEFENCE_TYPE_CONST.NORMAL; // asumiremos que el tipo es 'NORMAL' para un ataque verdadero.
       defence.value = attack.value;
-      this.callbacks?.trueDefence?.(this);
+      this.callbacks?.trueDefence?.({c: this, defence});
     } else { // Para ataques normales y críticos, se calcula el daño teniendo en cuenta la defensa y la evasión.
       const evasionRoll = getRandomInt(100); // Genera un número entre 0 y 100.
       if (evasionRoll < this.stats.evasion) {
         // Si el roll es menor que la estadística de evasión del personaje, el ataque es evitado.
         defence.type = DEFENCE_TYPE_CONST.EVASION;
         defence.value = 0;
-        this.callbacks?.evasionDefence?.(this);
+        this.callbacks?.evasionDefence?.({c: this, defence});
       } else {
         // Si el ataque no es evitado, se calcula el daño.
-
         defence.type = DEFENCE_TYPE_CONST.NORMAL; // asumiremos que el tipo es 'NORMAL' para un ataque que no es evitado.
         defence.value = this.defenceCalculation(attack.value);
-        this.callbacks?.normalDefence?.(this);
+        this.callbacks?.normalDefence?.({c: this, defence});
       }
     }
 
     this.actionRecord?.recordDefence(defence.type, defence.value);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE);
-    this.callbacks?.afterAnyDefence?.(this);
+    this.callbacks?.afterAnyDefence?.({c: this, defence});
     return defence;
   }
 
@@ -187,17 +194,17 @@ class BaseCharacter {
     this.isAlive = false;
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE);
     this.callbacks.die?.(this);
-    this.statusManager.removeAllStatuses();
+    this.statusManager?.removeAllStatuses();
   }
 
   /**
   * Aplica daño al personaje.
   * @param {number} damage - El daño a aplicar.
   */
-  receiveDamage(damage: number) {
-    this.updateHp(damage * -1);
+  receiveDamage(defence: DefenceResult) {
+    this.updateHp(defence.value * -1); // defence.value es el dañor que el personaje recibe.
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_RECEIVE_DAMAGE);
-    this.callbacks.receiveDamage?.(this);
+    this.callbacks.receiveDamage?.({c: this, defence});
   }
 
   /**
