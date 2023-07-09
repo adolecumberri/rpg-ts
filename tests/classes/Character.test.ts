@@ -190,7 +190,7 @@ describe('Character', () => {
       const attack = { type: ATTACK_TYPE_CONST.TRUE, value: 100 };
       const defence = character.defend(attack);
 
-      expect(defence.type).toEqual(DEFENCE_TYPE_CONST.NORMAL);
+      expect(defence.type).toEqual(DEFENCE_TYPE_CONST.TRUE);
       expect(defence.value).toEqual(attack.value);
     });
 
@@ -296,7 +296,7 @@ describe('Character', () => {
 
   describe('Character class', () => {
     let character: Character;
-
+    const fake_atacker: Character = new Character();
     beforeEach(() => {
       character = new Character({
         stats: getDefaultStatsObject(),
@@ -350,7 +350,8 @@ describe('Character', () => {
       };
       const missDefence = {
         c: character,
-        defence: character.defend({ type: ATTACK_TYPE_CONST.MISS, value: 0, atacker: null }),
+        defence: character.defend({ type: ATTACK_TYPE_CONST.MISS, value: 0, atacker: fake_atacker }),
+        attack: { type: ATTACK_TYPE_CONST.MISS, value: 0, atacker: fake_atacker },
       };
       expect(mockMissDefenceCallback).toHaveBeenCalledWith(missDefence);
       expect(mockAfterAnyDefenceCallback).toHaveBeenCalledWith(missDefence);
@@ -361,7 +362,8 @@ describe('Character', () => {
       };
       const trueDefence = {
         c: character,
-        defence: character.defend({ type: ATTACK_TYPE_CONST.TRUE, value: 10, atacker: null }),
+        defence: character.defend({ type: ATTACK_TYPE_CONST.TRUE, value: 10, atacker: fake_atacker }),
+        attack: { type: ATTACK_TYPE_CONST.TRUE, value: 10, atacker: fake_atacker },
       };
       expect(mockTrueDefenceCallback).toHaveBeenCalledWith(trueDefence);
 
@@ -372,7 +374,8 @@ describe('Character', () => {
       };
       const evasionDefence = {
         c: character,
-        defence: character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: null }),
+        defence: character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: fake_atacker }),
+        attack: { type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: fake_atacker },
       };
       expect(mockEvasionDefenceCallback).toHaveBeenCalledWith(evasionDefence);
 
@@ -383,7 +386,8 @@ describe('Character', () => {
       };
       const normalDefence = {
         c: character,
-        defence: character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: null }),
+        defence: character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: fake_atacker }),
+        attack: { type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: fake_atacker},
       };
       expect(mockNormalDefenceCallback).toHaveBeenCalledWith(normalDefence);
     });
@@ -407,7 +411,14 @@ describe('Character', () => {
         type: 'NORMAL',
         attacker: null,
       });
-      expect(mockReceiveDamageCallback).toHaveBeenCalledWith(character);
+      expect(mockReceiveDamageCallback).toHaveBeenCalledWith({
+        c: character,
+        defence: {
+          value: 10,
+          type: 'NORMAL',
+          attacker: null,
+        },
+      });
     });
 
     test('removeStatus callback', () => {

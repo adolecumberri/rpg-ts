@@ -1,4 +1,5 @@
 import { Status, Character } from '../src/classes';
+import { CharacterCallbacks } from '../src/types';
 
 describe('Berserk character tests', () => {
     const rage = new Status({
@@ -28,14 +29,14 @@ describe('Berserk character tests', () => {
         }],
     });
 
-    const BERSERK_SKILL = (character: Character) => {
+    const BERSERK_SKILL: CharacterCallbacks['receiveDamage'] = ({ c }) => {
         if (
-            character.stats.hp <= character.stats.totalHp * 0.3 &&
-            !character.statusManager?.statusList.includes(rage) &&
-            character.isAlive
+            c!.stats.hp <= c!.stats.totalHp * 0.3 &&
+            !c!.statusManager?.statusList.includes(rage) &&
+            c!.isAlive
         ) {
-            character.statusManager?.addStatus(rage);
-            character.statusManager?.activate('AFTER_RECEIVE_DAMAGE');
+            c!.statusManager?.addStatus(rage);
+            c!.statusManager?.activate('AFTER_RECEIVE_DAMAGE');
         }
     };
 

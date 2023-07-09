@@ -78,8 +78,8 @@ class BaseCharacter {
  * @returns {AttackResult} - Los detalles del ataque, incluyendo el tipo y el daño.
  */
   attack(): AttackResult {
-    const accuracyRoll = getRandomInt(100); // Genera un número entre 0 y 100.
-    const critRoll = getRandomInt(100); // Genera un número entre 0 y 100.
+    const accuracyRoll = getRandomInt(0, 100); // Genera un número entre 0 y 100.
+    const critRoll = getRandomInt(0, 100); // Genera un número entre 0 y 100.
 
     let attackType: AttackType;
 
@@ -151,36 +151,38 @@ class BaseCharacter {
   */
   defend(attack: AttackResult): DefenceResult {
     const defence: DefenceResult = getDefaultDefenceObject({attacker: attack.atacker});
+    let callbackResult: DefenceResult | undefined;
 
     // Si el ataque falla, no se hace daño.
     if (attack.type === ATTACK_TYPE_CONST.MISS) {
       defence.type = DEFENCE_TYPE_CONST.MISS;
       defence.value = 0;
-      this.callbacks?.missDefence?.({c: this, defence});
+      callbackResult = this.callbacks?.missDefence?.({c: this, defence, attack});
     } else if (attack.type === ATTACK_TYPE_CONST.TRUE) { // Si el ataque es verdadero, pasa sin modificarse.
-      defence.type = DEFENCE_TYPE_CONST.NORMAL; // asumiremos que el tipo es 'NORMAL' para un ataque verdadero.
+      defence.type = DEFENCE_TYPE_CONST.TRUE;
       defence.value = attack.value;
-      this.callbacks?.trueDefence?.({c: this, defence});
+      callbackResult = this.callbacks?.trueDefence?.({c: this, defence, attack});
     } else { // Para ataques normales y críticos, se calcula el daño teniendo en cuenta la defensa y la evasión.
-      const evasionRoll = getRandomInt(100); // Genera un número entre 0 y 100.
-      if (evasionRoll < this.stats.evasion) {
-        // Si el roll es menor que la estadística de evasión del personaje, el ataque es evitado.
+      const evasionRoll = getRandomInt(0, 100);
+      console.log('evasion_roll', evasionRoll, this.stats.evasion);
+      if (evasionRoll <= this.stats.evasion) {
         defence.type = DEFENCE_TYPE_CONST.EVASION;
         defence.value = 0;
-        this.callbacks?.evasionDefence?.({c: this, defence});
+        callbackResult = this.callbacks?.evasionDefence?.({c: this, defence, attack});
       } else {
-        // Si el ataque no es evitado, se calcula el daño.
-        defence.type = DEFENCE_TYPE_CONST.NORMAL; // asumiremos que el tipo es 'NORMAL' para un ataque que no es evitado.
+        defence.type = DEFENCE_TYPE_CONST.NORMAL;
         defence.value = this.defenceCalculation(attack.value);
-        this.callbacks?.normalDefence?.({c: this, defence});
+        callbackResult = this.callbacks?.normalDefence?.({c: this, defence, attack});
       }
     }
 
     this.actionRecord?.recordDefence(defence.type, defence.value);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE);
-    this.callbacks?.afterAnyDefence?.({c: this, defence});
-    return defence;
+    callbackResult = this.callbacks?.afterAnyDefence?.({c: this, defence, attack});
+
+    return callbackResult || defence;
   }
+
 
   /**
   * Método para calcular la defensa.

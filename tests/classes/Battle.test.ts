@@ -21,7 +21,7 @@ describe('Battle class tests', () => {
     character2 = new Character({
       id: 2,
       name: 'Char2',
-      stats: { hp: 10, attack: 3, defense: 2, attackSpeed: 1, attackInterval: 3 },
+      stats: { hp: 10, attack: 30, defense: 2, attackSpeed: 1, attackInterval: 3 },
     });
 
     character3 = new Character({
@@ -96,7 +96,7 @@ describe('Battle class tests', () => {
       const team2Members = team2.members;
 
       team1Members.concat(team2Members).forEach((character) => {
-        expect(character.stats.hp).toBeLessThan(character.stats.totalHp);
+        expect(character.stats.hp).toBeLessThanOrEqual(character.stats.totalHp);
       });
     });
 

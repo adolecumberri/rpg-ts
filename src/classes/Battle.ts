@@ -246,7 +246,7 @@ class Battle {
 
   private randomCharacterFromTeam(team: Team): Character {
     const aliveMembers = team.getAliveMembers();
-    const randomIndex = getRandomInt(aliveMembers.length-1);
+    const randomIndex = getRandomInt(0, aliveMembers.length-1);
     return aliveMembers[randomIndex];
   }
 

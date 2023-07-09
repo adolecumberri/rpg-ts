@@ -54,7 +54,6 @@ describe('arquero', () => {
         });
 
         archer.attack(); // se ejecuta Haste y le reduce el attack interval -2
-        console.log(archer.statusManager.statusList[0]);
         expect(archer.stats.attackInterval).toBe(1);
         expect(archer.statusManager.statusList.length).toBe(1);
         expect((archer.statusManager.statusList[0].duration as StatusDurationTemporal).value).toBe(0);

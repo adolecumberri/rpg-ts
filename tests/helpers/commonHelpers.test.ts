@@ -23,7 +23,7 @@ describe('commonHelpers', () => {
     test('should return a random integer within the specified range', () => {
       const min = 0;
       const max = 100;
-      const randomInt = getRandomInt(max);
+      const randomInt = getRandomInt(0, max);
 
       expect(randomInt).toBeGreaterThanOrEqual(min);
       expect(randomInt).toBeLessThanOrEqual(max);
