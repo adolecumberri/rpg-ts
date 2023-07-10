@@ -35,6 +35,9 @@ describe('Defender Class', () => {
             className: 'Attacker',
             statusManager: true,
             actionRecord: true,
+            stats: {
+                attack: 10,
+            },
         });
 
         Defender = new Character({
@@ -70,7 +73,7 @@ describe('Defender Class', () => {
         Defender.receiveDamage(defendResult);
 
         // Calcular la cantidad de daño reflejada
-        const expectedReflectedDamage = spikeShield(attackResult);
+        const expectedReflectedDamage = spikeShield(attackResult); // 7 + 10 * 0.20
 
         Attacker.receiveDamage({
             type: 'SKILL',
@@ -78,7 +81,7 @@ describe('Defender Class', () => {
             attacker: Defender,
         });
         // Comprueba si el HP del atacante ha disminuido correctamente.
-        expect(Attacker.stats.hp).toEqual(0); // 1 - 7 = 0, porque es el minimo de vida.
+        expect(Attacker.stats.hp).toEqual(0); // 1 - 9 = 0, porque es el minimo de vida.
         expect(Attacker.isAlive).toBe(false); // el personaje muere.
 
         // Comprueba si el HP del defensor ha disminuido correctamente.

@@ -7,27 +7,22 @@ describe('arquero', () => {
     test('archer with the "haste" skill.', () => {
         // haste will reduce the attack interval by 2 for 1 turn.
         // after the attack, the status will be removed and the original attack Interval will be restored.
-        const hasteStatus = new Status({
-            duration: { type: 'TEMPORAL', value: 1 },
-            name: 'Haste',
-            applyOn: 'AFTER_ATTACK',
-            statsAffected: [{
-                to: 'attackInterval',
-                value: 2,
-                type: 'DEBUFF_FIXED',
-                from: 'attackInterval', // unnnecesary.
-                recovers: true,
-            }],
-        });
-
         const haste = (c: Character) => {
+            const hasteStatus = new Status({
+                duration: { type: 'TEMPORAL', value: 1 },
+                name: 'Haste',
+                applyOn: 'AFTER_ATTACK',
+                statsAffected: [{
+                    to: 'attackInterval',
+                    value: 2,
+                    type: 'DEBUFF_FIXED',
+                    from: 'attackInterval', // unnnecesary.
+                    recovers: true,
+                }],
+            });
+
             if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.hasBeenUsed) {
                 c.statusManager?.addStatus(hasteStatus);
-                c.skill.hasBeenUsed = true;
-                // c.statusManager?.activate('AFTER_ATTACK');
-            } else if (c.statusManager?.statusList.includes(hasteStatus)) {
-                 c.statusManager?.removeStatusById(hasteStatus.id); //
-                 c.skill.hasBeenUsed = false;
             }
         };
 
@@ -55,7 +50,7 @@ describe('arquero', () => {
                 attackInterval: 3,
             },
         });
-
+        debugger;
         archer.attack(); // se ejecuta Haste y le reduce el attack interval -2
         expect(archer.stats.attackInterval).toBe(1);
         expect(archer.statusManager.statusList.length).toBe(1);
@@ -63,6 +58,8 @@ describe('arquero', () => {
 
         archer.attack(); // se ejecuta Haste y le reduce el attack interval -2
         expect(archer.statusManager.statusList.length).toBe(0);
-        expect(archer.stats.attackInterval).toBe(3);
+        // Se acaba un haste, lo que recupera 2.
+        // Se añade un SEGUNDO haste que reduce 2.
+        expect(archer.stats.attackInterval).toBe(1);
     });
 });

@@ -46,6 +46,17 @@ class StatusManager {
     });
   }
 
+  removeStatusByName(name: string) {
+    this.statusList = this.statusList.filter((status) => {
+      if (status.name === name) {
+        status.recover(this.character);
+        return false;
+      } else {
+        return true;
+      }
+    });
+  }
+
   removeAllStatuses() {
     this.recoverAll();
     this.statusList = [];
