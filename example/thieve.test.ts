@@ -5,41 +5,48 @@ import { DefenceResult } from '../src/types';
 const skillProbability = 100; // 0.6
 
 // la skill da 30% de daño, defensa y attack_interval. cuando le pegas.
-const fervor = new Status({
-    duration: { type: 'PERMANENT' },
-    name: 'Fervor',
-    applyOn: 'AFTER_RECEIVE_DAMAGE',
-    usageFrequency: 'ONCE',
-    statsAffected: [{
-        to: 'attack',
-        value: 30,
-        type: 'BUFF_PERCENTAGE',
-        from: 'attack', // unnnecesary.
-        recovers: true,
-    },
-    {
-        to: 'defence',
-        value: 30,
-        type: 'BUFF_PERCENTAGE',
-        from: 'defence', // unnnecesary.
-        recovers: true,
-    }, {
-        to: 'attackInterval',
-        value: 30,
-        type: 'BUFF_PERCENTAGE',
-        from: 'attackInterval', // unnnecesary.
-        recovers: true,
-    }],
-});
+
 
 const fervorSkill = (c: Character) => {
+    const fervor = new Status({
+        duration: { type: 'PERMANENT' },
+        name: 'Fervor',
+        applyOn: 'AFTER_RECEIVE_DAMAGE',
+        usageFrequency: 'ONCE',
+        onAdd: (c) => {
+            c.skill.isUsed = true;
+        },
+        onRemove: (c) => {
+            c.skill.isUsed = false;
+        },
+        statsAffected: [{
+            to: 'attack',
+            value: 30,
+            type: 'BUFF_PERCENTAGE',
+            from: 'attack', // unnnecesary.
+            recovers: true,
+        },
+        {
+            to: 'defence',
+            value: 30,
+            type: 'BUFF_PERCENTAGE',
+            from: 'defence', // unnnecesary.
+            recovers: true,
+        }, {
+            to: 'attackInterval',
+            value: 30,
+            type: 'BUFF_PERCENTAGE',
+            from: 'attackInterval', // unnnecesary.
+            recovers: true,
+        }],
+    });
+
     if (
         c.skill.probability >= getRandomInt(0, 100) &&
-        !c.skill.hasBeenUsed &&
+        !c.skill.isUsed &&
         c.isAlive
     ) {
         c.statusManager?.addStatus(fervor);
-        c.skill.hasBeenUsed = true;
         c.statusManager?.activate('AFTER_RECEIVE_DAMAGE');
     }
 };
@@ -49,7 +56,7 @@ const thieve = new Character({
     skill: {
         probability: skillProbability,
         use: fervorSkill,
-        hasBeenUsed: false,
+        isUsed: false,
     },
     className: 'Thieve',
     statusManager: true,
@@ -90,18 +97,18 @@ describe('Thieve Character', () => {
             value: 20,
         });
 
-        if (thieve.statusManager?.hasStatus(fervor.id)) {
+        if (thieve.statusManager?.statusList.length) {
             expect(thieve.stats.hp).toBe(initialHp - 20);
             expect(thieve.stats.attack).toBeCloseTo(initialAttack * 1.3);
             expect(thieve.stats.defence).toBeCloseTo(initialDefense * 1.3);
             expect(thieve.stats.attackInterval).toBeCloseTo(initialAttackInterval * 1.3);
-            expect(thieve.skill.hasBeenUsed).toBeTruthy();
+            expect(thieve.skill.isUsed).toBeTruthy();
         } else {
             expect(thieve.stats.hp).toBe(initialHp - 50);
             expect(thieve.stats.attack).toBe(initialAttack);
             expect(thieve.stats.defence).toBe(initialDefense);
             expect(thieve.stats.attackInterval).toBe(initialAttackInterval);
-            expect(thieve.skill.hasBeenUsed).toBeFalsy();
+            expect(thieve.skill.isUsed).toBeFalsy();
         }
     });
 
@@ -113,7 +120,7 @@ describe('Thieve Character', () => {
             value: 20,
         });
 
-        if (thieve.statusManager?.hasStatus(fervor.id)) {
+        if (thieve.statusManager?.statusList.length) {
             expect(thieve.stats.hp).toBe(initialHp - 40);
             expect(thieve.stats.attack).toBeCloseTo(initialAttack * 1.3);
             expect(thieve.stats.defence).toBeCloseTo(initialDefense * 1.3);

@@ -7,9 +7,9 @@ const skillProbability = 100; // 75%
 const unoticedShot: CharacterCallbacks['beforeBattle'] = (c) => {
     if (
     skillProbability >= getRandomInt(0, 100) &&
-    !c!.skill.hasBeenUsed
+    !c.skill.isUsed
     ) {
-        c!.skill.hasBeenUsed = true;
+        c!.skill.isUsed = true;
         return c.attack();
     }
 };
@@ -20,14 +20,14 @@ const sniper = new Character({
     skill: {
         probability: skillProbability,
         use: unoticedShot,
-        hasBeenUsed: false,
+        isUsed: false,
     },
     statusManager: true,
     actionRecord: true,
     callbacks: {
         beforeBattle: unoticedShot,
         afterBattle: (c) => {
-            c.skill.hasBeenUsed = false;
+            c.skill.isUsed = false;
         },
     },
 });
@@ -41,7 +41,7 @@ describe('Sniper Character', () => {
         expect(sniper.className).toBe('Sniper');
         expect(sniper.skill.probability).toBe(skillProbability);
         expect(typeof sniper.skill.use).toBe('function');
-        expect(sniper.skill.hasBeenUsed).toBeFalsy();
+        expect(sniper.skill.isUsed).toBeFalsy();
     });
 
     // Testing unoticedShot skill.
@@ -53,7 +53,7 @@ describe('Sniper Character', () => {
         const attack = sniper.beforeBattle();
         enemy.receiveDamage(attack);
 
-        if (sniper.skill.hasBeenUsed) {
+        if (sniper.skill.isUsed) {
             expect(enemy.stats.hp).toBeLessThan(initialEnemyHp);
         } else {
             expect(enemy.stats.hp).toBe(initialEnemyHp);

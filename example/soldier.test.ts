@@ -16,15 +16,21 @@ const shieldGesture = new Status({
         from: 'defence', // unnnecesary.
         recovers: true,
     }],
+    onAdd: (c) => {
+        c.skill.isUsed = true;
+    },
+    onRemove: (c) => {
+        c.skill.isUsed = false;
+    },
 });
 
 const soldierSkill: CharacterCallbacks['afterTurn'] = (c)=> {
     if (
-        c!.skill.probability >= getRandomInt(0, 100) &&
-        c!.isAlive &&
-        !c!.statusManager?.hasStatus(shieldGesture.id)
+        c.skill.probability >= getRandomInt(0, 100) &&
+        c.isAlive &&
+        !c.skill.isUsed
     ) {
-        c!.statusManager?.addStatus(shieldGesture);
+        c.statusManager?.addStatus(shieldGesture);
     }
 };
 

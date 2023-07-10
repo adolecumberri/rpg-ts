@@ -28,7 +28,6 @@ class BaseCharacter {
     isUsed: boolean;
     probability: number,
     use: any,
-    hasBeenUsed: boolean
   };
   stats: Stats;
   statusManager: StatusManager | null = null;
@@ -80,13 +79,13 @@ class BaseCharacter {
  * @returns {AttackResult} - Los detalles del ataque, incluyendo el tipo y el daño.
  */
   attack(): AttackResult {
-    const accuracyRoll = getRandomInt(0, 100); // Genera un número entre 0 y 100.
-    const critRoll = getRandomInt(0, 100); // Genera un número entre 0 y 100.
+    const accuracyRoll = getRandomInt(0, 99); // Genera un número entre 0 y 100.
+    const critRoll = getRandomInt(0, 99); // Genera un número entre 0 y 100.
     let callbackResult: AttackResult | undefined;
 
     let attackType: AttackType;
 
-    if (accuracyRoll > this.stats.accuracy) {
+    if (accuracyRoll >= this.stats.accuracy) {
       // Si el roll es mayor que la precisión del personaje, el ataque falla.
       attackType = ATTACK_TYPE_CONST.MISS;
     } else if (critRoll < this.stats.crit) {

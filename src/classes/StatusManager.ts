@@ -13,8 +13,10 @@ class StatusManager {
 
   addStatus<T extends Status>(status: T[] | T) {
     if (Array.isArray(status)) {
+      status.forEach((s) => s.onAdd?.(this.character));
       this.statusList = this.statusList.concat(status);
     } else {
+      status.onAdd?.(this.character);
       this.statusList.push(status);
     }
   }
@@ -39,6 +41,7 @@ class StatusManager {
     this.statusList = this.statusList.filter((status) => {
       if (status.id === id) {
         status.recover(this.character);
+        status.onRemove?.(this.character);
         return false;
       } else {
         return true;
@@ -50,6 +53,7 @@ class StatusManager {
     this.statusList = this.statusList.filter((status) => {
       if (status.name === name) {
         status.recover(this.character);
+        status.onRemove?.(this.character);
         return false;
       } else {
         return true;
@@ -65,6 +69,7 @@ class StatusManager {
   recoverAll(): void {
     for (const status of this.statusList) {
       status.recover(this.character);
+      status.onRemove?.(this.character);
     }
   }
 }

@@ -13,13 +13,15 @@ import { Character } from './';
 import { STATUS_TYPES, STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../constants';
 
 class Status {
-  id: number = uniqueID();
-  name: string = '';
-  duration: StatusDuration;
   applyOn: StatusApplicationMoment;
-  usageFrequency: StatusUsageFrequency;
-  statsAffected: AffectedStatDescriptor[];
+  duration: StatusDuration;
   hasBeenUsed?: boolean;
+  id: number = uniqueID();
+  statsAffected: AffectedStatDescriptor[];
+  name: string = '';
+  onAdd?: (character: Character) => void;
+  onRemove?: (character: Character) => void;
+  usageFrequency: StatusUsageFrequency;
 
   constructor(con?: StatusConstructor) {
     Object.assign(this, getDefaultStatus(), con, { id: uniqueID() });

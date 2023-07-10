@@ -21,7 +21,7 @@ describe('arquero', () => {
                 }],
             });
 
-            if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.hasBeenUsed) {
+            if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.isUsed) {
                 c.statusManager?.addStatus(hasteStatus);
             }
         };
@@ -50,14 +50,14 @@ describe('arquero', () => {
                 attackInterval: 3,
             },
         });
-        debugger;
+
         archer.attack(); // se ejecuta Haste y le reduce el attack interval -2
         expect(archer.stats.attackInterval).toBe(1);
         expect(archer.statusManager.statusList.length).toBe(1);
         expect((archer.statusManager.statusList[0].duration as StatusDurationTemporal).value).toBe(0);
 
         archer.attack(); // se ejecuta Haste y le reduce el attack interval -2
-        expect(archer.statusManager.statusList.length).toBe(0);
+        expect(archer.statusManager.statusList.length).toBe(1);
         // Se acaba un haste, lo que recupera 2.
         // Se añade un SEGUNDO haste que reduce 2.
         expect(archer.stats.attackInterval).toBe(1);

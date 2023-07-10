@@ -18,13 +18,13 @@ const haste = (c: Character) => {
 
     console.log('hasteId', hasteStatus.id);
 
-    if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.hasBeenUsed) {
+    if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.isUsed) {
         c.statusManager?.addStatus(hasteStatus);
-        c.skill.hasBeenUsed = true;
+        c.skill.isUsed = true;
         // c.statusManager?.activate('AFTER_ATTACK');
     } else if (c.statusManager?.statusList.includes(hasteStatus)) {
          c.statusManager?.removeStatusById(hasteStatus.id); //
-         c.skill.hasBeenUsed = false;
+         c.skill.isUsed = false;
     }
 };
 
@@ -32,7 +32,7 @@ const archer_skill = ({atacker}: AttackResult) => {
     atacker?.skill.use(atacker);
 };
 
-describe('Archer id', () => {
+describe('Archer test to check what happens with the status ID and objects.', () => {
     test('haste gesture skill get correct ID', () => {
         const archerA = new Character({
             name: 'Archer',
