@@ -1,6 +1,6 @@
-import { Character } from '../src/classes';
-import { getRandomInt } from '../src/helpers';
-import { CharacterCallbacks } from '../src/types';
+import { Character } from '../../src/classes';
+import { getRandomInt } from '../../src/helpers';
+import { CharacterCallbacks } from '../../src/types';
 
 const skillProbability = 100; // 75%
 

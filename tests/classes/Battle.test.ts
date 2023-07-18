@@ -17,22 +17,26 @@ describe('Battle class tests', () => {
       id: 1,
       name: 'Char1',
       stats: { hp: 10, attack: 2, defense: 1, attackSpeed: 1, attackInterval: 2 },
+      actionRecord: true,
     });
     character2 = new Character({
       id: 2,
       name: 'Char2',
       stats: { hp: 10, attack: 3, defense: 2, attackSpeed: 1, attackInterval: 3 },
+      actionRecord: true,
     });
 
     character3 = new Character({
       id: 3,
       name: 'Char3',
       stats: { hp: 10, attack: 2, defense: 1, attackSpeed: 1, attackInterval: 1 },
+      actionRecord: true,
     });
     character4 = new Character({
       id: 4,
       name: 'Char4',
       stats: { hp: 10, attack: 4, defense: 2, attackSpeed: 1, attackInterval: 3 },
+      actionRecord: true,
     });
 
     team1 = new Team({
@@ -53,7 +57,7 @@ describe('Battle class tests', () => {
     test('should handle character turn-based fights', () => {
       battle.setBattleType(BATTLE_TYPES.TURN_BASED);
       battle.fight(character1, character2);
-
+debugger;
       // Asegúrate de que la batalla ha tenido lugar y los personajes han intercambiado daño
       expect(character1.stats.hp).toBeLessThan(character1.stats.totalHp);
       expect(character2.stats.hp).toBeLessThan(character2.stats.totalHp);

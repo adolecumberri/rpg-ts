@@ -6,11 +6,8 @@ type BattleTypes = keyof typeof BATTLE_TYPES;
 
 interface Log {
     intervalOrTurn: number;
-    damage: number;
-    attackerName: string;
-    defenderName: string;
-    damageType: string;
-    defenceType: string;
+    idAttackRecord: number | null;
+    idDefenceRecord: number | null;
     attackerId: number;
     defenderId: number;
     attackerHp: number;

@@ -1,7 +1,7 @@
-import { Character } from '../src/classes';
-import { ATTACK_TYPE_CONST } from '../src/constants';
-import { getRandomInt } from '../src/helpers';
-import { AttackResult, Stats } from '../src/types';
+import { Character } from '../../src/classes';
+import { ATTACK_TYPE_CONST } from '../../src/constants';
+import { getRandomInt } from '../../src/helpers';
+import { AttackResult, Stats } from '../../src/types';
 
 const skillProbability = 100; // 19 real probability.
 

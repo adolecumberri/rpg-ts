@@ -12,6 +12,7 @@ const DEFAULT_DEFENCE_OBJECT: DefenceResult = {
   type: ATTACK_TYPE_CONST.NORMAL,
   value: 0,
   attacker: null,
+  recordId: undefined,
 };
 
 const DEFENCE_TYPE_CONST = {
@@ -26,6 +27,7 @@ const DEFAULT_ATTACK_OBJECT: AttackResult = {
   type: ATTACK_TYPE_CONST.NORMAL,
   value: 0,
   atacker: null,
+  recordId: undefined,
 };
 
 const DEFAULT_STATS_OBJECT: Stats = {

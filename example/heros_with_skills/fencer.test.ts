@@ -1,7 +1,7 @@
-import { BaseCharacter, Character } from '../src/classes';
-import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST } from '../src/constants';
-import { getDefaultDefenceObject, getRandomInt } from '../src/helpers';
-import { AttackResult, CharacterCallbacks } from '../src/types';
+import { BaseCharacter, Character } from '../../src/classes';
+import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST } from '../../src/constants';
+import { getDefaultDefenceObject, getRandomInt } from '../../src/helpers';
+import { AttackResult, CharacterCallbacks } from '../../src/types';
 
 // Función para calcular daño reflejado
 const calculateReflectedDamage = (value: number) => {

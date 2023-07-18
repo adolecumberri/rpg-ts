@@ -1,6 +1,6 @@
-import { Character, Status } from '../src/classes';
-import { getRandomInt } from '../src/helpers';
-import { CharacterCallbacks } from '../src/types';
+import { Character, Status } from '../../src/classes';
+import { getRandomInt } from '../../src/helpers';
+import { CharacterCallbacks } from '../../src/types';
 
 const SKILL_PROBABILITY = 100; // 0.23 es lo correcto.
 

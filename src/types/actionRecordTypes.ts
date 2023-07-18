@@ -1,18 +1,21 @@
 import { AttackType, DefenceType } from '.';
 
-type attackRecord = {
+interface CommonRecord {
+    id: number,
+    characterId: number,
+}
+
+type AttackRecord = {
     attackType: AttackType,
     damage: number,
-    time: number
-};
+} & CommonRecord;
 
-type defenceRecord = {
+type DefenceRecord = {
     defenceType: DefenceType,
     damageReceived: number,
-    time: number
-};
+} & CommonRecord;
 
 export {
-    attackRecord,
-    defenceRecord,
+    AttackRecord,
+    DefenceRecord,
 };

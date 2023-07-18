@@ -1,5 +1,5 @@
-import { Status, Character } from '../src/classes';
-import { CharacterCallbacks } from '../src/types';
+import { Status, Character } from '../../src/classes';
+import { CharacterCallbacks } from '../../src/types';
 
 describe('Berserk character tests', () => {
     const BERSERK_SKILL: CharacterCallbacks['receiveDamage'] = ({ c }) => {

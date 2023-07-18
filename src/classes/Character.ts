@@ -113,13 +113,8 @@ class BaseCharacter {
         break;
     }
 
-<<<<<<< Updated upstream
-    this.actionRecord?.recordAttack(attackType, damage);
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_ATTACK);
-=======
     solution.recordId = this.actionRecord?.recordAttack(attackType, damage, this.id);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_ATTACK, this);
->>>>>>> Stashed changes
     callbackResult = this.callbacks.afterAnyAttack?.(solution);
     return callbackResult || solution;
   }
@@ -196,13 +191,9 @@ class BaseCharacter {
       }
     }
 
-<<<<<<< Updated upstream
-    this.actionRecord?.recordDefence(defence.type, defence.value);
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE);
-=======
+    this.actionRecord?.recordDefence(defence.type, defence.value, this.id);
     defence.recordId = this.actionRecord?.recordDefence(defence.type, defence.value, this.id);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE, this);
->>>>>>> Stashed changes
     callbackResult = this.callbacks?.afterAnyDefence?.({ c: this, defence, attack });
 
     return callbackResult || defence;
