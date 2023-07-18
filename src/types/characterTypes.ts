@@ -7,6 +7,7 @@ interface AttackResult {
     value: number;
     type: AttackType;
     atacker: Character | undefined;
+    recordId?: number;
 }
 
 type DefenceType = keyof typeof DEFENCE_TYPE_CONST;
@@ -15,6 +16,7 @@ interface DefenceResult {
     value: number;
     type: DefenceType;
     attacker: Character | null;
+    recordId?: number;
 }
 
 interface Stats {

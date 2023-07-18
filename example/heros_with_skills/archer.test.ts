@@ -1,6 +1,6 @@
-import { getRandomInt } from '../src/helpers';
-import { AttackResult, CharacterCallbacks, StatusDurationTemporal } from '../src/types';
-import { Character, Status } from './../src/classes';
+import { getRandomInt } from '../../src/helpers';
+import { AttackResult, CharacterCallbacks, StatusDurationTemporal } from '../../src/types';
+import { Character, Status } from '../../src/classes';
 
 
 describe('arquero', () => {

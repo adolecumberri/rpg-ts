@@ -1,6 +1,6 @@
-import { Character, Status } from '../src/classes';
-import { getRandomInt } from '../src/helpers';
-import { DefenceResult } from '../src/types';
+import { Character, Status } from '../../src/classes';
+import { getRandomInt } from '../../src/helpers';
+import { DefenceResult } from '../../src/types';
 
 const skillProbability = 100; // 0.6
 

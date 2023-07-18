@@ -1,5 +1,5 @@
 import { BATTLE_TYPES, DEFALUT_LOG_OBJECT } from '../constants';
-import { getRandomInt } from '../helpers';
+import { getRandomInt, uniqueID } from '../helpers';
 import { AttackResult, DefenceResult } from '../types';
 import { BattleTypes, Combatant, Log, firstLog, lastLog } from '../types/battleTypes';
 import Character from './Character';
@@ -20,8 +20,8 @@ class Battle {
   private battleId: number = 0;
 
   fight<T extends Combatant>(a: T, b: T): number {
-    this.battleId++;
-    this.logs.set(this.battleId, DEFALUT_LOG_OBJECT);
+    this.battleId = uniqueID();
+    this.logs.set(this.battleId, {...DEFALUT_LOG_OBJECT, fightId: this.battleId});
 
     if (a instanceof Character && b instanceof Character) {
       this.firstLog('Character');
@@ -259,11 +259,8 @@ class Battle {
   ): void {
     this.logs.get(this.battleId).logs.push({
       intervalOrTurn: round,
-      damage: attackObject.value,
-      attackerName: attacker.name,
-      defenderName: defender.name,
-      damageType: attackObject.type, // These would be dynamic in the final version
-      defenceType: defenceObject.type, // These would be dynamic in the final version
+      idAttackRecord: attackObject.recordId || null, // if character has ActionRecord
+      idDefenceRecord: defenceObject.recordId || null, // if character has ActionRecord
       attackerId: attacker.id, // These would be dynamic in the final version
       defenderId: defender.id, // These would be dynamic in the final version
       attackerHp: attacker.stats.hp, // These would be dynamic in the final version

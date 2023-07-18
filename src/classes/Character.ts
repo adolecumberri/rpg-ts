@@ -113,7 +113,7 @@ class BaseCharacter {
         break;
     }
 
-    this.actionRecord?.recordAttack(attackType, damage);
+    solution.recordId = this.actionRecord?.recordAttack(attackType, damage, this.id);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_ATTACK);
     callbackResult = this.callbacks.afterAnyAttack?.(solution);
     return callbackResult || solution;
@@ -191,7 +191,7 @@ class BaseCharacter {
       }
     }
 
-    this.actionRecord?.recordDefence(defence.type, defence.value);
+    defence.recordId = this.actionRecord?.recordDefence(defence.type, defence.value, this.id);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE);
     callbackResult = this.callbacks?.afterAnyDefence?.({ c: this, defence, attack });
 

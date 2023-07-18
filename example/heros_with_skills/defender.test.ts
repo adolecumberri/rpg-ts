@@ -1,5 +1,5 @@
-import { Character } from '../src/classes';
-import { AttackResult } from '../src/types';
+import { Character } from '../../src/classes';
+import { AttackResult } from '../../src/types';
 
 const spikeShield = (attackValue: number) => Math.floor( 7 + attackValue * 0.2);
 

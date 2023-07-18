@@ -1,6 +1,6 @@
-import { Character, Status } from '../src/classes';
-import { getRandomInt } from '../src/helpers';
-import { AttackResult, CharacterCallbacks } from '../src/types';
+import { Character, Status } from '../../src/classes';
+import { getRandomInt } from '../../src/helpers';
+import { AttackResult, CharacterCallbacks } from '../../src/types';
 
 const haste = (c: Character) => {
     const hasteStatus = new Status({

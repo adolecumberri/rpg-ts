@@ -1,6 +1,6 @@
-import { Character } from '../src/classes/Character';
-import { getRandomInt } from '../src/helpers';
-import { CharacterCallbacks } from '../src/types';
+import { Character } from '../../src/classes/Character';
+import { getRandomInt } from '../../src/helpers';
+import { CharacterCallbacks } from '../../src/types';
 
 const SKILL_PROBABILITY = 100; // 23 es el valor real.
 
