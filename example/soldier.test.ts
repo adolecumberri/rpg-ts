@@ -30,7 +30,7 @@ const soldierSkill: CharacterCallbacks['afterTurn'] = (c)=> {
         c.isAlive &&
         !c.skill.isUsed
     ) {
-        c.statusManager?.addStatus(shieldGesture);
+        c.statusManager?.addStatus(shieldGesture, c);
     }
 };
 

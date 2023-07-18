@@ -22,7 +22,7 @@ describe('arquero', () => {
             });
 
             if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.isUsed) {
-                c.statusManager?.addStatus(hasteStatus);
+                c.statusManager?.addStatus(hasteStatus, c);
             }
         };
 

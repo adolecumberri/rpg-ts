@@ -123,14 +123,14 @@ describe('Battle class tests', () => {
         stats: { hp: 10, attack: 3, defense: 2, speed: 1, attackSpeed: 1, attackInterval: 1 },
       });
 
-      battle.fight(char1, char2);
+      const fightId = battle.fight(char1, char2);
 
-      expect(battle.logs.get(1)).toBeDefined();
-      expect(battle.logs.get(1)?.initialLog.fightId).toBe(1);
-      expect(battle.logs.get(1)?.initialLog.battleDimension).toBe('Character');
-      expect(battle.logs.get(1)?.initialLog.battleType).toBe(BATTLE_TYPES.TURN_BASED);
-      expect(battle.logs.get(1)?.logs.length).toBeGreaterThan(0);
-      expect(battle.logs.get(1)?.finalLog).toBeDefined();
+      expect(battle.logs.get(fightId)).toBeDefined();
+      expect(battle.logs.get(fightId)?.initialLog.fightId).toBe(fightId);
+      expect(battle.logs.get(fightId)?.initialLog.battleDimension).toBe('Character');
+      expect(battle.logs.get(fightId)?.initialLog.battleType).toBe(BATTLE_TYPES.TURN_BASED);
+      expect(battle.logs.get(fightId)?.logs.length).toBeGreaterThan(0);
+      expect(battle.logs.get(fightId)?.finalLog).toBeDefined();
     });
 
     test('fight between Teams', () => {
@@ -165,14 +165,14 @@ describe('Battle class tests', () => {
         ],
       });
 
-      battle.fight(team1, team2);
+      const fightId = battle.fight(team1, team2);
 
-      expect(battle.logs.get(1)).toBeDefined();
-      expect(battle.logs.get(1)?.initialLog.fightId).toBe(1);
-      expect(battle.logs.get(1)?.initialLog.battleDimension).toBe('Team');
-      expect(battle.logs.get(1)?.initialLog.battleType).toBe(BATTLE_TYPES.TURN_BASED);
-      expect(battle.logs.get(1)?.logs.length).toBeGreaterThan(0);
-      expect(battle.logs.get(1)?.finalLog).toBeDefined();
+      expect(battle.logs.get(fightId)).toBeDefined();
+      expect(battle.logs.get(fightId)?.initialLog.fightId).toBe(fightId);
+      expect(battle.logs.get(fightId)?.initialLog.battleDimension).toBe('Team');
+      expect(battle.logs.get(fightId)?.initialLog.battleType).toBe(BATTLE_TYPES.TURN_BASED);
+      expect(battle.logs.get(fightId)?.logs.length).toBeGreaterThan(0);
+      expect(battle.logs.get(fightId)?.finalLog).toBeDefined();
     });
   });
 });

@@ -227,7 +227,7 @@ describe('Character', () => {
     let statusAfter: Status;
 
     beforeEach(() => {
-      character.statusManager!.removeAllStatuses();
+      character.statusManager!.removeAllStatuses(character);
 
       statusBefore = new Status({
         name: 'Test Status Before',
@@ -266,8 +266,8 @@ describe('Character', () => {
         ],
       });
 
-      character.statusManager!.addStatus(statusBefore);
-      character.statusManager!.addStatus(statusAfter);
+      character.statusManager!.addStatus(statusBefore, character);
+      character.statusManager!.addStatus(statusAfter, character);
     });
 
 

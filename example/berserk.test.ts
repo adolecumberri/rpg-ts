@@ -43,8 +43,8 @@ describe('Berserk character tests', () => {
             !c.skill.isUsed &&
             c.isAlive
         ) {
-            c.statusManager?.addStatus(rage);
-            c.statusManager?.activate('AFTER_RECEIVE_DAMAGE');
+            c.statusManager?.addStatus(rage, c);
+            c.statusManager?.activate('AFTER_RECEIVE_DAMAGE', c);
         }
     };
 

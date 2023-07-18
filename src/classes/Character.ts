@@ -62,7 +62,7 @@ class BaseCharacter {
     );
 
     this.originalStats = this.stats;
-    this.statusManager = con?.statusManager ? new StatusManager({ character: this }) : null;
+    this.statusManager = con?.statusManager ? new StatusManager() : null;
     this.actionRecord = con?.actionRecord ? new ActionRecord() : null;
   }
 
@@ -71,7 +71,7 @@ class BaseCharacter {
  * @param {Status[] | Status} status - El estado o estados a añadir.
  */
   addStatus(status: Status[] | Status) {
-    this.statusManager?.addStatus(status);
+    this.statusManager?.addStatus(status, this);
   }
 
   /**
@@ -113,35 +113,40 @@ class BaseCharacter {
         break;
     }
 
+<<<<<<< Updated upstream
     this.actionRecord?.recordAttack(attackType, damage);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_ATTACK);
+=======
+    solution.recordId = this.actionRecord?.recordAttack(attackType, damage, this.id);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_ATTACK, this);
+>>>>>>> Stashed changes
     callbackResult = this.callbacks.afterAnyAttack?.(solution);
     return callbackResult || solution;
   }
 
   afterBattle(): any {
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_BATTLE);
-    this.statusManager?.removeAllStatuses();
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_BATTLE, this);
+    this.statusManager?.removeAllStatuses(this);
     this.callbacks.afterBattle?.(this);
     // Aquí pueden realizarse otras acciones necesarias después de la batalla.
   }
 
   afterTurn(): any {
     const callbackResponse = this.callbacks.afterTurn?.(this);
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_TURN);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_TURN, this);
     // Aquí pueden realizarse otras acciones necesarias después del turno.
     return callbackResponse;
   }
 
   beforeBattle(): any {
     const callbackResponse = this.callbacks.beforeBattle?.(this);
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE, this);
     // Aquí pueden realizarse otras acciones necesarias antes de la batalla.
     return callbackResponse;
   }
 
   beforeTurn(): any {
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_TURN);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_TURN, this);
     this.callbacks.beforeTurn?.(this);
     // Aquí pueden realizarse otras acciones necesarias antes del turno.
   }
@@ -191,8 +196,13 @@ class BaseCharacter {
       }
     }
 
+<<<<<<< Updated upstream
     this.actionRecord?.recordDefence(defence.type, defence.value);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE);
+=======
+    defence.recordId = this.actionRecord?.recordDefence(defence.type, defence.value, this.id);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE, this);
+>>>>>>> Stashed changes
     callbackResult = this.callbacks?.afterAnyDefence?.({ c: this, defence, attack });
 
     return callbackResult || defence;
@@ -206,11 +216,11 @@ class BaseCharacter {
   defenceCalculation = (attack: number) => attack * 40 / (40 + this.stats.defence);
 
   die() {
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_DIE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_DIE, this);
     this.isAlive = false;
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE, this);
     this.callbacks.die?.(this);
-    this.statusManager?.removeAllStatuses();
+    this.statusManager?.removeAllStatuses(this);
   }
 
   /**
@@ -219,7 +229,7 @@ class BaseCharacter {
   */
   receiveDamage(defence: DefenceResult) {
     this.updateHp(defence.value * -1); // defence.value es el dañor que el personaje recibe.
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_RECEIVE_DAMAGE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_RECEIVE_DAMAGE, this);
     this.callbacks.receiveDamage?.({ c: this, defence });
   }
 
@@ -228,15 +238,15 @@ class BaseCharacter {
    * @param {number} id - El ID del estado a eliminar.
    */
   removeStatus(id: number) {
-    this.statusManager?.removeStatusById(id);
+    this.statusManager?.removeStatusById(id, this);
     this.callbacks.removeStatus?.(this);
   }
 
   revive() {
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_REVIVE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_REVIVE, this);
     this.isAlive = true;
     // Aquí puedes implementar la lógica para restaurar las stats del personaje a sus valores originales (o a cualquier otro valor que consideres apropiado) cuando reviva
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_REVIVE);
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_REVIVE, this);
     this.callbacks.revive?.(this);
   }
 

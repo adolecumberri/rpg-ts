@@ -19,11 +19,11 @@ const haste = (c: Character) => {
     console.log('hasteId', hasteStatus.id);
 
     if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.isUsed) {
-        c.statusManager?.addStatus(hasteStatus);
+        c.statusManager?.addStatus(hasteStatus, c);
         c.skill.isUsed = true;
         // c.statusManager?.activate('AFTER_ATTACK');
     } else if (c.statusManager?.statusList.includes(hasteStatus)) {
-         c.statusManager?.removeStatusById(hasteStatus.id); //
+         c.statusManager?.removeStatusById(hasteStatus.id, c); //
          c.skill.isUsed = false;
     }
 };

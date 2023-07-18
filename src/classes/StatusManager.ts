@@ -5,29 +5,28 @@ import { Character, Status } from './';
 
 class StatusManager {
   statusList: Status[] = [];
-  character: Character;
 
   constructor(con?: StatusManagerConstructor) {
     con && Object.assign(this, con);
   }
 
-  addStatus<T extends Status>(status: T[] | T) {
+  addStatus<T extends Status>(status: T[] | T, character: Character) {
     if (Array.isArray(status)) {
-      status.forEach((s) => s.onAdd?.(this.character));
+      status.forEach((s) => s.onAdd?.(character));
       this.statusList = this.statusList.concat(status);
     } else {
-      status.onAdd?.(this.character);
+      status.onAdd?.(character);
       this.statusList.push(status);
     }
   }
 
-  activate(applyOn: StatusApplicationMoment) {
+  activate(applyOn: StatusApplicationMoment, character: Character) {
     this.statusList.forEach((status) => {
       if (status.applyOn === applyOn) {
         if (status.duration.type === STATUS_DURATIONS.TEMPORAL && status.duration.value === 0) {
-          this.removeStatusById(status.id);
+          this.removeStatusById(status.id, character);
         }
-        status.activate(this.character);
+        status.activate(character);
         status.hasBeenUsed = true;
       }
     });
@@ -37,11 +36,11 @@ class StatusManager {
     return this.statusList.some((status) => status.id === id);
   }
 
-  removeStatusById(id: number) {
+  removeStatusById(id: number, character: Character) {
     this.statusList = this.statusList.filter((status) => {
       if (status.id === id) {
-        status.recover(this.character);
-        status.onRemove?.(this.character);
+        status.recover(character);
+        status.onRemove?.(character);
         return false;
       } else {
         return true;
@@ -49,11 +48,11 @@ class StatusManager {
     });
   }
 
-  removeStatusByName(name: string) {
+  removeStatusByName(name: string, character: Character) {
     this.statusList = this.statusList.filter((status) => {
       if (status.name === name) {
-        status.recover(this.character);
-        status.onRemove?.(this.character);
+        status.recover(character);
+        status.onRemove?.(character);
         return false;
       } else {
         return true;
@@ -61,15 +60,15 @@ class StatusManager {
     });
   }
 
-  removeAllStatuses() {
-    this.recoverAll();
+  removeAllStatuses(character: Character) {
+    this.recoverAll(character);
     this.statusList = [];
   }
 
-  recoverAll(): void {
+  recoverAll(character: Character): void {
     for (const status of this.statusList) {
-      status.recover(this.character);
-      status.onRemove?.(this.character);
+      status.recover(character);
+      status.onRemove?.(character);
     }
   }
 }

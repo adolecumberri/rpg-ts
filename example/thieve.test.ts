@@ -46,8 +46,8 @@ const fervorSkill = (c: Character) => {
         !c.skill.isUsed &&
         c.isAlive
     ) {
-        c.statusManager?.addStatus(fervor);
-        c.statusManager?.activate('AFTER_RECEIVE_DAMAGE');
+        c.statusManager?.addStatus(fervor, c);
+        c.statusManager?.activate('AFTER_RECEIVE_DAMAGE', c);
     }
 };
 
