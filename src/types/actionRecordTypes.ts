@@ -1,4 +1,4 @@
-import { AttackType, DefenceType } from '.';
+import { AttackType, DefenceType, Stats } from '.';
 
 interface CommonRecord {
     id: number,
@@ -15,7 +15,31 @@ type DefenceRecord = {
     damageReceived: number,
 } & CommonRecord;
 
+type TotalActionRecord = {
+    characterId: number;
+    stats: any;
+    attacks: {
+        value: number;
+        total: number;
+        NORMAL: number;
+        CRITICAL: number;
+        MISS: number;
+        SKILL: number;
+        TRUE: number;
+    };
+    defences: {
+        value: number;
+        total: number;
+        NORMAL: number;
+        EVASION: number;
+        MISS: number;
+        SKILL: number;
+        TRUE: number;
+    };
+};
+
 export {
     AttackRecord,
     DefenceRecord,
+    TotalActionRecord,
 };
