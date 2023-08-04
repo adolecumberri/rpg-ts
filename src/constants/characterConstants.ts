@@ -33,14 +33,15 @@ const DEFAULT_ATTACK_OBJECT: AttackResult = {
 const DEFAULT_STATS_OBJECT: Stats = {
   accuracy: 100,
   attack: 1,
-  evasion: 0,
-  totalHp: 1,
-  defence: 0,
-  hp: 1,
-  crit: 0,
-  critMultiplier: 1,
   attackInterval: 1,
   attackSpeed: 1,
+  crit: 0,
+  critMultiplier: 1,
+  defence: 0,
+  evasion: 0,
+  hp: 1,
+  regeneration: 0,
+  totalHp: 1,
 };
 
 export {

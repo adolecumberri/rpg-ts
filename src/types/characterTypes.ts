@@ -30,6 +30,7 @@ interface Stats {
     defence: number;
     evasion: number;
     hp: number;
+    regeneration: number;
 };
 
 type keysOfStats = keyof Stats;
