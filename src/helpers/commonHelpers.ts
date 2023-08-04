@@ -3,7 +3,7 @@ const createDefaultObjectGetter = <T>(defaultObject: T) => (param?: Partial<T>):
 };
 
 function getRandomInt(min = 0, max = 100) {
-  return Math.floor(Math.random() * (max - min) + min);
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 function uniqueID() {

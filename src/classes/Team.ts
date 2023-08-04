@@ -2,9 +2,9 @@ import { uniqueID } from '../helpers';
 import { DynamicTeamConstructor, TeamConstructor, TotalActionRecord } from '../types';
 import Character from './Character';
 
-class BaseTeam {
+class BaseTeam <T extends Character> {
   id: number = uniqueID();
-  members: Character[];
+  members: T[];
 
   lastFightRecord: Record<string, TotalActionRecord> = {}; // objeto con idCharacter: TotalActionRecord
   everyFightRecord: Record<string, TotalActionRecord> = {}; // objeto con sumatorio de idCharacter: TotalActionRecord
@@ -33,11 +33,11 @@ class BaseTeam {
     });
   }
 
-  addMember<T extends Character>(character: T): void {
+  addMember(character: T): void {
     this.members.push(character);
   }
 
-  hasMember<T extends Character>(character: T): boolean {
+  hasMember(character: T): boolean {
     return this.members.some((member) => member.id === character.id);
   }
 
@@ -45,11 +45,11 @@ class BaseTeam {
     this.members = this.members.filter((character) => character.id !== id);
   }
 
-  removeMember<T extends Character>(character: T): void {
+  removeMember(character: T): void {
     this.removeMemberById(character.id);
   }
 
-  getAliveMembers(): Character[] {
+  getAliveMembers(): T[] {
     return this.members.filter((character) => character.isAlive);
   }
 
@@ -77,7 +77,7 @@ class BaseTeam {
     return this.getAliveMembers().length > 0;
   }
 
-  getDeadMembers(): Character[] {
+  getDeadMembers(): T[] {
     return this.members.filter((character) => !character.isAlive);
   }
 }
