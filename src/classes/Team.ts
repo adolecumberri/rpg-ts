@@ -2,7 +2,7 @@ import { uniqueID } from '../helpers';
 import { DynamicTeamConstructor, TeamConstructor, TotalActionRecord } from '../types';
 import Character from './Character';
 
-class BaseTeam <T extends Character> {
+class BaseTeam <T extends Character = Character> {
   id: number = uniqueID();
   members: T[];
 

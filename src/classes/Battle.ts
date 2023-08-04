@@ -163,7 +163,12 @@ class Battle {
       for (const attacker of allCharacters) {
         // Determine the defending team and pick a random defender
         const defenderTeam = a.hasMember(attacker) ? b : a;
+
+        if ( !defenderTeam.isTeamAlive() ) break; // maybe a bad praxis.
+
         const defender = this.randomCharacterFromTeam(defenderTeam);
+
+        if (defender === null) console.log('alive?', defenderTeam.isTeamAlive());
 
         const attack = attacker.attack();
         const defence = defender.defend(attack);
@@ -244,7 +249,9 @@ class Battle {
     };
   }
 
-  private randomCharacterFromTeam(team: Team): Character {
+  private randomCharacterFromTeam(team: Team): Character | null {
+    if (!team.isTeamAlive()) return null;
+
     const aliveMembers = team.getAliveMembers();
     const randomIndex = getRandomInt(0, aliveMembers.length-1);
     return aliveMembers[randomIndex];

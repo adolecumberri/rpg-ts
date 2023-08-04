@@ -121,6 +121,7 @@ describe('Character', () => {
       evasion: 10,
       attackInterval: 1,
       attackSpeed: 1,
+      regeneration: 0,
     };
     const character = new Character({ stats });
     expect(character.stats).toEqual(stats);
