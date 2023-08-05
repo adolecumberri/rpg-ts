@@ -1,15 +1,7 @@
-import { BaseTeam, Team } from '../classes';
+import { Team } from '../classes';
 
-type TeamConstructor = Partial<BaseTeam>
-
-type DynamicTeamConstructor = {
-    new <T extends object>(arg?: T): T & {
-        [x in keyof BaseTeam]: BaseTeam[x]
-    }
-}
-
+type TeamConstructor = Partial<Team<any>>
 
 export {
   TeamConstructor,
-  DynamicTeamConstructor,
 };
