@@ -4,6 +4,7 @@ import Character from './Character';
 
 class Team <T extends Character = Character> {
   id: number = uniqueID();
+  name: string = 'Team';
   members: T[];
 
   lastFightRecord: Record<string, TotalActionRecord> = {}; // objeto con idCharacter: TotalActionRecord
