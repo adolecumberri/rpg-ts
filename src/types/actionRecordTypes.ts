@@ -13,6 +13,7 @@ type AttackRecord = {
 type DefenceRecord = {
     defenceType: DefenceType,
     damageReceived: number,
+    attackerId: number,
 } & CommonRecord;
 
 type TotalActionRecord = {

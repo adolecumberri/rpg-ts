@@ -71,12 +71,13 @@ class ActionRecord {
     return attack.id;
   }
 
-  recordDefence(defenceType: DefenceType, damageReceived: number, characterId: number) {
+  recordDefence(defenceType: DefenceType, damageReceived: number, characterId: number, attackerId: number) {
     const defence: DefenceRecord = {
       id: uniqueID(),
       defenceType,
       damageReceived,
       characterId,
+      attackerId,
     };
     this.defences.push(defence);
 

@@ -11,7 +11,6 @@ import {
   AttackResult,
   AttackType,
   CharacterCallbacks,
-  CharacterConstructor,
   DefenceResult,
   DynamicCharacterConstructor,
   Stats,
@@ -213,8 +212,7 @@ class BaseCharacter {
       }
     }
 
-    this.actionRecord?.recordDefence(defence.type, defence.value, this.id);
-    defence.recordId = this.actionRecord?.recordDefence(defence.type, defence.value, this.id);
+    defence.recordId = this.actionRecord?.recordDefence(defence.type, defence.value, this.id, attack.atacker.id);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE, this);
     callbackResult = this.callbacks?.afterAnyDefence?.({ c: this, defence, attack });
 
