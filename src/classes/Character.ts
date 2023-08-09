@@ -44,27 +44,49 @@ class BaseCharacter {
  * Crea un nuevo personaje.
  * @param {CharacterConstructor} con - Un objeto que contiene los datos iniciales para el personaje.
  */
-  constructor(con?: CharacterConstructor) {
-    con && Object.assign(this, con);
+  constructor(con) {
+    if (con) {
+      Object.assign(this, con);
 
-    let totalHpProvided = con?.stats?.totalHp ?? DEFAULT_STATS_OBJECT.totalHp;
-    const hpProvided = con?.stats?.hp ?? DEFAULT_STATS_OBJECT.hp;
+      let totalHpProvided = con.stats?.totalHp ?? DEFAULT_STATS_OBJECT.totalHp;
+      const hpProvided = con.stats?.hp ?? DEFAULT_STATS_OBJECT.hp;
 
-    totalHpProvided = Math.max(totalHpProvided, hpProvided);
+      totalHpProvided = Math.max(totalHpProvided, hpProvided);
 
-    this.stats = Object.assign(
-      getDefaultStatsObject(),
-      con?.stats,
-      {
-        totalHp: totalHpProvided,
-        hp: hpProvided,
-      },
-    );
+      this.stats = Object.assign(
+        getDefaultStatsObject(),
+        con.stats,
+        {
+          totalHp: totalHpProvided,
+          hp: hpProvided,
+        },
+      );
 
-    this.originalStats = this.stats;
-    this.statusManager = con?.statusManager ? new StatusManager() : null;
-    this.actionRecord = con?.actionRecord ? new ActionRecord() : null;
+      this.originalStats = this.stats;
+
+      if (con.statusManager instanceof StatusManager) {
+        this.statusManager = con.statusManager;
+      } else if (con.statusManager) {
+        this.statusManager = new StatusManager();
+      } else {
+        this.statusManager = null;
+      }
+
+      if (con.actionRecord instanceof ActionRecord) {
+        this.actionRecord = con.actionRecord;
+      } else if (con.actionRecord) {
+        this.actionRecord = new ActionRecord();
+      } else {
+        this.actionRecord = null;
+      }
+    } else {
+      this.stats = getDefaultStatsObject();
+      this.originalStats = this.stats;
+      this.statusManager = null;
+      this.actionRecord = null;
+    }
   }
+
 
   /**
  * Añade un nuevo estado al personaje.
@@ -206,6 +228,20 @@ class BaseCharacter {
   */
   defenceCalculation = (attack: number) => attack * 40 / (40 + this.stats.defence);
 
+  static deserialize(data: string) {
+    const parsedData = JSON.parse(data);
+
+    // Deserialize nested objects
+    if (parsedData.statusManager) {
+      parsedData.statusManager = StatusManager.deserialize(parsedData.statusManager);
+    }
+    if (parsedData.actionRecord) {
+      parsedData.actionRecord = ActionRecord.deserialize(parsedData.actionRecord);
+    }
+
+    return new Character(parsedData);
+  }
+
   die() {
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_DIE, this);
     this.isAlive = false;
@@ -239,6 +275,33 @@ class BaseCharacter {
     // Aquí puedes implementar la lógica para restaurar las stats del personaje a sus valores originales (o a cualquier otro valor que consideres apropiado) cuando reviva
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_REVIVE, this);
     this.callbacks.revive?.(this);
+  }
+
+  /*
+    this function serialize (parse string generaly) the attributes, NOT the functions.
+  */
+  serialize() {
+    const serialized = {
+      id: this.id,
+      isAlive: this.isAlive,
+      name: this.name,
+      originalStats: this.originalStats,
+      skill: this.skill,
+      stats: this.stats,
+      callbacks: this.callbacks,
+      damageCalculation: this.damageCalculation,
+      statusManager: '', // default
+      actionRecord: '', // default
+    };
+
+    // Serialize nested objects
+    if (this.statusManager) {
+      serialized.statusManager = this.statusManager.serialize();
+    }
+    if (this.actionRecord) {
+      serialized.actionRecord = this.actionRecord.serialize();
+    }
+    return JSON.stringify(serialized);
   }
 
   /**

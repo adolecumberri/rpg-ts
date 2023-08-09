@@ -38,6 +38,20 @@ class Team <T extends Character = Character> {
     this.members.push(character);
   }
 
+  static deserialize<T extends Character>(data: string): Team<T> {
+    const parsedData = JSON.parse(data);
+
+    const team = new Team<T>({
+      id: parsedData.id,
+      name: parsedData.name,
+      members: parsedData.members.map((memberData) => memberData.deserialize()), // Deserialize each member
+      lastFightRecord: parsedData.lastFightRecord,
+      everyFightRecord: parsedData.everyFightRecord,
+    });
+
+    return team;
+  }
+
   hasMember(character: T): boolean {
     return this.members.some((member) => member.id === character.id);
   }
@@ -74,12 +88,24 @@ class Team <T extends Character = Character> {
     return this.members.map((character) => character.id);
   }
 
+  getDeadMembers(): T[] {
+    return this.members.filter((character) => !character.isAlive);
+  }
+
   isTeamAlive(): boolean {
     return this.getAliveMembers().length > 0;
   }
 
-  getDeadMembers(): T[] {
-    return this.members.filter((character) => !character.isAlive);
+  serialize(): string {
+    const serialized = {
+      id: this.id,
+      name: this.name,
+      members: this.members.map((member) => member.serialize()), // Serialize each member
+      lastFightRecord: this.lastFightRecord,
+      everyFightRecord: this.everyFightRecord,
+    };
+
+    return JSON.stringify(serialized);
   }
 }
 

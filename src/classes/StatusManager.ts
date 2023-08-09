@@ -32,6 +32,13 @@ class StatusManager {
     });
   }
 
+  static deserialize(data: string) {
+    const serializedStatusList = JSON.parse(data);
+    const statusManager = new StatusManager();
+    statusManager.statusList = serializedStatusList.map((statusData) => Status.deserialize(statusData));
+    return statusManager;
+  }
+
   hasStatus(id: number): boolean {
     return this.statusList.some((status) => status.id === id);
   }
@@ -70,6 +77,10 @@ class StatusManager {
       status.recover(character);
       status.onRemove?.(character);
     }
+  }
+
+  serialize() {
+    return JSON.stringify(this.statusList.map((status) => status.serialize()));
   }
 }
 

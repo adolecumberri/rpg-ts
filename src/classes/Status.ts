@@ -72,6 +72,13 @@ class Status {
     }
   }
 
+  static deserialize(data) {
+    const serializedData = JSON.parse(data);
+    const status = new Status();
+    Object.assign(status, serializedData);
+    return status;
+  }
+
   loadBuffFixed: StatusActivationFunction = ({ to, value }) => ({
     valueFinal: to + value,
     valueApplied: value,
@@ -100,6 +107,18 @@ class Status {
         character.stats[stat.to] -= stat.valueToRecover;
       }
     }
+  }
+
+  serialize() {
+    return JSON.stringify({
+      applyOn: this.applyOn,
+      duration: this.duration,
+      hasBeenUsed: this.hasBeenUsed,
+      id: this.id,
+      statsAffected: this.statsAffected,
+      name: this.name,
+      usageFrequency: this.usageFrequency,
+    });
   }
 }
 
