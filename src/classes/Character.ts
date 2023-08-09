@@ -228,7 +228,7 @@ class BaseCharacter {
   */
   defenceCalculation = (attack: number) => attack * 40 / (40 + this.stats.defence);
 
-  static deserialize(data: string) {
+  static deserialize<T>(data: string): T {
     const parsedData = JSON.parse(data);
 
     // Deserialize nested objects
