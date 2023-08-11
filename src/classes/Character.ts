@@ -226,7 +226,7 @@ class BaseCharacter {
   * @param {number} attack - El valor del ataque a defender.
   * @returns {number} - El daño después de aplicar la defensa.
   */
-  defenceCalculation = (attack: number) => attack * 40 / (40 + this.stats.defence);
+  defenceCalculation = (attack: number) => Math.round(attack * 40 / (40 + this.stats.defence));
 
   static deserialize<T>(data: string): T {
     const parsedData = JSON.parse(data);
