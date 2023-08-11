@@ -34,7 +34,9 @@ class BaseCharacter {
   actionRecord: ActionRecord | null = null;
 
   damageCalculation = {
-    [ATTACK_TYPE_CONST.CRITICAL]: (stats: Stats) => stats.attack * stats.critMultiplier,
+    [ATTACK_TYPE_CONST.CRITICAL]: (stats: Stats) => stats.critMultiplier > 1 ?
+        stats.attack * (1 + (stats.critMultiplier / 100)) :
+        stats.attack * ( 1 + stats.critMultiplier),
     [ATTACK_TYPE_CONST.NORMAL]: (stats: Stats) => stats.attack,
     [ATTACK_TYPE_CONST.MISS]: (_: Stats) => 0,
   };
