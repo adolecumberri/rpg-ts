@@ -5,9 +5,9 @@ const BATTLE_TYPES = {
 } as const;
 
 const DEFALUT_LOG_OBJECT = {
-  fightId: 0,
+  battleId: 0,
   initialLog: {
-    fightId: 0,
+    battleId: 0,
     battleType: BATTLE_TYPES.TURN_BASED,
     battleDimension: 'Character' as const,
   },

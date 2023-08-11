@@ -56,7 +56,7 @@ describe('Battle class tests', () => {
   describe('Turn based Character fight', () => {
     test('should handle character turn-based fights', () => {
       battle.setBattleType(BATTLE_TYPES.TURN_BASED);
-      battle.fight(character1, character2);
+      battle.runBattle(character1, character2);
 debugger;
       // Asegúrate de que la batalla ha tenido lugar y los personajes han intercambiado daño
       expect(character1.stats.hp).toBeLessThan(character1.stats.totalHp);
@@ -65,7 +65,7 @@ debugger;
 
     test('At least one Character should be dead after a turn based battle', () => {
       battle.setBattleType(BATTLE_TYPES.TURN_BASED);
-      battle.fight(character1, character2);
+      battle.runBattle(character1, character2);
 
       const atLeastOneDead = !character1.isAlive || !character2.isAlive;
       expect(atLeastOneDead).toBe(true);
@@ -75,7 +75,7 @@ debugger;
   describe('Interval based Character fight', () => {
     test('should handle team interval-based fights', () => {
       battle.setBattleType(BATTLE_TYPES.INTERVAL_BASED);
-      battle.fight(team1, team2);
+      battle.runBattle(team1, team2);
 
       // Asegúrate de que la batalla ha tenido lugar y los equipos han intercambiado daño
       expect(team1.getAliveMembers().length).toBeLessThan(team1.members.length);
@@ -84,7 +84,7 @@ debugger;
 
     test('At least one Character should be dead after an interval based battle', () => {
       battle.setBattleType(BATTLE_TYPES.INTERVAL_BASED);
-      battle.fight(character1, character2);
+      battle.runBattle(character1, character2);
 
       const atLeastOneDead = !character1.isAlive || !character2.isAlive;
       expect(atLeastOneDead).toBe(true);
@@ -94,7 +94,7 @@ debugger;
   describe('Turn based Team fight', () => {
     test('All Characters in a team should have decreased health after a turn based battle', () => {
       battle.setBattleType(BATTLE_TYPES.TURN_BASED);
-      battle.fight(team1, team2);
+      battle.runBattle(team1, team2);
 
       const team1Members = team1.members;
       const team2Members = team2.members;
@@ -106,7 +106,7 @@ debugger;
 
     test('At least one team should be dead after a turn based battle', () => {
       battle.setBattleType(BATTLE_TYPES.TURN_BASED);
-      battle.fight(team1, team2);
+      battle.runBattle(team1, team2);
 
       const atLeastOneTeamDead = !team1.isTeamAlive() || !team2.isTeamAlive();
       expect(atLeastOneTeamDead).toBe(true);
@@ -127,10 +127,10 @@ debugger;
         stats: { hp: 10, attack: 3, defense: 2, speed: 1, attackSpeed: 1, attackInterval: 1 },
       });
 
-      const fightId = battle.fight(char1, char2);
+      const fightId = battle.runBattle(char1, char2);
 
       expect(battle.logs.get(fightId)).toBeDefined();
-      expect(battle.logs.get(fightId)?.initialLog.fightId).toBe(fightId);
+      expect(battle.logs.get(fightId)?.initialLog.battleId).toBe(fightId);
       expect(battle.logs.get(fightId)?.initialLog.battleDimension).toBe('Character');
       expect(battle.logs.get(fightId)?.initialLog.battleType).toBe(BATTLE_TYPES.TURN_BASED);
       expect(battle.logs.get(fightId)?.logs.length).toBeGreaterThan(0);
@@ -169,10 +169,10 @@ debugger;
         ],
       });
 
-      const fightId = battle.fight(team1, team2);
+      const fightId = battle.runBattle(team1, team2);
 
       expect(battle.logs.get(fightId)).toBeDefined();
-      expect(battle.logs.get(fightId)?.initialLog.fightId).toBe(fightId);
+      expect(battle.logs.get(fightId)?.initialLog.battleId).toBe(fightId);
       expect(battle.logs.get(fightId)?.initialLog.battleDimension).toBe('Team');
       expect(battle.logs.get(fightId)?.initialLog.battleType).toBe(BATTLE_TYPES.TURN_BASED);
       expect(battle.logs.get(fightId)?.logs.length).toBeGreaterThan(0);

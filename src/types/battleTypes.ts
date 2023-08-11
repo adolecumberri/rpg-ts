@@ -15,12 +15,12 @@ interface Log {
 }
 
 interface firstLog {
-    fightId: number,
+    battleId: number,
     battleType: keyof typeof BATTLE_TYPES,
     battleDimension: 'Character' | 'Team',
 }
 
-interface charactersFightLastLog {
+interface charactersBattleLastLog {
     winnerId: number,
     winnerName: string,
     winnerHp: number,
@@ -29,7 +29,7 @@ interface charactersFightLastLog {
     looserHp: number,
 }
 
-interface charactersFightDrawLastLog {
+interface charactersBattleDrawLastLog {
     draw: boolean,
     characterAId: number,
     characterAName: string,
@@ -39,7 +39,7 @@ interface charactersFightDrawLastLog {
     characterBHp: number,
 }
 
-interface teamsFightLastLog {
+interface teamsBattleLastLog {
     winner: number,
     winnerAliveCharacters: number,
     winnerDeadCharacters: number,
@@ -48,7 +48,7 @@ interface teamsFightLastLog {
     looserDeadCharacters: number,
 }
 
-interface teamsFightDrawLastLog {
+interface teamsBattleDrawLastLog {
     draw: boolean,
     teamAId: number,
     teamAAliveCharacters: number,
@@ -58,7 +58,7 @@ interface teamsFightDrawLastLog {
     teamBDeadCharacters: number,
 }
 
-type lastLog = charactersFightLastLog | charactersFightDrawLastLog | teamsFightLastLog | teamsFightDrawLastLog
+type lastLog = charactersBattleLastLog | charactersBattleDrawLastLog | teamsBattleLastLog | teamsBattleDrawLastLog
 
 type Combatant = Character | Team;
 

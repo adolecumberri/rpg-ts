@@ -9,7 +9,7 @@ class Battle {
   logs: Map<
     number,
     {
-      fightId: number;
+      battleId: number;
       initialLog: firstLog;
       logs: Log[];
       finalLog: lastLog;
@@ -75,37 +75,37 @@ class Battle {
     const battle = new Battle();
     battle.battleType = parsedData.battleType;
 
-    parsedData.logs.forEach((fightData) => {
-      battle.logs.set(fightData.fightId, {
-        fightId: fightData.fightId,
-        initialLog: fightData.initialLog,
-        logs: fightData.logs,
-        finalLog: fightData.finalLog,
+    parsedData.logs.forEach((battleData) => {
+      battle.logs.set(battleData.battleId, {
+        battleId: battleData.battleId,
+        initialLog: battleData.initialLog,
+        logs: battleData.logs,
+        finalLog: battleData.finalLog,
       });
     });
 
     return battle;
   }
 
-  fight<T extends Combatant>(a: T, b: T): number {
+  runBattle<T extends Combatant>(a: T, b: T): number {
     this.battleId = uniqueID();
-    this.logs.set(this.battleId, { ...DEFALUT_LOG_OBJECT, fightId: this.battleId });
+    this.logs.set(this.battleId, { ...DEFALUT_LOG_OBJECT, battleId: this.battleId });
 
     if (a instanceof Character && b instanceof Character) {
       this.firstLog('Character');
 
       if (this.battleType === BATTLE_TYPES.TURN_BASED) {
-        this.turnBasedCharacterFight(a as Character, b as Character);
+        this.turnBasedCharacterBattle(a as Character, b as Character);
       } else if (this.battleType === BATTLE_TYPES.INTERVAL_BASED) {
-        this.intervalBasedCharacterFight(a as Character, b as Character);
+        this.intervalBasedCharacterBattle(a as Character, b as Character);
       }
     } else if (a instanceof Team && b instanceof Team) {
       this.firstLog('Team');
 
       if (this.battleType === BATTLE_TYPES.TURN_BASED) {
-        this.turnBasedTeamFight(a as Team, b as Team);
+        this.turnBasedTeamBattle(a as Team, b as Team);
       } else if (this.battleType === BATTLE_TYPES.INTERVAL_BASED) {
-        this.intervalBasedTeamFight(a as Team, b as Team);
+        this.intervalBasedTeamBattle(a as Team, b as Team);
       }
     }
 
@@ -114,13 +114,13 @@ class Battle {
 
   private firstLog(battleDimension: 'Character' | 'Team'): void {
     this.logs.get(this.battleId).initialLog = {
-      fightId: this.battleId,
+      battleId: this.battleId,
       battleType: this.battleType,
       battleDimension,
     };
   }
 
-  private intervalBasedCharacterFight(a: Character, b: Character): void {
+  private intervalBasedCharacterBattle(a: Character, b: Character): void {
     let aNextAttackTime = a.stats.attackInterval;
     let bNextAttackTime = b.stats.attackInterval;
 
@@ -166,7 +166,7 @@ class Battle {
     this.afterBattleCharacters(a, b);
   }
 
-  private intervalBasedTeamFight(a: Team, b: Team): void {
+  private intervalBasedTeamBattle(a: Team, b: Team): void {
     // paso cada personaje a un objeto con su tiempo de ataque y el personaje.
     const teamACharacters = a.members.map((character) => ({
       nextAttackTime: character.stats.attackInterval,
@@ -296,7 +296,7 @@ class Battle {
     this.battleType = type;
   }
 
-  private turnBasedCharacterFight(a: Character, b: Character): void {
+  private turnBasedCharacterBattle(a: Character, b: Character): void {
     let turn = 0;
 
     // beforeBattle:
@@ -352,7 +352,7 @@ class Battle {
     this.afterBattleCharacters(a, b);
   }
 
-  private turnBasedTeamFight(a: Team, b: Team): void {
+  private turnBasedTeamBattle(a: Team, b: Team): void {
     let turn = 0;
 
     this.beforeBattleTeams(a, b);
@@ -397,12 +397,12 @@ class Battle {
   serialize(): string {
     const serialized = {
       battleType: this.battleType,
-      logs: Array.from(this.logs.entries()).map(([fightId, fightData]) => {
+      logs: Array.from(this.logs.entries()).map(([battleId, battleData]) => {
         return {
-          fightId,
-          initialLog: fightData.initialLog,
-          logs: fightData.logs,
-          finalLog: fightData.finalLog,
+          battleId,
+          initialLog: battleData.initialLog,
+          logs: battleData.logs,
+          finalLog: battleData.finalLog,
         };
       }),
     };

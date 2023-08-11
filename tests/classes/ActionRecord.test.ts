@@ -71,7 +71,7 @@ describe('ActionRecord', () => {
     const defenceType: DefenceType = 'NORMAL';
     const damageReceived = 5;
 
-    actionRecord.recordDefence(defenceType, damageReceived, 0);
+    actionRecord.recordDefence(defenceType, damageReceived, 0, 999999999999);
 
     expect(actionRecord.defences.length).toBe(1);
 
