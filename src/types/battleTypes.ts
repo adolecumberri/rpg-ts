@@ -3,9 +3,8 @@ import { BATTLE_TYPES } from '../constants';
 
 type BattleTypes = keyof typeof BATTLE_TYPES;
 
-
 interface Log {
-    intervalOrTurn: number;
+    intervalOfTurn: number;
     idAttackRecord: number | null;
     idDefenceRecord: number | null;
     attackerId: number;
@@ -20,45 +19,27 @@ interface firstLog {
     battleDimension: 'Character' | 'Team',
 }
 
-interface charactersBattleLastLog {
-    winnerId: number,
-    winnerName: string,
-    winnerHp: number,
-    looserId: number,
-    looserName: string,
-    looserHp: number,
-}
-
-interface charactersBattleDrawLastLog {
+interface characterBattleLastLog {
     draw: boolean,
+    winnerId: number | null,
+    looserId: number | null,
     characterAId: number,
-    characterAName: string,
-    characterAHp: number,
     characterBId: number,
-    characterBName: string,
-    characterBHp: number,
 }
 
-interface teamsBattleLastLog {
-    winner: number,
-    winnerAliveCharacters: number,
-    winnerDeadCharacters: number,
-    looser: number,
-    looserAliveCharacters: number,
-    looserDeadCharacters: number,
-}
-
-interface teamsBattleDrawLastLog {
+interface teamBattleLastLog {
     draw: boolean,
+    winnerId: number | null,
+    looserId: number | null,
     teamAId: number,
-    teamAAliveCharacters: number,
-    teamADeadCharacters: number,
+    teamADeadMembers: number,
+    teamAAliveMembers: number,
+    teamATotalMembers: number,
     teamBId: number,
-    teamBAliveCharacters: number,
-    teamBDeadCharacters: number,
+    teamBDeadMembers: number,
+    teamBAliveMembers: number,
+    teamBTotalMembers: number,
 }
-
-type lastLog = charactersBattleLastLog | charactersBattleDrawLastLog | teamsBattleLastLog | teamsBattleDrawLastLog
 
 type Combatant = Character | Team;
 
@@ -66,6 +47,7 @@ export {
   BattleTypes,
   Log,
   firstLog,
-  lastLog,
+  characterBattleLastLog,
+  teamBattleLastLog,
   Combatant,
 };

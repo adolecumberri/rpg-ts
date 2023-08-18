@@ -1,7 +1,7 @@
 import { BATTLE_TYPES, DEFALUT_LOG_OBJECT } from '../constants';
 import { getRandomInt, uniqueID } from '../helpers';
 import { AttackResult, DefenceResult } from '../types';
-import { BattleTypes, Combatant, Log, firstLog, lastLog } from '../types/battleTypes';
+import { BattleTypes, Combatant, Log, firstLog, characterBattleLastLog, teamBattleLastLog } from '../types/battleTypes';
 import Character from './Character';
 import Team from './Team';
 
@@ -12,8 +12,7 @@ class Battle {
       battleId: number;
       initialLog: firstLog;
       logs: Log[];
-      finalLog: lastLog;
-
+      finalLog: characterBattleLastLog | teamBattleLastLog;
     }
   > = new Map();
   battleType: BattleTypes = BATTLE_TYPES.TURN_BASED;
@@ -156,11 +155,29 @@ class Battle {
     }
 
     if (a.isAlive) {
-      this.lastLog(a, b);
+      this.characterLastLog({
+        draw: false,
+        winnerId: a.id,
+        looserId: b.id,
+        characterAId: a.id,
+        characterBId: b.id,
+      });
     } else if (b.isAlive) {
-      this.lastLog(b, a);
+      this.characterLastLog({
+        draw: false,
+        winnerId: b.id,
+        looserId: a.id,
+        characterAId: a.id,
+        characterBId: b.id,
+      });
     } else {
-      this.logDraw(a, b);
+      this.characterLastLog({
+        draw: true,
+        winnerId: null,
+        looserId: null,
+        characterAId: a.id,
+        characterBId: b.id,
+      });
     }
 
     this.afterBattleCharacters(a, b);
@@ -201,11 +218,47 @@ class Battle {
     }
 
     if (a.isTeamAlive()) {
-      this.lastLog(a, b);
+      this.teamLastLog({
+        draw: false,
+        winnerId: a.id,
+        looserId: b.id,
+        teamAId: a.id,
+        teamADeadMembers: a.getDeadMembers().length,
+        teamAAliveMembers: a.getAliveMembers().length,
+        teamATotalMembers: a.members.length,
+        teamBId: b.id,
+        teamBDeadMembers: b.getDeadMembers().length,
+        teamBAliveMembers: b.getAliveMembers().length,
+        teamBTotalMembers: b.members.length,
+      });
     } else if (b.isTeamAlive()) {
-      this.lastLog(b, a);
+      this.teamLastLog({
+        draw: false,
+        winnerId: b.id,
+        looserId: a.id,
+        teamAId: a.id,
+        teamADeadMembers: a.getDeadMembers().length,
+        teamAAliveMembers: a.getAliveMembers().length,
+        teamATotalMembers: a.members.length,
+        teamBId: b.id,
+        teamBDeadMembers: b.getDeadMembers().length,
+        teamBAliveMembers: b.getAliveMembers().length,
+        teamBTotalMembers: b.members.length,
+      });
     } else {
-      this.logDraw(a, b);
+      this.teamLastLog({
+        draw: true,
+        winnerId: null,
+        looserId: null,
+        teamAId: a.id,
+        teamADeadMembers: a.getDeadMembers().length,
+        teamAAliveMembers: a.getAliveMembers().length,
+        teamATotalMembers: a.members.length,
+        teamBId: b.id,
+        teamBDeadMembers: b.getDeadMembers().length,
+        teamBAliveMembers: b.getAliveMembers().length,
+        teamBTotalMembers: b.members.length,
+      });
     }
 
     this.afterBattleTeams(a, b);
@@ -219,27 +272,12 @@ class Battle {
     }
   }
 
-  private lastLog(winner: Combatant, looser: Combatant): void {
-    if (winner instanceof Character) {
-      this.logs.get(this.battleId).finalLog = {
-        winnerId: winner.id,
-        winnerName: (winner as Character).name,
-        winnerHp: (winner as Character).stats.hp,
-        looserId: looser.id,
-        looserName: (looser as Character).name,
-        looserHp: (looser as Character).stats.hp,
+  private characterLastLog( log: characterBattleLastLog): void {
+      this.logs.get(this.battleId).finalLog = log;
+  }
 
-      };
-    } else {
-      this.logs.get(this.battleId).finalLog = {
-        winner: winner.id,
-        winnerAliveCharacters: (winner as Team).getAliveMembers().length,
-        winnerDeadCharacters: (winner as Team).getDeadMembers().length,
-        looser: looser.id,
-        looserAliveCharacters: (looser as Team).getAliveMembers().length,
-        looserDeadCharacters: (looser as Team).getDeadMembers().length,
-      };
-    }
+  private teamLastLog(log: teamBattleLastLog): void {
+      this.logs.get(this.battleId).finalLog = log;
   }
 
   private logAction(
@@ -250,7 +288,7 @@ class Battle {
     round: number,
   ): void {
     this.logs.get(this.battleId).logs.push({
-      intervalOrTurn: round,
+      intervalOfTurn: round,
       idAttackRecord: attackObject.recordId || null, // if character has ActionRecord
       idDefenceRecord: defenceObject.recordId || null, // if character has ActionRecord
       attackerId: attacker.id, // These would be dynamic in the final version
@@ -258,30 +296,6 @@ class Battle {
       attackerHp: attacker.stats.hp, // These would be dynamic in the final version
       defenderHp: defender.stats.hp, // These would be dynamic in the final version
     });
-  }
-
-  private logDraw(combatantA: Combatant, combatantB: Combatant): void {
-    if (combatantA instanceof Character) {
-      this.logs.get(this.battleId).finalLog = {
-        draw: true,
-        characterAId: combatantA.id,
-        characterAName: (combatantA as Character).name,
-        characterAHp: (combatantA as Character).stats.hp,
-        characterBId: combatantB.id,
-        characterBName: (combatantB as Character).name,
-        characterBHp: (combatantB as Character).stats.hp,
-      };
-    } else {
-      this.logs.get(this.battleId).finalLog = {
-        draw: true,
-        teamAId: combatantA.id,
-        teamAAliveCharacters: (combatantA as Team).getAliveMembers().length,
-        teamADeadCharacters: (combatantA as Team).getDeadMembers().length,
-        teamBId: combatantB.id,
-        teamBAliveCharacters: (combatantB as Team).getAliveMembers().length,
-        teamBDeadCharacters: (combatantB as Team).getDeadMembers().length,
-      };
-    }
   }
 
   private randomCharacterFromTeam(team: Team): Character | null {
@@ -342,12 +356,29 @@ class Battle {
     }
 
     if (a.isAlive) {
-      this.lastLog(a, b);
+      this.characterLastLog({
+        draw: false,
+        winnerId: a.id,
+        looserId: b.id,
+        characterAId: a.id,
+        characterBId: b.id,
+      });
     } else if (b.isAlive) {
-      this.lastLog(b, a);
+      this.characterLastLog({
+        draw: false,
+        winnerId: b.id,
+        looserId: a.id,
+        characterAId: a.id,
+        characterBId: b.id,
+      });
     } else {
-      // draw
-      this.logDraw(a, b);
+      this.characterLastLog({
+        draw: true,
+        winnerId: null,
+        looserId: null,
+        characterAId: a.id,
+        characterBId: b.id,
+      });
     }
     this.afterBattleCharacters(a, b);
   }
@@ -384,11 +415,47 @@ class Battle {
     }
 
     if (a.isTeamAlive()) {
-      this.lastLog(a, b);
+      this.teamLastLog({
+        draw: false,
+        winnerId: a.id,
+        looserId: b.id,
+        teamAId: a.id,
+        teamADeadMembers: a.getDeadMembers().length,
+        teamAAliveMembers: a.getAliveMembers().length,
+        teamATotalMembers: a.members.length,
+        teamBId: b.id,
+        teamBDeadMembers: b.getDeadMembers().length,
+        teamBAliveMembers: b.getAliveMembers().length,
+        teamBTotalMembers: b.members.length,
+      });
     } else if (b.isTeamAlive()) {
-      this.lastLog(b, a);
+      this.teamLastLog({
+        draw: false,
+        winnerId: b.id,
+        looserId: a.id,
+        teamAId: a.id,
+        teamADeadMembers: a.getDeadMembers().length,
+        teamAAliveMembers: a.getAliveMembers().length,
+        teamATotalMembers: a.members.length,
+        teamBId: b.id,
+        teamBDeadMembers: b.getDeadMembers().length,
+        teamBAliveMembers: b.getAliveMembers().length,
+        teamBTotalMembers: b.members.length,
+      });
     } else {
-      this.logDraw(a, b);
+      this.teamLastLog({
+        draw: true,
+        winnerId: null,
+        looserId: null,
+        teamAId: a.id,
+        teamADeadMembers: a.getDeadMembers().length,
+        teamAAliveMembers: a.getAliveMembers().length,
+        teamATotalMembers: a.members.length,
+        teamBId: b.id,
+        teamBDeadMembers: b.getDeadMembers().length,
+        teamBAliveMembers: b.getAliveMembers().length,
+        teamBTotalMembers: b.members.length,
+      });
     }
 
     this.afterBattleTeams(a, b);
