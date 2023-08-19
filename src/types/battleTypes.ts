@@ -24,7 +24,9 @@ interface characterBattleLastLog {
     winnerId: number | null,
     looserId: number | null,
     characterAId: number,
+    characterAHp: number,
     characterBId: number,
+    characterBHp: number,
 }
 
 interface teamBattleLastLog {

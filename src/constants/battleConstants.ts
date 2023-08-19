@@ -23,7 +23,9 @@ const DEFALUT_LOG_OBJECT: {
     winnerId: null,
     looserId: null,
     characterAId: 0,
+    characterAHp: 0,
     characterBId: 0,
+    characterBHp: 0,
   },
 };
 

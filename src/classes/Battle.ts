@@ -160,7 +160,9 @@ class Battle {
         winnerId: a.id,
         looserId: b.id,
         characterAId: a.id,
+        characterAHp: a.stats.hp,
         characterBId: b.id,
+        characterBHp: b.stats.hp,
       });
     } else if (b.isAlive) {
       this.characterLastLog({
@@ -168,7 +170,9 @@ class Battle {
         winnerId: b.id,
         looserId: a.id,
         characterAId: a.id,
+        characterAHp: a.stats.hp,
         characterBId: b.id,
+        characterBHp: b.stats.hp,
       });
     } else {
       this.characterLastLog({
@@ -176,7 +180,9 @@ class Battle {
         winnerId: null,
         looserId: null,
         characterAId: a.id,
+        characterAHp: a.stats.hp,
         characterBId: b.id,
+        characterBHp: b.stats.hp,
       });
     }
 
@@ -361,7 +367,9 @@ class Battle {
         winnerId: a.id,
         looserId: b.id,
         characterAId: a.id,
+        characterAHp: a.stats.hp,
         characterBId: b.id,
+        characterBHp: b.stats.hp,
       });
     } else if (b.isAlive) {
       this.characterLastLog({
@@ -369,7 +377,9 @@ class Battle {
         winnerId: b.id,
         looserId: a.id,
         characterAId: a.id,
+        characterAHp: a.stats.hp,
         characterBId: b.id,
+        characterBHp: b.stats.hp,
       });
     } else {
       this.characterLastLog({
@@ -377,7 +387,9 @@ class Battle {
         winnerId: null,
         looserId: null,
         characterAId: a.id,
+        characterAHp: a.stats.hp,
         characterBId: b.id,
+        characterBHp: b.stats.hp,
       });
     }
     this.afterBattleCharacters(a, b);
