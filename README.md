@@ -25,6 +25,16 @@ You can also use Yarn to add RPG-TS to your project:
 
 For detailed usage and further examples, please check the [documentation](https://github.com/adolecumberri/rpg-ts).
 
+## How To Patch
+
+As learned in the job, the version will follow the convetion of MAYOR.MINOR.PATCH
+
+Major: non-reversible change between versions
+
+Minor: added features without creating incompatibilities
+
+Patch: bug fixes
+
 ## Contributing
 
 We welcome contributions of all kinds from the community. If you're interested in contributing, contact me.

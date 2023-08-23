@@ -16,8 +16,6 @@ const haste = (c: Character) => {
         }],
     });
 
-    console.log('hasteId', hasteStatus.id);
-
     if (c.skill.probability >= getRandomInt(0, 100) && !c.skill.isUsed) {
         c.statusManager?.addStatus(hasteStatus, c);
         c.skill.isUsed = true;

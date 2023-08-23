@@ -64,6 +64,7 @@ class ActionRecord {
       id: uniqueID(),
       attackType,
       damage,
+      damageDealt: -1,
       characterId,
     };
     this.attacks.push(attack);

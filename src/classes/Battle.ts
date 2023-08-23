@@ -68,6 +68,10 @@ class Battle {
     });
   }
 
+  private characterLastLog( log: characterBattleLastLog): void {
+    this.logs.get(this.battleId).finalLog = log;
+  }
+
   static deserialize(data: string, characterFactory: (data: string) => Character): Battle {
     const parsedData = JSON.parse(data);
 
@@ -84,6 +88,19 @@ class Battle {
     });
 
     return battle;
+  }
+
+  private executeAttack(attacker: Character, defender: Character, round: number): void {
+    const attack = attacker.attack();
+    const defence = defender.defend(attack);
+    defender.receiveDamage(defence);
+    this.logAction(attacker, defender, attack, defence, round);
+
+    attacker.actionRecord?.attacks.forEach((attackRecord) => {
+      if (attackRecord.id === attack.recordId) {
+        attackRecord.damageDealt = defence.value;
+      }
+    });
   }
 
   runBattle<T extends Combatant>(a: T, b: T): number {
@@ -127,27 +144,14 @@ class Battle {
 
     while (this.isAlive(a) && this.isAlive(b)) {
       if (aNextAttackTime < bNextAttackTime) {
-        const attack = a.attack();
-        const defence = b.defend(attack);
-        b.receiveDamage(defence);
-        this.logAction(a, b, attack, defence, aNextAttackTime);
+        this.executeAttack(a, b, aNextAttackTime);
         aNextAttackTime += a.stats.attackInterval;
       } else if (bNextAttackTime < aNextAttackTime) {
-        const attack = b.attack();
-        const defence = a.defend(attack);
-        a.receiveDamage(defence);
-        this.logAction(b, a, attack, defence, bNextAttackTime);
+        this.executeAttack(b, a, bNextAttackTime);
         bNextAttackTime += b.stats.attackInterval;
       } else {
-        const attackA = a.attack();
-        const defenceA = b.defend(attackA);
-        b.receiveDamage(defenceA);
-        this.logAction(a, b, attackA, defenceA, aNextAttackTime);
-
-        const attackB = b.attack();
-        const defenceB = a.defend(attackB);
-        a.receiveDamage(defenceB);
-        this.logAction(b, a, attackB, defenceB, bNextAttackTime);
+        this.executeAttack(a, b, aNextAttackTime);
+        this.executeAttack(b, a, bNextAttackTime);
 
         aNextAttackTime += a.stats.attackInterval;
         bNextAttackTime += b.stats.attackInterval;
@@ -214,10 +218,7 @@ class Battle {
           const defenderTeam = a.hasMember(attacker) ? b : a;
           const defender = this.randomCharacterFromTeam(defenderTeam);
 
-          const attack = attacker.attack();
-          const defence = defender.defend(attack);
-          defender.receiveDamage(defence);
-          this.logAction(attacker, defender, attack, defence, attackerInfo.nextAttackTime);
+          this.executeAttack(attacker, defender, attackerInfo.nextAttackTime);
           attackerInfo.nextAttackTime += attacker.stats.attackInterval;
         }
       });
@@ -276,10 +277,6 @@ class Battle {
     } else {
       return (combatant as Team).isTeamAlive();
     }
-  }
-
-  private characterLastLog( log: characterBattleLastLog): void {
-      this.logs.get(this.battleId).finalLog = log;
   }
 
   private teamLastLog(log: teamBattleLastLog): void {
@@ -345,19 +342,11 @@ class Battle {
       }
 
       // First character attacks
-      const firstAttack = firstAttacker.attack();
-      const firstDefence = secondAttacker.defend(firstAttack);
-
-      secondAttacker.receiveDamage(firstDefence);
-      this.logAction(firstAttacker, secondAttacker, firstAttack, firstDefence, turn);
+      this.executeAttack(firstAttacker, secondAttacker, turn);
 
       // Check if the second character is still alive before they attack
       if (this.isAlive(secondAttacker)) {
-        const secondAttack = secondAttacker.attack();
-        const secondDefence = firstAttacker.defend(secondAttack);
-
-        firstAttacker.receiveDamage(secondDefence);
-        this.logAction(secondAttacker, firstAttacker, secondAttack, secondDefence, turn);
+        this.executeAttack(secondAttacker, firstAttacker, turn);
       }
     }
 

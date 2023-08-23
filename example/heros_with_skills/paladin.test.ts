@@ -47,7 +47,6 @@ describe('Paladin Character', () => {
     // Testing holy light skill.
     test('holy light skill', () => {
         const fake_atacker = new Character({stats: { attack: 80 }});
-        console.log(fake_atacker.stats);
         const fake_attack = fake_atacker.attack();
         // Reduces the paladin's HP to less than 30% of total HP.
         const defence = paladin.defend(fake_attack);

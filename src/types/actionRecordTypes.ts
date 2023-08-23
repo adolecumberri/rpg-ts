@@ -8,6 +8,7 @@ interface CommonRecord {
 type AttackRecord = {
     attackType: AttackType,
     damage: number,
+    damageDealt: number,
 } & CommonRecord;
 
 type DefenceRecord = {
