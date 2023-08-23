@@ -1,6 +1,6 @@
 {
   "name": "rpg-ts",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "rpg utilities in TS",
   "main": "dist/index.js",
   "module": "dist/index.min.mjs",
@@ -15,7 +15,7 @@
     "test": "jest --coverage",
     "testto": "jest --watch",
     "pretty": "prettier --write \"./**/*.{js,jsx,json}\"",
-    "prepublish": "tsc",
+    "prepublish": "npm run lint:fix && npm run build && tsc",
     "clean": "del dist",
     "build": "npm run clean && npm run lint && tsc --project tsconfig.build.json",
     "bundle:esm": "rollup dist/index.js --file dist/index.mjs --format esm"
