@@ -1,6 +1,6 @@
 {
   "name": "rpg-ts",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "rpg utilities in TS",
   "main": "dist/index.js",
   "module": "dist/index.min.mjs",

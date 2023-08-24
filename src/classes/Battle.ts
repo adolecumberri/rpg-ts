@@ -53,6 +53,7 @@ class Battle {
       const result = member.beforeBattle();
       if (result?.value) {
         const defender = this.randomCharacterFromTeam(teamB);
+        if (!defender) return;
         const defence = defender.defend(result);
         defender.receiveDamage(defence);
       }
@@ -62,6 +63,7 @@ class Battle {
       const result = member.beforeBattle();
       if (result?.value) {
         const defender = this.randomCharacterFromTeam(teamA);
+        if (!defender) return;
         const defence = defender.defend(result);
         defender.receiveDamage(defence);
       }
@@ -217,6 +219,8 @@ class Battle {
           const attacker = attackerInfo.character;
           const defenderTeam = a.hasMember(attacker) ? b : a;
           const defender = this.randomCharacterFromTeam(defenderTeam);
+
+          if (!defender) return;
 
           this.executeAttack(attacker, defender, attackerInfo.nextAttackTime);
           attackerInfo.nextAttackTime += attacker.stats.attackInterval;
@@ -406,7 +410,7 @@ class Battle {
 
         const defender = this.randomCharacterFromTeam(defenderTeam);
 
-        if (defender === null) console.log('alive?', defenderTeam.isTeamAlive());
+        if (!defender) return null;
 
         const attack = attacker.attack();
         const defence = defender.defend(attack);
