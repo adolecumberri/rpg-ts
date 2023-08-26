@@ -39,6 +39,15 @@ class Team <T extends Character = Character> {
     this.members.push(character);
   }
 
+  afterBattle(): void {
+    this.loadLastFightRecord();
+  }
+
+  beforeBattle(): void {
+    this.cleanMembersActionRecord();
+  }
+
+
   cleanMembersActionRecord(): void {
     this.members.forEach((member) => {
       member.actionRecord = new ActionRecord();

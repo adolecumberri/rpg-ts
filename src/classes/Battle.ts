@@ -24,10 +24,12 @@ class Battle {
   }
 
   afterBattleTeams(teamA: Team, teamB: Team): void {
+    teamA.afterBattle();
     teamA.members.forEach((member) => {
       member.afterBattle();
     });
 
+    teamB.afterBattle();
     teamB.members.forEach((member) => {
       member.afterBattle();
     });
@@ -49,6 +51,7 @@ class Battle {
   }
 
   beforeBattleTeams(teamA: Team, teamB: Team): void {
+    teamA.beforeBattle();
     teamA.members.forEach((member) => {
       const result = member.beforeBattle();
       if (result?.value) {
@@ -59,6 +62,7 @@ class Battle {
       }
     });
 
+    teamB.beforeBattle();
     teamB.members.forEach((member) => {
       const result = member.beforeBattle();
       if (result?.value) {
