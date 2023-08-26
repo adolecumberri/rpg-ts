@@ -412,10 +412,7 @@ class Battle {
 
         if (!defender) return null;
 
-        const attack = attacker.attack();
-        const defence = defender.defend(attack);
-        defender.receiveDamage(defence);
-        this.logAction(attacker, defender, attack, defence, turn);
+        this.executeAttack(attacker, defender, turn);
       }
     }
 
@@ -433,6 +430,7 @@ class Battle {
         teamBAliveMembers: b.getAliveMembers().length,
         teamBTotalMembers: b.members.length,
       });
+      a.loadLastFightRecord();
     } else if (b.isTeamAlive()) {
       this.teamLastLog({
         draw: false,

@@ -1,3 +1,4 @@
+import { ActionRecord } from '.';
 import { uniqueID } from '../helpers';
 import { TeamConstructor, TotalActionRecord } from '../types';
 import Character from './Character';
@@ -38,6 +39,12 @@ class Team <T extends Character = Character> {
     this.members.push(character);
   }
 
+  cleanMembersActionRecord(): void {
+    this.members.forEach((member) => {
+      member.actionRecord = new ActionRecord();
+    });
+  }
+
   static deserialize<T extends Character>(data: string): Team<T> {
     const parsedData = JSON.parse(data);
 
@@ -69,15 +76,7 @@ class Team <T extends Character = Character> {
   }
 
   getLastFightRecord(): Record<string, TotalActionRecord> {
-    const solution = {};
-    this.members.forEach((character) => {
-      solution[character.id] = character.actionRecord.getTotalStats(character);
-    });
-    this.lastFightRecord = solution;
-
-    // añade el valor de lastFightRecord a everyFightRecord
-   this.addLastFightRecordToEveryFightRecord();
-    return solution;
+    return this.lastFightRecord;
   }
 
   getEveryFightRecord(): Record<string, TotalActionRecord> {
@@ -94,6 +93,16 @@ class Team <T extends Character = Character> {
 
   isTeamAlive(): boolean {
     return this.getAliveMembers().length > 0;
+  }
+
+  loadLastFightRecord(): void {
+    const solution = {};
+    this.members.forEach((character) => {
+      solution[character.id] = character.actionRecord.getTotalStats(character);
+    });
+    this.lastFightRecord = solution;
+
+    this.addLastFightRecordToEveryFightRecord();
   }
 
   serialize(): string {
