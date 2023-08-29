@@ -1,7 +1,7 @@
 
-import { STATUS_DURATIONS } from '../constants';
-import { StatusApplicationMoment, StatusManagerConstructor } from '../types';
-import { Character, Status } from './';
+import { STATUS_DURATIONS } from '../../constants';
+import { StatusApplicationMoment, StatusManagerConstructor } from '../../types';
+import { Character, Status } from '..';
 
 class StatusManager {
   statusList: Status[] = [];

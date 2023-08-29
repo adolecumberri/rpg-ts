@@ -1,8 +1,8 @@
 
-import { Character } from '.';
-import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST } from '../constants';
-import { uniqueID } from '../helpers';
-import { AttackType, DefenceType, AttackRecord, DefenceRecord, TotalActionRecord } from '../types';
+import { Character } from '..';
+import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST } from '../../constants';
+import { uniqueID } from '../../helpers';
+import { AttackType, DefenceType, AttackRecord, DefenceRecord, TotalActionRecord } from '../../types';
 
 class ActionRecord {
   attacks: AttackRecord[] = [];
