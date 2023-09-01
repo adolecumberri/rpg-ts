@@ -16,6 +16,7 @@ import {
   Stats,
 } from '../types';
 import { ActionRecord, Status, StatusManager } from './';
+import LevelManager from './characterModules/LevelManager';
 
 
 class BaseCharacter {
@@ -32,11 +33,12 @@ class BaseCharacter {
   statusManager: StatusManager | null = null;
   callbacks: CharacterCallbacks = {};
   actionRecord: ActionRecord | null = null;
+  levelManager: LevelManager | null = null;
 
   damageCalculation = {
-    [ATTACK_TYPE_CONST.CRITICAL]: (stats: Stats) => Math.round( stats.critMultiplier > 1 ?
-        stats.attack * (1 + (stats.critMultiplier / 100)) :
-        stats.attack * ( 1 + stats.critMultiplier) ),
+    [ATTACK_TYPE_CONST.CRITICAL]: (stats: Stats) => Math.round(stats.critMultiplier > 1 ?
+      stats.attack * (1 + (stats.critMultiplier / 100)) :
+      stats.attack * (1 + stats.critMultiplier)),
     [ATTACK_TYPE_CONST.NORMAL]: (stats: Stats) => stats.attack,
     [ATTACK_TYPE_CONST.MISS]: (_: Stats) => 0,
   };
@@ -80,11 +82,20 @@ class BaseCharacter {
       } else {
         this.actionRecord = null;
       }
+
+      if (con.levelManager instanceof LevelManager) {
+        this.levelManager = con.levelManager;
+      } else if (con.levelManager) {
+        this.levelManager = new LevelManager(con.levelManager);
+      } else {
+        this.levelManager = null;
+      }
     } else {
       this.stats = getDefaultStatsObject();
       this.originalStats = this.stats;
       this.statusManager = null;
       this.actionRecord = null;
+      this.levelManager = null;
     }
   }
 
