@@ -86,3 +86,7 @@ class LevelManager {
 }
 
 export default LevelManager;
+
+export {
+  LevelManager,
+};
