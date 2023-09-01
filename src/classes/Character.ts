@@ -244,6 +244,10 @@ class BaseCharacter {
       parsedData.actionRecord = ActionRecord.deserialize(parsedData.actionRecord);
     }
 
+    if (parsedData.levelManager) {
+      parsedData.levelManager = LevelManager.deserialize(parsedData.levelManager);
+    }
+
     return new Character(parsedData);
   }
 
@@ -299,8 +303,9 @@ class BaseCharacter {
       stats: this.stats,
       callbacks: this.callbacks,
       damageCalculation: this.damageCalculation,
-      statusManager: '', // default
-      actionRecord: '', // default
+      actionRecord: this.actionRecord.serialize(),
+      statusManager: this.statusManager.serialize(),
+      levelManager: this.levelManager.serialize(),
     };
 
     // Serialize nested objects
@@ -310,6 +315,11 @@ class BaseCharacter {
     if (this.actionRecord) {
       serialized.actionRecord = this.actionRecord.serialize();
     }
+
+    if (this.levelManager) {
+      serialized.levelManager = this.levelManager.serialize();
+    }
+
     return JSON.stringify(serialized);
   }
 

@@ -23,6 +23,32 @@ class LevelManager {
     this.levelUpCallbacks[level] = callback;
   }
 
+  serialize() {
+    return JSON.stringify({
+      currentLevel: this.currentLevel,
+      experience: this.experience,
+      maxLevel: this.maxLevel,
+      xpNeededFunction: this.xpNeededFunction,
+      statsProgression: this.statsProgression,
+      levelUpCallbacks: this.levelUpCallbacks,
+    });
+  }
+
+  static deserialize(json) {
+    const parsedData = JSON.parse(json);
+
+    const levelManager = new LevelManager({
+      currentLevel: parsedData.currentLevel,
+      experience: parsedData.experience,
+      maxLevel: parsedData.maxLevel,
+      xpNeededFunction: parsedData.xpNeededFunction,
+      statsProgression: parsedData.statsProgression,
+      levelUpCallbacks: parsedData.levelUpCallbacks,
+    });
+
+    return levelManager;
+  }
+
   gainExperience(amount, character: Character) {
     this.experience += amount;
     this.checkLevelUp(character);
