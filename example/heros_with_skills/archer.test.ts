@@ -1,6 +1,6 @@
 import { getRandomInt } from '../../src/helpers';
 import { AttackResult, CharacterCallbacks, StatusDurationTemporal } from '../../src/types';
-import { Character, Status } from '../../src/classes';
+import { Character, Status, StatusManager } from '../../src/classes';
 
 
 describe('arquero', () => {
@@ -40,7 +40,7 @@ describe('arquero', () => {
                 used: false,
             },
             className: 'Archer',
-            statusManager: true,
+            statusManager: new StatusManager(),
             actionRecord: true,
             callbacks: {
                 criticalAttack: archer_skill,

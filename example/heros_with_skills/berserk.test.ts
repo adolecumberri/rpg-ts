@@ -1,4 +1,4 @@
-import { Status, Character } from '../../src/classes';
+import { Status, Character, StatusManager, ActionRecord } from '../../src/classes';
 import { CharacterCallbacks } from '../../src/types';
 
 describe('Berserk character tests', () => {
@@ -50,8 +50,8 @@ describe('Berserk character tests', () => {
 
     const berserk = new Character({
         name: 'berserkkkk',
-        statusManager: true,
-        actionRecord: true,
+        statusManager: new StatusManager(),
+        actionRecord: new ActionRecord(),
         callbacks: {
             receiveDamage: BERSERK_SKILL,
         },

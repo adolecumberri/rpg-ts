@@ -19,6 +19,10 @@ class LevelManager {
     Object.assign(this, con);
   }
 
+  addLevelUpCallback(level: number, callback: Function) {
+    this.levelUpCallbacks[level] = callback;
+  }
+
   gainExperience(amount, character: Character) {
     this.experience += amount;
     this.checkLevelUp(character);

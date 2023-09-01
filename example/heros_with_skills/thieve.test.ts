@@ -1,4 +1,4 @@
-import { Character, Status } from '../../src/classes';
+import { ActionRecord, Character, Status, StatusManager } from '../../src/classes';
 import { getRandomInt } from '../../src/helpers';
 import { DefenceResult } from '../../src/types';
 
@@ -59,8 +59,8 @@ const thieve = new Character({
         isUsed: false,
     },
     className: 'Thieve',
-    statusManager: true,
-    actionRecord: true,
+    statusManager: new StatusManager(),
+    actionRecord: new ActionRecord(),
     callbacks: {
         receiveDamage: ({ c }) => {
             c.skill.use(c);

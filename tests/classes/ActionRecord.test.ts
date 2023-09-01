@@ -1,5 +1,5 @@
 import { Character } from '../../src/classes';
-import ActionRecord from '../../src/classes/ActionRecord';
+import ActionRecord from '../../src/classes/characterModules/ActionRecord';
 import { AttackType, DefenceType, AttackRecord, DefenceRecord } from '../../src/types';
 
 describe('Check if Action Record stores attacks', () => {

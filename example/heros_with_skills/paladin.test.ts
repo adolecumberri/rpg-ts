@@ -1,3 +1,4 @@
+import { StatusManager } from '../../src/classes';
 import { Character } from '../../src/classes/Character';
 import { getRandomInt } from '../../src/helpers';
 import { CharacterCallbacks } from '../../src/types';
@@ -25,7 +26,7 @@ const paladin = new Character({
         use: holyLight,
     },
     className: 'Paladin',
-    statusManager: true,
+    statusManager: new StatusManager(),
     actionRecord: true,
     stats: {
         hp: 100,

@@ -1,5 +1,6 @@
 // Character.test.js
 
+import { StatusManager } from '../../src/classes';
 import Character from '../../src/classes/Character';
 import Status from '../../src/classes/Status';
 import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST, STATUS_APPLICATION_MOMENTS } from '../../src/constants';
@@ -27,7 +28,7 @@ describe('Character', () => {
         defence: 20,
         evasion: 10,
       },
-      statusManager: true,
+      statusManager: new StatusManager(),
     });
 
     status = new Status({
@@ -158,7 +159,7 @@ describe('Character', () => {
         hasBeenUsed: false,
       },
     );
-    const character = new Character({ statusManager: true });
+    const character = new Character({ statusManager: new StatusManager() });
     character.addStatus(status);
     character.die(); // Aquí se eliminan las listas de estados.
     expect(character.stats.hp).toBe(0);
@@ -223,12 +224,12 @@ describe('Character', () => {
   });
 
   describe('Character after and before battle work correctly', () => {
-    const character = new Character({ id: 1, statusManager: true });
+    const character = new Character({ id: 1, statusManager: new StatusManager() });
     let statusBefore: Status;
     let statusAfter: Status;
 
     beforeEach(() => {
-      character.statusManager!.removeAllStatuses(character);
+      character.statusManager && character.statusManager!.removeAllStatuses(character);
 
       statusBefore = new Status({
         name: 'Test Status Before',
@@ -267,8 +268,8 @@ describe('Character', () => {
         ],
       });
 
-      character.statusManager!.addStatus(statusBefore, character);
-      character.statusManager!.addStatus(statusAfter, character);
+      character.statusManager && character.statusManager!.addStatus(statusBefore, character);
+      character.statusManager && character.statusManager!.addStatus(statusAfter, character);
     });
 
 

@@ -69,24 +69,18 @@ class BaseCharacter {
 
       if (con.statusManager instanceof StatusManager) {
         this.statusManager = con.statusManager;
-      } else if (con.statusManager) {
-        this.statusManager = new StatusManager();
       } else {
         this.statusManager = null;
       }
 
       if (con.actionRecord instanceof ActionRecord) {
         this.actionRecord = con.actionRecord;
-      } else if (con.actionRecord) {
-        this.actionRecord = new ActionRecord();
       } else {
         this.actionRecord = null;
       }
 
       if (con.levelManager instanceof LevelManager) {
         this.levelManager = con.levelManager;
-      } else if (con.levelManager) {
-        this.levelManager = new LevelManager(con.levelManager);
       } else {
         this.levelManager = null;
       }
@@ -259,6 +253,10 @@ class BaseCharacter {
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE, this);
     this.callbacks.die?.(this);
     this.statusManager?.removeAllStatuses(this);
+  }
+
+  gainExperience(amount: number) {
+    this.levelManager?.gainExperience(amount, this);
   }
 
   /**

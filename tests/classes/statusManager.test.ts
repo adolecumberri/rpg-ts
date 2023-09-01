@@ -1,3 +1,4 @@
+import { StatusManager } from '../../src/classes';
 import { BaseCharacter } from '../../src/classes/Character';
 import Status from '../../src/classes/Status';
 
@@ -19,7 +20,7 @@ describe('status', () => {
                 defence: 20,
                 evasion: 10,
             },
-            statusManager: true,
+            statusManager: new StatusManager(),
         });
 
         status = new Status({
