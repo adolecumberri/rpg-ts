@@ -20,6 +20,7 @@ import LevelManager from './characterModules/LevelManager';
 
 
 class BaseCharacter {
+  [x: string]: any;
   id: number = uniqueID();
   isAlive: boolean = true;
   name: string = '';
@@ -251,11 +252,11 @@ class BaseCharacter {
     return new Character(parsedData);
   }
 
-  die() {
+  die(killer?: Character) {
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_DIE, this);
     this.isAlive = false;
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE, this);
-    this.callbacks.die?.(this);
+    this.callbacks.die?.(this, killer);
     this.statusManager?.removeAllStatuses(this);
   }
 
@@ -268,7 +269,7 @@ class BaseCharacter {
   * @param {number} damage - El daño a aplicar.
   */
   receiveDamage(defence: DefenceResult) {
-    this.updateHp(defence.value * -1); // defence.value es el dañor que el personaje recibe.
+    this.updateHp(defence.value * -1, defence.attacker); // defence.value es el dañor que el personaje recibe.
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_RECEIVE_DAMAGE, this);
     this.callbacks.receiveDamage?.({ c: this, defence });
   }
@@ -327,11 +328,11 @@ class BaseCharacter {
    * Actualiza la salud del personaje.
    * @param {number} amount - La cantidad de salud a añadir o restar.
    */
-  updateHp(amount: number): void {
+  updateHp(amount: number, attacker?: Character): void {
     this.stats.hp = Math.min(this.stats.totalHp, Math.max(0, this.stats.hp + amount));
 
     if (this.stats.hp <= 0) {
-      this.die();
+      this.die(attacker);
     }
 
     this.callbacks.updateHp?.(this);

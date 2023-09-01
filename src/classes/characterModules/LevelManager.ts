@@ -6,7 +6,8 @@ class LevelManager {
   currentLevel: number = 1;
   experience: number = 0;
   maxLevel: number;
-  xpNeededFunction: any;
+  xpNeededFunction: (arg: any) => number = (level: number) => Math.floor(3 + (level - 1));
+  xpGivenFunction: (arg: any) => number =(level: number) => Math.floor(1 + (level - 1));
   statsProgression: {
     [key in keyof Stats]?: {
       type: keyof typeof STATUS_TYPES;
@@ -21,64 +22,6 @@ class LevelManager {
 
   addLevelUpCallback(level: number, callback: Function) {
     this.levelUpCallbacks[level] = callback;
-  }
-
-  serialize() {
-    return JSON.stringify({
-      currentLevel: this.currentLevel,
-      experience: this.experience,
-      maxLevel: this.maxLevel,
-      xpNeededFunction: this.xpNeededFunction,
-      statsProgression: this.statsProgression,
-      levelUpCallbacks: this.levelUpCallbacks,
-    });
-  }
-
-  static deserialize(json) {
-    const parsedData = JSON.parse(json);
-
-    const levelManager = new LevelManager({
-      currentLevel: parsedData.currentLevel,
-      experience: parsedData.experience,
-      maxLevel: parsedData.maxLevel,
-      xpNeededFunction: parsedData.xpNeededFunction,
-      statsProgression: parsedData.statsProgression,
-      levelUpCallbacks: parsedData.levelUpCallbacks,
-    });
-
-    return levelManager;
-  }
-
-  gainExperience(amount, character: Character) {
-    this.experience += amount;
-    this.checkLevelUp(character);
-  }
-
-  checkLevelUp(character: Character) {
-    while (this.experience >= this.xpNeededFunction(this.currentLevel)) {
-      this.levelUp(character);
-    }
-  }
-
-  levelUp(character: Character) {
-    if (this.currentLevel < this.maxLevel) {
-      const remainingExperience =
-        this.experience - this.xpNeededFunction(this.currentLevel);
-      this.currentLevel++;
-      this.adjustStats(character);
-
-      // Execute level-up callback if defined
-      if (this.levelUpCallbacks[this.currentLevel]) {
-        this.levelUpCallbacks[this.currentLevel]();
-      }
-
-      this.experience = remainingExperience;
-      console.log(
-        `Congratulations! You've reached level ${this.currentLevel}!`,
-      );
-    } else {
-      console.log('You\'re already at the max level.');
-    }
   }
 
   adjustStats(character: Character) {
@@ -100,6 +43,48 @@ class LevelManager {
     });
   }
 
+  static deserialize(json) {
+    const parsedData = JSON.parse(json);
+
+    const levelManager = new LevelManager({
+      currentLevel: parsedData.currentLevel,
+      experience: parsedData.experience,
+      maxLevel: parsedData.maxLevel,
+      xpNeededFunction: parsedData.xpNeededFunction,
+      statsProgression: parsedData.statsProgression,
+      levelUpCallbacks: parsedData.levelUpCallbacks,
+    });
+
+    return levelManager;
+  }
+
+  checkLevelUp(character: Character) {
+    while (this.experience >= this.xpNeededFunction(this.currentLevel)) {
+      this.levelUp(character);
+    }
+  }
+
+  gainExperience(amount, character: Character) {
+    this.experience += amount;
+    this.checkLevelUp(character);
+  }
+
+  levelUp(character: Character) {
+    if (this.currentLevel < this.maxLevel) {
+      const remainingExperience =
+        this.experience - this.xpNeededFunction(this.currentLevel);
+      this.currentLevel++;
+      this.adjustStats(character);
+
+      // Execute level-up callback if defined
+      if (this.levelUpCallbacks[this.currentLevel]) {
+        this.levelUpCallbacks[this.currentLevel]();
+      }
+
+      this.experience = remainingExperience;
+    }
+  }
+
   loadBuffFixed = (stat: number, value: number) => stat + value;
 
   loadBuffPercentage = (stat: number, value: number) =>
@@ -109,6 +94,17 @@ class LevelManager {
 
   loadDebuffPercentage = (stat: number, value: number) =>
     stat - stat * (value / 100);
+
+  serialize() {
+    return JSON.stringify({
+      currentLevel: this.currentLevel,
+      experience: this.experience,
+      maxLevel: this.maxLevel,
+      xpNeededFunction: this.xpNeededFunction,
+      statsProgression: this.statsProgression,
+      levelUpCallbacks: this.levelUpCallbacks,
+    });
+  }
 }
 
 export default LevelManager;

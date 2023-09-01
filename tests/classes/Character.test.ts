@@ -3,13 +3,20 @@
 import { StatusManager } from '../../src/classes';
 import Character from '../../src/classes/Character';
 import Status from '../../src/classes/Status';
-import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST, STATUS_APPLICATION_MOMENTS } from '../../src/constants';
+import {
+  ATTACK_TYPE_CONST,
+  DEFENCE_TYPE_CONST,
+  STATUS_APPLICATION_MOMENTS,
+} from '../../src/constants';
 import { getDefaultStatsObject } from '../../src/helpers';
 import { Stats } from '../../src/types';
 
 describe('Character', () => {
   jest.mock('../../src/helpers/commonHelpers', () => ({
-    createDefaultObjectGetter: jest.fn((defaultObject) => (param) => ({ ...defaultObject, ...param })),
+    createDefaultObjectGetter: jest.fn((defaultObject) => (param) => ({
+      ...defaultObject,
+      ...param,
+    })),
   }));
 
   let character;
@@ -142,23 +149,21 @@ describe('Character', () => {
   });
 
   test('character status activation logic works correctly when character dies', () => {
-    const status = new Status(
-      {
-        duration: { type: 'PERMANENT' },
-        applyOn: 'AFTER_DIE',
-        usageFrequency: 'PER_ACTION',
-        statsAffected: [
-          {
-            type: 'DEBUFF_PERCENTAGE',
-            from: 'totalHp',
-            to: 'hp',
-            value: 100,
-            recovers: false,
-          },
-        ],
-        hasBeenUsed: false,
-      },
-    );
+    const status = new Status({
+      duration: { type: 'PERMANENT' },
+      applyOn: 'AFTER_DIE',
+      usageFrequency: 'PER_ACTION',
+      statsAffected: [
+        {
+          type: 'DEBUFF_PERCENTAGE',
+          from: 'totalHp',
+          to: 'hp',
+          value: 100,
+          recovers: false,
+        },
+      ],
+      hasBeenUsed: false,
+    });
     const character = new Character({ statusManager: new StatusManager() });
     character.addStatus(status);
     character.die(); // Aquí se eliminan las listas de estados.
@@ -172,7 +177,6 @@ describe('Character', () => {
     character.removeStatus(status.id);
     // Verifica que el estado se haya eliminado correctamente
   });
-
 
   describe('Character defend function', () => {
     test('handles MISS attack correctly', () => {
@@ -208,7 +212,9 @@ describe('Character', () => {
     });
 
     test('handles NORMAL attack correctly when evasion is successful', () => {
-      const character = new Character({ stats: { crit: 0, accuracy: 100, attack: 100 } });
+      const character = new Character({
+        stats: { crit: 0, accuracy: 100, attack: 100 },
+      });
       const attack = character.attack();
 
       // Set up the mock to return a value higher than the evasion stat
@@ -224,12 +230,16 @@ describe('Character', () => {
   });
 
   describe('Character after and before battle work correctly', () => {
-    const character = new Character({ id: 1, statusManager: new StatusManager() });
+    const character = new Character({
+      id: 1,
+      statusManager: new StatusManager(),
+    });
     let statusBefore: Status;
     let statusAfter: Status;
 
     beforeEach(() => {
-      character.statusManager && character.statusManager!.removeAllStatuses(character);
+      character.statusManager &&
+        character.statusManager!.removeAllStatuses(character);
 
       statusBefore = new Status({
         name: 'Test Status Before',
@@ -268,10 +278,11 @@ describe('Character', () => {
         ],
       });
 
-      character.statusManager && character.statusManager!.addStatus(statusBefore, character);
-      character.statusManager && character.statusManager!.addStatus(statusAfter, character);
+      character.statusManager &&
+        character.statusManager!.addStatus(statusBefore, character);
+      character.statusManager &&
+        character.statusManager!.addStatus(statusAfter, character);
     });
-
 
     test('should activate the correct status before a battle', () => {
       character.beforeBattle();
@@ -294,7 +305,6 @@ describe('Character', () => {
     });
     expect(character.isDinamicImportWorking).toBeTruthy();
   });
-
 
   describe('Character class', () => {
     let character: Character;
@@ -352,8 +362,16 @@ describe('Character', () => {
       };
       const missDefence = {
         c: character,
-        defence: character.defend({ type: ATTACK_TYPE_CONST.MISS, value: 0, atacker: fake_atacker }),
-        attack: { type: ATTACK_TYPE_CONST.MISS, value: 0, atacker: fake_atacker },
+        defence: character.defend({
+          type: ATTACK_TYPE_CONST.MISS,
+          value: 0,
+          atacker: fake_atacker,
+        }),
+        attack: {
+          type: ATTACK_TYPE_CONST.MISS,
+          value: 0,
+          atacker: fake_atacker,
+        },
       };
       expect(mockMissDefenceCallback).toHaveBeenCalledWith(missDefence);
       expect(mockAfterAnyDefenceCallback).toHaveBeenCalledWith(missDefence);
@@ -364,8 +382,16 @@ describe('Character', () => {
       };
       const trueDefence = {
         c: character,
-        defence: character.defend({ type: ATTACK_TYPE_CONST.TRUE, value: 10, atacker: fake_atacker }),
-        attack: { type: ATTACK_TYPE_CONST.TRUE, value: 10, atacker: fake_atacker },
+        defence: character.defend({
+          type: ATTACK_TYPE_CONST.TRUE,
+          value: 10,
+          atacker: fake_atacker,
+        }),
+        attack: {
+          type: ATTACK_TYPE_CONST.TRUE,
+          value: 10,
+          atacker: fake_atacker,
+        },
       };
       expect(mockTrueDefenceCallback).toHaveBeenCalledWith(trueDefence);
 
@@ -376,8 +402,16 @@ describe('Character', () => {
       };
       const evasionDefence = {
         c: character,
-        defence: character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: fake_atacker }),
-        attack: { type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: fake_atacker },
+        defence: character.defend({
+          type: ATTACK_TYPE_CONST.NORMAL,
+          value: 10,
+          atacker: fake_atacker,
+        }),
+        attack: {
+          type: ATTACK_TYPE_CONST.NORMAL,
+          value: 10,
+          atacker: fake_atacker,
+        },
       };
       expect(mockEvasionDefenceCallback).toHaveBeenCalledWith(evasionDefence);
 
@@ -388,19 +422,46 @@ describe('Character', () => {
       };
       const normalDefence = {
         c: character,
-        defence: character.defend({ type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: fake_atacker }),
-        attack: { type: ATTACK_TYPE_CONST.NORMAL, value: 10, atacker: fake_atacker},
+        defence: character.defend({
+          type: ATTACK_TYPE_CONST.NORMAL,
+          value: 10,
+          atacker: fake_atacker,
+        }),
+        attack: {
+          type: ATTACK_TYPE_CONST.NORMAL,
+          value: 10,
+          atacker: fake_atacker,
+        },
       };
       expect(mockNormalDefenceCallback).toHaveBeenCalledWith(normalDefence);
     });
 
-    test('die callback', () => {
-      const mockDieCallback = jest.fn();
-      character.callbacks = {
-        die: mockDieCallback,
+    test('kill callback', () => {
+      const killCallback = <T extends Character & {kills: number}>(c: T, killer: T) => {
+        killer.kills++;
       };
-      character.die();
-      expect(mockDieCallback).toHaveBeenCalledWith(character);
+
+      const killer = new Character({
+        kills: 0,
+        stats: {
+          attack: 999,
+        },
+      });
+
+      const victim = new Character({
+        stats: {
+          hp: 10,
+        },
+        callbacks: {
+          die: killCallback,
+        },
+      });
+
+      const objDdefensa = victim.defend(killer.attack());
+      victim.receiveDamage(objDdefensa);
+
+      expect(killer.kills).toBe(1);
+      expect(victim.isAlive).toBe(false);
     });
 
     test('receiveDamage callback', () => {
