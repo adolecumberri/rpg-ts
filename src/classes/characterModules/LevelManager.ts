@@ -14,13 +14,13 @@ class LevelManager {
       value: number;
     };
   } = {};
-  levelUpCallbacks: { [key: number]: Function } = {};
+  levelUpCallbacks: { [key: number]: (c?:Character)=> void } = {};
 
   constructor(con?: Partial<LevelManager>) {
     Object.assign(this, con);
   }
 
-  addLevelUpCallback(level: number, callback: Function) {
+  addLevelUpCallback(level: number, callback: (c?:Character)=> void) {
     this.levelUpCallbacks[level] = callback;
   }
 
@@ -78,7 +78,7 @@ class LevelManager {
 
       // Execute level-up callback if defined
       if (this.levelUpCallbacks[this.currentLevel]) {
-        this.levelUpCallbacks[this.currentLevel](this, character);
+        this.levelUpCallbacks[this.currentLevel](character);
       }
 
       this.experience = remainingExperience;
