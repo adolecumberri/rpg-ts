@@ -78,7 +78,7 @@ class LevelManager {
 
       // Execute level-up callback if defined
       if (this.levelUpCallbacks[this.currentLevel]) {
-        this.levelUpCallbacks[this.currentLevel]();
+        this.levelUpCallbacks[this.currentLevel](this, character);
       }
 
       this.experience = remainingExperience;
