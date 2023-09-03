@@ -54,24 +54,24 @@ type CharacterCallbacks = {
     criticalAttack?: (params: AttackResult) => AttackResult | undefined,
     normalAttack?: (params: AttackResult) => AttackResult | undefined,
     afterAnyAttack?: (params: AttackResult) => AttackResult | undefined,
-    missDefence?: <T extends BaseCharacter>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
-    trueDefence?: <T extends BaseCharacter>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
-    evasionDefence?: <T extends BaseCharacter>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
-    normalDefence?: <T extends BaseCharacter>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
-    afterAnyDefence?: <T extends BaseCharacter>(params: {
+    missDefence?: <T extends Character>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
+    trueDefence?: <T extends Character>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
+    evasionDefence?: <T extends Character>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
+    normalDefence?: <T extends Character>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
+    afterAnyDefence?: <T extends Character>(params: {
         c: T,
         attack: AttackResult,
         defence: DefenceResult
     }) => DefenceResult | undefined,
-    die?: <T extends BaseCharacter>(c: T, killer: T) => void,
-    receiveDamage?: <T extends BaseCharacter>(params: { c?: T, defence?: DefenceResult }) => void,
-    removeStatus?: <T extends BaseCharacter>(c: T) => void,
-    revive?: <T extends BaseCharacter>(c: T) => void,
-    updateHp?: <T extends BaseCharacter>(c: T) => void,
-    beforeBattle?: <T extends BaseCharacter>(c: T) => void,
-    afterBattle?: <T extends BaseCharacter>(c: T) => void,
-    beforeTurn?: <T extends BaseCharacter>(c: T) => void;
-    afterTurn?: <T extends BaseCharacter>(c: T) => void;
+    die?: <T extends Character>(c: T, killer: T) => void,
+    receiveDamage?: <T extends Character>(params: { c?: T, defence?: DefenceResult }) => void,
+    removeStatus?: <T extends Character>(c: T) => void,
+    revive?: <T extends Character>(c: T) => void,
+    updateHp?: <T extends Character>(c: T) => void,
+    beforeBattle?: <T extends Character>(c: T) => void,
+    afterBattle?: <T extends Character>(c: T) => void,
+    beforeTurn?: <T extends Character>(c: T) => void;
+    afterTurn?: <T extends Character>(c: T) => void;
 };
 
 export {
