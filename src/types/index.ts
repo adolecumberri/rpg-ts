@@ -5,3 +5,5 @@ export * from './battleTypes';
 export * from './actionRecordTypes';
 export * from './teamTypes';
 export * from './actionRecordTypes';
+export * from './skillManagerTypes';
+export * from './callBackTypes';

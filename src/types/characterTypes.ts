@@ -1,5 +1,6 @@
-import { BaseCharacter, Character } from '../classes';
+import { Character } from '../classes';
 import { ATTACK_TYPE_CONST, DEFENCE_TYPE_CONST } from '../constants';
+import { CallbackParams } from './callBackTypes';
 
 type AttackType = keyof typeof ATTACK_TYPE_CONST;
 
@@ -11,8 +12,7 @@ interface AttackResult {
 }
 
 type DefenceType = keyof typeof DEFENCE_TYPE_CONST;
-
-interface DefenceResult {
+interface DefenceObject {
     value: number;
     type: DefenceType;
     attacker: Character | null;
@@ -35,43 +35,29 @@ interface Stats {
 
 type keysOfStats = keyof Stats;
 
-type CharacterConstructor = Partial<Omit<BaseCharacter,
-    'statusManager' | 'stats' | 'actionRecord'
-> & {
-    statusManager?: boolean,
+type CharacterConstructor = Partial<Omit<Character, 'stats'> & {
     stats?: Partial<Stats>,
-    actionRecord?: boolean,
 }>;
 
-type DynamicCharacterConstructor = {
-    new <T extends object>(arg?: T): T & {
-        [x in keyof BaseCharacter]: BaseCharacter[x]
-    }
-}
-
 type CharacterCallbacks = {
-    missAttack?: (params: AttackResult) => AttackResult | undefined,
-    criticalAttack?: (params: AttackResult) => AttackResult | undefined,
-    normalAttack?: (params: AttackResult) => AttackResult | undefined,
-    afterAnyAttack?: (params: AttackResult) => AttackResult | undefined,
-    missDefence?: <T extends Character>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
-    trueDefence?: <T extends Character>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
-    evasionDefence?: <T extends Character>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
-    normalDefence?: <T extends Character>(params: { c: T, attack: AttackResult, defence: DefenceResult }) => DefenceResult | undefined,
-    afterAnyDefence?: <T extends Character>(params: {
-        c: T,
-        attack: AttackResult,
-        defence: DefenceResult
-    }) => DefenceResult | undefined,
-    die?: <T extends Character>(c: T, killer: T) => void,
-    receiveDamage?: <T extends Character>(params: { c?: T, defence?: DefenceResult }) => void,
-    removeStatus?: <T extends Character>(c: T) => void,
-    revive?: <T extends Character>(c: T) => void,
-    updateHp?: <T extends Character>(c: T) => void,
-    beforeBattle?: <T extends Character>(c: T) => void,
-    afterBattle?: <T extends Character>(c: T) => void,
-    beforeTurn?: <T extends Character>(c: T) => void;
-    afterTurn?: <T extends Character>(c: T) => void;
+    missAttack?: (params: CallbackParams) => AttackResult | undefined,
+    criticalAttack?: (params: CallbackParams) => AttackResult | undefined,
+    normalAttack?: (params: CallbackParams) => AttackResult | undefined,
+    afterAnyAttack?: (params: CallbackParams) => AttackResult | undefined,
+    missDefence?: (params: CallbackParams) => DefenceObject | undefined,
+    trueDefence?: (params: CallbackParams) => DefenceObject | undefined,
+    evasionDefence?: (params: CallbackParams) => DefenceObject | undefined,
+    normalDefence?: (params: CallbackParams) => DefenceObject | undefined,
+    afterAnyDefence?: (params: CallbackParams) => DefenceObject | undefined,
+    die?: (params: CallbackParams) => void,
+    receiveDamage?: (params: CallbackParams) => void,
+    removeStatus?: (params: CallbackParams) => void,
+    revive?: (params: CallbackParams) => void,
+    updateHp?: (params: CallbackParams) => void,
+    beforeBattle?: (params: CallbackParams) => any,
+    afterBattle?: (params: CallbackParams) => any,
+    beforeTurn?: (params: CallbackParams) => any;
+    afterTurn?: (params: CallbackParams) => any;
 };
 
 export {
@@ -79,9 +65,8 @@ export {
     AttackType,
     CharacterCallbacks,
     CharacterConstructor,
-    DefenceResult,
     DefenceType,
+    DefenceObject,
     Stats,
     keysOfStats,
-    DynamicCharacterConstructor,
 };

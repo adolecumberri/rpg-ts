@@ -10,29 +10,28 @@ import {
 import {
   AttackResult,
   AttackType,
-  CharacterCallbacks,
-  DefenceResult,
-  DynamicCharacterConstructor,
   Stats,
+  DefenceObject,
 } from '../types';
-import { ActionRecord, Status, StatusManager } from './';
+import { ActionRecord, CallBacksManager, Status, StatusManager } from './';
 import LevelManager from './characterModules/LevelManager';
+import { SkillManager } from './characterModules/SkillManager';
 
 
-class BaseCharacter {
-  [x: string]: any;
+class Character<StatsType extends Stats = Stats> {
   id: number = uniqueID();
-  isAlive: boolean = true;
   name: string = '';
-  originalStats: Partial<Stats> = {};
-  skill: {
-    isUsed: boolean;
-    probability: number,
-    use: any,
-  };
-  stats: Stats;
+  surname: string = '';
+  className: string = '';
+  kills: number = 0;
+  deaths: number = 0;
+  isAlive: boolean = true;
+  statsController: {[key in keyof StatsType]?: {max?: number, min?: number}} = {};
+  stats: StatsType;
+  originalStats: Partial<StatsType> = {};
+  skillManager: SkillManager | null = null;
   statusManager: StatusManager | null = null;
-  callbacks: CharacterCallbacks = {};
+  callbacksManager: CallBacksManager | null= null;
   actionRecord: ActionRecord | null = null;
   levelManager: LevelManager | null = null;
 
@@ -68,25 +67,13 @@ class BaseCharacter {
 
       this.originalStats = this.stats;
 
-      if (con.statusManager instanceof StatusManager) {
-        this.statusManager = con.statusManager;
-      } else {
-        this.statusManager = null;
-      }
-
-      if (con.actionRecord instanceof ActionRecord) {
-        this.actionRecord = con.actionRecord;
-      } else {
-        this.actionRecord = null;
-      }
-
-      if (con.levelManager instanceof LevelManager) {
-        this.levelManager = con.levelManager;
-      } else {
-        this.levelManager = null;
-      }
+      this.assignIfInstance('statusManager', this, con);
+      this.assignIfInstance('actionRecord', this, con);
+      this.assignIfInstance('levelManager', this, con);
+      this.assignIfInstance('skillManager', this, con);
+      this.assignIfInstance('callbacksManager', this, con);
     } else {
-      this.stats = getDefaultStatsObject();
+      this.stats = getDefaultStatsObject() as StatsType;
       this.originalStats = this.stats;
       this.statusManager = null;
       this.actionRecord = null;
@@ -103,14 +90,27 @@ class BaseCharacter {
     this.statusManager?.addStatus(status, this);
   }
 
+  addStat(stat: keyof Stats, value: number) {
+    // if the stat exist in stat controller, controll it with max and min
+    if (this.statsController[stat]) {
+      if (this.statsController[stat].max) {
+        value = Math.min(this.statsController[stat].max, value);
+      }
+      if (this.statsController[stat].min) {
+        value = Math.max(this.statsController[stat].min, value);
+      }
+    }
+
+    this.stats[stat] += value;
+  }
+
   /**
  * Realiza un ataque.
  * @returns {AttackResult} - Los detalles del ataque, incluyendo el tipo y el daño.
  */
-  attack(): AttackResult {
+  attack(target?: Character): AttackResult {
     const accuracyRoll = getRandomInt(0, 99); // Genera un número entre 0 y 100.
     const critRoll = getRandomInt(0, 99); // Genera un número entre 0 y 100.
-    let callbackResult: AttackResult | undefined;
 
     let attackType: AttackType;
 
@@ -132,47 +132,57 @@ class BaseCharacter {
     // Llama a los callbacks después de calcular el daño.
     switch (attackType) {
       case ATTACK_TYPE_CONST.MISS:
-        callbackResult = this.callbacks.missAttack?.(solution);
+        this.callbacksManager.useCallback('missAttack', { c: this, attack: solution, target });
+        this.skillManager?.useSkill('missAttack', { c: this, attack: solution, target});
         break;
       case ATTACK_TYPE_CONST.CRITICAL:
-        callbackResult = this.callbacks.criticalAttack?.(solution);
+        this.callbacksManager.useCallback('criticalAttack', { c: this, attack: solution, target });
+        this.skillManager?.useSkill('criticalAttack', { c: this, attack: solution, target});
         break;
       case ATTACK_TYPE_CONST.NORMAL:
-        callbackResult = this.callbacks.normalAttack?.(solution);
+        this.callbacksManager.useCallback('normalAttack', { c: this, attack: solution, target });
+        this.skillManager?.useSkill('normalAttack', { c: this, attack: solution, target});
         break;
     }
 
     solution.recordId = this.actionRecord?.recordAttack(attackType, damage, this.id);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_ATTACK, this);
-    callbackResult = this.callbacks.afterAnyAttack?.(solution);
-    return callbackResult || solution;
+    this.callbacksManager.useCallback('afterAnyAttack', { c: this, attack: solution, target });
+    this.skillManager?.useSkill('afterAnyAttack', { c: this, attack: solution, target });
+    return solution;
   }
 
   afterBattle(): any {
-    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_BATTLE, this);
     this.statusManager?.removeAllStatuses(this);
-    this.callbacks.afterBattle?.(this);
-    // Aquí pueden realizarse otras acciones necesarias después de la batalla.
+    this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_BATTLE, this);
+    this.callbacksManager.useCallback('afterBattle', {c: this});
+    this.skillManager?.useSkill('afterBattle', {c: this});
   }
 
   afterTurn(): any {
-    const callbackResponse = this.callbacks.afterTurn?.(this);
+    this.callbacksManager.useCallback('afterTurn', {c: this});
+    this.skillManager.useSkill('afterTurn', {c: this});
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_TURN, this);
-    // Aquí pueden realizarse otras acciones necesarias después del turno.
-    return callbackResponse;
+  }
+
+  private assignIfInstance<T>(property: keyof T, target: T, source: Partial<T>): void {
+    if (source[property] instanceof target[property].constructor) {
+      target[property] = source[property];
+    } else {
+      target[property] = null;
+    }
   }
 
   beforeBattle(): any {
-    const callbackResponse = this.callbacks.beforeBattle?.(this);
+    this.callbacksManager.useCallback('beforeBattle', {c: this});
+    this.skillManager?.useSkill('beforeBattle', {c: this});
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_BATTLE, this);
-    // Aquí pueden realizarse otras acciones necesarias antes de la batalla.
-    return callbackResponse;
   }
 
   beforeTurn(): any {
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_TURN, this);
-    this.callbacks.beforeTurn?.(this);
-    // Aquí pueden realizarse otras acciones necesarias antes del turno.
+    this.callbacksManager.useCallback('beforeTurn', {c: this});
+    this.skillManager?.useSkill('beforeTurn', {c: this});
   }
 
   /**
@@ -192,39 +202,44 @@ class BaseCharacter {
   /**
   * Defiende de un ataque.
   * @param {AttackResult} attack - El ataque a defender.
-  * @returns {DefenceResult} - Los detalles de la defensa, incluyendo el tipo y el daño absorbido.
+  * @returns {DefenceObject} - Los detalles de la defensa, incluyendo el tipo y el daño absorbido.
   */
-  defend(attack: AttackResult): DefenceResult {
-    const defence: DefenceResult = getDefaultDefenceObject({ attacker: attack.atacker });
-    let callbackResult: DefenceResult | undefined;
+  defend(attack: AttackResult): DefenceObject {
+    const defence: DefenceObject = getDefaultDefenceObject({ attacker: attack.atacker });
+    let callbackResult: any | undefined;
+    let skillResult: any;
 
     // Si el ataque falla, no se hace daño.
     if (attack.type === ATTACK_TYPE_CONST.MISS) {
       defence.type = DEFENCE_TYPE_CONST.MISS;
       defence.value = 0;
-      callbackResult = this.callbacks?.missDefence?.({ c: this, defence, attack });
+      this.callbacksManager.useCallback('missDefence', { c: this, defence, attack, target: attack.atacker });
+      this.skillManager?.useSkill('missDefence', { c: this, defence, attack, target: attack.atacker });
     } else if (attack.type === ATTACK_TYPE_CONST.TRUE) { // Si el ataque es verdadero, pasa sin modificarse.
       defence.type = DEFENCE_TYPE_CONST.TRUE;
       defence.value = attack.value;
-      callbackResult = this.callbacks?.trueDefence?.({ c: this, defence, attack });
+      this.callbacksManager.useCallback('trueDefence', { c: this, defence, attack, target: attack.atacker });
+      this.skillManager?.useSkill('trueDefence', { c: this, defence, attack, target: attack.atacker });
     } else { // Para ataques normales y críticos, se calcula el daño teniendo en cuenta la defensa y la evasión.
       const evasionRoll = getRandomInt(0, 100);
       if (evasionRoll <= this.stats.evasion) {
         defence.type = DEFENCE_TYPE_CONST.EVASION;
         defence.value = 0;
-        callbackResult = this.callbacks?.evasionDefence?.({ c: this, defence, attack });
+        this.callbacksManager.useCallback('evasionDefence', { c: this, defence, attack });
+        this.skillManager?.useSkill('evasionDefence', { c: this, defence, attack });
       } else {
         defence.type = DEFENCE_TYPE_CONST.NORMAL;
         defence.value = this.defenceCalculation(attack.value);
-        callbackResult = this.callbacks?.normalDefence?.({ c: this, defence, attack });
+        this.callbacksManager.useCallback('normalDefence', { c: this, defence, attack });
+        this.skillManager?.useSkill('normalDefence', { c: this, defence, attack });
       }
     }
 
     defence.recordId = this.actionRecord?.recordDefence(defence.type, defence.value, this.id, attack.atacker.id);
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DEFENCE, this);
-    callbackResult = this.callbacks?.afterAnyDefence?.({ c: this, defence, attack });
-
-    return callbackResult || defence;
+    this.callbacksManager.useCallback('afterAnyDefence', { c: this, defence, attack });
+    this.skillManager.useSkill('afterAnyDefence', { c: this, defence, attack });
+    return defence;
   }
 
   /**
@@ -234,7 +249,7 @@ class BaseCharacter {
   */
   defenceCalculation = (attack: number) => Math.round(attack * 40 / (40 + this.stats.defence));
 
-  static deserialize<T>(data: string): T {
+  static deserialize(data: string): Character {
     const parsedData = JSON.parse(data);
 
     // Deserialize nested objects
@@ -244,19 +259,24 @@ class BaseCharacter {
     if (parsedData.actionRecord) {
       parsedData.actionRecord = ActionRecord.deserialize(parsedData.actionRecord);
     }
-
     if (parsedData.levelManager) {
       parsedData.levelManager = LevelManager.deserialize(parsedData.levelManager);
+    }
+    if (parsedData.skillManager) {
+      parsedData.skillManager = SkillManager.deserialize(parsedData.skillManager);
+    }
+    if (parsedData.callbacksManager) {
+      parsedData.callbacksManager = CallBacksManager.deserialize(parsedData.callbacksManager);
     }
 
     return new Character(parsedData);
   }
 
-  die(killer?: Character) {
+  die(target?: Character) {
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.BEFORE_DIE, this);
     this.isAlive = false;
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_DIE, this);
-    this.callbacks.die?.(this, killer);
+    this.callbacksManager.useCallback('die', { c: this, target });
     this.statusManager?.removeAllStatuses(this);
   }
 
@@ -268,10 +288,11 @@ class BaseCharacter {
   * Aplica daño al personaje.
   * @param {number} damage - El daño a aplicar.
   */
-  receiveDamage(defence: DefenceResult) {
+  receiveDamage(defence: DefenceObject) {
     this.updateHp(defence.value * -1, defence.attacker); // defence.value es el dañor que el personaje recibe.
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_RECEIVE_DAMAGE, this);
-    this.callbacks.receiveDamage?.({ c: this, defence });
+    this.callbacksManager.useCallback('receiveDamage', { c: this, defence, target: defence.attacker });
+    this.skillManager.useSkill('receiveDamage', { c: this, defence, target: defence.attacker });
   }
 
   /**
@@ -280,7 +301,7 @@ class BaseCharacter {
    */
   removeStatus(id: number) {
     this.statusManager?.removeStatusById(id, this);
-    this.callbacks.removeStatus?.(this);
+    this.callbacksManager.useCallback('removeStatus', { c: this });
   }
 
   revive() {
@@ -288,7 +309,7 @@ class BaseCharacter {
     this.isAlive = true;
     // Aquí puedes implementar la lógica para restaurar las stats del personaje a sus valores originales (o a cualquier otro valor que consideres apropiado) cuando reviva
     this.statusManager?.activate(STATUS_APPLICATION_MOMENTS.AFTER_REVIVE, this);
-    this.callbacks.revive?.(this);
+    this.callbacksManager.useCallback('revive', { c: this });
   }
 
   /*
@@ -300,26 +321,15 @@ class BaseCharacter {
       isAlive: this.isAlive,
       name: this.name,
       originalStats: this.originalStats,
-      skill: this.skill,
+      skill: this.skillManager.serialize(),
       stats: this.stats,
-      callbacks: this.callbacks,
+      callbacksManager: this.callbacksManager.serialize(),
+      skillManager: this.skillManager.serialize(),
       damageCalculation: this.damageCalculation,
       actionRecord: this.actionRecord.serialize(),
       statusManager: this.statusManager.serialize(),
       levelManager: this.levelManager.serialize(),
     };
-
-    // Serialize nested objects
-    if (this.statusManager) {
-      serialized.statusManager = this.statusManager.serialize();
-    }
-    if (this.actionRecord) {
-      serialized.actionRecord = this.actionRecord.serialize();
-    }
-
-    if (this.levelManager) {
-      serialized.levelManager = this.levelManager.serialize();
-    }
 
     return JSON.stringify(serialized);
   }
@@ -335,17 +345,13 @@ class BaseCharacter {
       this.die(attacker);
     }
 
-    this.callbacks.updateHp?.(this);
+    this.callbacksManager.useCallback('updateHp', { c: this });
+    this.skillManager.useSkill('updateHp', { c: this });
   }
 }
-
-// con esto evito tener que usar typeof Status cada vez que lo uso fuera.
-const Character = BaseCharacter as DynamicCharacterConstructor;
-type Character = InstanceType<typeof BaseCharacter>
 
 export default Character;
 
 export {
   Character,
-  BaseCharacter,
 };

@@ -1,4 +1,4 @@
-import { AttackResult, DefenceResult, Stats } from '../types';
+import { AttackResult, DefenceObject, Stats } from '../types';
 
 const ATTACK_TYPE_CONST = {
   NORMAL: 'NORMAL',
@@ -8,7 +8,7 @@ const ATTACK_TYPE_CONST = {
   SKILL: 'SKILL',
 } as const;
 
-const DEFAULT_DEFENCE_OBJECT: DefenceResult = {
+const DEFAULT_DEFENCE_OBJECT: DefenceObject = {
   type: ATTACK_TYPE_CONST.NORMAL,
   value: 0,
   attacker: null,
