@@ -16,11 +16,11 @@
       "error",
       {
         "code": 140,
-        "tabWidth": 2,
+        "tabWidth": 4,
         "ignoreComments": true //"comments": 80
       }
     ],
-    "indent": "off",
+    "indent": ["error", 4],
     "require-jsdoc": "off",
     "no-unused-vars": "off",
     "camelcase": "off",
