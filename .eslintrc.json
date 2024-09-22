@@ -6,16 +6,17 @@
   "extends": ["google"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "ecmaVersion": 13,
+    "ecmaVersion": 15,
     "sourceType": "module"
   },
   "plugins": ["@typescript-eslint"],
   "rules": {
+    "quotes": [2, "single", { "avoidEscape": true }],
     "max-len": [
       "error",
       {
         "code": 140,
-        "tabWidth": 4,
+        "tabWidth": 2,
         "ignoreComments": true //"comments": 80
       }
     ],

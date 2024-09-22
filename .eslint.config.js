@@ -71,6 +71,7 @@ module.exports = {
 
     // Rules overriding
     rules: {
+
         "indent": "off",
         "padded-blocks": "off",
         // Fail if the file does not follow the Prettier formatting rules.
