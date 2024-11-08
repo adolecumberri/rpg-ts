@@ -1,15 +1,15 @@
 import { uniqueID } from '../helpers';
-import { CharacterStats } from './components';
+import { Stats } from './components';
 import { BasicStats } from './types';
 
 
-class Character<T extends BasicStats> {
+class Character<T> {
     id: number;
-    stats: CharacterStats<T> & T;
+    stats: Stats<T> & T;
 
-    constructor(init: { stats: T & Record<string, number | string | boolean> }) {
+    constructor(con) {
         this.id = this.generateUniqueID();
-        this.stats = new CharacterStats<T>(init.stats) as CharacterStats<T> & T;
+        this.stats = new Stats(con.stats) as Stats<T> & T;
     }
 
     // Ejemplo de una función que usa las estadísticas mínimas
@@ -23,8 +23,5 @@ class Character<T extends BasicStats> {
         return Math.floor(Math.random() * 10000);
     }
 }
-
-const a = new Character({ stats: { hp: 10, hpHardcore: 100, attack: 5, defence: 2, agua: 'si'} });
-a.stats.attack;
 
 export { Character };
