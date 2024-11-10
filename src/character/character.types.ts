@@ -1,4 +1,6 @@
+import { ATTACK_TYPE } from '../common/common.constants';
 import { Character } from './character';
+import { Stats } from './components';
 
 type BaseStats = {
     hp: number;
@@ -15,12 +17,17 @@ interface AttackResult {
     recordId?: number;
 }
 
-type CharacterConstructor<T> = Partial<Omit<Character<T>, 'stats'> & {
+type CharacterConstructor<T > = Partial<Omit<Character, 'stats'> & {
     stats: Partial<BaseStats> & T;
 }>
+
+type DamageCalculation = {
+    [key in typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE]]?: (stats: Stats) => number | (() => number);
+};
 
 export {
     AttackResult,
     BaseStats,
     CharacterConstructor,
+    DamageCalculation,
 };

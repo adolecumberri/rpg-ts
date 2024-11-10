@@ -13,6 +13,7 @@ const ATTACK_TYPE = {
     CRITICAL: 'critical',
     TRUE: 'true',
     SKILL: 'skill',
+    MAGIC: 'magic',
     OTHER: 'other',
 } as const;
 

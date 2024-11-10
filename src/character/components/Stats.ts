@@ -2,7 +2,7 @@ import { DEFAULT_STATS } from './../../common/common.constants';
 import { BaseStats } from './../character.types';
 
 
-class Stats<T> implements BaseStats {
+class Stats<T extends {} = {}> implements BaseStats {
     private _hp: number;
     attack: number;
     defence: number;
@@ -17,7 +17,6 @@ class Stats<T> implements BaseStats {
         Object.assign(this, {
             ...DEFAULT_STATS,
             ...defaultStats,
-        }, {
             totalHp: totalHpProvided,
             hp: hpProvided,
         });
