@@ -1,17 +1,17 @@
-import { DEFAULT_STATS } from '../constants';
-import { BasicStats } from '../types';
+import { DEFAULT_STATS } from './../../common/common.constants';
+import { BaseStats } from './../character.types';
 
 
-class Stats<T> implements BasicStats {
+class Stats<T> implements BaseStats {
     private _hp: number;
     attack: number;
     defence: number;
     isAlive: 1 | 0;
     totalHp: number;
 
-    constructor(defaultStats: Partial<Stats<T>>) {
-        let totalHpProvided = defaultStats.totalHp ?? DEFAULT_STATS.totalHp;
-        const hpProvided = defaultStats.hp ?? DEFAULT_STATS.hp;
+    constructor(defaultStats?: Partial<Stats<T>>) {
+        let totalHpProvided = defaultStats?.totalHp ?? DEFAULT_STATS.totalHp;
+        const hpProvided = defaultStats?.hp ?? DEFAULT_STATS.hp;
         totalHpProvided = Math.max(totalHpProvided, hpProvided);
 
         Object.assign(this, {

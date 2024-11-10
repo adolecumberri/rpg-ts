@@ -9,6 +9,6 @@
   "target": "es6",
   "outDir": "./dist"
 },
-  "include": ["src/**/*", "index.ts"],
+  "include": ["src/*", "index.ts"],
   "exclude": ["dist", "node_modules", "**/*.spec.ts", "proyecto_viejo/**/*"]
 }

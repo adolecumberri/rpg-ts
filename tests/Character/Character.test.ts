@@ -1,5 +1,5 @@
-import { DEFAULT_STATS } from '../../src/character/constants';
-import { Character } from './../../src/character';
+import { Character } from '../../src/character';
+import { DEFAULT_STATS } from '../../src/common/common.constants';
 
 
 describe('Character status', () => {
