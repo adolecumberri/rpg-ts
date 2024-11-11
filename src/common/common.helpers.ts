@@ -9,7 +9,12 @@ const createDefaultObjectGetter = <T>(defaultObject: T) => (param?: Partial<T>):
     return { ...defaultObject, ...param };
 };
 
+function getRandomInt(min = 0, max = 100) {
+    return Math.floor(Math.random() * (max - min) + min);
+}
+
 export {
     createDefaultObjectGetter,
+    getRandomInt,
     uniqueID,
 };

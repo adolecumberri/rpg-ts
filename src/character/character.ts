@@ -1,7 +1,7 @@
 import { ATTACK_TYPE } from '../common/common.constants';
-import { uniqueID } from './../common/common.helpers';
-import { DEFAULT_ATTACK_CALCULATION } from './character.constants';
-import { CharacterConstructor, DamageCalculation } from './character.types';
+import { getRandomInt, uniqueID } from './../common/common.helpers';
+import { DEFAULT_ATTACK_CALCULATION, DEFAULT_ATTACK_FUNCTION } from './character.constants';
+import { AttackFunction, AttackResult, AttackType, CharacterConstructor, DamageCalculation } from './character.types';
 import { Stats } from './components';
 
 /**
@@ -19,11 +19,32 @@ class Character<T extends {} = {}> {
 
     damageCalculation: DamageCalculation = DEFAULT_ATTACK_CALCULATION;
 
+    /**
+    * Realiza un ataque.
+    * @returns {AttackResult} - Los detalles del ataque, incluyendo el tipo y el daño.
+    */
+    private _attack:AttackFunction = DEFAULT_ATTACK_FUNCTION;
 
-    // Ejemplo de una función que usa las estadísticas mínimas
-    private takeDamage(amount: number) {
-        this.stats.hp -= amount;
-        console.log(`Character took ${amount} damage, remaining HP: ${this.stats.hp}`);
+    get attack(): AttackFunction {
+        return this._attack;
+    }
+
+    set attack(newAttackFunction: AttackFunction) {
+        this._attack = newAttackFunction.bind(this);
+    }
+
+    /**
+   * Calcula el daño en función del tipo de ataque y las estadísticas.
+   * @param {AttackType} type - El tipo de ataque.
+   * @param {Stats} stats - Las estadísticas actuales del personaje.
+   * @returns {number} - El daño calculado.
+   */
+    calculateDamage(type: AttackType, stats: Stats): number {
+        if ( !this.damageCalculation[type] ) {
+            throw new Error(`No damage calculation function for: ${type}`);
+        }
+
+        return this.damageCalculation[type](stats);
     }
 }
 

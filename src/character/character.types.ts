@@ -10,23 +10,29 @@ type BaseStats = {
     isAlive: 1 | 0;
   };
 
-interface AttackResult {
-    type: string;
-    value: number;
-    atacker?: Character;
-    recordId?: number;
-}
+  type AttackFunction = (this: Character<any>, ...arg: any[]) => AttackResult
 
-type CharacterConstructor<T > = Partial<Omit<Character, 'stats'> & {
-    stats: Partial<BaseStats> & T;
-}>
+  interface AttackResult {
+      type: AttackType;
+      value: number;
+      atacker?: Character;
+      recordId?: number;
+    }
+
+    type AttackType = typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE];
+
+    type CharacterConstructor<T> = Partial<Omit<Character, 'stats'> & {
+        stats: Partial<BaseStats> & T;
+    }>
 
 type DamageCalculation = {
-    [key in typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE]]?: (stats: Stats) => number | (() => number);
+    [key in typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE]]?: <T extends {}>(stats: T & Stats<T> ) => number;
 };
 
 export {
+    AttackFunction,
     AttackResult,
+    AttackType,
     BaseStats,
     CharacterConstructor,
     DamageCalculation,

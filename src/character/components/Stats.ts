@@ -17,6 +17,7 @@ class Stats<T extends {} = {}> implements BaseStats {
         Object.assign(this, {
             ...DEFAULT_STATS,
             ...defaultStats,
+        }, {
             totalHp: totalHpProvided,
             hp: hpProvided,
         });
