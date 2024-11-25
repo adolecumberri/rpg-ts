@@ -51,6 +51,10 @@ class Character<AditionalStats extends {} = any> {
         return this.damageCalculation[type](this.stats);
     }
 
+    isAlive(): boolean {
+        return this.stats.isAlive === 1;
+    }
+
     removeDamageCalculation(type: AttackType) {
         delete this.damageCalculation[type];
     }

@@ -183,18 +183,16 @@ describe('Character attacks', () => {
         });
     });
 
-    describe('Attack Functions can be removed', () => {
-        it('Attack function can be removed', () => {
-            const test_character = new Character();
-            test_character.removeDamageCalculation(ATTACK_TYPE.NORMAL);
-            expect(
-                () => test_character.calculateDamage(ATTACK_TYPE.NORMAL),
-            ).toThrowError('No damage calculation function for: normal');
-            test_character.removeDamageCalculation(ATTACK_TYPE.MISS);
-            expect(
-                () => test_character.calculateDamage(ATTACK_TYPE.MISS),
-            ).toThrowError('No damage calculation function for: miss');
-        });
+    it('Attack function can be removed', () => {
+        const test_character = new Character();
+        test_character.removeDamageCalculation(ATTACK_TYPE.NORMAL);
+        expect(
+            () => test_character.calculateDamage(ATTACK_TYPE.NORMAL),
+        ).toThrowError('No damage calculation function for: normal');
+        test_character.removeDamageCalculation(ATTACK_TYPE.MISS);
+        expect(
+            () => test_character.calculateDamage(ATTACK_TYPE.MISS),
+        ).toThrowError('No damage calculation function for: miss');
     });
 
     describe('Attack calculation', () => {
@@ -213,5 +211,20 @@ describe('Character attacks', () => {
                 () => test_character.calculateDamage('other'),
             ).toThrowError('No damage calculation function for: other');
         });
+    });
+
+    it('Character can check alive Status', () => {
+        const test_character = new Character({ stats: { hp: 10 } });
+        expect(test_character.isAlive()).toBe(true);
+
+        test_character.stats.hp = 0;
+        expect(test_character.isAlive()).toBe(false);
+
+        test_character.stats.hp = 10;
+        expect(test_character.isAlive()).toBe(true);
+
+        test_character.stats.hp = -10;
+        expect(test_character.isAlive()).toBe(false);
+        expect(test_character.stats.hp).toBe(0);
     });
 });
