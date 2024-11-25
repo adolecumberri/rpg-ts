@@ -25,8 +25,8 @@ type BaseStats = {
         stats: Partial<BaseStats> & T;
     }>
 
-type DamageCalculation = {
-    [key in typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE]]?: <T extends {}>(stats: T & Stats<T> ) => number;
+type DamageCalculation<T extends {} = {}> ={
+    [key in typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE]]?: (stats: Stats<T> & T ) => number;
 };
 
 export {

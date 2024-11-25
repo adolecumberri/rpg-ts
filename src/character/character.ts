@@ -8,16 +8,20 @@ import { Stats } from './components';
  * Crea un nuevo personaje.
  * @param {Partial<Character>} con - Un objeto que contiene los datos iniciales para el personaje.
  */
-class Character<T extends {} = {}> {
+class Character<AditionalStats extends {} = any> {
     id: number;
-    stats: Stats<T> & T;
+    stats: Stats<AditionalStats> & AditionalStats;
 
-    constructor(con?: CharacterConstructor<T>) {
+    constructor(con?: CharacterConstructor<AditionalStats>) {
         this.id = uniqueID();
-        this.stats = new Stats(con?.stats) as Stats<T> & T;
+        this.stats = new Stats(con?.stats) as Stats<AditionalStats> & AditionalStats;
     }
 
-    damageCalculation: DamageCalculation = DEFAULT_ATTACK_CALCULATION;
+    private damageCalculation: DamageCalculation<AditionalStats> = DEFAULT_ATTACK_CALCULATION;
+
+    addDamageCalculation(type: AttackType, calculation: DamageCalculation<AditionalStats>[AttackType]) {
+        this.damageCalculation[type] = calculation;
+    }
 
     /**
     * Realiza un ataque.
@@ -39,12 +43,16 @@ class Character<T extends {} = {}> {
    * @param {Stats} stats - Las estadísticas actuales del personaje.
    * @returns {number} - El daño calculado.
    */
-    calculateDamage(type: AttackType, stats: Stats): number {
+    calculateDamage(type: AttackType): number {
         if ( !this.damageCalculation[type] ) {
             throw new Error(`No damage calculation function for: ${type}`);
         }
 
-        return this.damageCalculation[type](stats);
+        return this.damageCalculation[type](this.stats);
+    }
+
+    removeDamageCalculation(type: AttackType) {
+        delete this.damageCalculation[type];
     }
 }
 

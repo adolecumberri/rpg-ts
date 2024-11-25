@@ -12,8 +12,8 @@ const DEFAULT_ATTACK_OBJECT: AttackResult = {
 };
 
 const DEFAULT_ATTACK_CALCULATION: DamageCalculation = {
-    [ATTACK_TYPE.CRITICAL]: <T extends { critMultiplier: number }>(stats) => stats.attack * (stats.critMultiplier ?? 2),
-    [ATTACK_TYPE.NORMAL]: (stats: Stats) => stats.attack,
+    // [ATTACK_TYPE.CRITICAL]: (stats) => stats.attack * (stats.critMultiplier ?? 2),
+    [ATTACK_TYPE.NORMAL]: (stats) => stats.attack,
     [ATTACK_TYPE.MISS]: () => 0,
 };
 
@@ -38,7 +38,7 @@ const DEFAULT_ATTACK_FUNCTION: AttackFunction = function(this: Character<{accura
         attackType = ATTACK_TYPE.NORMAL;
     }
 
-    const damage = this.calculateDamage(attackType, this.stats);
+    const damage = this.calculateDamage(attackType);
 
     const solution = getDefaultAttackObject({ atacker: this, type: attackType, value: damage });
 

@@ -86,7 +86,17 @@ describe('Character attacks', () => {
 
     describe('Default critical attack object', () => {
         it('default crit multiplier', () => {
-            const test_character = new Character({ stats: { crit: 100, attack: 1 } });
+            const test_character = new Character({
+                stats: {
+                    crit: 100,
+                    attack: 1,
+                    critMultiplier: 2,
+                },
+            });
+
+            test_character.addDamageCalculation(ATTACK_TYPE.CRITICAL, (stats) => stats.attack * (stats.critMultiplier ?? 2));
+            expect(test_character.stats.critMultiplier).toBe(2);
+            expect(test_character.calculateDamage('critical')).toBeTruthy();
             expect(test_character.stats.crit).toBe(100);
 
             const attack_object = test_character.attack();
@@ -110,6 +120,7 @@ describe('Character attacks', () => {
         expect(test_character.stats.accuracy).toBe(0);
 
         const attack_object = test_character.attack();
+        const attack_object2 = test_character.calculateDamage(ATTACK_TYPE.MISS);
         expect(attack_object.type).toBe(ATTACK_TYPE.MISS);
         expect(attack_object.value).toBe(0);
     });
@@ -172,12 +183,26 @@ describe('Character attacks', () => {
         });
     });
 
+    describe('Attack Functions can be removed', () => {
+        it('Attack function can be removed', () => {
+            const test_character = new Character();
+            test_character.removeDamageCalculation(ATTACK_TYPE.NORMAL);
+            expect(
+                () => test_character.calculateDamage(ATTACK_TYPE.NORMAL),
+            ).toThrowError('No damage calculation function for: normal');
+            test_character.removeDamageCalculation(ATTACK_TYPE.MISS);
+            expect(
+                () => test_character.calculateDamage(ATTACK_TYPE.MISS),
+            ).toThrowError('No damage calculation function for: miss');
+        });
+    });
+
     describe('Attack calculation', () => {
         it('Attack calculation', () => {
             const test_character = new Character({ stats: { attack: 10 } });
-            test_character.damageCalculation.true = () => 333;
+            test_character.addDamageCalculation('true', () => 333);
 
-            const damage = test_character.calculateDamage(ATTACK_TYPE.TRUE, test_character.stats);
+            const damage = test_character.calculateDamage(ATTACK_TYPE.TRUE);
             expect(damage).toBe(333);
         });
 
@@ -185,7 +210,7 @@ describe('Character attacks', () => {
         it('Attack calculation with invalid type', () => {
             const test_character = new Character({ stats: { attack: 10 } });
             expect(
-                () => test_character.calculateDamage('other', test_character.stats),
+                () => test_character.calculateDamage('other'),
             ).toThrowError('No damage calculation function for: other');
         });
     });
