@@ -1,5 +1,5 @@
-import { ATTACK_TYPE } from '../common/common.constants';
-import { Character } from './character';
+import { ATTACK_TYPE, DEFENCE_TYPE } from '../common/common.constants';
+import { Character } from './test';
 import { Stats } from './components';
 
 type BaseStats = {
@@ -21,6 +21,15 @@ type BaseStats = {
 
     type AttackType = typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE];
 
+    interface DefenceResult {
+        type: DefenceType;
+        value: number;
+        attacker?: Character;
+        recordId?: number;
+    }
+
+    type DefenceType = typeof DEFENCE_TYPE[keyof typeof DEFENCE_TYPE];
+
     type CharacterConstructor<T> = Partial<Omit<Character, 'stats'> & {
         stats: Partial<BaseStats> & T;
     }>
@@ -36,4 +45,5 @@ export {
     BaseStats,
     CharacterConstructor,
     DamageCalculation,
+    DefenceResult,
 };

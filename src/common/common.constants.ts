@@ -17,7 +17,16 @@ const ATTACK_TYPE = {
     OTHER: 'other',
 } as const;
 
+const DEFENCE_TYPE = {
+    NORMAL: 'normal',
+    EVASION: 'evasion',
+    MISS: 'miss',
+    TRUE: 'true',
+    SKILL: 'skill',
+} as const;
+
 export {
-    DEFAULT_STATS,
     ATTACK_TYPE,
+    DEFAULT_STATS,
+    DEFENCE_TYPE,
 };
