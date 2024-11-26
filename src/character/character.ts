@@ -1,5 +1,13 @@
 import { getRandomInt, uniqueID } from '../common/common.helpers';
-import { AttackFunction, AttackResult, AttackType, CharacterConstructor, DamageCalculation, DefenceFunction } from './character.types';
+import {
+    AttackFunction,
+    AttackResult,
+    AttackType,
+    CharacterConstructor,
+    DamageCalculation,
+    DefenceFunction,
+    DefenceResult,
+} from './character.types';
 import { Stats } from './components';
 import { Combat } from './components/Combat';
 
@@ -59,6 +67,10 @@ class Character<AditionalStats extends {} = {}> {
 
     isAlive(): boolean {
         return this.stats.isAlive === 1;
+    }
+
+    receiveDamage(damage: DefenceResult): void {
+        this.stats.hp -= damage.value;
     }
 
     removeDamageCalculation(type: AttackType) {

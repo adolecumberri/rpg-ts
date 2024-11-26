@@ -342,4 +342,11 @@ describe('Character attacks', () => {
             expect(test_character.defence().type).toBe('skill');
         });
     });
+
+    describe('Character receive letal damage', () => {
+        const test_character = new Character({ stats: { hp: 10 } });
+        test_character.receiveDamage({ type: 'normal', value: 10 });
+        expect(test_character.stats.hp).toBe(0);
+        expect(test_character.stats.isAlive).toBe(0);
+    });
 });
