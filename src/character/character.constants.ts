@@ -1,10 +1,9 @@
 
 import { ATTACK_TYPE, DEFENCE_TYPE } from '../common/common.constants';
 import { getRandomInt } from '../common/common.helpers';
-import { Character } from './test';
+import { Character } from './character';
 import { getDefaultAttackObject, getDefaultDefenceObject } from './character.helpers';
-import { AttackFunction, AttackResult, AttackType, DamageCalculation, DefenceResult } from './character.types';
-import { Stats } from './components';
+import { AttackFunction, AttackResult, AttackType, DamageCalculation, DefenceCalculation, DefenceResult } from './character.types';
 
 const DEFAULT_ATTACK_OBJECT: AttackResult = {
     type: ATTACK_TYPE.NORMAL,
@@ -17,15 +16,18 @@ const DEFAULT_DEFENCE_OBJECT: DefenceResult = {
 };
 
 const DEFAULT_ATTACK_CALCULATION: DamageCalculation = {
-    // [ATTACK_TYPE.CRITICAL]: (stats) => stats.attack * (stats.critMultiplier ?? 2),
     [ATTACK_TYPE.NORMAL]: (stats) => stats.attack,
     [ATTACK_TYPE.MISS]: () => 0,
 };
 
+const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = function(this: Character, attack: AttackResult) {
+    return Math.max(0, attack.value - this.stats.defence);
+};
+
+
 const DEFAULT_ATTACK_FUNCTION: AttackFunction = function(this: Character<{accuracy: number, crit: number}>) {
     const accuracyRoll = getRandomInt(0, 99); // Genera un número entre 0 y 100.
     const critRoll = getRandomInt(0, 99); // Genera un número entre 0 y 100.
-    let callbackResult: AttackResult | undefined;
 
     let attackType: AttackType;
 
@@ -67,22 +69,24 @@ const DEFAULT_DEFENCE_FUNCTION = function(this: Character, attack: AttackResult 
     const defence: DefenceResult = getDefaultDefenceObject({ attacker: attack.atacker });
     let callbackResult: DefenceResult | undefined;
 
-    // Si el ataque falla, no se hace daño.
-    if (attack.type === ATTACK_TYPE.MISS) {
+    switch (attack.type) {
+    case ATTACK_TYPE.MISS:
         defence.type = DEFENCE_TYPE.MISS;
         defence.value = 0;
-    } else if (attack.type === ATTACK_TYPE.TRUE) { // Si el ataque es verdadero, pasa sin modificarse.
+        break;
+    case ATTACK_TYPE.TRUE:
         defence.type = DEFENCE_TYPE.TRUE;
         defence.value = attack.value;
-    } else { // Para ataques normales y críticos, se calcula el daño teniendo en cuenta la defensa y la evasión.
-        const evasionRoll = getRandomInt(0, 100);
-        if (evasionRoll <= this.stats.evasion) {
-            defence.type = DEFENCE_TYPE.EVASION;
-            defence.value = 0;
-        } else {
-            defence.type = DEFENCE_TYPE.NORMAL;
-            defence.value = this.defenceCalculation(attack.value);
-        }
+        break;
+    default:
+        // const evasionRoll = getRandomInt(0, 100);
+        // if (evasionRoll <= this.stats.evasion) {
+        //     defence.type = DEFENCE_TYPE.EVASION;
+        //     defence.value = 0;
+        // } else {
+        defence.type = DEFENCE_TYPE.NORMAL;
+        defence.value = this.defenceCalculation(attack);
+        // }
     }
 
     // defence.recordId = this.actionRecord?.recordDefence(defence.type, defence.value, this.id, attack.atacker.id);
@@ -97,5 +101,6 @@ export {
     DEFAULT_ATTACK_CALCULATION,
     DEFAULT_ATTACK_FUNCTION,
     DEFAULT_DEFENCE_OBJECT,
+    DEFAULT_DEFENCE_CALCULATION,
     DEFAULT_DEFENCE_FUNCTION,
 };
