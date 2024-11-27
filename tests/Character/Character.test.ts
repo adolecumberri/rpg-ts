@@ -1,4 +1,4 @@
-import { AttackResult, AttackType, Character, DefenceResult } from '../../src/character';
+import { AttackResult, AttackType, Character, CharacterConstructor, DefenceResult } from '../../src/character';
 import { ATTACK_TYPE, DEFAULT_STATS } from '../../src/common/common.constants';
 
 
@@ -40,7 +40,7 @@ describe('Character status', () => {
             agua: string;
         };
 
-        const test_character = new Character<extraTypes>({
+        const test_character = new Character({
             stats: {
                 tormenta: 'tormenta',
                 tierra: 'tierra',
@@ -101,6 +101,8 @@ describe('Character attacks', () => {
             expect(test_character.stats.critMultiplier).toBe(2);
             expect(test_character.calculateDamage('critical')).toBeTruthy();
             expect(test_character.stats.crit).toBe(100);
+
+            test_character.attack();
 
             const attack_object = test_character.attack();
             expect(attack_object.type).toBe(ATTACK_TYPE.CRITICAL);
@@ -352,34 +354,4 @@ describe('Character alive status', () => {
     });
 });
 
-describe('Character can receive custom info', () => {
-    it('Character can receive custom info', () => {
-        type extraTypes = {
-            tormenta: string;
-            tierra: string;
-            fuego: number;
-            agua: string;
-        };
 
-        const test_character = new Character({
-            stats: {
-                tormenta: 'tormenta',
-                tierra: 'tierra',
-                fuego: 666,
-                agua: 'si',
-            },
-            props: {
-                tormenta: 'tormenta',
-                tierra: 'tierra',
-                fuego: 666,
-                agua: 'si',
-            },
-        });
-
-        expect(test_character.stats.hp).toBe(DEFAULT_STATS.hp);
-        expect(test_character.stats.agua).toBe('si');
-        expect(test_character.stats.fuego).toBe(666);
-        expect(test_character.stats.tierra).toBe('tierra');
-        expect(test_character.stats.tormenta).toBe('tormenta');
-    });
-});

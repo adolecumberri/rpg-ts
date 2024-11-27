@@ -16,25 +16,14 @@ import { Combat } from './components/Combat';
  * Crea un nuevo personaje.
  * @param {Partial<Character>} con - Un objeto que contiene los datos iniciales para el personaje.
  */
-class Character<AdditionalStats extends object = {}, AdditionalProps extends object = {}> {
-    combat = new Combat<AdditionalStats>();
+class Character<AdditionalStats extends object = any> {
+    combat: Combat<AdditionalStats> = new Combat<AdditionalStats>();
     id: number;
     stats: Stats<AdditionalStats> & AdditionalStats;
-    props: AdditionalProps;
 
-    constructor(con?: CharacterConstructor<AdditionalStats, AdditionalProps>) {
+    constructor(con?: CharacterConstructor<AdditionalStats>) {
         this.id = uniqueID();
-        this.stats = new Stats(con?.stats) as Stats<AdditionalStats> & AdditionalStats;
-
-        // look props and if its there a function, bind "this" to it
-        if ( con?.props ) {
-            Object.entries(con?.props || {}).forEach(([key, value]) => {
-                if (typeof value === 'function') {
-                    (con.props as AdditionalProps)[key] = value.bind(this);
-                }
-            });
-            this.props = con?.props || ({} as AdditionalProps);
-        }
+        this.stats = new Stats(con?.stats as AdditionalStats) as Stats<AdditionalStats> & AdditionalStats;
     }
 
     addDamageCalculation(type: AttackType, calculation: DamageCalculation<AdditionalStats>[AttackType]) {
@@ -90,4 +79,15 @@ class Character<AdditionalStats extends object = {}, AdditionalProps extends obj
     }
 }
 
+// type DynamicCharacterConstructor = {
+//     new <T extends object, U extends object>(arg?: T & { stats?: U }): Omit<T, 'stats'> & {
+//         [x in keyof BaseCharacter]: BaseCharacter<U>[x]
+//     }
+// }
+
+// const Character = BaseCharacter as DynamicCharacterConstructor;
+// type Character = InstanceType<typeof Character>;
+
+
+export default { Character };
 export { Character };

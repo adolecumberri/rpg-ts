@@ -10,18 +10,18 @@ type BaseStats = {
     isAlive: 1 | 0;
 };
 
-type AttackFunction = (this: Character<any>, ...arg: any[]) => AttackResult;
+type AttackFunction = (this: Character, ...arg: any[]) => AttackResult;
 
 interface AttackResult {
     type: AttackType;
     value: number;
-    atacker?: Character<any>;
+    atacker?: Character;
     recordId?: number;
 }
 
 type AttackType = typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE];
 
-type DefenceFunction = (this: Character<any>, ...arg: any[]) => DefenceResult;
+type DefenceFunction = (this: Character, ...arg: any[]) => DefenceResult;
 
 interface DefenceResult {
     type: DefenceType;
@@ -32,9 +32,9 @@ interface DefenceResult {
 
 type DefenceType = typeof DEFENCE_TYPE[keyof typeof DEFENCE_TYPE];
 
-type CharacterConstructor<T, U> = Partial<Omit<Character, 'stats'> & {
-    stats: Partial<BaseStats> & T;
-    props: U;
+type CharacterConstructor<ExtraStats extends object = {}, ExtraProps extends object = any> = Partial<Omit<Character, 'stats'> & {
+    stats: Partial<BaseStats> & ExtraStats;
+    props: ExtraProps;
 }>;
 
 type DamageCalculation<T extends {} = {}> = {
