@@ -32,9 +32,10 @@ interface DefenceResult {
 
 type DefenceType = typeof DEFENCE_TYPE[keyof typeof DEFENCE_TYPE];
 
-type CharacterConstructor<T> = Partial<Omit<Character, 'stats'> & {
+type CharacterConstructor<T, U> = Partial<Omit<Character, 'stats'> & {
     stats: Partial<BaseStats> & T;
-}>
+    props: U;
+}>;
 
 type DamageCalculation<T extends {} = {}> = {
     [key in typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE]]?: (stats: Stats<T> & T) => number;

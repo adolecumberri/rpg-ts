@@ -11,21 +11,33 @@ import {
 import { Stats } from './components';
 import { Combat } from './components/Combat';
 
+
 /**
  * Crea un nuevo personaje.
  * @param {Partial<Character>} con - Un objeto que contiene los datos iniciales para el personaje.
  */
-class Character<AditionalStats extends {} = {}> {
-    combat = new Combat<AditionalStats>();
+class Character<AdditionalStats extends object = {}, AdditionalProps extends object = {}> {
+    combat = new Combat<AdditionalStats>();
     id: number;
-    stats: Stats<AditionalStats> & AditionalStats;
+    stats: Stats<AdditionalStats> & AdditionalStats;
+    props: AdditionalProps;
 
-    constructor(con?: CharacterConstructor<AditionalStats>) {
+    constructor(con?: CharacterConstructor<AdditionalStats, AdditionalProps>) {
         this.id = uniqueID();
-        this.stats = new Stats(con?.stats) as Stats<AditionalStats> & AditionalStats;
+        this.stats = new Stats(con?.stats) as Stats<AdditionalStats> & AdditionalStats;
+
+        // look props and if its there a function, bind "this" to it
+        if ( con?.props ) {
+            Object.entries(con?.props || {}).forEach(([key, value]) => {
+                if (typeof value === 'function') {
+                    (con.props as AdditionalProps)[key] = value.bind(this);
+                }
+            });
+            this.props = con?.props || ({} as AdditionalProps);
+        }
     }
 
-    addDamageCalculation(type: AttackType, calculation: DamageCalculation<AditionalStats>[AttackType]) {
+    addDamageCalculation(type: AttackType, calculation: DamageCalculation<AdditionalStats>[AttackType]) {
         this.combat.damageCalculation[type] = calculation;
     }
 
@@ -41,7 +53,7 @@ class Character<AditionalStats extends {} = {}> {
         return this.combat.damageCalculation; // this will get the hole object
     }
 
-    set damageCalculation(newAttackCalculation: DamageCalculation<AditionalStats>) {
+    set damageCalculation(newAttackCalculation: DamageCalculation<AdditionalStats>) {
         this.combat.damageCalculation = newAttackCalculation; // this will set the hole object
     }
 

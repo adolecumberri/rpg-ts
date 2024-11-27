@@ -97,7 +97,6 @@ describe('Character attacks', () => {
                     critMultiplier: 2,
                 },
             });
-
             test_character.addDamageCalculation(ATTACK_TYPE.CRITICAL, (stats) => stats.attack * (stats.critMultiplier ?? 2));
             expect(test_character.stats.critMultiplier).toBe(2);
             expect(test_character.calculateDamage('critical')).toBeTruthy();
@@ -228,7 +227,108 @@ describe('Character attacks', () => {
             ).toThrowError('No damage calculation function for: other');
         });
     });
+});
 
+describe('Defence calculation', () => {
+    it('Default defence calculation', () => {
+        const test_character = new Character();
+        let attack_object: AttackResult = {
+            atacker: test_character,
+            type: ATTACK_TYPE.NORMAL,
+            value: 10,
+        };
+
+        let defence_objecct = test_character.defence(attack_object);
+        expect(defence_objecct.type).toBe('normal');
+        expect(defence_objecct.value).toBe(10);
+
+        attack_object = {
+            type: ATTACK_TYPE.MISS,
+            value: 10,
+        };
+        defence_objecct = test_character.defence(attack_object);
+        expect(defence_objecct.type).toBe('miss');
+        expect(defence_objecct.value).toBe(0);
+
+        attack_object = {
+            type: ATTACK_TYPE.TRUE,
+            value: 10,
+        };
+        defence_objecct = test_character.defence(attack_object);
+        expect(defence_objecct.type).toBe('true');
+        expect(defence_objecct.value).toBe(10);
+    });
+
+    it('Custom defence calculation', () => {
+        const test_character = new Character({ stats: { defence: 10, attack: 10, accuracy: 100 } });
+        test_character.defenceCalculation = function(this: Character, attack: AttackResult) {
+            return attack.value - this.stats.defence;
+        };
+
+        let attack_object = test_character.attack();
+        expect(attack_object.type).toBe('normal');
+        expect(attack_object.value).toBe(10);
+
+        let defence = test_character.defence(attack_object);
+        expect(defence.type).toBe('normal');
+        expect(defence.value).toBe(0);
+
+        test_character.stats.accuracy = 0;
+        attack_object = test_character.attack();
+        defence = test_character.defence(attack_object);
+        expect(defence.type).toBe('miss');
+        expect(defence.value).toBe(0);
+
+        test_character.stats.defence = 15;
+        test_character.stats.accuracy = 100;
+        attack_object = test_character.attack();
+        defence = test_character.defence(attack_object);
+        expect(defence.type).toBe('normal');
+        expect(defence.value).toBe(-5);
+    });
+
+    it('Custom defence calculation with this', () => {
+        const test_character = new Character({ stats: { defence: 10, attack: 10, accuracy: 100 } });
+        test_character.defenceCalculation = function(this: Character<typeof test_character.stats>, attack: AttackResult) {
+            return attack.value - this.stats.defence;
+        };
+
+        let attack_object = test_character.attack();
+        expect(attack_object.type).toBe('normal');
+        expect(attack_object.value).toBe(10);
+
+        let defence = test_character.defence(attack_object);
+        expect(defence.type).toBe('normal');
+        expect(defence.value).toBe(0);
+
+        test_character.stats.accuracy = 0;
+        attack_object = test_character.attack();
+        defence = test_character.defence(attack_object);
+        expect(defence.type).toBe('miss');
+        expect(defence.value).toBe(0);
+
+        test_character.stats.defence = 15;
+        test_character.stats.accuracy = 100;
+        attack_object = test_character.attack();
+        defence = test_character.defence(attack_object);
+        expect(defence.type).toBe('normal');
+        expect(defence.value).toBe(-5);
+    });
+
+    it('override defence', () => {
+        const test_character = new Character();
+        test_character.defence = function() {
+            return {
+                type: 'skill',
+                value: 666,
+            } satisfies DefenceResult;
+        };
+        expect(test_character.defence().value).toBe(666);
+        expect(test_character.defence().type).toBe('skill');
+    });
+});
+
+describe('Character alive status', () => {
     it('Character can check alive Status', () => {
         const test_character = new Character({ stats: { hp: 10 } });
         expect(test_character.isAlive()).toBe(true);
@@ -244,109 +344,42 @@ describe('Character attacks', () => {
         expect(test_character.stats.hp).toBe(0);
     });
 
-    describe('Defence calculation', () => {
-        it('Default defence calculation', () => {
-            const test_character = new Character();
-            let attack_object: AttackResult = {
-                atacker: test_character,
-                type: ATTACK_TYPE.NORMAL,
-                value: 10,
-            };
-
-            let defence_objecct = test_character.defence(attack_object);
-            expect(defence_objecct.type).toBe('normal');
-            expect(defence_objecct.value).toBe(10);
-
-            attack_object = {
-                type: ATTACK_TYPE.MISS,
-                value: 10,
-            };
-            defence_objecct = test_character.defence(attack_object);
-            expect(defence_objecct.type).toBe('miss');
-            expect(defence_objecct.value).toBe(0);
-
-            attack_object = {
-                type: ATTACK_TYPE.TRUE,
-                value: 10,
-            };
-            defence_objecct = test_character.defence(attack_object);
-            expect(defence_objecct.type).toBe('true');
-            expect(defence_objecct.value).toBe(10);
-        });
-
-        it('Custom defence calculation', () => {
-            const test_character = new Character({ stats: { defence: 10, attack: 10, accuracy: 100 } });
-            test_character.defenceCalculation = function(this: Character, attack: AttackResult) {
-                return attack.value - this.stats.defence;
-            };
-
-            let attack_object = test_character.attack();
-            expect(attack_object.type).toBe('normal');
-            expect(attack_object.value).toBe(10);
-
-            let defence = test_character.defence(attack_object);
-            expect(defence.type).toBe('normal');
-            expect(defence.value).toBe(0);
-
-            test_character.stats.accuracy = 0;
-            attack_object = test_character.attack();
-            defence = test_character.defence(attack_object);
-            expect(defence.type).toBe('miss');
-            expect(defence.value).toBe(0);
-
-            test_character.stats.defence = 15;
-            test_character.stats.accuracy = 100;
-            attack_object = test_character.attack();
-            defence = test_character.defence(attack_object);
-            expect(defence.type).toBe('normal');
-            expect(defence.value).toBe(-5);
-        });
-
-        it('Custom defence calculation with this', () => {
-            const test_character = new Character({ stats: { defence: 10, attack: 10, accuracy: 100 } });
-            test_character.defenceCalculation = function(this: Character<typeof test_character.stats>, attack: AttackResult) {
-                return attack.value - this.stats.defence;
-            };
-
-            let attack_object = test_character.attack();
-            expect(attack_object.type).toBe('normal');
-            expect(attack_object.value).toBe(10);
-
-            let defence = test_character.defence(attack_object);
-            expect(defence.type).toBe('normal');
-            expect(defence.value).toBe(0);
-
-            test_character.stats.accuracy = 0;
-            attack_object = test_character.attack();
-            defence = test_character.defence(attack_object);
-            expect(defence.type).toBe('miss');
-            expect(defence.value).toBe(0);
-
-            test_character.stats.defence = 15;
-            test_character.stats.accuracy = 100;
-            attack_object = test_character.attack();
-            defence = test_character.defence(attack_object);
-            expect(defence.type).toBe('normal');
-            expect(defence.value).toBe(-5);
-        });
-
-        it('override defence', () => {
-            const test_character = new Character();
-            test_character.defence = function() {
-                return {
-                    type: 'skill',
-                    value: 666,
-                } satisfies DefenceResult;
-            };
-            expect(test_character.defence().value).toBe(666);
-            expect(test_character.defence().type).toBe('skill');
-        });
-    });
-
-    describe('Character receive letal damage', () => {
+    it('Character can receive damage', () => {
         const test_character = new Character({ stats: { hp: 10 } });
         test_character.receiveDamage({ type: 'normal', value: 10 });
         expect(test_character.stats.hp).toBe(0);
         expect(test_character.stats.isAlive).toBe(0);
+    });
+});
+
+describe('Character can receive custom info', () => {
+    it('Character can receive custom info', () => {
+        type extraTypes = {
+            tormenta: string;
+            tierra: string;
+            fuego: number;
+            agua: string;
+        };
+
+        const test_character = new Character({
+            stats: {
+                tormenta: 'tormenta',
+                tierra: 'tierra',
+                fuego: 666,
+                agua: 'si',
+            },
+            props: {
+                tormenta: 'tormenta',
+                tierra: 'tierra',
+                fuego: 666,
+                agua: 'si',
+            },
+        });
+
+        expect(test_character.stats.hp).toBe(DEFAULT_STATS.hp);
+        expect(test_character.stats.agua).toBe('si');
+        expect(test_character.stats.fuego).toBe(666);
+        expect(test_character.stats.tierra).toBe('tierra');
+        expect(test_character.stats.tormenta).toBe('tormenta');
     });
 });
