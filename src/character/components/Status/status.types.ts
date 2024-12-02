@@ -20,8 +20,8 @@ type StatusActivationFunction = (arg: {
     to: number,
     value: number,
 }) => ({
-    valueFinal: number,
-    valueApplied: number;
+    finalValue: number,
+    appliedValue: number;
 });
 
 type StatusType = keyof typeof STATUS_TYPES;

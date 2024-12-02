@@ -60,10 +60,10 @@ class Status {
                 });
 
                 // Actualizar las estadísticas del personaje
-                character.stats[stat.to] = result.valueFinal;
+                character.stats[stat.to] = result.finalValue;
 
                 // Guardar el valor aplicado para el recovery
-                stat.valueToRecover = result.valueApplied;
+                stat.valueToRecover = result.appliedValue;
             }
 
             if (isTemporalAndValid) {
@@ -72,33 +72,26 @@ class Status {
         }
     }
 
-    static deserialize(data) {
-        const serializedData = JSON.parse(data);
-        const status = new Status();
-        Object.assign(status, serializedData);
-        return status;
-    }
-
     loadBuffFixed: StatusActivationFunction = ({ to, value }) => ({
-        valueFinal: to + value,
-        valueApplied: value,
+        finalValue: to + value,
+        appliedValue: value,
     });
 
     loadBuffPercentage: StatusActivationFunction = ({ from, to, value }) => ({
-        valueFinal: to + from * (value / 100),
-        valueApplied: from * (value / 100),
+        finalValue: to + from * (value / 100),
+        appliedValue: from * (value / 100),
 
     });
 
     loadDebuffFixed: StatusActivationFunction = ({ to, value }) => ({
-        valueFinal: to - value,
-        valueApplied: -value,
+        finalValue: to - value,
+        appliedValue: -value,
 
     });
 
     loadDebuffPercentage: StatusActivationFunction = ({ from, to, value }) => ({
-        valueFinal: to - from * (value / 100),
-        valueApplied: -(from * (value / 100)),
+        finalValue: to - from * (value / 100),
+        appliedValue: -(from * (value / 100)),
     });
 
     recover(character: Character) {
@@ -108,23 +101,10 @@ class Status {
             }
         }
     }
-
-    serialize() {
-        return JSON.stringify({
-            applyOn: this.applyOn,
-            duration: this.duration,
-            hasBeenUsed: this.hasBeenUsed,
-            id: this.id,
-            statsAffected: this.statsAffected,
-            name: this.name,
-            usageFrequency: this.usageFrequency,
-        });
-    }
 }
 
 export default Status;
 
 export {
     Status,
-    // BaseStatus,
 };
