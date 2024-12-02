@@ -1,4 +1,5 @@
 import { Character } from '../../character';
+import Status from '../Status';
 import StatusManager from '../StatusManager';
 import { STATUS_APPLICATION_MOMENTS, STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from './status.constants';
 
@@ -43,7 +44,9 @@ interface AffectedStatDescriptor {
     recovers: boolean; // Indica si al acabarse el status la variación de estadísticas se devuelve.
 }
 
-type StatusConstructor = Partial<Omit<Character['stats'], 'id'>>
+type StatusConstructor<T extends object = {}> = Partial<
+    Status
+>
 
 
 export {

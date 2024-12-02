@@ -12,7 +12,7 @@ import { AffectedStatDescriptor,
 } from './Status/status.types';
 
 
-class Status {
+class Status <T extends object = {}> {
     applyOn: StatusApplicationMoment;
     duration: StatusDuration;
     hasBeenUsed?: boolean;
@@ -21,9 +21,14 @@ class Status {
     name: string = '';
     onAdd?: (character: Character) => void;
     onRemove?: (character: Character) => void;
+    /**
+     * Frecuencia de uso del status.
+     * ONCE - Se aplica una vez y no se vuelve a aplicar.
+     * PER_ACTION - Se aplica cada vez que se activa.
+     */
     usageFrequency: StatusUsageFrequency;
 
-    constructor(con?: StatusConstructor) {
+    constructor(con?: StatusConstructor<T>) {
         Object.assign(this, getDefaultStatus(), con, { id: uniqueID() });
     }
 

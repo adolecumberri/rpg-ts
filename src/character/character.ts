@@ -10,20 +10,28 @@ import {
 } from './character.types';
 import { Stats } from './components';
 import { Combat } from './components/Combat';
+import StatusManager from './components/StatusManager';
 
 
 /**
  * Crea un nuevo personaje.
  * @param {Partial<Character>} con - Un objeto que contiene los datos iniciales para el personaje.
  */
-class Character<AdditionalStats extends object = any> {
+class Character<AdditionalStats extends object = any, data extends object | undefined = {}> {
     combat: Combat<AdditionalStats> = new Combat<AdditionalStats>();
     id: number;
     stats: Stats<AdditionalStats> & AdditionalStats;
+    data: data;
+    statusManager: StatusManager;
 
     constructor(con?: CharacterConstructor<AdditionalStats>) {
         this.id = uniqueID();
         this.stats = new Stats(con?.stats as AdditionalStats) as Stats<AdditionalStats> & AdditionalStats;
+        this.data = con?.data as data;
+
+        if (con?.statusManager) {
+            this.statusManager = new StatusManager();
+        }
     }
 
     addDamageCalculation(type: AttackType, calculation: DamageCalculation<AdditionalStats>[AttackType]) {

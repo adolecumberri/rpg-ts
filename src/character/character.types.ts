@@ -32,9 +32,13 @@ interface DefenceResult {
 
 type DefenceType = typeof DEFENCE_TYPE[keyof typeof DEFENCE_TYPE];
 
-type CharacterConstructor<ExtraStats extends object = {}, ExtraProps extends object = any> = Partial<Omit<Character, 'stats'> & {
+type CharacterConstructor<
+    ExtraStats extends object = {},
+    ExtraProps extends object = any
+> = Partial< Omit<Character, 'stats' | 'statusManager' > & {
     stats: Partial<BaseStats> & ExtraStats;
-    props: ExtraProps;
+    data: ExtraProps;
+    statusManager: boolean;
 }>;
 
 type DamageCalculation<T extends {} = {}> = {
