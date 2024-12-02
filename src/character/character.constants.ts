@@ -3,7 +3,15 @@ import { ATTACK_TYPE, DEFENCE_TYPE } from '../common/common.constants';
 import { getRandomInt } from '../common/common.helpers';
 import { Character } from './character';
 import { getDefaultAttackObject, getDefaultDefenceObject } from './character.helpers';
-import { AttackFunction, AttackResult, AttackType, DamageCalculation, DefenceCalculation, DefenceResult } from './character.types';
+import {
+    AttackFunction,
+    AttackResult,
+    AttackType,
+    DamageCalculation,
+    DefenceCalculation,
+    DefenceFunction,
+    DefenceResult,
+} from './character.types';
 
 const DEFAULT_ATTACK_OBJECT: AttackResult = {
     type: ATTACK_TYPE.NORMAL,
@@ -20,7 +28,7 @@ const DEFAULT_ATTACK_CALCULATION: DamageCalculation = {
     [ATTACK_TYPE.MISS]: () => 0,
 };
 
-const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = function(this: Character, attack: AttackResult) {
+const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = function(this, attack) {
     return Math.max(0, attack.value - this.stats.defence);
 };
 
@@ -65,7 +73,7 @@ const DEFAULT_ATTACK_FUNCTION: AttackFunction = function(this: Character<{accura
     return solution;
 };
 
-const DEFAULT_DEFENCE_FUNCTION = function(this: Character, attack: AttackResult ) {
+const DEFAULT_DEFENCE_FUNCTION: DefenceFunction = function(this: Character, attack: AttackResult ) {
     const defence: DefenceResult = getDefaultDefenceObject({ attacker: attack.atacker });
     let callbackResult: DefenceResult | undefined;
 
