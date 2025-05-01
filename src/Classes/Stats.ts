@@ -2,7 +2,7 @@ import { DEFAULT_STATS } from '../common/common.constants';
 import { BaseStats } from './character.types';
 
 
-class Stats<T extends {} = {}> implements BaseStats {
+class Stats<T = {}> implements BaseStats {
     private _hp: number;
     attack: number;
     defence: number;
@@ -35,6 +35,12 @@ class Stats<T extends {} = {}> implements BaseStats {
 
     controlHp(value: number) {
         return Math.min( this.totalHp, Math.max(0, value));
+    }
+
+    modifyStat(stat: keyof Omit<Stats, '_hp' | 'isAlive'>, value: number) {
+        if (typeof this[stat] === 'number') {
+            (this[stat] as number) += value;
+        }
     }
 } ;
 

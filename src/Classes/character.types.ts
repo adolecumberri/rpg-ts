@@ -41,8 +41,8 @@ type CharacterConstructor<
     statusManager: boolean;
 }>;
 
-type DamageCalculation<T extends {} = {}> = {
-    [key in typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE]]?: (stats: Stats<T> & T) => number;
+type DamageCalculation<T = any> = {
+    [key in AttackType]?: (stats: Stats<T> & T) => number;
 };
 
 type DefenceCalculation<T extends {} = {}> = (this: Character<T>, attack: AttackResult) => number;
