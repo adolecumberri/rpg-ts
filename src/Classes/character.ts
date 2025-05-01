@@ -8,9 +8,9 @@ import {
     DefenceFunction,
     DefenceResult,
 } from './character.types';
-import { Stats } from './components';
-import { Combat } from './components/Combat';
-import StatusManager from './components/StatusManager';
+import { CombatBehavior } from './CombatBehavior';
+import { Stats } from './Stats';
+import StatusManager from './StatusManager';
 
 
 /**
@@ -18,7 +18,7 @@ import StatusManager from './components/StatusManager';
  * @param {Partial<Character>} con - Un objeto que contiene los datos iniciales para el personaje.
  */
 class Character<AdditionalStats extends object = any, data extends object | undefined = {}> {
-    combat: Combat<AdditionalStats> = new Combat<AdditionalStats>();
+    combat: CombatBehavior<AdditionalStats> = new CombatBehavior<AdditionalStats>();
     id: number;
     stats: Stats<AdditionalStats> & AdditionalStats;
     data: data;

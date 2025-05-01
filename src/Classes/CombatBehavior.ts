@@ -3,11 +3,11 @@ import {
     DEFAULT_ATTACK_FUNCTION,
     DEFAULT_DEFENCE_CALCULATION,
     DEFAULT_DEFENCE_FUNCTION,
-} from '../character.constants';
-import { AttackFunction, AttackResult, AttackType, DamageCalculation, DefenceCalculation, DefenceFunction } from '../character.types';
+} from './character.constants';
+import { AttackFunction, AttackResult, AttackType, DamageCalculation, DefenceCalculation, DefenceFunction } from './character.types';
 import { Stats } from './Stats';
 
-class Combat<AditionalStats extends {} = any> {
+class CombatBehavior<AditionalStats extends {} = any> {
     private _attack: AttackFunction = DEFAULT_ATTACK_FUNCTION;
     private _damageCalculation: DamageCalculation<AditionalStats> = { ...DEFAULT_ATTACK_CALCULATION };
 
@@ -65,4 +65,4 @@ class Combat<AditionalStats extends {} = any> {
     }
 }
 
-export { Combat };
+export { CombatBehavior };

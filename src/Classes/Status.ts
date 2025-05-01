@@ -1,5 +1,5 @@
-import { uniqueID } from '../../common/common.helpers';
-import { Character } from '../character';
+import { uniqueID } from '../common/common.helpers';
+import { Character } from './character';
 import { STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from './Status/status.constants';
 import { getDefaultStatus } from './Status/status.helper';
 import { AffectedStatDescriptor,
