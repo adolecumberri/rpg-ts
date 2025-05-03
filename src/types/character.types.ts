@@ -1,6 +1,6 @@
 import { ATTACK_TYPE, DEFENCE_TYPE } from '../constants/common.constants';
-import { Character } from './character';
-import { Stats } from './Stats';
+import { Character } from '../Classes/Character';
+import { Stats } from '../Classes/Stats';
 
 type BaseStats = {
     hp: number;

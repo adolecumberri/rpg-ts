@@ -3,13 +3,19 @@ import {
     DEFAULT_ATTACK_FUNCTION,
     DEFAULT_DEFENCE_CALCULATION,
     DEFAULT_DEFENCE_FUNCTION,
-} from './character.constants';
-import { AttackFunction, AttackResult, AttackType, DamageCalculation, DefenceCalculation, DefenceFunction } from './character.types';
+} from '../constants/character.constants';
+import {
+    AttackFunction,
+    AttackType,
+    DamageCalculation,
+    DefenceCalculation,
+    DefenceFunction,
+} from '../types/Character.types';
 import { Stats } from './Stats';
 
-class CombatBehavior<AditionalStats extends {} = any> {
+class CombatBehavior {
     private _attack: AttackFunction = DEFAULT_ATTACK_FUNCTION;
-    private _damageCalculation: DamageCalculation<AditionalStats> = { ...DEFAULT_ATTACK_CALCULATION };
+    private _damageCalculation: DamageCalculation = { ...DEFAULT_ATTACK_CALCULATION };
 
     private _defende: DefenceFunction = DEFAULT_DEFENCE_FUNCTION;
     private _defenceCalculation: DefenceCalculation = DEFAULT_DEFENCE_CALCULATION;
@@ -28,7 +34,7 @@ class CombatBehavior<AditionalStats extends {} = any> {
      * @param {Stats} stats - Las estadísticas actuales del personaje.
      * @returns {number} - El daño calculado.
     */
-    calculateDamage(type: AttackType, stats: Stats<AditionalStats> & AditionalStats): number {
+    calculateDamage(type: AttackType, stats: Stats): number {
         if (!this.damageCalculation[type]) {
             throw new Error(`No damage calculation function for: ${type}`);
         }
@@ -36,11 +42,11 @@ class CombatBehavior<AditionalStats extends {} = any> {
         return this.damageCalculation[type](stats);
     }
 
-    get damageCalculation(): DamageCalculation<AditionalStats> {
+    get damageCalculation(): DamageCalculation {
         return this._damageCalculation;
     }
 
-    set damageCalculation(newDamageCalculation: DamageCalculation<AditionalStats>) {
+    set damageCalculation(newDamageCalculation: DamageCalculation) {
         this._damageCalculation = newDamageCalculation;
     }
 

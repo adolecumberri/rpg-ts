@@ -1,17 +1,18 @@
 
-import { ATTACK_TYPE, DEFENCE_TYPE } from '../constants/common.constants';
+import { ATTACK_TYPE, DEFENCE_TYPE } from './common.constants';
 import { getRandomInt } from '../helpers/common.helpers';
-import { Character } from './character';
-import { getDefaultAttackObject, getDefaultDefenceObject } from './character.helpers';
+import { Character } from '../Classes/Character';
+import { getDefaultAttackObject, getDefaultDefenceObject } from '../helpers/Character.helpers';
 import {
-    AttackFunction,
     AttackResult,
-    AttackType,
+    DefenceResult,
     DamageCalculation,
     DefenceCalculation,
+    AttackFunction,
+    AttackType,
     DefenceFunction,
-    DefenceResult,
-} from './character.types';
+} from '../types/Character.types';
+
 
 const DEFAULT_ATTACK_OBJECT: AttackResult = {
     type: ATTACK_TYPE.NORMAL,

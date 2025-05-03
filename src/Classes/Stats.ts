@@ -1,5 +1,5 @@
 import { DEFAULT_STATS } from '../constants/common.constants';
-import { BaseStats } from './character.types';
+import { BaseStats } from './Character.types';
 
 
 class Stats<T = {}> implements BaseStats {

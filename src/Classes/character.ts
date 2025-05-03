@@ -1,13 +1,14 @@
 import { getRandomInt, uniqueID } from '../helpers/common.helpers';
 import {
-    AttackFunction,
-    AttackResult,
-    AttackType,
     CharacterConstructor,
+    AttackType,
     DamageCalculation,
+    AttackFunction,
     DefenceFunction,
+    AttackResult,
     DefenceResult,
-} from './character.types';
+} from '../types/Character.types';
+
 import { CombatBehavior } from './CombatBehavior';
 import { Stats } from './Stats';
 import StatusManager from './StatusManager';

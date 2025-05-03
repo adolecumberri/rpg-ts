@@ -1,5 +1,5 @@
-import { Character } from '../character';
-import Status from '../Status';
+import { Character } from './Character';
+import Status from './Status';
 import { STATUS_DURATIONS } from './Status/status.constants';
 import { StatusApplicationMoment, StatusManagerConstructor } from './Status/status.types';
 
