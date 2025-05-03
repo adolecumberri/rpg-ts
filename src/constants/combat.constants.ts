@@ -16,6 +16,7 @@ const DEFENCE_TYPE = {
     SKILL: 'skill',
 } as const;
 
+
 export {
     ATTACK_TYPE,
     DEFENCE_TYPE,

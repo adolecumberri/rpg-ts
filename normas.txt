@@ -1,0 +1,3 @@
+
+// Status:
+los status pasan por la propiedad "_prop" para poder meterle el tipo generico correctamente

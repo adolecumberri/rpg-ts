@@ -1,7 +1,7 @@
 import { Character } from '../../character';
 import Status from '../../Status';
 import StatusManager from '../StatusManager';
-import { STATUS_APPLICATION_MOMENTS, STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from './status.constants';
+import { STATUS_APPLICATION_MOMENTS, STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from '../../constants/status.constants';
 
 type StatusManagerConstructor = {
     [x in keyof StatusManager]?: StatusManager[x]

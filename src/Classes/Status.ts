@@ -1,6 +1,6 @@
 import { uniqueID } from '../helpers/common.helpers';
 import { Character } from './Character';
-import { STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from './Status/status.constants';
+import { STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from '../constants/status.constants';
 import { getDefaultStatus } from './Status/status.helper';
 import { AffectedStatDescriptor,
     StatusActivationFunction,

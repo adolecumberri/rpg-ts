@@ -1,6 +1,6 @@
 import { Character } from './Character';
 import Status from './Status';
-import { STATUS_DURATIONS } from './Status/status.constants';
+import { STATUS_DURATIONS } from '../constants/status.constants';
 import { StatusApplicationMoment, StatusManagerConstructor } from './Status/status.types';
 
 
