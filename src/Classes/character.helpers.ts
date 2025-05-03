@@ -1,4 +1,4 @@
-import { createDefaultObjectGetter } from '../common/common.helpers';
+import { createDefaultObjectGetter } from '../helpers/common.helpers';
 import { DEFAULT_ATTACK_OBJECT, DEFAULT_DEFENCE_OBJECT } from './character.constants';
 import { AttackResult, DefenceResult } from './character.types';
 

@@ -1,6 +1,6 @@
 
-import { ATTACK_TYPE, DEFENCE_TYPE } from '../common/common.constants';
-import { getRandomInt } from '../common/common.helpers';
+import { ATTACK_TYPE, DEFENCE_TYPE } from '../constants/common.constants';
+import { getRandomInt } from '../helpers/common.helpers';
 import { Character } from './character';
 import { getDefaultAttackObject, getDefaultDefenceObject } from './character.helpers';
 import {

@@ -1,4 +1,4 @@
-import { getRandomInt, uniqueID } from '../common/common.helpers';
+import { getRandomInt, uniqueID } from '../helpers/common.helpers';
 import {
     AttackFunction,
     AttackResult,
@@ -18,7 +18,7 @@ import StatusManager from './StatusManager';
  * @param {Partial<Character>} con - Un objeto que contiene los datos iniciales para el personaje.
  */
 class Character<AdditionalStats extends object = any, data extends object | undefined = {}> {
-    combat: CombatBehavior<AdditionalStats> = new CombatBehavior<AdditionalStats>();
+    combat: CombatBehavior = new CombatBehavior();
     id: number;
     stats: Stats<AdditionalStats> & AdditionalStats;
     data: data;

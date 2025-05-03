@@ -1,4 +1,4 @@
-import { DEFAULT_STATS } from '../common/common.constants';
+import { DEFAULT_STATS } from '../constants/common.constants';
 import { BaseStats } from './character.types';
 
 

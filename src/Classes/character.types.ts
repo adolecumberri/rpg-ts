@@ -1,4 +1,4 @@
-import { ATTACK_TYPE, DEFENCE_TYPE } from '../common/common.constants';
+import { ATTACK_TYPE, DEFENCE_TYPE } from '../constants/common.constants';
 import { Character } from './character';
 import { Stats } from './Stats';
 
