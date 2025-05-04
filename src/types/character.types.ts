@@ -1,6 +1,7 @@
-import { ATTACK_TYPE, DEFENCE_TYPE } from '../constants/common.constants';
+
 import { Character } from '../Classes/Character';
 import { Stats } from '../Classes/Stats';
+import { ATTACK_TYPE, DEFENCE_TYPE } from '../constants/combat.constants';
 
 type BaseStats = {
     hp: number;
@@ -41,8 +42,8 @@ type CharacterConstructor<
     statusManager: boolean;
 }>;
 
-type DamageCalculation<T = any> = {
-    [key in AttackType]?: (stats: Stats<T> & T) => number;
+type DamageCalculation<T extends Record<string, any> = {}> = {
+    [key in AttackType]?: (stats: Stats<T>) => number;
 };
 
 type DefenceCalculation<T extends {} = {}> = (this: Character<T>, attack: AttackResult) => number;

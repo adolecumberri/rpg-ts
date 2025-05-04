@@ -1,5 +1,4 @@
 
-import { ATTACK_TYPE, DEFENCE_TYPE } from './common.constants';
 import { getRandomInt } from '../helpers/common.helpers';
 import { Character } from '../Classes/Character';
 import { getDefaultAttackObject, getDefaultDefenceObject } from '../helpers/Character.helpers';
@@ -12,6 +11,7 @@ import {
     AttackType,
     DefenceFunction,
 } from '../types/Character.types';
+import { ATTACK_TYPE, DEFENCE_TYPE } from './combat.constants';
 
 
 const DEFAULT_ATTACK_OBJECT: AttackResult = {
@@ -25,12 +25,13 @@ const DEFAULT_DEFENCE_OBJECT: DefenceResult = {
 };
 
 const DEFAULT_ATTACK_CALCULATION: DamageCalculation = {
-    [ATTACK_TYPE.NORMAL]: (stats) => stats.attack,
+    [ATTACK_TYPE.NORMAL]: (stats) => stats.get('attack'),
+    [ATTACK_TYPE.CRITICAL]: (stats) => stats.get('attack') * 2,
     [ATTACK_TYPE.MISS]: () => 0,
 };
 
 const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = function(this, attack) {
-    return Math.max(0, attack.value - this.stats.defence);
+    return Math.max(0, attack.value - this.stats.get('defence'));
 };
 
 
