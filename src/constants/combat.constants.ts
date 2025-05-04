@@ -1,3 +1,6 @@
+import { Stats } from '../Classes/Stats';
+import { AttackFunction, CombatBehaviorConstructor, DamageCalculation, DefenceCalculation, DefenceFunction } from '../types/combat.types';
+
 const ATTACK_TYPE = {
     NORMAL: 'normal',
     MISS: 'miss',
@@ -16,8 +19,42 @@ const DEFENCE_TYPE = {
     SKILL: 'skill',
 } as const;
 
+const DEFAULT_ATTACK_FUNCTION: AttackFunction = (char) => ({
+    type: ATTACK_TYPE.NORMAL,
+    value: char.stats.get('attack'),
+    atacker: char,
+});
+
+const DEFAULT_DAMAGE_CALCULATION: DamageCalculation = {
+    [ATTACK_TYPE.NORMAL]: (stats: Stats<any>) => stats.get('attack'),
+    [ATTACK_TYPE.MISS]: () => 0,
+    [ATTACK_TYPE.CRITICAL]: (stats: Stats<any>) => Math.floor(stats.get('attack') * 1.75),
+    [ATTACK_TYPE.TRUE]: (stats: Stats<any>) => stats.get('attack'),
+    [ATTACK_TYPE.SKILL]: (stats: Stats<any>) => stats.get('attack') + 10,
+    [ATTACK_TYPE.MAGIC]: (stats: Stats<any>) => stats.get('attack') + 5,
+    [ATTACK_TYPE.OTHER]: () => 1,
+};
+
+const DEFAULT_DEFENCE_FUNCTION: DefenceFunction = (char) => ({
+    type: DEFENCE_TYPE.NORMAL,
+    value: char.stats.get('defence'),
+    attacker: char,
+});
+
+const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = (incoming: number, stats: Stats<any>) => {
+    const defence = stats.get('defence');
+    return Math.max(0, incoming - defence);
+};
+
+const DEFAULT_COMBAT_BEHAVIOR_CONFIG: CombatBehaviorConstructor = {
+    attackFn: DEFAULT_ATTACK_FUNCTION,
+    damageCalc: DEFAULT_DAMAGE_CALCULATION,
+    defenceFn: DEFAULT_DEFENCE_FUNCTION,
+    defenceCalc: DEFAULT_DEFENCE_CALCULATION,
+};
 
 export {
     ATTACK_TYPE,
     DEFENCE_TYPE,
+    DEFAULT_COMBAT_BEHAVIOR_CONFIG,
 };

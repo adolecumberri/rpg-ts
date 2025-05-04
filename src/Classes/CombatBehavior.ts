@@ -1,74 +1,74 @@
-import {
-    DEFAULT_ATTACK_CALCULATION,
-    DEFAULT_ATTACK_FUNCTION,
-    DEFAULT_DEFENCE_CALCULATION,
-    DEFAULT_DEFENCE_FUNCTION,
-} from '../constants/character.constants';
+
+import { DEFAULT_COMBAT_BEHAVIOR_CONFIG } from '../constants/combat.constants';
 import {
     AttackFunction,
     AttackType,
+    CombatBehaviorConstructor,
     DamageCalculation,
     DefenceCalculation,
     DefenceFunction,
-} from '../types/Character.types';
+} from '../types/combat.types';
 import { Stats } from './Stats';
 
-class CombatBehavior {
-    private _attack: AttackFunction = DEFAULT_ATTACK_FUNCTION;
-    private _damageCalculation: DamageCalculation = { ...DEFAULT_ATTACK_CALCULATION };
 
-    private _defende: DefenceFunction = DEFAULT_DEFENCE_FUNCTION;
-    private _defenceCalculation: DefenceCalculation = DEFAULT_DEFENCE_CALCULATION;
+class CombatBehavior {
+    private _attack: AttackFunction;
+    private _defence: DefenceFunction;
+    private _damageCalculation: DamageCalculation;
+    private _defenceCalculation: DefenceCalculation;
+
+    constructor(config: Partial<CombatBehaviorConstructor> = {}) {
+        const fallback = DEFAULT_COMBAT_BEHAVIOR_CONFIG;
+
+        this._attack = config.attackFn ?? fallback.attackFn;
+        this._damageCalculation = config.damageCalc ?? fallback.damageCalc;
+        this._defence = config.defenceFn ?? fallback.defenceFn;
+        this._defenceCalculation = config.defenceCalc ?? fallback.defenceCalc;
+    }
+
 
     get attack(): AttackFunction {
         return this._attack;
     }
 
-    set attack(newAttackFunction: AttackFunction) {
-        this._attack = newAttackFunction;
-    }
-
-    /**
-     * Calcula el daño en función del tipo de ataque y las estadísticas.
-     * @param {AttackType} type - El tipo de ataque.
-     * @param {Stats} stats - Las estadísticas actuales del personaje.
-     * @returns {number} - El daño calculado.
-    */
-    calculateDamage(type: AttackType, stats: Stats): number {
-        if (!this.damageCalculation[type]) {
-            throw new Error(`No damage calculation function for: ${type}`);
-        }
-
-        return this.damageCalculation[type](stats);
+    set attack(fn: AttackFunction) {
+        this._attack = fn;
     }
 
     get damageCalculation(): DamageCalculation {
         return this._damageCalculation;
     }
 
-    set damageCalculation(newDamageCalculation: DamageCalculation) {
-        this._damageCalculation = newDamageCalculation;
+    set damageCalculation(calc: DamageCalculation) {
+        this._damageCalculation = calc;
+    }
+
+    calculateDamage(type: AttackType, stats: Stats<any>): number {
+        const fn = this._damageCalculation[type];
+        if (!fn) throw new Error(`Missing damage calculation for attack type: ${type}`);
+        return fn(stats);
     }
 
     get defence(): DefenceFunction {
-        return this._defende;
+        return this._defence;
     }
 
-    set defence(newDefenceFunction: DefenceFunction) {
-        this._defende = newDefenceFunction;
+    set defence(fn: DefenceFunction) {
+        this._defence = fn;
     }
 
-    get defenceCalculation() {
+    get defenceCalculation(): DefenceCalculation {
         return this._defenceCalculation;
     }
 
-    set defenceCalculation(newDefenceCalculation: DefenceCalculation) {
-        this._defenceCalculation = newDefenceCalculation.bind(this);
+    set defenceCalculation(fn: DefenceCalculation) {
+        this._defenceCalculation = fn;
     }
 
-    removeDamageCalculation(type: AttackType) {
-        delete this._damageCalculation[type];
+    calculateDefence(incoming: number, stats: Stats<any>): number {
+        return this._defenceCalculation(incoming, stats);
     }
 }
+const cb = new CombatBehavior();
 
 export { CombatBehavior };

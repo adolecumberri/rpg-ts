@@ -1,3 +1,49 @@
 
-// Status:
+// 1.Status:
 los status pasan por la propiedad "_prop" para poder meterle el tipo generico correctamente
+
+// 2.combat behaviour metadata
+export enum AttackType {
+  NORMAL = 'normal',
+  MISS = 'miss',
+  CRITICAL = 'critical',
+  TRUE = 'true',
+  SKILL = 'skill',
+  MAGIC = 'magic',
+  OTHER = 'other',
+}
+
+// Opcional: metadatos para cada tipo
+export const AttackTypeMeta: Record<AttackType, { ignoresDefense: boolean, isMagical: boolean }> = {
+  [AttackType.NORMAL]: { ignoresDefense: false, isMagical: false },
+  [AttackType.MISS]: { ignoresDefense: true, isMagical: false },
+  [AttackType.CRITICAL]: { ignoresDefense: false, isMagical: false },
+  [AttackType.TRUE]: { ignoresDefense: true, isMagical: false },
+  [AttackType.SKILL]: { ignoresDefense: false, isMagical: false },
+  [AttackType.MAGIC]: { ignoresDefense: false, isMagical: true },
+  [AttackType.OTHER]: { ignoresDefense: false, isMagical: false },
+};
+
+buenisima idea.
+
+
+// 3. sistema de registro extensible
+type AttackTypeDef = {
+  id: string;
+  name: string;
+  description?: string;
+  ignoresDefense?: boolean;
+  isMagical?: boolean;
+};
+
+const attackTypeRegistry = new Map<string, AttackTypeDef>();
+
+// Registro inicial
+[
+  { id: 'normal', name: 'Normal' },
+  { id: 'critical', name: 'Critical Hit', ignoresDefense: false },
+  { id: 'magic', name: 'Magic Attack', isMagical: true }
+].forEach(type => attackTypeRegistry.set(type.id, type));
+
+// Acceso
+const criticalType = attackTypeRegistry.get('critical');
