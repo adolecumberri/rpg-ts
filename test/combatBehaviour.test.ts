@@ -43,8 +43,9 @@ describe('CombatBehavior', () => {
     });
 
     it('uses default defence function', () => {
-        const char = createMockCharacter();
-        const result = char.combat.defence(char);
+        const charA = createMockCharacter();
+        const charB = createMockCharacter();
+        const result = charA.combat.defence(charA, charB.combat.attack(charB));
 
         expect(result).toHaveProperty('type');
         expect(result).toHaveProperty('value');

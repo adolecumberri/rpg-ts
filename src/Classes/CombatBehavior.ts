@@ -32,11 +32,7 @@ class CombatBehavior {
 
     attack(char: Character, ...args: any[]): AttackResult {
         return this._attack(char, ...args);
-    }
-
-    damageCalculation(): DamageCalculation {
-        return this._damageCalculation;
-    }
+    };
 
     calculateDamage(type: AttackType, stats: Stats<any>): number {
         const fn = this._damageCalculation[type];
@@ -44,12 +40,8 @@ class CombatBehavior {
         return fn(stats);
     }
 
-    defence(char: Character, ...args: any[]): DefenceResult {
-        return this._defence(char, ...args);
-    }
-
-    defenceCalculation(): DefenceCalculation {
-        return this._defenceCalculation;
+    defence(char: Character, incomingAttack: AttackResult, ...args: any[]): DefenceResult {
+        return this._defence(char, incomingAttack, ...args);
     }
 
     calculateDefence(incoming: number, stats: Stats<any>): number {

@@ -21,7 +21,7 @@ export interface DefenceResult {
 }
 
 export type AttackFunction = (char: Character, ...args: any[]) => AttackResult;
-export type DefenceFunction = (char: Character, ...args: any[]) => DefenceResult;
+export type DefenceFunction = (char: Character, attack: AttackResult, ...args: any[]) => DefenceResult;
 
 export type DamageCalculation = {
     [key in AttackType]: (stats: Stats<any>) => number;

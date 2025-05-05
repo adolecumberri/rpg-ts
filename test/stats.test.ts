@@ -19,8 +19,6 @@ describe('Stats', () => {
     it('should initialize with DEFAULT_STATS when no values are provided', () => {
         const stats = new Stats();
 
-        console.log(stats);
-
         expect(stats.get('attack')).toBe(DEFAULT_STATS.attack);
         expect(stats.get('defence')).toBe(DEFAULT_STATS.defence);
         expect(stats.get('hp')).toBe(DEFAULT_STATS.hp);
@@ -100,5 +98,10 @@ describe('Stats', () => {
 
         expect(stats.get('totalHp')).toBe(70);
         expect(stats.get('hp')).toBe(70);
+    });
+
+    it('Stats can be parsed to JSON', () => {
+        const stats = new Stats();
+        expect(stats.toJSON()).toBeTruthy();
     });
 });

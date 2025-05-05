@@ -23,7 +23,6 @@ const DEFAULT_ATTACK_FUNCTION: AttackFunction = (char) => {
     return {
         type: ATTACK_TYPE.NORMAL,
         value: char.stats.get('attack'),
-        atacker: char,
     };
 };
 
@@ -37,10 +36,9 @@ const DEFAULT_DAMAGE_CALCULATION: DamageCalculation = {
     [ATTACK_TYPE.OTHER]: () => 1,
 };
 
-const DEFAULT_DEFENCE_FUNCTION: DefenceFunction = (char) => ({
+const DEFAULT_DEFENCE_FUNCTION: DefenceFunction = (char, attack) => ({
     type: DEFENCE_TYPE.NORMAL,
-    value: char.stats.get('defence'),
-    attacker: char,
+    value: Math.min(0, char.stats.get('defence') - attack.value),
 });
 
 const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = (incoming: number, stats: Stats<any>) => {
