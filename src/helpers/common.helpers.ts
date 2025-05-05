@@ -1,7 +1,7 @@
 
 
 function uniqueID() {
-    return Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+    return String( Math.floor(Math.random() * Math.floor(Math.random() * Date.now())));
 }
 
 // this function creates a funcion to create default objects.

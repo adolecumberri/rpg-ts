@@ -1,6 +1,7 @@
 import { Stats } from '../Classes/Stats';
 import { AttackFunction, CombatBehaviorConstructor, DamageCalculation, DefenceCalculation, DefenceFunction } from '../types/combat.types';
 
+// TODO: abrir a actualizaciones en caliente.
 const ATTACK_TYPE = {
     NORMAL: 'normal',
     MISS: 'miss',

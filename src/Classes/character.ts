@@ -1,83 +1,85 @@
 import { getRandomInt, uniqueID } from '../helpers/common.helpers';
-import { AttackFunction, AttackResult, AttackType, DamageCalculation, DefenceFunction, DefenceResult } from '../types/combat.types';
+import { NonConflicting, Widen } from '../helpers/type.helpers';
+import {
+    AttackResult,
+    DefenceResult,
+} from '../types/combat.types';
 
 
 import { CombatBehavior } from './CombatBehavior';
-import { Stats } from './Stats';
-import StatusManager from './StatusManager';
+import { BasicStats, Stats } from './Stats';
 
+type CharacterBase = {
+    id?: string;
+    stats?: any;
+    combat?: any;
+  }
 
-/**
- * Crea un nuevo personaje.
- * @param {Partial<Character>} con - Un objeto que contiene los datos iniciales para el personaje.
- */
-class Character<AdditionalStats extends object = any, data extends object | undefined = {}> {
-    combat: CombatBehavior = new CombatBehavior();
-    id: number;
-    stats: Stats<AdditionalStats> & AdditionalStats;
-    data: data;
-    statusManager: StatusManager;
+type CharacterConstructor<T> = Partial<NonConflicting<T, CharacterBase> & CharacterBase>;
 
-    constructor(con?: any) {
-        this.id = uniqueID();
-        this.stats = new Stats(con?.stats as AdditionalStats) as Stats<AdditionalStats> & AdditionalStats;
-        this.data = con?.data as data;
+class Character<T extends object = {}> {
+    public readonly id: string;
+    public readonly stats: Stats<T>;
+    public readonly combat: CombatBehavior;
 
-        if (con?.statusManager) {
-            this.statusManager = new StatusManager();
-        }
+    private _props: Widen<NonConflicting<T, CharacterBase>>;
+
+    constructor(params?: CharacterConstructor<T>) {
+        const { id, stats, combat, ...restData } = params ?? {};
+
+        this.id = id ?? uniqueID();
+        this.stats = new Stats<T>(stats);
+        this.combat = new CombatBehavior(combat);
+        this._props = (restData ?? {}) as Widen<NonConflicting<T, CharacterBase>>;
     }
 
-    addDamageCalculation(type: AttackType, calculation: DamageCalculation[AttackType]) {
-        this.combat.damageCalculation[type] = calculation;
+    attack(): AttackResult {
+        return this.combat.attack(this);
     }
 
-    get attack(): AttackFunction {
-        return this.combat.attack;
+    defend(attack: AttackResult): DefenceResult {
+        return this.combat.defence(this, attack);
     }
 
-    set attack(newAttackFunction: AttackFunction) {
-        this.combat.attack = newAttackFunction.bind(this);
+    receiveDamage(value: number) {
+        this.stats.receiveDamage(value);
     }
 
-    get damageCalculation() {
-        return this.combat.damageCalculation(); // this will get the hole object
-    }
-
-    calculateDamage(type: AttackType): number {
-        return this.combat.calculateDamage(type, this.stats);
-    }
-
-    get defence(): DefenceFunction {
-        return this.combat.defence;
-    }
-
-    set defence(newDefenceFunction: DefenceFunction) {
-        this.combat.defence = newDefenceFunction.bind(this);
-    }
-
-    set defenceCalculation(newDefenceCalculation: (attack: AttackResult) => number) {
-        this.combat.defenceCalculation = newDefenceCalculation.bind(this);
+    heal(value: number) {
+        this.stats.heal(value);
     }
 
     isAlive(): boolean {
         return this.stats.get('isAlive') === 1;
     }
 
-    receiveDamage(damage: DefenceResult): void {
-        this.stats.receiveDamage(damage.value);
+    getData(): Widen<NonConflicting<T, CharacterBase>> {
+        return { ...this._props };
+    }
+
+    get<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K): Widen<NonConflicting<T, CharacterBase>>[K] {
+        if (!(key in this._props)) {
+            throw new Error(`Property "${String(key)}" does not exist in character data`);
+        }
+        return this._props[key];
+    }
+
+    set<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K, value: Widen<NonConflicting<T, CharacterBase>>[K]) {
+        this._props[key] = value;
+    }
+
+    delete<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K) {
+        if (key in this._props) {
+            delete this._props[key];
+        }
+    }
+
+    toJSON() {
+        return {
+            id: this.id,
+            stats: this.stats.toJSON(),
+            data: this.getData(),
+        };
     }
 }
-
-// type DynamicCharacterConstructor = {
-//     new <T extends object, U extends object>(arg?: T & { stats?: U }): Omit<T, 'stats'> & {
-//         [x in keyof BaseCharacter]: BaseCharacter<U>[x]
-//     }
-// }
-
-// const Character = BaseCharacter as DynamicCharacterConstructor;
-// type Character = InstanceType<typeof Character>;
-
-
-export default { Character };
 export { Character };
