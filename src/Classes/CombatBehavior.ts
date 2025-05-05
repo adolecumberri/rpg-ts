@@ -2,12 +2,15 @@
 import { DEFAULT_COMBAT_BEHAVIOR_CONFIG } from '../constants/combat.constants';
 import {
     AttackFunction,
+    AttackResult,
     AttackType,
     CombatBehaviorConstructor,
     DamageCalculation,
     DefenceCalculation,
     DefenceFunction,
+    DefenceResult,
 } from '../types/combat.types';
+import { Character } from './Character';
 import { Stats } from './Stats';
 
 
@@ -27,20 +30,12 @@ class CombatBehavior {
     }
 
 
-    get attack(): AttackFunction {
-        return this._attack;
+    attack(char: Character, ...args: any[]): AttackResult {
+        return this._attack(char, ...args);
     }
 
-    set attack(fn: AttackFunction) {
-        this._attack = fn;
-    }
-
-    get damageCalculation(): DamageCalculation {
+    damageCalculation(): DamageCalculation {
         return this._damageCalculation;
-    }
-
-    set damageCalculation(calc: DamageCalculation) {
-        this._damageCalculation = calc;
     }
 
     calculateDamage(type: AttackType, stats: Stats<any>): number {
@@ -49,26 +44,17 @@ class CombatBehavior {
         return fn(stats);
     }
 
-    get defence(): DefenceFunction {
-        return this._defence;
+    defence(char: Character, ...args: any[]): DefenceResult {
+        return this._defence(char, ...args);
     }
 
-    set defence(fn: DefenceFunction) {
-        this._defence = fn;
-    }
-
-    get defenceCalculation(): DefenceCalculation {
+    defenceCalculation(): DefenceCalculation {
         return this._defenceCalculation;
-    }
-
-    set defenceCalculation(fn: DefenceCalculation) {
-        this._defenceCalculation = fn;
     }
 
     calculateDefence(incoming: number, stats: Stats<any>): number {
         return this._defenceCalculation(incoming, stats);
     }
 }
-const cb = new CombatBehavior();
 
 export { CombatBehavior };

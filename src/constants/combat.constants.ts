@@ -19,11 +19,13 @@ const DEFENCE_TYPE = {
     SKILL: 'skill',
 } as const;
 
-const DEFAULT_ATTACK_FUNCTION: AttackFunction = (char) => ({
-    type: ATTACK_TYPE.NORMAL,
-    value: char.stats.get('attack'),
-    atacker: char,
-});
+const DEFAULT_ATTACK_FUNCTION: AttackFunction = (char) => {
+    return {
+        type: ATTACK_TYPE.NORMAL,
+        value: char.stats.get('attack'),
+        atacker: char,
+    };
+};
 
 const DEFAULT_DAMAGE_CALCULATION: DamageCalculation = {
     [ATTACK_TYPE.NORMAL]: (stats: Stats<any>) => stats.get('attack'),

@@ -32,6 +32,18 @@ export class Stats<T extends Record<string, any> = {}> {
         this._prop.hp = Math.min(this._prop.totalHp, Math.max(0, newHp));
     }
 
+    receiveDamage(damage: number) {
+        this.setHp(
+            Math.min(this._prop.totalHp, Math.max(0, this._prop.hp - damage)),
+        );
+    }
+
+    heal(heal: number) {
+        this.setHp(
+            Math.max(this._prop.totalHp, this._prop.hp + heal),
+        );
+    }
+
     get<K extends keyof(NonConflicting<T, BasicStats> & BasicStats)>(
         key: K,
     ): (NonConflicting<T, BasicStats> & BasicStats)[K] {

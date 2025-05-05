@@ -71,4 +71,34 @@ describe('Stats', () => {
         // This one depends on whether you want to handle it with a try/catch or not.
         expect(() => stats.get('nonexistent' as any)).toThrow();
     });
+
+    it('should receive damage', () => {
+        const stats = new Stats({hp: 50});
+
+        expect(stats.get('totalHp')).toBe(50);
+        expect(stats.get('hp')).toBe(50);
+
+        stats.receiveDamage(20);
+
+        expect(stats.get('totalHp')).toBe(50);
+        expect(stats.get('hp')).toBe(30);
+
+        stats.receiveDamage(40);
+
+        expect(stats.get('totalHp')).toBe(50);
+        expect(stats.get('hp')).toBe(0);
+        expect(stats.get('isAlive')).toBe(0);
+    });
+
+    it('should heal and not over totalHp', () => {
+        const stats = new Stats({hp: 50, totalHp: 70});
+
+        expect(stats.get('totalHp')).toBe(70);
+        expect(stats.get('hp')).toBe(50);
+
+        stats.heal(100);
+
+        expect(stats.get('totalHp')).toBe(70);
+        expect(stats.get('hp')).toBe(70);
+    });
 });

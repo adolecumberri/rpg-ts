@@ -1,25 +1,7 @@
 
 import { Character } from '../Classes/Character';
 import { Stats } from '../Classes/Stats';
-
-
-export const ATTACK_TYPE = {
-    NORMAL: 'normal',
-    MISS: 'miss',
-    CRITICAL: 'critical',
-    TRUE: 'true',
-    SKILL: 'skill',
-    MAGIC: 'magic',
-    OTHER: 'other',
-} as const;
-
-export const DEFENCE_TYPE = {
-    NORMAL: 'normal',
-    EVASION: 'evasion',
-    MISS: 'miss',
-    TRUE: 'true',
-    SKILL: 'skill',
-} as const;
+import { ATTACK_TYPE, DEFENCE_TYPE } from '../constants/combat.constants';
 
 export type AttackType = typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE];
 export type DefenceType = typeof DEFENCE_TYPE[keyof typeof DEFENCE_TYPE];

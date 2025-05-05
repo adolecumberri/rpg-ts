@@ -1,13 +1,6 @@
 import { getRandomInt, uniqueID } from '../helpers/common.helpers';
-import {
-    CharacterConstructor,
-    AttackType,
-    DamageCalculation,
-    AttackFunction,
-    DefenceFunction,
-    AttackResult,
-    DefenceResult,
-} from '../types/Character.types';
+import { AttackFunction, AttackResult, AttackType, DamageCalculation, DefenceFunction, DefenceResult } from '../types/combat.types';
+
 
 import { CombatBehavior } from './CombatBehavior';
 import { Stats } from './Stats';
@@ -25,7 +18,7 @@ class Character<AdditionalStats extends object = any, data extends object | unde
     data: data;
     statusManager: StatusManager;
 
-    constructor(con?: CharacterConstructor<AdditionalStats>) {
+    constructor(con?: any) {
         this.id = uniqueID();
         this.stats = new Stats(con?.stats as AdditionalStats) as Stats<AdditionalStats> & AdditionalStats;
         this.data = con?.data as data;
@@ -35,7 +28,7 @@ class Character<AdditionalStats extends object = any, data extends object | unde
         }
     }
 
-    addDamageCalculation(type: AttackType, calculation: DamageCalculation<AdditionalStats>[AttackType]) {
+    addDamageCalculation(type: AttackType, calculation: DamageCalculation[AttackType]) {
         this.combat.damageCalculation[type] = calculation;
     }
 
@@ -48,11 +41,7 @@ class Character<AdditionalStats extends object = any, data extends object | unde
     }
 
     get damageCalculation() {
-        return this.combat.damageCalculation; // this will get the hole object
-    }
-
-    set damageCalculation(newAttackCalculation: DamageCalculation<AdditionalStats>) {
-        this.combat.damageCalculation = newAttackCalculation; // this will set the hole object
+        return this.combat.damageCalculation(); // this will get the hole object
     }
 
     calculateDamage(type: AttackType): number {
@@ -67,24 +56,16 @@ class Character<AdditionalStats extends object = any, data extends object | unde
         this.combat.defence = newDefenceFunction.bind(this);
     }
 
-    get defenceCalculation() {
-        return this.combat.defenceCalculation;
-    }
-
     set defenceCalculation(newDefenceCalculation: (attack: AttackResult) => number) {
         this.combat.defenceCalculation = newDefenceCalculation.bind(this);
     }
 
     isAlive(): boolean {
-        return this.stats.isAlive === 1;
+        return this.stats.get('isAlive') === 1;
     }
 
     receiveDamage(damage: DefenceResult): void {
-        this.stats.hp -= damage.value;
-    }
-
-    removeDamageCalculation(type: AttackType) {
-        this.combat.removeDamageCalculation(type);
+        this.stats.receiveDamage(damage.value);
     }
 }
 
