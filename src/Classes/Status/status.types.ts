@@ -3,6 +3,8 @@ import StatusManager from '../StatusManager';
 import { STATUS_APPLICATION_MOMENTS, STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from '../../constants/status.constants';
 import { Character } from '../Character';
 import Status from '../Status';
+import { NonConflicting } from '../../helpers/type.helpers';
+import { BasicStats } from '../Stats';
 
 type StatusManagerConstructor = {
     [x in keyof StatusManager]?: StatusManager[x]
@@ -34,10 +36,10 @@ type StatusApplicationMoment = keyof typeof STATUS_APPLICATION_MOMENTS;
 
 type StatusUsageFrequency = keyof typeof STATUS_USAGE_FREQUENCY;
 
-interface AffectedStatDescriptor {
+interface AffectedStatDescriptor<T extends object = any> {
     type: StatusType;
-    from: Character['stats'];
-    to: Character['stats'];
+    from: keyof (NonConflicting<T, BasicStats> & BasicStats);
+    to: keyof (NonConflicting<T, BasicStats> & BasicStats);
     value: number;
     id?: number;
     timesUsed?: number;

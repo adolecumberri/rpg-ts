@@ -4,7 +4,7 @@ import { NonConflicting, Widen } from '../helpers/type.helpers';
 export type BasicStats = {
     attack: number;
     defence: number;
-    isAlive: 1 | 0;
+    isAlive: number;
     totalHp: number;
     hp: number;
   };

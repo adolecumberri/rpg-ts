@@ -10,14 +10,15 @@ import { AffectedStatDescriptor,
     StatusDurationTemporal,
     StatusUsageFrequency,
 } from './Status/status.types';
+import { Stats } from './Stats';
 
 
 class Status <T extends object = {}> {
     applyOn: StatusApplicationMoment;
     duration: StatusDuration;
     hasBeenUsed?: boolean;
-    id: number = uniqueID();
-    statsAffected: AffectedStatDescriptor[];
+    id: string = uniqueID();
+    statsAffected: AffectedStatDescriptor<T>[];
     name: string = '';
     onAdd?: (character: Character) => void;
     onRemove?: (character: Character) => void;
@@ -32,7 +33,7 @@ class Status <T extends object = {}> {
         Object.assign(this, getDefaultStatus(), con, { id: uniqueID() });
     }
 
-    activate(character: Character) {
+    activate(characterStats: Stats<any>) {
         const ACTION = {
             [STATUS_TYPES.BUFF_FIXED]: this.loadBuffFixed,
             [STATUS_TYPES.BUFF_PERCENTAGE]: this.loadBuffPercentage,
@@ -59,13 +60,13 @@ class Status <T extends object = {}> {
             for (const stat of this.statsAffected) {
                 const action = ACTION[stat.type];
                 const result = action({
-                    from: character.stats[stat.from],
-                    to: character.stats[stat.to],
+                    from: characterStats.get(stat.from),
+                    to: characterStats.get(stat.to),
                     value: stat.value,
                 });
 
                 // Actualizar las estadísticas del personaje
-                character.stats[stat.to] = result.finalValue;
+                characterStats.set(stat.to, result.finalValue as number);
 
                 // Guardar el valor aplicado para el recovery
                 stat.valueToRecover = result.appliedValue;
@@ -99,10 +100,11 @@ class Status <T extends object = {}> {
         appliedValue: -(from * (value / 100)),
     });
 
-    recover(character: Character) {
+    recover(characterStats: Stats<any>) {
         for (const stat of this.statsAffected) {
             if (stat.recovers) {
-                character.stats[stat.to] -= (stat.valueToRecover ?? 0);
+                const current = characterStats.get(stat.to);
+                characterStats.set(stat.to, current - (stat.valueToRecover ?? 0));
             }
         }
     }
