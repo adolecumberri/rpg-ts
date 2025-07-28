@@ -8,7 +8,7 @@ describe('Character', () => {
         expect(char.isAlive()).toBe(true);
         expect(typeof char.id).toBe('string');
         expect(typeof char.attack()).toBe('object');
-        expect(char.stats.get('hp')).toBeGreaterThan(0);
+        expect(char.stats.getProp('hp')).toBeGreaterThan(0);
     });
 
     it('should allow custom stats and data', () => {
@@ -17,7 +17,7 @@ describe('Character', () => {
             role: 'warrior',
         });
 
-        expect(char.stats.get('attack')).toBe(50);
+        expect(char.stats.getProp('attack')).toBe(50);
         expect(char.getData().role).toBe('warrior');
     });
 
@@ -25,7 +25,7 @@ describe('Character', () => {
         const char = new Character({ stats: { hp: 10 } });
         char.receiveDamage(10);
 
-        expect(char.stats.get('hp')).toBe(0);
+        expect(char.stats.getProp('hp')).toBe(0);
         expect(char.isAlive()).toBe(false);
     });
 
@@ -45,12 +45,12 @@ describe('Character', () => {
     it('should get, set and delete dynamic properties', () => {
         const char = new Character<{ job: string }>({ job: 'archer' });
 
-        expect(char.get('job')).toBe('archer');
+        expect(char.getProp('job')).toBe('archer');
 
-        char.set('job', 'knight');
-        expect(char.get('job')).toBe('knight');
+        char.setProp('job', 'knight');
+        expect(char.getProp('job')).toBe('knight');
 
         char.delete('job');
-        expect(() => char.get('job')).toThrow();
+        expect(() => char.getProp('job')).toThrow();
     });
 });

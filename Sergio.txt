@@ -1,0 +1,38 @@
+
+
+Guia sergio:
+
+-Esto es el proyecto de los heroes. La idea es rehacer las bases y hacer cosas con el proyecto.
+suelo usar este proyecto para comerme la cabeza con como hacer las cosas de una forma objetivamente impoluta
+lo que suele significar que el trabajo es cansino, lento y duro.
+
+Tu trabajo será coger partes nuevas y hacerlas. Tengo que ponert los links a las herramientas etc etc.
+
+Hay varias normas que estoy siguiendo en esta iteracion, tu no estas obligado a seguirlas pero bueno, si te tendré
+que revisar las PRs y comentar mejoras genericas. El objetivo del proyecto es didactico, la cosa es aprencer formas
+de trabajar o filosofias de desarrollo mas que escribir a lo loco y olvidar.
+
+------- DE QUE VA ESTO -------------
+
+Hay Characters.
+Esos characters tienen estadisticas (el objeto Stats) que gestiona los cambios y la administracion de estadisticas
+Esos Characters CombatBehavior para gestionar como combaten
+Sufren Status, esos Status los gestiona un Status Manager. Esta parte es algo mas tocha.
+
+Esta es el actual estado del proyecto.
+El proyecto sigue los principios SOLID y una Guia de CC (Clean code [https://github.com/ryanmcdermott/clean-code-javascript?tab=readme-ov-file#variables])
+se trabaja con typado y se hacen test para checkear el trabajo que se crea.
+
+Trabajo que queda por hacer?
+- Los Characters deben poder organizarse en Equipos (Teams)
+- Debe haber Objetos Batalla para que los Characters peleen individualmente o en equipo.
+- Los characters deben poder recibir mas personalizacion, como callbacks personalizados
+- inventario y tambien objetos.
+- En la version 1 les tenia puesto un log manager para saber qué hacian en cada momento del combate.
+
+Links:
+el character de la v1
+https://github.com/adolecumberri/rpg-ts/blob/master/src/classes/Character.ts
+
+Un link a Clean Code, este es el archivo de referencia para criticar tu codigo (si te critico, al menos saber las normas):
+https://github.com/ryanmcdermott/clean-code-javascript?tab=readme-ov-file#variables

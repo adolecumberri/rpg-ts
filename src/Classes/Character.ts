@@ -57,14 +57,14 @@ class Character<T extends object = {}> {
         return { ...this._props };
     }
 
-    get<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K): Widen<NonConflicting<T, CharacterBase>>[K] {
+    getProp<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K): Widen<NonConflicting<T, CharacterBase>>[K] {
         if (!(key in this._props)) {
             throw new Error(`Property "${String(key)}" does not exist in character data`);
         }
         return this._props[key];
     }
 
-    set<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K, value: Widen<NonConflicting<T, CharacterBase>>[K]) {
+    setProp<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K, value: Widen<NonConflicting<T, CharacterBase>>[K]) {
         this._props[key] = value;
     }
 

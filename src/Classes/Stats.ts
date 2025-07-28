@@ -44,7 +44,7 @@ export class Stats<T extends Record<string, any> = {}> {
         );
     }
 
-    get<K extends keyof(NonConflicting<T, BasicStats> & BasicStats)>(
+    getProp<K extends keyof(NonConflicting<T, BasicStats> & BasicStats)>(
         key: K,
     ): (NonConflicting<T, BasicStats> & BasicStats)[K] {
         if (!(key in this._prop)) {
@@ -53,7 +53,7 @@ export class Stats<T extends Record<string, any> = {}> {
         return this._prop[key];
     }
 
-    set<K extends keyof(NonConflicting<T, BasicStats> & BasicStats)>(
+    setProp<K extends keyof(NonConflicting<T, BasicStats> & BasicStats)>(
         key: K,
         value: (NonConflicting<T, BasicStats> & BasicStats)[K],
     ) {
