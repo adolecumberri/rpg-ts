@@ -9,22 +9,35 @@ export type BasicStats = {
     hp: number;
   };
 
+type CharacterConstructor<T> = Partial<NonConflicting<T, BasicStats> & BasicStats>
+
+
 export class Stats<T extends Record<string, any> = {}> {
     private _prop: Widen<NonConflicting<T, BasicStats>> & BasicStats;
 
-    constructor(defaultStats?: Partial<NonConflicting<T, BasicStats> & BasicStats>) {
+    constructor(defaultStats?: CharacterConstructor<T>) {
+        const { totalHp, hp, ...restData} = defaultStats ?? {};
+
         const totalHpProvided = defaultStats ?
             Math.max(
-                defaultStats.totalHp ?? DEFAULT_STATS.totalHp,
-                defaultStats.hp ?? DEFAULT_STATS.hp,
+                totalHp ?? DEFAULT_STATS.totalHp,
+                hp ?? DEFAULT_STATS.hp,
             ) :
             DEFAULT_STATS.totalHp;
 
-        this._prop = {
-            ...DEFAULT_STATS,
-            ...(defaultStats as any),
-            totalHp: totalHpProvided,
-        };
+        this._prop = Object.assign(DEFAULT_STATS,
+            {
+                ...restData,
+                totalHp: totalHpProvided,
+            },
+        ) as unknown as Widen<NonConflicting<T, BasicStats>> & BasicStats;
+
+
+        // {
+        //     ...DEFAULT_STATS,
+        //     ...(defaultStats as any),
+        //     totalHp: totalHpProvided,
+        // } as Widen<NonConflicting<T, BasicStats>>; ;
     }
 
     private setHp(newHp: number) {

@@ -1,4 +1,5 @@
 import { Character } from '../src/Classes/Character';
+import { Stats } from '../src/Classes/Stats';
 
 
 describe('Character', () => {
@@ -13,16 +14,16 @@ describe('Character', () => {
 
     it('should allow custom stats and data', () => {
         const char = new Character<{ role: string }>({
-            stats: { attack: 50, defence: 10, totalHp: 100, hp: 100 },
+            stats: new Stats({ attack: 50, defence: 10, totalHp: 100, hp: 100 }),
             role: 'warrior',
         });
 
         expect(char.stats.getProp('attack')).toBe(50);
-        expect(char.getData().role).toBe('warrior');
+        expect(char.getProps().role).toBe('warrior');
     });
 
     it('should apply damage and update alive status', () => {
-        const char = new Character({ stats: { hp: 10 } });
+        const char = new Character({ stats: new Stats({ hp: 10 }) });
         char.receiveDamage(10);
 
         expect(char.stats.getProp('hp')).toBe(0);
@@ -32,7 +33,7 @@ describe('Character', () => {
     it('should correctly export to JSON', () => {
         const char = new Character<{ class: string }>({
             id: 'test-1',
-            stats: { attack: 30 },
+            stats: new Stats({ attack: 30 }),
             class: 'mage',
         });
 
@@ -54,32 +55,27 @@ describe('Character', () => {
         expect(() => char.getProp('job')).toThrow();
     });
 
-    it('carton', () => {
-        type TYPE_OF_COLOR = 'R' | 'U' | 'G' | 'W' | 'B' | 'Colorless';
-        interface carton {
-            color: TYPE_OF_COLOR,
-            manaValue: Partial<{
-                [x in TYPE_OF_COLOR]: number
-            }>,
-            description: string,
-            img: any,
-            baseAttack: number,
-            baseThougness: number,
-            attack: (...arg: any[]) => number,
-            thougness: (...arg: any) => number,
+    it('Can access to custom status throw the character', () => {
+        interface mageStats {
+            mana: number;
+            fuego: boolean;
+            foo: string;
+            agua: number
         }
 
+        const charStats = new Stats<mageStats>({ fuego: true, mana: 100, foo: 'foo', isAlive: 1 });
 
-        const carton = new Character<carton>({
-            manaValue: {
-                Colorless: 1,
-            },
-            attack: (self: Character<carton>, enemy: Character<carton>) => {
-                const attack1 = self.getProp('baseAttack');
-                const attack2 = enemy.getProp('baseAttack');
+        charStats.getProp('agua');
 
-                return attack1 + attack2;
-            },
+        charStats.getProp('fuego');
+
+        const char = new Character<{data: {foo: string}}, mageStats>({
+            stats: charStats,
+            data: { foo: 'foo' },
         });
+
+        char.stats.getProp('agua');
+
+        // TODO: Pending Tests
     });
 });

@@ -11,31 +11,37 @@ import { BasicStats, Stats } from './Stats';
 
 type CharacterBase = {
     id?: string;
-    stats?: any;
-    combat?: any;
+    stats: Stats<any>;
+    combat?: CombatBehavior;
   }
 
-type CharacterConstructor<T> = Partial<NonConflicting<T, CharacterBase> & CharacterBase>;
+type CharacterConstructor<TProps, TStatData extends Record<string, any> = {}> = {
+  id?: string;
+  combat?: CombatBehavior;
+  stats?: Stats<TStatData>;
+} & Partial<NonConflicting<TProps, CharacterBase>>;
 
-const jeson = {
-
-};
-class Character2 {}
-
-class Character<T extends object = {}> {
+class Character<
+    TProps extends object = {},
+    TStatData extends Record<string, any> = {}
+  > {
     public readonly id: string;
-    public readonly stats: Stats<T>;
+    public readonly stats: Stats<TStatData>;
     public readonly combat: CombatBehavior;
 
-    private _props: Widen<NonConflicting<T, CharacterBase>>;
+    private _props: Widen<NonConflicting<TProps, CharacterBase>>;
 
-    constructor(params?: CharacterConstructor<T>) {
-        const { id, stats, combat, ...restData } = params ?? {};
+    constructor(params?: Partial<CharacterConstructor<TProps, TStatData>>) {
+        if (!params) {
+            params = {};
+        }
+
+        const { id, combat, stats, ...restData } = params;
 
         this.id = id ?? uniqueID();
-        this.stats = new Stats<T>(stats); // Change for the D in SOLID.
-        this.combat = new CombatBehavior(combat);
-        this._props = (restData ?? {}) as Widen<NonConflicting<T, CharacterBase>>;
+        this.stats = stats ?? new Stats() as Stats<TStatData>;
+        this.combat = combat ?? new CombatBehavior();
+        this._props = restData as Widen<NonConflicting<TProps, CharacterBase>>;
     }
 
     attack(): AttackResult {
@@ -58,22 +64,22 @@ class Character<T extends object = {}> {
         return this.stats.getProp('isAlive') === 1;
     }
 
-    getData(): Widen<NonConflicting<T, CharacterBase>> {
+    getProps(): Widen<NonConflicting<TProps, CharacterBase>> {
         return { ...this._props };
     }
 
-    getProp<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K): Widen<NonConflicting<T, CharacterBase>>[K] {
+    getProp<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K): Widen<NonConflicting<TProps, CharacterBase>>[K] {
         if (!(key in this._props)) {
             throw new Error(`Property "${String(key)}" does not exist in character data`);
         }
         return this._props[key];
     }
 
-    setProp<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K, value: Widen<NonConflicting<T, CharacterBase>>[K]) {
+    setProp<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K, value: Widen<NonConflicting<TProps, CharacterBase>>[K]) {
         this._props[key] = value;
     }
 
-    delete<K extends keyof Widen<NonConflicting<T, CharacterBase>>>(key: K) {
+    delete<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K) {
         if (key in this._props) {
             delete this._props[key];
         }
@@ -83,7 +89,7 @@ class Character<T extends object = {}> {
         return {
             id: this.id,
             stats: this.stats.toJSON(),
-            data: this.getData(),
+            data: this.getProps(),
         };
     }
 }
