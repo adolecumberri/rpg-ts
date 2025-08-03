@@ -36,3 +36,100 @@ https://github.com/adolecumberri/rpg-ts/blob/master/src/classes/Character.ts
 
 Un link a Clean Code, este es el archivo de referencia para criticar tu codigo (si te critico, al menos saber las normas):
 https://github.com/ryanmcdermott/clean-code-javascript?tab=readme-ov-file#variables
+
+Definicion del tema de SOLID (esto debes buscarlo tu)
+1. S- Single Responsability Principle: 
+un modulo solo debe dedicarse a 1 cosa. Status, Character, Combat, Team... solo se dedican a una cosa.
+
+2. O- Open/Closed Principle
+El codigo debe estar abierto a extensiones pero cerrado a modificaciones.
+
+Ejemplo de chat gpt:
+// ❌ Cambiar esta función cada vez que agregas una nueva notificación
+function sendNotification(type, message) {
+  if (type === "email") { /* enviar email */ }
+  else if (type === "sms") { /* enviar sms */ }
+}
+
+// ✅ Extensión con clases o funciones
+class Notifier {
+  send(message) {}
+}
+
+class EmailNotifier extends Notifier {
+  send(message) {
+    // enviar email
+  }
+}
+
+class SMSNotifier extends Notifier {
+  send(message) {
+    // enviar sms
+  }
+}
+
+
+3. L-  Este no lo entiendo ni yo. Trata sobre herencia de clases
+
+4. I- Interface Segregation (de los mas utiles)
+Mejor varias interfaces pequeñas y especificas que una grande y general.
+
+Ejemplo del GPT chat:
+// ❌ Interface implícita muy grande
+class Machine {
+  print() {}
+  scan() {}
+  fax() {}
+}
+
+// ✅ Dividir responsabilidades
+class Printer {
+  print() {}
+}
+
+class Scanner {
+  scan() {}
+}
+
+5. D- Dependency Inversion
+Se trata en reducir el acople lo maximo posible. por ejemplo en Character, creo un objeto Stats en el constructor.
+Ese objeto deberia venir desde el constructor para evitar que las clases (como Character) tengan dependencias Directas.
+
+otro ejemplo de chat gpt:
+// ❌ Alta dependencia de implementación concreta
+class FileLogger {
+  log(msg) { console.log("File:", msg); }
+}
+
+class App {
+  constructor() {
+    this.logger = new FileLogger(); // acoplado
+  }
+
+  run() {
+    this.logger.log("App started");
+  }
+}
+
+// ✅ Inversión de dependencias
+class App {
+  constructor(logger) {
+    this.logger = logger; // se le pasa desde fuera
+  }
+
+  run() {
+    this.logger.log("App started");
+  }
+}
+
+const logger = new FileLogger();
+const app = new App(logger);
+
+
+
+Por ejemplo leyendo los principios solid (solo estaba aplicando 2), deberia refactorizar el Character para que aceptase
+interfaces mas abiertas y abstractas y no hacerlo todo tan rigido.
+
+De esto va el proyecto, de aprender. 
+
+Buenas noches

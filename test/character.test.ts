@@ -53,4 +53,33 @@ describe('Character', () => {
         char.delete('job');
         expect(() => char.getProp('job')).toThrow();
     });
+
+    it('carton', () => {
+        type TYPE_OF_COLOR = 'R' | 'U' | 'G' | 'W' | 'B' | 'Colorless';
+        interface carton {
+            color: TYPE_OF_COLOR,
+            manaValue: Partial<{
+                [x in TYPE_OF_COLOR]: number
+            }>,
+            description: string,
+            img: any,
+            baseAttack: number,
+            baseThougness: number,
+            attack: (...arg: any[]) => number,
+            thougness: (...arg: any) => number,
+        }
+
+
+        const carton = new Character<carton>({
+            manaValue: {
+                Colorless: 1,
+            },
+            attack: (self: Character<carton>, enemy: Character<carton>) => {
+                const attack1 = self.getProp('baseAttack');
+                const attack2 = enemy.getProp('baseAttack');
+
+                return attack1 + attack2;
+            },
+        });
+    });
 });

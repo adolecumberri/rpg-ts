@@ -17,6 +17,11 @@ type CharacterBase = {
 
 type CharacterConstructor<T> = Partial<NonConflicting<T, CharacterBase> & CharacterBase>;
 
+const jeson = {
+
+};
+class Character2 {}
+
 class Character<T extends object = {}> {
     public readonly id: string;
     public readonly stats: Stats<T>;
@@ -28,7 +33,7 @@ class Character<T extends object = {}> {
         const { id, stats, combat, ...restData } = params ?? {};
 
         this.id = id ?? uniqueID();
-        this.stats = new Stats<T>(stats);
+        this.stats = new Stats<T>(stats); // Change for the D in SOLID.
         this.combat = new CombatBehavior(combat);
         this._props = (restData ?? {}) as Widen<NonConflicting<T, CharacterBase>>;
     }
@@ -50,7 +55,7 @@ class Character<T extends object = {}> {
     }
 
     isAlive(): boolean {
-        return this.stats.get('isAlive') === 1;
+        return this.stats.getProp('isAlive') === 1;
     }
 
     getData(): Widen<NonConflicting<T, CharacterBase>> {

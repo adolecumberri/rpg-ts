@@ -60,13 +60,13 @@ class Status <T extends object = {}> {
             for (const stat of this.statsAffected) {
                 const action = ACTION[stat.type];
                 const result = action({
-                    from: characterStats.get(stat.from),
-                    to: characterStats.get(stat.to),
+                    from: characterStats.getProp(stat.from),
+                    to: characterStats.getProp(stat.to),
                     value: stat.value,
                 });
 
                 // Actualizar las estadísticas del personaje
-                characterStats.set(stat.to, result.finalValue as number);
+                characterStats.setProp(stat.to, result.finalValue as number);
 
                 // Guardar el valor aplicado para el recovery
                 stat.valueToRecover = result.appliedValue;
@@ -103,8 +103,8 @@ class Status <T extends object = {}> {
     recover(characterStats: Stats<any>) {
         for (const stat of this.statsAffected) {
             if (stat.recovers) {
-                const current = characterStats.get(stat.to);
-                characterStats.set(stat.to, current - (stat.valueToRecover ?? 0));
+                const current = characterStats.getProp(stat.to);
+                characterStats.setProp(stat.to, current - (stat.valueToRecover ?? 0));
             }
         }
     }
