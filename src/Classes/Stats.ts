@@ -4,10 +4,10 @@ import { NonConflicting, Widen } from '../helpers/type.helpers';
 export type BasicStats = {
     attack: number;
     defence: number;
-    isAlive: number;
+    isAlive: 0 | 1;
     totalHp: number;
     hp: number;
-  };
+};
 
 type CharacterConstructor<T> = Partial<NonConflicting<T, BasicStats> & BasicStats>
 
@@ -16,7 +16,7 @@ export class Stats<T extends Record<string, any> = {}> {
     private _prop: Widen<NonConflicting<T, BasicStats>> & BasicStats;
 
     constructor(defaultStats?: CharacterConstructor<T>) {
-        const { totalHp, hp, ...restData} = defaultStats ?? {};
+        const { totalHp, hp, ...restData } = defaultStats ?? {};
 
         const totalHpProvided = defaultStats ?
             Math.max(
@@ -57,7 +57,7 @@ export class Stats<T extends Record<string, any> = {}> {
         );
     }
 
-    getProp<K extends keyof(NonConflicting<T, BasicStats> & BasicStats)>(
+    getProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(
         key: K,
     ): (NonConflicting<T, BasicStats> & BasicStats)[K] {
         if (!(key in this._prop)) {
@@ -66,7 +66,7 @@ export class Stats<T extends Record<string, any> = {}> {
         return this._prop[key];
     }
 
-    setProp<K extends keyof(NonConflicting<T, BasicStats> & BasicStats)>(
+    setProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(
         key: K,
         value: (NonConflicting<T, BasicStats> & BasicStats)[K],
     ) {

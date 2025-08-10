@@ -1,35 +1,33 @@
-import { getRandomInt, uniqueID } from '../helpers/common.helpers';
+import { uniqueID } from '../helpers/common.helpers';
 import { NonConflicting, Widen } from '../helpers/type.helpers';
-import {
-    AttackResult,
-    DefenceResult,
-} from '../types/combat.types';
-
-
+import { AttackResult, DefenceResult } from '../types/combat.types';
 import { CombatBehavior } from './CombatBehavior';
-import { BasicStats, Stats } from './Stats';
+import { Stats } from './Stats';
+import { createEventEmitter, wrapWithEvents } from '../helpers/event-wrapper';
+
 
 type CharacterBase = {
     id?: string;
-    stats: Stats<any>;
     combat?: CombatBehavior;
-  }
+    stats: Stats<any>;
+}
 
 type CharacterConstructor<TProps, TStatData extends Record<string, any> = {}> = {
-  id?: string;
-  combat?: CombatBehavior;
-  stats?: Stats<TStatData>;
+    id?: string;
+    combat?: CombatBehavior;
+    stats?: Stats<TStatData>;
 } & Partial<NonConflicting<TProps, CharacterBase>>;
 
 class Character<
     TProps extends object = {},
     TStatData extends Record<string, any> = {}
-  > {
+> {
     public readonly id: string;
     public readonly stats: Stats<TStatData>;
     public readonly combat: CombatBehavior;
 
     private _props: Widen<NonConflicting<TProps, CharacterBase>>;
+    private _emitter = createEventEmitter();
 
     constructor(params?: Partial<CharacterConstructor<TProps, TStatData>>) {
         if (!params) {
@@ -40,8 +38,23 @@ class Character<
 
         this.id = id ?? uniqueID();
         this.stats = stats ?? new Stats() as Stats<TStatData>;
-        this.combat = combat ?? new CombatBehavior();
         this._props = restData as Widen<NonConflicting<TProps, CharacterBase>>;
+
+        const baseCombat = combat ?? new CombatBehavior();
+
+        // Envolvemos attack y defence con triggers
+        baseCombat.attack = wrapWithEvents(
+            this._emitter,
+            'attack',
+            baseCombat.attack.bind(baseCombat),
+        );
+        baseCombat.defence = wrapWithEvents(
+            this._emitter,
+            'defence',
+            baseCombat.defence.bind(baseCombat),
+        );
+
+        this.combat = baseCombat;
     }
 
     attack(): AttackResult {
@@ -68,7 +81,7 @@ class Character<
         return { ...this._props };
     }
 
-    getProp<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K): Widen<NonConflicting<TProps, CharacterBase>>[K] {
+    getProp<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K) {
         if (!(key in this._props)) {
             throw new Error(`Property "${String(key)}" does not exist in character data`);
         }
@@ -79,10 +92,14 @@ class Character<
         this._props[key] = value;
     }
 
-    delete<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K) {
+    deleteProp<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K) {
         if (key in this._props) {
             delete this._props[key];
         }
+    }
+
+    on(event: string, listener: (...args: any[]) => void) {
+        this._emitter.on(event, listener);
     }
 
     toJSON() {

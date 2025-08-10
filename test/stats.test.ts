@@ -1,3 +1,4 @@
+import { Character } from '../src/Classes/Character';
 import { Stats } from '../src/Classes/Stats';
 import { DEFAULT_STATS } from '../src/constants/stats.constants';
 
@@ -71,7 +72,7 @@ describe('Stats', () => {
     });
 
     it('should receive damage', () => {
-        const stats = new Stats({hp: 50});
+        const stats = new Stats({ hp: 50 });
 
         expect(stats.getProp('totalHp')).toBe(50);
         expect(stats.getProp('hp')).toBe(50);
@@ -89,7 +90,7 @@ describe('Stats', () => {
     });
 
     it('should heal and not over totalHp', () => {
-        const stats = new Stats({hp: 50, totalHp: 70});
+        const stats = new Stats({ hp: 50, totalHp: 70 });
 
         expect(stats.getProp('totalHp')).toBe(70);
         expect(stats.getProp('hp')).toBe(50);
@@ -98,5 +99,28 @@ describe('Stats', () => {
 
         expect(stats.getProp('totalHp')).toBe(70);
         expect(stats.getProp('hp')).toBe(70);
+    });
+
+    describe('Custom Properties', () => {
+        it('should allow adding custom properties', () => {
+            const stats = new Stats<ExtraStats>({ agility: 10 });
+            const char = new Character({
+                stats,
+            });
+
+            expect(stats.getProp('agility')).toBeInstanceOf(Number);
+            expect(stats.getProp('agility')).toBe(10);
+        });
+
+        it('should throw when accessing a non-existent custom property', () => {
+            const stats = new Stats<ExtraStats>();
+            expect(() => stats.getProp('agility')).toThrow();
+        });
+
+        it('should allow setting custom properties', () => {
+            const stats = new Stats<ExtraStats>();
+            stats.setProp('agility', 20);
+            expect(stats.getProp('agility')).toBe(20);
+        });
     });
 });
