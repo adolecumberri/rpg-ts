@@ -25,9 +25,9 @@ export class Stats<T extends Record<string, any> = {}> {
             ) :
             DEFAULT_STATS.totalHp;
 
-        this._prop = Object.assign(DEFAULT_STATS,
+        this._prop = Object.assign({ ...DEFAULT_STATS },
             {
-                ...restData,
+                ...defaultStats,
                 totalHp: totalHpProvided,
             },
         ) as unknown as Widen<NonConflicting<T, BasicStats>> & BasicStats;
@@ -63,6 +63,7 @@ export class Stats<T extends Record<string, any> = {}> {
         if (!(key in this._prop)) {
             throw new Error(`Property "${String(key)}" does not exist in stats`);
         }
+        console.log('aaa', key, this._prop[key]);
         return this._prop[key];
     }
 

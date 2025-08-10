@@ -108,8 +108,7 @@ describe('Stats', () => {
                 stats,
             });
 
-            expect(stats.getProp('agility')).toBeInstanceOf(Number);
-            expect(stats.getProp('agility')).toBe(10);
+            expect(char.stats.getProp('agility')).toBe(10);
         });
 
         it('should throw when accessing a non-existent custom property', () => {

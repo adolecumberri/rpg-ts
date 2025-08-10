@@ -1,5 +1,7 @@
 import { Character } from '../src/Classes/Character';
+import { CombatBehavior } from '../src/Classes/CombatBehavior';
 import { Stats } from '../src/Classes/Stats';
+import { AttackResult, AttackType } from '../src/types/combat.types';
 
 
 describe('Character', () => {
@@ -51,31 +53,64 @@ describe('Character', () => {
         char.setProp('job', 'knight');
         expect(char.getProp('job')).toBe('knight');
 
-        char.delete('job');
+        char.deleteProp('job');
         expect(() => char.getProp('job')).toThrow();
     });
 
-    it('Can access to custom status throw the character', () => {
-        interface mageStats {
-            mana: number;
-            fuego: boolean;
-            foo: string;
-            agua: number
-        }
+    describe('Triggers and events', () => {
+        it('should emit before_attack and after_attack events', () => {
+            const attackFn = jest.fn().mockImplementation((): AttackResult => {
+                return { value: 42, type: 'normal' } as AttackResult;
+            });
 
-        const charStats = new Stats<mageStats>({ fuego: true, mana: 100, foo: 'foo', isAlive: 1 });
+            const combat = new CombatBehavior({
+                attackFn,
+            });
+            const char = new Character({
+                combat,
+            });
 
-        charStats.getProp('agua');
+            const beforeAttackHandler = jest.fn();
+            const afterAttackHandler = jest.fn();
 
-        charStats.getProp('fuego');
+            char.on('before_attack', beforeAttackHandler);
+            char.on('after_attack', afterAttackHandler);
 
-        const char = new Character<{data: {foo: string}}, mageStats>({
-            stats: charStats,
-            data: { foo: 'foo' },
+            const result = char.attack();
+
+            expect(attackFn).toHaveBeenCalledTimes(1);
+
+            expect(beforeAttackHandler).toHaveBeenCalledWith(char);
+            expect(afterAttackHandler).toHaveBeenCalledWith(result, char);
+
+            expect(result.value).toBe(42);
+        });
+    });
+
+    it('should preserve attack function argument and return types', () => {
+        const combat = new CombatBehavior({
+            attackFn: (char: Character, preSetVale: number, preSetType: AttackType): AttackResult => {
+                return { value: preSetVale, type: preSetType };
+            },
         });
 
-        char.stats.getProp('agua');
+        const char = new Character({
+            combat,
+        });
 
-        // TODO: Pending Tests
+        const beforeAttackHandler = jest.fn();
+        const afterAttackHandler = jest.fn();
+
+
+        char.on('before_attack', beforeAttackHandler);
+        char.on('after_attack', afterAttackHandler);
+
+        const result = char.combat.attack(char, 7, 'true');
+
+        expect(beforeAttackHandler).toHaveBeenCalledTimes(1);
+        expect(afterAttackHandler).toHaveBeenCalledTimes(1);
+
+        expect(result.value).toBe(7);
+        expect(result.type).toBe('true');
     });
 });
