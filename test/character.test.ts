@@ -1,6 +1,7 @@
 import { Character } from '../src/Classes/Character';
 import { CombatBehavior } from '../src/Classes/CombatBehavior';
 import { Stats } from '../src/Classes/Stats';
+import { wrapWithEvents } from '../src/helpers/event-wrapper';
 import { AttackResult, AttackType } from '../src/types/combat.types';
 
 
@@ -112,5 +113,39 @@ describe('Character', () => {
 
         expect(result.value).toBe(7);
         expect(result.type).toBe('true');
+    });
+
+    it('should allow overriding attack while keeping event emission', () => {
+        const char = new Character({
+            stats: new Stats({ attack: 10 }),
+        });
+
+        const beforeSpy = jest.fn();
+        const afterSpy = jest.fn();
+
+        char.on('before_attack', beforeSpy);
+        char.on('after_attack', afterSpy);
+
+        let result = char.attack();
+
+        expect(result.value).toBe(10);
+        expect(beforeSpy).toHaveBeenCalledTimes(1);
+        expect(afterSpy).toHaveBeenCalledTimes(1);
+
+        char.combat.attack = jest.fn().mockImplementation((c: Character) => {
+            return { value: 99, type: 'magic' } as AttackResult;
+        });
+
+        result = char.attack();
+
+        expect(result.value).toBe(99);
+        expect(beforeSpy).toHaveBeenCalledTimes(1);
+        expect(afterSpy).toHaveBeenCalledTimes(1);
+
+        // Pending to add a way to add attack with emit
+
+        char.combat.attack = jest.fn().mockImplementation((c: Character) => {
+            return { value: 99, type: 'magic' } as AttackResult;
+        });
     });
 });

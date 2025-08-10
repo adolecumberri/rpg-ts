@@ -63,7 +63,6 @@ export class Stats<T extends Record<string, any> = {}> {
         if (!(key in this._prop)) {
             throw new Error(`Property "${String(key)}" does not exist in stats`);
         }
-        console.log('aaa', key, this._prop[key]);
         return this._prop[key];
     }
 
