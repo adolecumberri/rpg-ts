@@ -31,11 +31,20 @@ export function wrapWithEvents<
     T extends (...args: any[]) => any
 >(
     { emitter, methodName, fn }: {
-        emitter: EventEmitter,
+        emitter?: EventEmitterLike,
         methodName: string,
         fn: T
     },
 ): T {
+    if (!emitter && methodName && fn) {
+        return ((...args: Parameters<T>): ReturnType<T> => {
+            return fn(...args);
+        }) as T;
+    }
+
+    if (!emitter || !methodName || !fn) {
+        throw new Error('wrapWithEvents requires emitter, methodName, and fn parameters');
+    }
     return ((...args: Parameters<T>): ReturnType<T> => {
         emitter.emit(`before_${methodName}`, ...args);
         const result = fn(...args);

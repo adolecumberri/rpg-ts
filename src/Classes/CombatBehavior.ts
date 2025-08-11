@@ -22,19 +22,25 @@ class CombatBehavior {
     private _defenceCalculation: DefenceCalculation;
     private _emitter?: EventEmitterLike;
 
-    constructor(config: Partial<CombatBehaviorConstructor> = {}, emitter?: EventEmitterLike) {
+    constructor(config: Partial<CombatBehaviorConstructor> = {}) {
         const fallback = DEFAULT_COMBAT_BEHAVIOR_CONFIG;
 
-        this._emitter = emitter;
+        this._emitter = config.emitter;
 
-        this._attack = this._wrapWithEvents(
-            'attack',
-            config.attackFn ?? fallback.attackFn,
+        this._attack = wrapWithEvents(
+            {
+                methodName: 'attack',
+                fn: config.attackFn ?? fallback.attackFn,
+                emitter: this._emitter,
+            },
         );
 
-        this._defence = this._wrapWithEvents(
-            'defence',
-            config.defenceFn ?? fallback.defenceFn,
+        this._defence = wrapWithEvents(
+            {
+                methodName: 'defence',
+                fn: config.defenceFn ?? fallback.defenceFn,
+                emitter: this._emitter,
+            },
         );
 
         this._damageCalculation = config.damageCalc ?? fallback.damageCalc;
@@ -45,14 +51,18 @@ class CombatBehavior {
         return this._attack;
     }
     set attack(fn: AttackFunction) {
-        this._attack = wrapWithEvents('attack', fn);
+        this._attack = wrapWithEvents({
+            methodName: 'attack', fn, emitter: this._emitter,
+        });
     }
 
     get defence(): DefenceFunction {
         return this._defence;
     }
     set defence(fn: DefenceFunction) {
-        this._defence = this._wrapWithEvents('defence', fn);
+        this._defence = wrapWithEvents({
+            methodName: 'defence', fn, emitter: this._emitter,
+        });
     }
 
     calculateDamage(type: AttackType, stats: Stats<any>): number {
