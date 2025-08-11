@@ -1,6 +1,6 @@
 import { uniqueID } from '../helpers/common.helpers';
 import { NonConflicting, Widen } from '../helpers/type.helpers';
-import { AttackResult, DefenceResult } from '../types/combat.types';
+import { AttackFunction, AttackResult, DefenceResult } from '../types/combat.types';
 import { CombatBehavior } from './CombatBehavior';
 import { Stats } from './Stats';
 import { createEventEmitter, wrapWithEvents } from '../helpers/event-wrapper';
@@ -29,6 +29,9 @@ class Character<
     private _props: Widen<NonConflicting<TProps, CharacterBase>>;
     private _emitter = createEventEmitter();
 
+    // combat.attack function saved to allow wrapping
+    private _attackWrapped!: AttackFunction;
+
     constructor(params?: Partial<CharacterConstructor<TProps, TStatData>>) {
         if (!params) {
             params = {};
@@ -38,23 +41,9 @@ class Character<
 
         this.id = id ?? uniqueID();
         this.stats = stats ?? new Stats() as Stats<TStatData>;
+        this.combat = combat ?? new CombatBehavior({}, this._emitter);
+
         this._props = restData as Widen<NonConflicting<TProps, CharacterBase>>;
-
-        const baseCombat = combat ?? new CombatBehavior();
-
-        // Envolvemos attack y defence con triggers
-        baseCombat.attack = wrapWithEvents(
-            this._emitter,
-            'attack',
-            baseCombat.attack.bind(baseCombat),
-        );
-        baseCombat.defence = wrapWithEvents(
-            this._emitter,
-            'defence',
-            baseCombat.defence.bind(baseCombat),
-        );
-
-        this.combat = baseCombat;
     }
 
     attack(): AttackResult {

@@ -2,7 +2,11 @@
 export type EventHandler = (...args: any[]) => void;
 
 export interface EventEmitter {
-    on(event: string, listener: EventHandler): void;
+    on(event: string, listener: EventHandler): void; // setter
+    emit(event: string, ...args: any[]): void; // trigger
+}
+
+export interface EventEmitterLike {
     emit(event: string, ...args: any[]): void;
 }
 
@@ -26,9 +30,11 @@ export function createEventEmitter(): EventEmitter {
 export function wrapWithEvents<
     T extends (...args: any[]) => any
 >(
-    emitter: EventEmitter,
-    methodName: string,
-    fn: T,
+    { emitter, methodName, fn }: {
+        emitter: EventEmitter,
+        methodName: string,
+        fn: T
+    },
 ): T {
     return ((...args: Parameters<T>): ReturnType<T> => {
         emitter.emit(`before_${methodName}`, ...args);
