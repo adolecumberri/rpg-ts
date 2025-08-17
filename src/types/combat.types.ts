@@ -35,5 +35,5 @@ export type CombatBehaviorConstructor = {
   damageCalc: DamageCalculation,
   defenceFn: DefenceFunction,
   defenceCalc: DefenceCalculation,
-  emitter: EventEmitterLike,
+  emitter?: EventEmitterLike,
 }

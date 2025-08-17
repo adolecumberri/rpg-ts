@@ -41,13 +41,24 @@ class Character<
 
         this.id = id ?? uniqueID();
         this.stats = stats ?? new Stats() as Stats<TStatData>;
-        this.combat = combat ?? new CombatBehavior({}, this._emitter);
+
+        this.combat = combat ?? new CombatBehavior({ emitter: this._emitter });
+        if (!this.combat.emitter) {
+            this.combat.emitter = this._emitter; // combat emite triggers usando el emisor de character
+        }
+
 
         this._props = restData as Widen<NonConflicting<TProps, CharacterBase>>;
     }
 
-    attack(): AttackResult {
-        return this.combat.attack(this);
+    /**
+     *
+     * @param arg any ammount of arguments, will be passed to the combat in that order.
+     * The first argument will be the character itself.
+     * @returns AttackResult
+     */
+    attack(...arg: any[]): AttackResult {
+        return this.combat.attack(this, ...arg);
     }
 
     defend(attack: AttackResult): DefenceResult {

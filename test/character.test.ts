@@ -106,7 +106,7 @@ describe('Character', () => {
         char.on('before_attack', beforeAttackHandler);
         char.on('after_attack', afterAttackHandler);
 
-        const result = char.combat.attack(char, 7, 'true');
+        const result = char.attack(7, 'true');
 
         expect(beforeAttackHandler).toHaveBeenCalledTimes(1);
         expect(afterAttackHandler).toHaveBeenCalledTimes(1);
@@ -139,13 +139,7 @@ describe('Character', () => {
         result = char.attack();
 
         expect(result.value).toBe(99);
-        expect(beforeSpy).toHaveBeenCalledTimes(1);
-        expect(afterSpy).toHaveBeenCalledTimes(1);
-
-        // Pending to add a way to add attack with emit
-
-        char.combat.attack = jest.fn().mockImplementation((c: Character) => {
-            return { value: 99, type: 'magic' } as AttackResult;
-        });
+        expect(beforeSpy).toHaveBeenCalledTimes(2);
+        expect(afterSpy).toHaveBeenCalledTimes(2);
     });
 });

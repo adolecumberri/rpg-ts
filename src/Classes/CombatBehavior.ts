@@ -22,11 +22,15 @@ class CombatBehavior {
     private _defenceCalculation: DefenceCalculation;
     private _emitter?: EventEmitterLike;
 
+    originalAttackFn: AttackFunction;
+    originalDefenceFn: DefenceFunction;
+
     constructor(config: Partial<CombatBehaviorConstructor> = {}) {
         const fallback = DEFAULT_COMBAT_BEHAVIOR_CONFIG;
 
         this._emitter = config.emitter;
 
+        this.originalAttackFn = config.attackFn ?? fallback.attackFn;
         this._attack = wrapWithEvents(
             {
                 methodName: 'attack',
@@ -35,6 +39,7 @@ class CombatBehavior {
             },
         );
 
+        this.originalDefenceFn = config.defenceFn ?? fallback.defenceFn;
         this._defence = wrapWithEvents(
             {
                 methodName: 'defence',
@@ -47,10 +52,15 @@ class CombatBehavior {
         this._defenceCalculation = config.defenceCalc ?? fallback.defenceCalc;
     }
 
+    /**
+     * args will be a list passed
+     * but the first value will be the character (added automatically)
+     */
     get attack(): AttackFunction {
         return this._attack;
     }
     set attack(fn: AttackFunction) {
+        this.originalAttackFn = fn;
         this._attack = wrapWithEvents({
             methodName: 'attack', fn, emitter: this._emitter,
         });
@@ -60,6 +70,7 @@ class CombatBehavior {
         return this._defence;
     }
     set defence(fn: DefenceFunction) {
+        this.originalDefenceFn = fn;
         this._defence = wrapWithEvents({
             methodName: 'defence', fn, emitter: this._emitter,
         });
@@ -73,6 +84,20 @@ class CombatBehavior {
 
     calculateDefence(incoming: number, stats: Stats<any>): number {
         return this._defenceCalculation(incoming, stats);
+    }
+
+    get emitter(): EventEmitterLike | undefined {
+        return this._emitter;
+    }
+
+    set emitter(emitter: EventEmitterLike | undefined) {
+        this._emitter = emitter;
+        this._attack = wrapWithEvents({
+            methodName: 'attack', fn: this.originalAttackFn, emitter: this._emitter,
+        });
+        this._defence = wrapWithEvents({
+            methodName: 'defence', fn: this.originalDefenceFn, emitter: this._emitter,
+        });
     }
 }
 

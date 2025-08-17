@@ -52,6 +52,7 @@ const DEFAULT_COMBAT_BEHAVIOR_CONFIG: CombatBehaviorConstructor = {
     damageCalc: DEFAULT_DAMAGE_CALCULATION,
     defenceFn: DEFAULT_DEFENCE_FUNCTION,
     defenceCalc: DEFAULT_DEFENCE_CALCULATION,
+    emitter: undefined,
 };
 
 export {
