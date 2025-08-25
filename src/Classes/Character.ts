@@ -29,9 +29,6 @@ class Character<
     private _props: Widen<NonConflicting<TProps, CharacterBase>>;
     private _emitter = createEventEmitter();
 
-    // combat.attack function saved to allow wrapping
-    private _attackWrapped!: AttackFunction;
-
     constructor(params?: Partial<CharacterConstructor<TProps, TStatData>>) {
         if (!params) {
             params = {};

@@ -1,6 +1,7 @@
 import { Character } from './Character';
 import { StatusInstance } from './StatusInstance';
-import { StatusApplicationMoment, StatusDefinition } from '../types/status.types';
+import { StatusDefinition } from '../types/status.types';
+import { EventMoment } from '../types/generalEvents.types';
 
 
 class StatusManager {
@@ -12,7 +13,7 @@ class StatusManager {
         this.statuses.push(instance);
     }
 
-    activate(moment: StatusApplicationMoment, character: Character) {
+    activate(moment: EventMoment, character: Character) {
         this.statuses.forEach((s: StatusInstance) => {
             if (s.definition.applyOn === moment) {
                 s.activate(character.stats);

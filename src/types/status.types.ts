@@ -4,7 +4,7 @@ import { StatusInstance } from '../Classes/StatusInstance';
 import { StatusManager } from '../Classes/StatusManager';
 import { STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from '../constants/status.constants';
 import { NonConflicting } from '../helpers/type.helpers';
-import { CoreEvents } from './generalEvents.types';
+import { CoreEvents, EventMoment } from './generalEvents.types';
 
 
 type StatusManagerConstructor = {
@@ -33,7 +33,6 @@ type StatusType = keyof typeof STATUS_TYPES;
 
 type StatusDuration = StatusDurationPermanent | StatusDurationTemporal;
 
-type StatusApplicationMoment = `before_${CoreEvents}` | `after_${CoreEvents}`;
 
 type StatusUsageFrequency = keyof typeof STATUS_USAGE_FREQUENCY;
 
@@ -55,7 +54,7 @@ type StatusConstructor<T extends object = {}> = Partial<
 
 interface StatusDefinition {
     name: string;
-    applyOn: StatusApplicationMoment;
+    applyOn: EventMoment;
     duration: StatusDuration;
     usageFrequency: StatusUsageFrequency;
     statsAffected: AffectedStatDescriptor[];
@@ -71,7 +70,6 @@ export {
     StatusDurationTemporal,
     StatusType,
     StatusDuration,
-    StatusApplicationMoment,
     StatusUsageFrequency,
     StatusConstructor,
     StatusActivationFunction,
