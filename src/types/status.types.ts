@@ -1,14 +1,16 @@
 import { Character } from '../Classes/Character';
 import { BasicStats } from '../Classes/Stats';
 import { StatusInstance } from '../Classes/StatusInstance';
-import { StatusManager } from '../Classes/StatusManager';
 import { STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from '../constants/status.constants';
 import { NonConflicting } from '../helpers/type.helpers';
 import { CoreEvents, EventMoment } from './generalEvents.types';
 
 
-type StatusManagerConstructor = {
-    [x in keyof StatusManager]?: StatusManager[x]
+type StatusInstanceConstructor = {
+    definition: StatusDefinition;
+    id?: string;
+    timesUsed?: number;
+    valueToRecover?: Record<string, number>;
 }
 
 interface StatusDurationPermanent {
@@ -36,29 +38,25 @@ type StatusDuration = StatusDurationPermanent | StatusDurationTemporal;
 
 type StatusUsageFrequency = keyof typeof STATUS_USAGE_FREQUENCY;
 
-interface AffectedStatDescriptor<T extends object = any> {
+interface AffectedStatDescriptor<T extends object = {}> {
     type: StatusType;
     from: keyof (NonConflicting<T, BasicStats> & BasicStats);
     to: keyof (NonConflicting<T, BasicStats> & BasicStats); // TODO comprobar este tipo
     value: number;
     id?: number;
     timesUsed?: number;
-    valueToRecover?: number;
     recovers: boolean; // Indica si al acabarse el status la variación de estadísticas se devuelve.
 }
 
-type StatusConstructor<T extends object = {}> = Partial<
-    StatusInstance
->
 
-
-interface StatusDefinition {
+interface StatusDefinition<T extends object = {}> {
     name: string;
     applyOn: EventMoment;
     duration: StatusDuration;
     usageFrequency: StatusUsageFrequency;
-    statsAffected: AffectedStatDescriptor[];
+    statsAffected: AffectedStatDescriptor<T>[];
     onAdd?: (character: Character) => void;
+    triggersOnAdd?: boolean;
     onRemove?: (character: Character) => void;
 } // plantilla sin cambios (sin valueToRecover etc)
 
@@ -71,7 +69,6 @@ export {
     StatusType,
     StatusDuration,
     StatusUsageFrequency,
-    StatusConstructor,
     StatusActivationFunction,
-    StatusManagerConstructor,
+    StatusInstanceConstructor,
 };

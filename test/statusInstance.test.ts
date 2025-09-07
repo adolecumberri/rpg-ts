@@ -1,17 +1,147 @@
+import { Stats } from '../src/Classes/Stats';
 import { StatusInstance } from '../src/Classes/StatusInstance';
+import { STATUS_DURATIONS, STATUS_USAGE_FREQUENCY, STATUS_TYPES } from '../src/constants/status.constants';
+import { StatusDefinition } from '../src/types/status.types';
 
-const poison = new StatusInstance({
-    name: 'Poison',
-    applyOn: 'after_turn',
-    duration: { type: 'TEMPORAL', value: 3 },
-    usageFrequency: 'PER_ACTION',
+
+const makeStats = () => new Stats({ attack: 10, defence: 5 });
+
+const makeBuff = (overrides: Partial<StatusDefinition> = {}): StatusDefinition => ({
+    name: 'buff_attack',
+    applyOn: 'before_attack',
+    duration: { type: STATUS_DURATIONS.PERMANENT },
+    usageFrequency: STATUS_USAGE_FREQUENCY.PER_ACTION,
     statsAffected: [
-        {
-            type: 'DEBUFF_FIXED',
-            from: 'hp',
-            to: 'hp',
-            value: 5,
-            recovers: false,
-        },
+        { from: 'attack', to: 'attack', type: STATUS_TYPES.BUFF_FIXED, value: 10, recovers: true },
     ],
+    ...overrides,
+});
+
+describe('StatusInstance', () => {
+    it('1. should create 2 different StatusInstances with unique IDs', () => {
+        const s1 = new StatusInstance({ definition: makeBuff() });
+        const s2 = new StatusInstance({ definition: makeBuff() });
+        expect(s1.id).not.toBe(s2.id);
+    });
+
+    it('2. canActivate should be true when permanent, usageFrequency is ONCE, and not used', () => {
+        const s = new StatusInstance(
+            { definition: makeBuff({ usageFrequency: STATUS_USAGE_FREQUENCY.ONCE }) },
+        );
+        expect(s.canActivate()).toBe(true);
+
+        s.activate(makeStats());
+
+        expect(s.canActivate()).toBe(false);
+    });
+
+    it('3. canActivate should be true when permanent, usageFrequency is PER_ACTION', () => {
+        const s = new StatusInstance(
+            { definition: makeBuff({ usageFrequency: STATUS_USAGE_FREQUENCY.PER_ACTION }) },
+        );
+
+        expect(s.canActivate()).toBe(true);
+        s.activate(makeStats());
+        expect(s.canActivate()).toBe(true);
+    });
+
+    it('4. canActivate should be false when permanent, usageFrequency is ONCE, and already used', () => {
+        const s = new StatusInstance(
+            { definition: makeBuff({ usageFrequency: STATUS_USAGE_FREQUENCY.ONCE }) },
+        );
+        const stats = makeStats();
+        s.activate(stats);
+        expect(s.canActivate()).toBe(false);
+    });
+
+    it('5. hasBeenUsed should be false before activation, true after activation', () => {
+        const s = new StatusInstance({ definition: makeBuff() });
+        expect(s.hasBeenUsed()).toBe(false);
+        const stats = makeStats();
+        s.activate(stats);
+        expect(s.hasBeenUsed()).toBe(true);
+    });
+
+    it('6. canActivate should be true while temporal duration > 0, false when duration = 0', () => {
+        const s = new StatusInstance(
+            { definition: makeBuff({ duration: { type: STATUS_DURATIONS.TEMPORAL, value: 2 } }) },
+        );
+        const stats = makeStats();
+
+        // First activation (duration goes 2 -> 1)
+        s.activate(stats);
+        expect(s['canActivate']()).toBe(true);
+
+        // Second activation (duration goes 1 -> 0)
+        s.activate(stats);
+        expect(s['canActivate']()).toBe(false);
+    });
+
+    it('7. isExpired should behave correctly', () => {
+        const permanent = new StatusInstance({ definition: makeBuff({ duration: { type: STATUS_DURATIONS.PERMANENT } }) });
+        const temporal = new StatusInstance({ definition: makeBuff({ duration: { type: STATUS_DURATIONS.TEMPORAL, value: 1 } }) });
+
+        expect(permanent.isExpired()).toBe(false);
+
+        temporal.activate(makeStats()); // reduce to 0
+        expect(temporal.isExpired()).toBe(true);
+    });
+
+    it('8. recover should remove the applied value from character stats', () => {
+        const s = new StatusInstance({ definition: makeBuff() });
+        const stats = makeStats();
+
+        // Apply buff 3 times
+        s.activate(stats);
+        s.activate(stats);
+        s.activate(stats);
+
+        expect(stats.getProp('attack')).toBe(40); // 10 + 10*3
+
+        s.recover(stats);
+        expect(stats.getProp('attack')).toBe(10); // back to original
+    });
+
+    it('accumulates valueToRecover per stat and recovers each independently', () => {
+        const stats = new Stats({ attack: 10, defence: 5 });
+
+        const def: StatusDefinition = {
+            name: 'mixed',
+            applyOn: 'before_attack',
+            duration: { type: STATUS_DURATIONS.PERMANENT },
+            usageFrequency: STATUS_USAGE_FREQUENCY.PER_ACTION,
+            statsAffected: [
+                // +10 attack (recovers)
+                { from: 'attack', to: 'attack', type: 'BUFF_FIXED', value: 10, recovers: true },
+                // -2 defence (recovers)
+                { from: 'defence', to: 'defence', type: 'DEBUFF_FIXED', value: 2, recovers: true },
+                // +5 attack (NO recovers)
+                { from: 'attack', to: 'attack', type: 'BUFF_FIXED', value: 5, recovers: false },
+            ],
+        };
+
+        const s = new StatusInstance({ definition: def });
+
+        s.activate(stats); // attack: 10 + 10 + 5 = 25 ; defence: 5 - 2 = 3
+        s.activate(stats); // attack: 25 + 10 + 5 = 40 ; defence: 3 - 2 = 1
+
+        // Comprobamos acumulados por stat
+        const recMap = s.getRecoveryMap();
+        expect(recMap['attack']).toBe(20); // solo cuenta los +10*2 (recovers=true), NO los +5
+        expect(recMap['defence']).toBe(-4); // -2 * 2
+
+        // Estado actual
+        expect(stats.getProp('attack')).toBe(40);
+        expect(stats.getProp('defence')).toBe(1);
+
+        s.recover(stats);
+
+        // attack vuelve a 20 (no revierte los +5*2 = +10 porque recovers=false)
+        expect(stats.getProp('attack')).toBe(20);
+        // defence vuelve a 5
+        expect(stats.getProp('defence')).toBe(5);
+
+        // recovery map limpiado
+        expect(Object.keys(s.getRecoveryMap()).length).toBe(0);
+    });
 });

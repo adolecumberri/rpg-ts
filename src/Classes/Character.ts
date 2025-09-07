@@ -64,6 +64,16 @@ class Character<
 
     receiveDamage(value: number) {
         this.stats.receiveDamage(value);
+
+        // Emitimos after_receive_damage para que listeners lo sepan
+        this._emitter.emit('after_receive_damage', this, value);
+
+        // Si ha muerto, emitimos los eventos de muerte
+        if (!this.isAlive()) {
+            // emitimos antes y después por si hay handlers que necesiten engancharse
+            this._emitter.emit('before_die', this);
+            this._emitter.emit('after_die', this);
+        }
     }
 
     heal(value: number) {

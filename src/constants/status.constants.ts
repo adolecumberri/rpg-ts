@@ -22,12 +22,12 @@ const STATUS_TYPES = {
 } as const;
 
 const DEFAULT_STATUS_OBJECT: StatusDefinition = {
-    duration: { type: STATUS_DURATIONS.PERMANENT },
-    applyOn: 'after_attack',
+    duration: { type: STATUS_DURATIONS.TEMPORAL, value: 1 },
+    applyOn: 'before_attack',
     usageFrequency: STATUS_USAGE_FREQUENCY.ONCE,
     statsAffected: [],
     name: 'default_status',
-} as const;
+};
 
 export {
     STATUS_DURATIONS,

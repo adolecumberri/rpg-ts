@@ -1,40 +1,69 @@
 import { Character } from './Character';
 import { StatusInstance } from './StatusInstance';
 import { StatusDefinition } from '../types/status.types';
-import { EventMoment } from '../types/generalEvents.types';
 
+type EventMoment = string; // antes ya lo tenías
 
 class StatusManager {
-    private statuses: StatusInstance[] = [];
+    readonly character: Character;
+    statuses: StatusInstance[] = [];
 
-    add(def: StatusDefinition, character: Character) {
-        const instance = new StatusInstance(def);
+    constructor({ character }: { character: Character }) {
+        this.character = character;
+
+        // Nos registramos una sola vez en la muerte
+        this.character.on('after_die', () => {
+            this.removeAllStatuses();
+        });
+    }
+
+    add(def: StatusInstance, character: Character) {
         def.onAdd?.(character);
-        this.statuses.push(instance);
+
+        // Si el status tiene triggersOnAdd, se activa una vez al añadirse
+        def.definition.triggersOnAdd && def.activate(character.stats);
+
+        this.statuses.push(def);
+
+        // Nos registramos en el evento correspondiente
+        this.character.on(def.definition.applyOn, () => {
+            this.activate(def.definition.applyOn);
+        });
     }
 
-    activate(moment: EventMoment, character: Character) {
-        this.statuses.forEach((s: StatusInstance) => {
+    activate(moment: EventMoment) {
+        this.cleanup();
+
+        this.statuses.forEach((s) => {
             if (s.definition.applyOn === moment) {
-                s.activate(character.stats);
+                s.activate(this.character.stats);
             }
         });
-
-        this.cleanup(character);
     }
 
-    private cleanup(character: Character) {
-        this.statuses = this.statuses.filter((s: StatusInstance) => {
-            if (s.isExpired()) {
-                s.recover(character.stats);
-                s.definition.onRemove?.(character);
-                return false;
+    private cleanup() {
+        this.statuses = this.statuses.filter((s) => {
+            if (!s.isExpired()) {
+                return true;
             }
-            return true;
+
+            s.definition.statsAffected.map((stat) => {
+                if (stat.recovers) {
+                    s.recover(this.character.stats);
+                    s.definition.onRemove?.(this.character);
+                    return false;
+                }
+            });
         });
+    }
+
+    removeAllStatuses() {
+        for (const s of this.statuses) {
+            s.recover(this.character.stats);
+            s.definition.onRemove?.(this.character);
+        }
+        this.statuses = [];
     }
 }
 
-export {
-    StatusManager,
-};
+export { StatusManager };
