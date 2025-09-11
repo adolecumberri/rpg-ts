@@ -16,13 +16,19 @@ export class StatusInstance {
     readonly definition: StatusDefinition;
     readonly id: string = uniqueID();
 
-    private timesUsed = 0;
+    timesUsed = 0;
+    timesActivated = 0;
     private _affected: AffectedStatInstance[] = [];
 
     constructor(config: StatusInstanceConstructor) {
         this.definition = config.definition;
         this.id = config.id ?? uniqueID();
         this.timesUsed = config.timesUsed ?? 0;
+        this.timesActivated = config.timesActivated ?? 0;
+
+        if (config.definition.duration.type === STATUS_DURATIONS.TEMPORAL) {
+            this.definition.duration = { ...config.definition.duration };
+        }
 
         // Creamos una instancia por cada affected stat, con su propia id y acumulador
         this._affected = config.definition.statsAffected.map((desc) => ({
@@ -33,12 +39,14 @@ export class StatusInstance {
         }));
     }
 
-    /**
-     *  obj puede ser Character o Stats
-     * the difference is that passing a Character Will trigger Character setters/getters
-     *  */
     activate(character: Character<any>): void {
-        if (!this.canActivate()) return;
+        if (!this.canActivate()) {
+            if (this.definition.duration.type === STATUS_DURATIONS.TEMPORAL) {
+                this.definition.duration.value = (this.definition.duration.value ?? 0) - 1;
+            }
+            this.timesActivated++;
+            return;
+        };
 
         for (const affected of this._affected) {
             const desc = affected.descriptor;
@@ -65,9 +73,10 @@ export class StatusInstance {
         if (this.definition.duration.type === STATUS_DURATIONS.TEMPORAL) {
             (this.definition.duration as StatusDurationTemporal).value!--;
         }
-
+        this.timesActivated++;
         this.timesUsed++;
     }
+
 
     // private activateOnStats(characterStats: Stats<any>) {
     //     if (!this.canActivate()) return;
@@ -110,7 +119,7 @@ export class StatusInstance {
             const desc = affected.descriptor;
             if (!desc.recovers) continue; // si no recupera, saltamos
 
-            const key = desc.to as any;
+            const key = desc.to;
             const current = characterStats.getProp(key) as number;
             // restamos el acumulado (si acumulado positivo => restamos ese valor)
             characterStats.setProp(key, current - affected.accumulated);
@@ -123,21 +132,25 @@ export class StatusInstance {
     canActivate(): boolean {
         const { type } = this.definition.duration;
 
-        if (type === STATUS_DURATIONS.PERMANENT) {
-            if (this.definition.usageFrequency === 'PER_ACTION') return true;
-            if (this.definition.usageFrequency === 'ONCE') {
-                return !this.hasBeenUsed();
+        // Temporal
+        if (type === STATUS_DURATIONS.TEMPORAL) {
+            // Si es de uso único, solo activar si timesUsed === 0
+            if (this.definition.usageFrequency === 'ONCE' && this.hasBeenUsed()) {
+                return false;
             }
-            return false;
+            return ((this.definition.duration as StatusDurationTemporal).value ?? 0) > 0;
         }
 
-        // Temporal: activar solo si value > 0
-        if (type === STATUS_DURATIONS.TEMPORAL) {
-            return ((this.definition.duration as StatusDurationTemporal).value ?? 0) > 0;
+        // Permanent
+        if (type === STATUS_DURATIONS.PERMANENT) {
+            if (this.definition.usageFrequency === 'PER_ACTION') return true;
+            if (this.definition.usageFrequency === 'ONCE') return this.timesUsed === 0;
+            return false;
         }
 
         return false;
     }
+
 
     hasBeenUsed(): boolean {
         return this.timesUsed > 0;
@@ -145,10 +158,20 @@ export class StatusInstance {
 
     isExpired(): boolean {
         const { type } = this.definition.duration;
+
         if (type === STATUS_DURATIONS.PERMANENT) return false;
+
         if (type === STATUS_DURATIONS.TEMPORAL) {
-            return ((this.definition.duration as StatusDurationTemporal).value ?? 0) === 0;
+            const value = this.definition.duration.value ?? 0;
+
+            // Expirado si la duración llega a 0 o si es ONCE y ya se usó
+            if (this.definition.usageFrequency === 'ONCE') {
+                return this.hasBeenUsed() && value === 0;
+            }
+
+            return value === 0;
         }
+
         return true;
     }
 

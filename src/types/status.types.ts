@@ -10,6 +10,7 @@ type StatusInstanceConstructor = {
     definition: StatusDefinition;
     id?: string;
     timesUsed?: number;
+    timesActivated?: number;
     valueToRecover?: Record<string, number>;
 }
 

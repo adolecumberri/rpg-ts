@@ -6,7 +6,7 @@ type EventMoment = string;
 
 export class StatusManager {
     readonly character: Character;
-    statuses: StatusInstance[] = [];
+    statuses: Map<string, StatusInstance> = new Map();
     private registeredEvents: Set<string> = new Set();
 
     constructor(character: Character) {
@@ -25,49 +25,55 @@ export class StatusManager {
             statusInstance.activate(this.character);
         }
 
-        this.statuses.push(statusInstance);
+        this.statuses.set(statusInstance.id, statusInstance);
 
         // subscribir a los eventos necesarios (solo la primera vez)
         this.ensureRegisteredFor(statusInstance.definition.applyOn);
+
+        return statusInstance.id;
+    }
+
+    removeStatusInstance(id: string) {
+        const status = this.statuses.get(id);
+        if (!status) return;
+
+        status.recover(this.character.stats);
+        status.definition.onRemove?.(this.character);
+        this.statuses.delete(id);
     }
 
     activate(moment: EventMoment) {
         // limpiamos expirados antes de activar
         this.cleanup();
 
-        for (const s of this.statuses) {
-            if (s.definition.applyOn === moment) {
-                s.activate(this.character);
+        for (const status of this.statuses.values()) {
+            if (status.definition.applyOn === moment) {
+                status.activate(this.character);
             }
         }
-
-        // limpiamos expirados tras activaciones
-        this.cleanup();
     }
 
     private cleanup() {
-        this.statuses = this.statuses.filter((s) => {
-            if (s.isExpired()) {
-                s.recover(this.character.stats);
-                s.definition.onRemove?.(this.character);
-                return false;
+        for (const [id, status] of this.statuses) {
+            if (status.isExpired()) {
+                status.recover(this.character.stats);
+                status.definition.onRemove?.(this.character);
+                this.statuses.delete(id);
             }
-            return true;
-        });
+        }
     }
 
     removeAllStatuses() {
-        for (const s of this.statuses) {
-            s.recover(this.character.stats);
-            s.definition.onRemove?.(this.character);
+        for (const status of this.statuses.values()) {
+            status.recover(this.character.stats);
+            status.definition.onRemove?.(this.character);
         }
-        this.statuses = [];
-        // not strictly necessary, pero limpiamos el set de eventos
+        this.statuses.clear();
         this.registeredEvents.clear();
     }
 
     hasStatus(statusId: string) {
-        return this.statuses.some((s) => s.id === statusId);
+        return this.statuses.has(statusId);
     }
 
     private ensureRegisteredFor(event: EventMoment) {
