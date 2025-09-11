@@ -12,7 +12,7 @@ export type BasicStats = {
 type CharacterConstructor<T> = Partial<NonConflicting<T, BasicStats> & BasicStats>
 
 
-export class Stats<T extends Record<string, any> = {}> {
+export class Stats<T extends { [K in keyof T]: number }> {
     private _prop: Widen<NonConflicting<T, BasicStats>> & BasicStats;
 
     constructor(defaultStats?: CharacterConstructor<T>) {
@@ -68,12 +68,12 @@ export class Stats<T extends Record<string, any> = {}> {
 
     setProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(
         key: K,
-        value: (NonConflicting<T, BasicStats> & BasicStats)[K],
+        value: number,
     ) {
         if (key === 'hp') {
             this.setHp(value as number);
         } else {
-            this._prop[key] = value;
+            this._prop[key] = value as (NonConflicting<T, BasicStats> & BasicStats)[K];
         }
     }
 

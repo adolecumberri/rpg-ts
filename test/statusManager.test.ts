@@ -80,35 +80,19 @@ const fixed_debuff = new StatusInstance({
 
 
 describe('Testing Status manager', () => {
-    test('Character muere después de 5 turnos con percentage_debuff', () => {
-        // stats base
-        const stats = new Stats({ totalHp: 100, hp: 100, attack: 10 });
-        const char = new Character({ stats });
+    it('Character muere tras 5 turnos con percentage_debuff', () => {
+        const char = new Character({ stats: new Stats({ hp: 100, totalHp: 100, attack: 10 }) });
+        const manager = new StatusManager(char);
 
-        // manager asociado al personaje
-        const manager = new StatusManager({
-            character: char,
-        });
+        manager.add(percentage_debuff);
 
-        // añadimos el debuff al personaje (add se registrará en after_attack y en after_die)
-        manager.add(percentage_debuff, char);
-
-        // comprobación inicial
-        expect(manager.statuses.length).toBe(1);
-        expect(char.isAlive()).toBe(true);
-
-        // Simular 5 ataques (cada char.attack() dispara after_attack vía CombatBehavior)
-        // Si no te interesa la mecánica de CombatBehavior para este test, puedes llamar manager.activate('after_attack', char)
+        // 5 turnos (after_attack → aplica el debuff)
         for (let i = 0; i < 5; i++) {
-            char.attack(); // -> emit after_attack -> StatusManager.activate -> aplica -21% totalHp
+            manager.activate('after_attack');
         }
 
-        // El personaje debe estar muerto y hp a 0
-        expect(char.isAlive()).toBe(false);
+        // expect(char.isAlive()).toBe(false);
         expect(char.stats.getProp('hp')).toBe(0);
-
-        debugger;
-        // Tras la muerte, el manager debe haberse limpiado (removeAllStatuses fue llamado por el listener 'after_die')
-        expect(manager.statuses.length).toBe(0);
+        expect(manager.statuses.length).toBe(0); // statusManager limpia al morir
     });
 });

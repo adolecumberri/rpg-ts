@@ -1,59 +1,58 @@
+import { StatusDefinition } from '../types/status.types';
 import { Character } from './Character';
 import { StatusInstance } from './StatusInstance';
-import { StatusDefinition } from '../types/status.types';
 
-type EventMoment = string; // antes ya lo tenías
+type EventMoment = string;
 
-class StatusManager {
+export class StatusManager {
     readonly character: Character;
     statuses: StatusInstance[] = [];
+    private registeredEvents: Set<string> = new Set();
 
-    constructor({ character }: { character: Character }) {
+    constructor(character: Character) {
         this.character = character;
 
-        // Nos registramos una sola vez en la muerte
+        // limpieza automática al morir
         this.character.on('after_die', () => {
             this.removeAllStatuses();
         });
     }
 
-    add(def: StatusInstance, character: Character) {
-        def.onAdd?.(character);
+    add(statusInstance: StatusInstance) {
+        statusInstance.definition.onAdd?.(this.character);
 
-        // Si el status tiene triggersOnAdd, se activa una vez al añadirse
-        def.definition.triggersOnAdd && def.activate(character.stats);
+        if (statusInstance.definition.triggersOnAdd) {
+            statusInstance.activate(this.character);
+        }
 
-        this.statuses.push(def);
+        this.statuses.push(statusInstance);
 
-        // Nos registramos en el evento correspondiente
-        this.character.on(def.definition.applyOn, () => {
-            this.activate(def.definition.applyOn);
-        });
+        // subscribir a los eventos necesarios (solo la primera vez)
+        this.ensureRegisteredFor(statusInstance.definition.applyOn);
     }
 
     activate(moment: EventMoment) {
+        // limpiamos expirados antes de activar
         this.cleanup();
 
-        this.statuses.forEach((s) => {
+        for (const s of this.statuses) {
             if (s.definition.applyOn === moment) {
-                s.activate(this.character.stats);
+                s.activate(this.character);
             }
-        });
+        }
+
+        // limpiamos expirados tras activaciones
+        this.cleanup();
     }
 
     private cleanup() {
         this.statuses = this.statuses.filter((s) => {
-            if (!s.isExpired()) {
-                return true;
+            if (s.isExpired()) {
+                s.recover(this.character.stats);
+                s.definition.onRemove?.(this.character);
+                return false;
             }
-
-            s.definition.statsAffected.map((stat) => {
-                if (stat.recovers) {
-                    s.recover(this.character.stats);
-                    s.definition.onRemove?.(this.character);
-                    return false;
-                }
-            });
+            return true;
         });
     }
 
@@ -63,7 +62,17 @@ class StatusManager {
             s.definition.onRemove?.(this.character);
         }
         this.statuses = [];
+        // not strictly necessary, pero limpiamos el set de eventos
+        this.registeredEvents.clear();
+    }
+
+    hasStatus(statusId: string) {
+        return this.statuses.some((s) => s.id === statusId);
+    }
+
+    private ensureRegisteredFor(event: EventMoment) {
+        if (this.registeredEvents.has(event)) return;
+        this.character.on(event, () => this.activate(event));
+        this.registeredEvents.add(event);
     }
 }
-
-export { StatusManager };

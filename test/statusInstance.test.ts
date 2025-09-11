@@ -1,3 +1,4 @@
+import { Character } from '../src/Classes/Character';
 import { Stats } from '../src/Classes/Stats';
 import { StatusInstance } from '../src/Classes/StatusInstance';
 import { STATUS_DURATIONS, STATUS_USAGE_FREQUENCY, STATUS_TYPES } from '../src/constants/status.constants';
@@ -30,7 +31,8 @@ describe('StatusInstance', () => {
         );
         expect(s.canActivate()).toBe(true);
 
-        s.activate(makeStats());
+        const char = new Character({ stats: makeStats() });
+        s.activate(char);
 
         expect(s.canActivate()).toBe(false);
     });
@@ -41,7 +43,8 @@ describe('StatusInstance', () => {
         );
 
         expect(s.canActivate()).toBe(true);
-        s.activate(makeStats());
+        const char = new Character({ stats: makeStats() });
+        s.activate(char);
         expect(s.canActivate()).toBe(true);
     });
 
@@ -50,7 +53,8 @@ describe('StatusInstance', () => {
             { definition: makeBuff({ usageFrequency: STATUS_USAGE_FREQUENCY.ONCE }) },
         );
         const stats = makeStats();
-        s.activate(stats);
+        const char = new Character({ stats });
+        s.activate(char);
         expect(s.canActivate()).toBe(false);
     });
 
@@ -58,7 +62,8 @@ describe('StatusInstance', () => {
         const s = new StatusInstance({ definition: makeBuff() });
         expect(s.hasBeenUsed()).toBe(false);
         const stats = makeStats();
-        s.activate(stats);
+        const char = new Character({ stats });
+        s.activate(char);
         expect(s.hasBeenUsed()).toBe(true);
     });
 
@@ -67,34 +72,37 @@ describe('StatusInstance', () => {
             { definition: makeBuff({ duration: { type: STATUS_DURATIONS.TEMPORAL, value: 2 } }) },
         );
         const stats = makeStats();
-
+        const char = new Character({ stats });
         // First activation (duration goes 2 -> 1)
-        s.activate(stats);
+        s.activate(char);
         expect(s['canActivate']()).toBe(true);
 
         // Second activation (duration goes 1 -> 0)
-        s.activate(stats);
+        s.activate(char);
         expect(s['canActivate']()).toBe(false);
     });
 
     it('7. isExpired should behave correctly', () => {
         const permanent = new StatusInstance({ definition: makeBuff({ duration: { type: STATUS_DURATIONS.PERMANENT } }) });
         const temporal = new StatusInstance({ definition: makeBuff({ duration: { type: STATUS_DURATIONS.TEMPORAL, value: 1 } }) });
+        const char = new Character({ stats: makeStats() });
+
 
         expect(permanent.isExpired()).toBe(false);
 
-        temporal.activate(makeStats()); // reduce to 0
+        temporal.activate(char); // reduce to 0
         expect(temporal.isExpired()).toBe(true);
     });
 
     it('8. recover should remove the applied value from character stats', () => {
         const s = new StatusInstance({ definition: makeBuff() });
         const stats = makeStats();
+        const char = new Character({ stats });
 
         // Apply buff 3 times
-        s.activate(stats);
-        s.activate(stats);
-        s.activate(stats);
+        s.activate(char);
+        s.activate(char);
+        s.activate(char);
 
         expect(stats.getProp('attack')).toBe(40); // 10 + 10*3
 
@@ -102,8 +110,10 @@ describe('StatusInstance', () => {
         expect(stats.getProp('attack')).toBe(10); // back to original
     });
 
-    it('accumulates valueToRecover per stat and recovers each independently', () => {
+    it('accumulates recovery per affected stat and recovers independently', () => {
         const stats = new Stats({ attack: 10, defence: 5 });
+        const char = new Character({ stats });
+
 
         const def: StatusDefinition = {
             name: 'mixed',
@@ -122,13 +132,17 @@ describe('StatusInstance', () => {
 
         const s = new StatusInstance({ definition: def });
 
-        s.activate(stats); // attack: 10 + 10 + 5 = 25 ; defence: 5 - 2 = 3
-        s.activate(stats); // attack: 25 + 10 + 5 = 40 ; defence: 3 - 2 = 1
+        s.activate(char); // attack: 10 + 10 + 5 = 25 ; defence: 5 - 2 = 3
+        s.activate(char); // attack: 25 + 10 + 5 = 40 ; defence: 3 - 2 = 1
 
         // Comprobamos acumulados por stat
-        const recMap = s.getRecoveryMap();
-        expect(recMap['attack']).toBe(20); // solo cuenta los +10*2 (recovers=true), NO los +5
-        expect(recMap['defence']).toBe(-4); // -2 * 2
+        const affected = s.getAffectedInstances();
+
+        const atk = affected.find((a) => a.to === 'attack')!;
+        const defn = affected.find((a) => a.to === 'defence')!;
+
+        expect(atk.accumulated).toBe(20); // +10 * 2 (solo recovers)
+        expect(defn.accumulated).toBe(-4); // -2 * 2
 
         // Estado actual
         expect(stats.getProp('attack')).toBe(40);
@@ -142,6 +156,7 @@ describe('StatusInstance', () => {
         expect(stats.getProp('defence')).toBe(5);
 
         // recovery map limpiado
-        expect(Object.keys(s.getRecoveryMap()).length).toBe(0);
+        const afterRecover = s.getAffectedInstances();
+        expect(afterRecover.every((a) => a.accumulated === 0)).toBe(true);
     });
 });
