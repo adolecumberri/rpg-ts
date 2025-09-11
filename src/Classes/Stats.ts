@@ -4,19 +4,19 @@ import { NonConflicting, Widen } from '../helpers/type.helpers';
 export type BasicStats = {
     attack: number;
     defence: number;
-    isAlive: number;
+    isAlive: 0 | 1;
     totalHp: number;
     hp: number;
-  };
+};
 
 type CharacterConstructor<T> = Partial<NonConflicting<T, BasicStats> & BasicStats>
 
 
-export class Stats<T extends Record<string, any> = {}> {
+export class Stats<T extends { [K in keyof T]: number }> {
     private _prop: Widen<NonConflicting<T, BasicStats>> & BasicStats;
 
     constructor(defaultStats?: CharacterConstructor<T>) {
-        const { totalHp, hp, ...restData} = defaultStats ?? {};
+        const { totalHp, hp, ...restData } = defaultStats ?? {};
 
         const totalHpProvided = defaultStats ?
             Math.max(
@@ -25,9 +25,9 @@ export class Stats<T extends Record<string, any> = {}> {
             ) :
             DEFAULT_STATS.totalHp;
 
-        this._prop = Object.assign(DEFAULT_STATS,
+        this._prop = Object.assign({ ...DEFAULT_STATS },
             {
-                ...restData,
+                ...defaultStats,
                 totalHp: totalHpProvided,
             },
         ) as unknown as Widen<NonConflicting<T, BasicStats>> & BasicStats;
@@ -57,7 +57,7 @@ export class Stats<T extends Record<string, any> = {}> {
         );
     }
 
-    getProp<K extends keyof(NonConflicting<T, BasicStats> & BasicStats)>(
+    getProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(
         key: K,
     ): (NonConflicting<T, BasicStats> & BasicStats)[K] {
         if (!(key in this._prop)) {
@@ -66,14 +66,14 @@ export class Stats<T extends Record<string, any> = {}> {
         return this._prop[key];
     }
 
-    setProp<K extends keyof(NonConflicting<T, BasicStats> & BasicStats)>(
+    setProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(
         key: K,
-        value: (NonConflicting<T, BasicStats> & BasicStats)[K],
+        value: number,
     ) {
         if (key === 'hp') {
             this.setHp(value as number);
         } else {
-            this._prop[key] = value;
+            this._prop[key] = value as (NonConflicting<T, BasicStats> & BasicStats)[K];
         }
     }
 

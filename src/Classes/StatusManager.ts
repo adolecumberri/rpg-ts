@@ -1,81 +1,84 @@
+import { StatusDefinition } from '../types/status.types';
 import { Character } from './Character';
-import Status from './Status';
-import { STATUS_DURATIONS } from '../constants/status.constants';
-import { StatusApplicationMoment, StatusManagerConstructor } from './Status/status.types';
+import { StatusInstance } from './StatusInstance';
 
+type EventMoment = string;
 
-class StatusManager {
-    statusList: Status[] = [];
+export class StatusManager {
+    readonly character: Character;
+    statuses: Map<string, StatusInstance> = new Map();
+    private registeredEvents: Set<string> = new Set();
 
-    constructor(con?: StatusManagerConstructor) {
-        con && Object.assign(this, con);
+    constructor(character: Character) {
+        this.character = character;
+
+        // limpieza automática al morir
+        this.character.on('after_die', () => {
+            this.removeAllStatuses();
+        });
     }
 
-    addStatus<T extends Status>(status: T[] | T, character: Character) {
-        if (Array.isArray(status)) {
-            status.forEach((s) => s.onAdd?.(character));
-            this.statusList = this.statusList.concat(status);
-        } else {
-            status.onAdd?.(character);
-            this.statusList.push(status);
+    add(statusInstance: StatusInstance) {
+        statusInstance.definition.onAdd?.(this.character);
+
+        if (statusInstance.definition.triggersOnAdd) {
+            statusInstance.activate(this.character);
+        }
+
+        this.statuses.set(statusInstance.id, statusInstance);
+
+        // subscribir a los eventos necesarios (solo la primera vez)
+        this.ensureRegisteredFor(statusInstance.definition.applyOn);
+
+        return statusInstance.id;
+    }
+
+    removeStatusInstance(id: string) {
+        const status = this.statuses.get(id);
+        if (!status) return;
+
+        status.recover(this.character.stats);
+        status.definition.onRemove?.(this.character);
+        this.statuses.delete(id);
+    }
+
+    activate(moment: EventMoment) {
+        // limpiamos expirados antes de activar
+        this.cleanup();
+
+        for (const status of this.statuses.values()) {
+            if (status.definition.applyOn === moment) {
+                status.activate(this.character);
+            }
         }
     }
 
-    activate(applyOn: StatusApplicationMoment, character: Character) {
-        this.statusList.forEach((status) => {
-            if (status.applyOn === applyOn) {
-                if (status.duration.type === STATUS_DURATIONS.TEMPORAL && status.duration.value === 0) {
-                    this.removeStatusById(status.id, character);
-                }
-                status.activate(character);
-                status.hasBeenUsed = true;
+    private cleanup() {
+        for (const [id, status] of this.statuses) {
+            if (status.isExpired()) {
+                status.recover(this.character.stats);
+                status.definition.onRemove?.(this.character);
+                this.statuses.delete(id);
             }
-        });
-    }
-
-    hasStatus(id: number): boolean {
-        return this.statusList.some((status) => status.id === id);
-    }
-
-    removeStatusById(id: number, character: Character) {
-        this.statusList = this.statusList.filter((status) => {
-            if (status.id === id) {
-                status.recover(character);
-                status.onRemove?.(character);
-                return false;
-            } else {
-                return true;
-            }
-        });
-    }
-
-    removeStatusByName(name: string, character: Character) {
-        this.statusList = this.statusList.filter((status) => {
-            if (status.name === name) {
-                status.recover(character);
-                status.onRemove?.(character);
-                return false;
-            } else {
-                return true;
-            }
-        });
-    }
-
-    removeAllStatuses(character: Character) {
-        this.recoverAll(character);
-        this.statusList = [];
-    }
-
-    recoverAll(character: Character): void {
-        for (const status of this.statusList) {
-            status.recover(character);
-            status.onRemove?.(character);
         }
+    }
+
+    removeAllStatuses() {
+        for (const status of this.statuses.values()) {
+            status.recover(this.character.stats);
+            status.definition.onRemove?.(this.character);
+        }
+        this.statuses.clear();
+        this.registeredEvents.clear();
+    }
+
+    hasStatus(statusId: string) {
+        return this.statuses.has(statusId);
+    }
+
+    private ensureRegisteredFor(event: EventMoment) {
+        if (this.registeredEvents.has(event)) return;
+        this.character.on(event, () => this.activate(event));
+        this.registeredEvents.add(event);
     }
 }
-
-export default StatusManager;
-
-export {
-    StatusManager,
-};

@@ -1,24 +1,10 @@
+import { StatusDefinition } from '../types/status.types';
+
+
 // Duración de los estados
 const STATUS_DURATIONS = {
     PERMANENT: 'PERMANENT',
     TEMPORAL: 'TEMPORAL',
-} as const;
-
-// Momento de activación de los estados
-const STATUS_APPLICATION_MOMENTS = {
-    AFTER_ATTACK: 'AFTER_ATTACK',
-    AFTER_BATTLE: 'AFTER_BATTLE',
-    AFTER_DEFENCE: 'AFTER_DEFENCE',
-    AFTER_DIE: 'AFTER_DIE',
-    AFTER_RECEIVE_DAMAGE: 'AFTER_RECEIVE_DAMAGE',
-    AFTER_REVIVE: 'AFTER_REVIVE',
-    AFTER_TURN: 'AFTER_TURN',
-    BEFORE_ATTACK: 'BEFORE_ATTACK',
-    BEFORE_BATTLE: 'BEFORE_BATTLE',
-    BEFORE_DEFENCE: 'BEFORE_DEFENCE',
-    BEFORE_DIE: 'BEFORE_DIE',
-    BEFORE_REVIVE: 'BEFORE_REVIVE',
-    BEFORE_TURN: 'BEFORE_TURN',
 } as const;
 
 // Cuando se usa el estado
@@ -35,17 +21,16 @@ const STATUS_TYPES = {
     DEBUFF_PERCENTAGE: 'DEBUFF_PERCENTAGE',
 } as const;
 
-const DEFAULT_STATUS_OBJECT = {
-    duration: { type: STATUS_DURATIONS.PERMANENT },
-    applyOn: STATUS_APPLICATION_MOMENTS.AFTER_ATTACK,
+const DEFAULT_STATUS_OBJECT: StatusDefinition = {
+    duration: { type: STATUS_DURATIONS.TEMPORAL, value: 1 },
+    applyOn: 'before_attack',
     usageFrequency: STATUS_USAGE_FREQUENCY.ONCE,
     statsAffected: [],
-    hasBeenUsed: false,
+    name: 'default_status',
 };
 
 export {
     STATUS_DURATIONS,
-    STATUS_APPLICATION_MOMENTS,
     STATUS_USAGE_FREQUENCY,
     STATUS_TYPES,
     DEFAULT_STATUS_OBJECT,
