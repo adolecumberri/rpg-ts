@@ -1,5 +1,7 @@
 import { DEFAULT_STATS } from '../constants/stats.constants';
+import { lifeCheckHelper } from '../helpers/common.helpers';
 import { NonConflicting, Widen } from '../helpers/type.helpers';
+import { AnyStat, StatModifier, StatModifierType } from '../types/stats.types';
 
 export type BasicStats = {
     attack: number;
@@ -9,13 +11,15 @@ export type BasicStats = {
     hp: number;
 };
 
-type CharacterConstructor<T> = Partial<NonConflicting<T, BasicStats> & BasicStats>
+type StatsConstructor<T> = Partial<NonConflicting<T, BasicStats> & BasicStats>
 
 
 export class Stats<T extends { [K in keyof T]: number }> {
     private _prop: Widen<NonConflicting<T, BasicStats>> & BasicStats;
 
-    constructor(defaultStats?: CharacterConstructor<T>) {
+    private modifiers: Partial<Record<keyof (T & BasicStats), StatModifier[]>> = {};
+
+    constructor(defaultStats?: StatsConstructor<T>) {
         const { totalHp, hp, ...restData } = defaultStats ?? {};
 
         const totalHpProvided = defaultStats ?
@@ -28,7 +32,7 @@ export class Stats<T extends { [K in keyof T]: number }> {
         this._prop = Object.assign({ ...DEFAULT_STATS },
             {
                 ...defaultStats,
-                totalHp: totalHpProvided,
+                ...lifeCheckHelper({ hp, totalHp }),
             },
         ) as unknown as Widen<NonConflicting<T, BasicStats>> & BasicStats;
 
@@ -57,14 +61,26 @@ export class Stats<T extends { [K in keyof T]: number }> {
         );
     }
 
-    getProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(
-        key: K,
-    ): (NonConflicting<T, BasicStats> & BasicStats)[K] {
-        if (!(key in this._prop)) {
-            throw new Error(`Property "${String(key)}" does not exist in stats`);
-        }
-        return this._prop[key];
+    getProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(stat: K): number {
+        let value = this.getProp(stat);
+
+        const mods = this.modifiers[stat] || [];
+
+        // Primero aplicamos los modificadores fijos
+        const fixedTotal = mods
+            .filter((m) => m.type === 'FIXED')
+            .reduce((a, b) => a + b.value, 0);
+        value += fixedTotal;
+
+        // Después aplicamos los porcentajes
+        const percentTotal = mods
+            .filter((m) => m.type === 'PERCENTAGE')
+            .reduce((a, b) => a + b.value, 0);
+        value = value + (value * percentTotal) / 100;
+
+        return value;
     }
+
 
     setProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(
         key: K,
@@ -75,6 +91,27 @@ export class Stats<T extends { [K in keyof T]: number }> {
         } else {
             this._prop[key] = value as (NonConflicting<T, BasicStats> & BasicStats)[K];
         }
+    }
+
+    /** Añade un modificador fijo o porcentual */
+    modify(stat: AnyStat, type: StatModifierType, value: number) {
+        if (!this.modifiers[stat]) {
+            this.modifiers[stat] = [];
+        }
+        this.modifiers[stat]!.push({ type, value });
+    }
+
+    /** Elimina un modificador concreto */
+    revert(stat: AnyStat, type: StatModifierType, value: number) {
+        if (!this.modifiers[stat]) return;
+        this.modifiers[stat] = this.modifiers[stat]!.filter(
+            (m) => !(m.type === type && m.value === value),
+        );
+    }
+
+    /** Devuelve snapshot de modificadores (debug/testing) */
+    getModifiers<K extends keyof T>(stat: K): StatModifier[] {
+        return this.modifiers[stat] || [];
     }
 
     /**

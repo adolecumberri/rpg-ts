@@ -25,15 +25,6 @@ module.exports = {
         browser: true,
         node: true,
     },
-
-    // Set of linting plugins and base rules to use
-    //
-    // https://github.com/yannickcr/eslint-plugin-react
-    // https://github.com/facebook/react/tree/master/packages/eslint-plugin-react-hooks
-    // https://github.com/prettier/eslint-plugin-prettier
-    // https://github.com/jest-community/eslint-plugin-jest
-    plugins: ["react", "react-hooks", "prettier", "jest"],
-    //
     // https://github.com/suchipi/eslint-config-unobtrusive
     // https://github.com/prettier/eslint-config-prettier
     extends: ["unobtrusive", "unobtrusive/react", "unobtrusive/import", "prettier", "prettier/react"],
@@ -71,7 +62,7 @@ module.exports = {
 
     // Rules overriding
     rules: {
-
+        "@stylistic/arrow-parens": "as-needed",
         "indent": "off",
         "padded-blocks": "off",
         // Fail if the file does not follow the Prettier formatting rules.
@@ -79,51 +70,13 @@ module.exports = {
         // https://github.com/prettier/eslint-plugin-prettier
         "prettier/prettier": ["error", prettierConfig],
 
-        // console.log sentences issue warnings
-        // https://eslint.org/docs/rules/no-console
-        "no-console": ["warn", { allow: ["warn", "error"] }],
-
-        // debugger sentences issue errors
-        // https://eslint.org/docs/rules/no-debugger
-        "no-debugger": "error",
-
-        // Require sentences outside of the global scope issue warnings
-        // https://eslint.org/docs/rules/global-require
-        "global-require": "warn",
-
         // Allow usage of Common JS require and module.exports. They are used throughout
         // the tooling config files
         // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-commonjs.md
         "import/no-commonjs": "off",
 
-        // Allow importing transitive dependencies
-        // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-extraneous-dependencies.md
-        // If enabled, disable directives must be added inline or new entries must be added to the import/core-modules
-        // setting. Notice that import/core-modules has an awkward behaviour (see
-        // https://github.com/benmosher/eslint-plugin-import/issues/1281)
-        "import/no-extraneous-dependencies": "off",
-
-        // Allow unused variables in some instances or when the variable name is prefixed by an underscore
-        // https://eslint.org/docs/rules/no-unused-vars
-        "no-unused-vars": ["warn", { args: "none", varsIgnorePattern: "^_", ignoreRestSiblings: true }],
-
-        // Imports must point to existent files/modules
-        // Webpack aliases are ignored by this rule
-        // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-unresolved.md
-        "import/no-unresolved": ["error", { ignore: ["@/", "root/", "config/", "forms/", "resources/"] }],
-
-        // Issue errors if the "rules of hooks" are not met
-        // https://reactjs.org/docs/hooks-rules.html
-        "react-hooks/rules-of-hooks": "error",
-
-        // Issue errors if hooks dependendencies are not exhaustive
-        "react-hooks/exhaustive-deps": "error",
     },
 
-    // Additional global variables
-    globals: {
-        AMIGA: "readonly",
-    },
 
     overrides: [
         {
