@@ -4,48 +4,46 @@ import { AttackFunction, AttackResult, DefenceResult } from '../types/combat.typ
 import { CombatBehavior } from './CombatBehavior';
 import { BasicStats, Stats } from './Stats';
 import { createEventEmitter, wrapWithEvents } from '../helpers/event-wrapper';
+import { AnyPropKey } from '../types/character.types';
+import { AnyStat } from '../types/stats.types';
+import { EventMoment } from '../types/generalEvents.types';
 
 
 type CharacterBase = {
     id?: string;
     combat?: CombatBehavior;
-    stats: Stats<any>;
+    stats: Stats;
 }
-
-type CharacterConstructor<TProps, TStatData extends Record<string, any> = {}> = {
+type CharacterConstructor<TProps> = {
     id?: string;
     combat?: CombatBehavior;
-    stats?: Stats<TStatData>;
+    stats?: Stats;
 } & Partial<NonConflicting<TProps, CharacterBase>>;
 
 class Character<
-    TProps extends object = any,
-    TStatData extends Record<string, any> = {}
+    TProps extends object = any
 > {
     public readonly id: string;
-    public stats: Stats<TStatData>;
+    public stats: Stats;
     public readonly combat: CombatBehavior;
 
-    private _props: Widen<NonConflicting<TProps, CharacterBase>>;
+    private _props: Record<string, any>;
     private _emitter = createEventEmitter();
 
-    constructor(params?: Partial<CharacterConstructor<TProps, TStatData>>) {
-        if (!params) {
-            params = {};
-        }
+    constructor(params?: Partial<CharacterConstructor<TProps>>) {
+        if (!params) params = {};
 
-        const { id, combat, stats, ...restData } = params;
+        const { id, combat, stats, ...rest } = params;
 
         this.id = id ?? uniqueID();
-        this.stats = stats ?? new Stats() as Stats<TStatData>;
+        this.stats = stats ?? new Stats();
 
         this.combat = combat ?? new CombatBehavior({ emitter: this._emitter });
         if (!this.combat.emitter) {
             this.combat.emitter = this._emitter; // combat emite triggers usando el emisor de character
         }
 
-
-        this._props = restData as Widen<NonConflicting<TProps, CharacterBase>>;
+        this._props = rest;
     }
 
     /**
@@ -55,51 +53,64 @@ class Character<
      * @returns AttackResult
      */
     attack(...arg: any[]): AttackResult {
-        return this.combat.attack(this, ...arg);
+        this._emitter.emit('before_attack', this, ...arg);
+
+        const result = this.combat.attack(this, ...arg);
+
+        this._emitter.emit('after_attack', result, this, ...arg);
+        return result;
     }
 
     defend(attack: AttackResult): DefenceResult {
-        return this.combat.defence(this, attack);
+        this._emitter.emit('before_defend', this, attack);
+
+        const result = this.combat.defence(this, attack);
+
+        this._emitter.emit('after_defend', result, this, attack);
+        return result;
     }
 
     receiveDamage(value: number) {
         this._emitter.emit('before_receive_damage', this, value);
 
-        this.stats.receiveDamage(value);
+        const newHp = this.stats.getProp("hp") - value;
+        this.stats.setProp("hp", newHp);
 
-        // Emitimos after_receive_damage para que listeners lo sepan
         this._emitter.emit('after_receive_damage', this, value);
     }
 
     heal(value: number) {
-        this.stats.heal(value);
+        this.stats.setProp('hp', this.stats.getProp('hp') + value);
     }
 
     isAlive(): boolean {
         return this.stats.getProp('isAlive') === 1;
     }
 
-    getProps(): Widen<NonConflicting<TProps, CharacterBase>> {
-        return { ...this._props };
+    getProps() {
+        return this._props;
     }
 
-    getProp<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K) {
-        if (!(key in this._props)) {
+    getProp(key: AnyPropKey): any {
+        if (!this._props[key]) {
             throw new Error(`Property "${String(key)}" does not exist in character data`);
         }
         return this._props[key];
     }
 
-    setProp<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K, value: Widen<NonConflicting<TProps, CharacterBase>>[K]) {
+    setProp(key: AnyPropKey, value: any) {
         this._props[key] = value;
     }
 
-    setStat<K extends keyof (NonConflicting<TStatData, BasicStats> & BasicStats)>(
-        key: K,
+    setStat(
+        key: AnyStat,
         value: number,
     ) {
+        this._emitter.emit('before_set_stat', this, key, value);
+
         this.stats.setProp(key, value);
 
+        this._emitter.emit('after_set_stat', this, key, value);
         if (!this.isAlive()) {
             // emitimos antes y después por si hay handlers que necesiten engancharse
             this._emitter.emit('before_die', this);
@@ -108,13 +119,13 @@ class Character<
     }
 
 
-    deleteProp<K extends keyof Widen<NonConflicting<TProps, CharacterBase>>>(key: K) {
-        if (key in this._props) {
+    deleteProp(key: AnyPropKey) {
+        if (this._props[key]) {
             delete this._props[key];
         }
     }
 
-    on(event: string, listener: (...args: any[]) => void) {
+    on(event: EventMoment, listener: (...args: any[]) => void) {
         this._emitter.on(event, listener);
     }
 

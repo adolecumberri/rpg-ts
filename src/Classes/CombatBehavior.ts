@@ -76,13 +76,13 @@ class CombatBehavior {
         });
     }
 
-    calculateDamage(type: AttackType, stats: Stats<any>): number {
+    calculateDamage(type: AttackType, stats: Stats): number {
         const fn = this._damageCalculation[type];
         if (!fn) throw new Error(`Missing damage calculation for attack type: ${type}`);
         return fn(stats);
     }
 
-    calculateDefence(incoming: number, stats: Stats<any>): number {
+    calculateDefence(incoming: number, stats: Stats): number {
         return this._defenceCalculation(incoming, stats);
     }
 

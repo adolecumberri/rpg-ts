@@ -13,7 +13,7 @@ export type BasicStats = {
     hp: number;
 };
 
-type StatsConstructor = BasicStats & {
+type StatsConstructor = Partial<BasicStats> & {
     statModifier?: StatsModifiers;
 };
 

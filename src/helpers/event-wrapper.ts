@@ -1,17 +1,19 @@
+import { EventMoment } from "../types/generalEvents.types";
+
 /* eslint-disable space-before-function-paren */
 export type EventHandler = (...args: any[]) => void;
 
 export interface EventEmitter {
     on(event: string, listener: EventHandler): void; // setter
-    emit(event: string, ...args: any[]): void; // trigger
+    emit(event: EventMoment, ...args: any[]): void; // trigger
 }
 
 export interface EventEmitterLike {
-    emit(event: string, ...args: any[]): void;
+    emit(event: EventMoment, ...args: any[]): void;
 }
 
 export function createEventEmitter(): EventEmitter {
-    const listeners: Record<string, EventHandler[]> = {};
+    const listeners: Partial<Record<EventMoment, EventHandler[]>> = {};
 
     return {
         on(event, listener) {
@@ -32,7 +34,7 @@ export function wrapWithEvents<
 >(
     { emitter, methodName, fn }: {
         emitter?: EventEmitterLike,
-        methodName: string,
+        methodName: EventMoment,
         fn: T
     },
 ): T {

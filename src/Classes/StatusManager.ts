@@ -1,8 +1,7 @@
+import { EventMoment } from '../types/generalEvents.types';
 import { StatusDefinition } from '../types/status.types';
 import { Character } from './Character';
 import { StatusInstance } from './StatusInstance';
-
-type EventMoment = string;
 
 export class StatusManager {
     readonly character: Character;

@@ -16,7 +16,7 @@ describe('Character', () => {
     });
 
     it('should allow custom stats and data', () => {
-        const char = new Character<{ role: string }>({
+        const char = new Character({
             stats: new Stats({ attack: 50, defence: 10, totalHp: 100, hp: 100 }),
             role: 'warrior',
         });
@@ -34,7 +34,7 @@ describe('Character', () => {
     });
 
     it('should correctly export to JSON', () => {
-        const char = new Character<{ class: string }>({
+        const char = new Character({
             id: 'test-1',
             stats: new Stats({ attack: 30 }),
             class: 'mage',
