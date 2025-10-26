@@ -14,12 +14,7 @@ const STATUS_USAGE_FREQUENCY = {
 } as const;
 
 // Tipo de cambio de estado
-const STATUS_TYPES = {
-    BUFF_FIXED: 'BUFF_FIXED',
-    BUFF_PERCENTAGE: 'BUFF_PERCENTAGE',
-    DEBUFF_FIXED: 'DEBUFF_FIXED',
-    DEBUFF_PERCENTAGE: 'DEBUFF_PERCENTAGE',
-} as const;
+
 
 const DEFAULT_STATUS_OBJECT: StatusDefinition = {
     duration: { type: STATUS_DURATIONS.TEMPORAL, value: 1 },
@@ -32,6 +27,5 @@ const DEFAULT_STATUS_OBJECT: StatusDefinition = {
 export {
     STATUS_DURATIONS,
     STATUS_USAGE_FREQUENCY,
-    STATUS_TYPES,
     DEFAULT_STATUS_OBJECT,
 };

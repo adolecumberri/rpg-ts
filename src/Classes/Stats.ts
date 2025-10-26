@@ -1,47 +1,44 @@
 import { DEFAULT_STATS } from '../constants/stats.constants';
 import { lifeCheckHelper } from '../helpers/common.helpers';
 import { NonConflicting, Widen } from '../helpers/type.helpers';
+import { ModificationsType } from '../types/common.types';
 import { AnyStat, StatModifier, StatModifierType } from '../types/stats.types';
+import { StatsModifiers } from './stats/StatsModifiers';
 
 export type BasicStats = {
     attack: number;
     defence: number;
-    isAlive: 0 | 1;
+    isAlive: number;
     totalHp: number;
     hp: number;
 };
 
-type StatsConstructor<T> = Partial<NonConflicting<T, BasicStats> & BasicStats>
+type StatsConstructor = BasicStats & {
+    statModifier?: StatsModifiers;
+};
 
 
-export class Stats<T extends { [K in keyof T]: number }> {
-    private _prop: Widen<NonConflicting<T, BasicStats>> & BasicStats;
+/**
+ * Gestiona estadisticas.
+ * Las almacena, devuelve y contiene los modificadores.
+ */
 
-    private modifiers: Partial<Record<keyof (T & BasicStats), StatModifier[]>> = {};
+export class Stats { //TODO: <T extends { [K in keyof T]: number }> 
+    private _prop: BasicStats & Record<AnyStat, number>; //todo: Widen<NonConflicting<T, BasicStats>> & BasicStats
 
-    constructor(defaultStats?: StatsConstructor<T>) {
-        const { totalHp, hp, ...restData } = defaultStats ?? {};
+    private statModifier?: StatsModifiers;
 
-        const totalHpProvided = defaultStats ?
-            Math.max(
-                totalHp ?? DEFAULT_STATS.totalHp,
-                hp ?? DEFAULT_STATS.hp,
-            ) :
-            DEFAULT_STATS.totalHp;
+    constructor(defaultStats?: StatsConstructor) {
+        const { totalHp, hp, statModifier, ...restData } = defaultStats ?? {};
 
         this._prop = Object.assign({ ...DEFAULT_STATS },
             {
-                ...defaultStats,
+                ...restData,
                 ...lifeCheckHelper({ hp, totalHp }),
             },
-        ) as unknown as Widen<NonConflicting<T, BasicStats>> & BasicStats;
+        );
 
-
-        // {
-        //     ...DEFAULT_STATS,
-        //     ...(defaultStats as any),
-        //     totalHp: totalHpProvided,
-        // } as Widen<NonConflicting<T, BasicStats>>; ;
+        this.statModifier = statModifier;
     }
 
     private setHp(newHp: number) {
@@ -49,75 +46,51 @@ export class Stats<T extends { [K in keyof T]: number }> {
         this._prop.hp = Math.min(this._prop.totalHp, Math.max(0, newHp));
     }
 
-    receiveDamage(damage: number) {
-        this.setHp(
-            Math.min(this._prop.totalHp, Math.max(0, this._prop.hp - damage)),
-        );
-    }
+    getProp(stat: AnyStat): number {
+        if (!this._prop[stat]) {
+            throw new Error(`Stat ${stat} does not exist on Stats.`);
+        };
 
-    heal(heal: number) {
-        this.setHp(
-            Math.max(this._prop.totalHp, this._prop.hp + heal),
-        );
-    }
+        let originalValue = this._prop[stat];
 
-    getProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(stat: K): number {
-        let value = this.getProp(stat);
+        let modifiedValue = this.statModifier?.calculateStatValue(originalValue, stat);
 
-        const mods = this.modifiers[stat] || [];
-
-        // Primero aplicamos los modificadores fijos
-        const fixedTotal = mods
-            .filter((m) => m.type === 'FIXED')
-            .reduce((a, b) => a + b.value, 0);
-        value += fixedTotal;
-
-        // Después aplicamos los porcentajes
-        const percentTotal = mods
-            .filter((m) => m.type === 'PERCENTAGE')
-            .reduce((a, b) => a + b.value, 0);
-        value = value + (value * percentTotal) / 100;
-
-        return value;
+        return modifiedValue ?? originalValue;
     }
 
 
-    setProp<K extends keyof (NonConflicting<T, BasicStats> & BasicStats)>(
-        key: K,
+    setProp(
+        key: AnyStat,
         value: number,
     ) {
         if (key === 'hp') {
             this.setHp(value as number);
         } else {
-            this._prop[key] = value as (NonConflicting<T, BasicStats> & BasicStats)[K];
+            this._prop[key] = value;
         }
     }
 
     /** Añade un modificador fijo o porcentual */
-    modify(stat: AnyStat, type: StatModifierType, value: number) {
-        if (!this.modifiers[stat]) {
-            this.modifiers[stat] = [];
+    addModifier(stat: AnyStat, type: ModificationsType, value: number) {
+        if (!this.statModifier) {
+            this.statModifier = new StatsModifiers();
         }
-        this.modifiers[stat]!.push({ type, value });
+        this.statModifier.setModifier(stat, type, value);
     }
 
     /** Elimina un modificador concreto */
-    revert(stat: AnyStat, type: StatModifierType, value: number) {
-        if (!this.modifiers[stat]) return;
-        this.modifiers[stat] = this.modifiers[stat]!.filter(
-            (m) => !(m.type === type && m.value === value),
-        );
-    }
-
-    /** Devuelve snapshot de modificadores (debug/testing) */
-    getModifiers<K extends keyof T>(stat: K): StatModifier[] {
-        return this.modifiers[stat] || [];
+    revert(stat: AnyStat, type: ModificationsType, value: number) {
+        if (!this.statModifier) {
+            return;
+        }
+        const currentValue = this.statModifier.getModifier(stat, type);
+        this.statModifier.setModifier(stat, type, currentValue - value);
     }
 
     /**
      * Devuelve todas las estadísticas actuales.
      */
-    toJSON(): (NonConflicting<T, BasicStats> & BasicStats) {
+    toJSON() {
         return { ...this._prop };
     }
 }

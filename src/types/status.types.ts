@@ -1,8 +1,9 @@
 import { Character } from '../Classes/Character';
 import { BasicStats } from '../Classes/Stats';
 import { StatusInstance } from '../Classes/StatusInstance';
-import { STATUS_DURATIONS, STATUS_TYPES, STATUS_USAGE_FREQUENCY } from '../constants/status.constants';
+import { STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../constants/status.constants';
 import { NonConflicting } from '../helpers/type.helpers';
+import { ModificationsType } from './common.types';
 import { CoreEvents, EventMoment } from './generalEvents.types';
 
 
@@ -32,15 +33,13 @@ type StatusActivationFunction = (arg: {
     appliedValue: number;
 });
 
-type StatusType = keyof typeof STATUS_TYPES;
-
 type StatusDuration = StatusDurationPermanent | StatusDurationTemporal;
 
 
 type StatusUsageFrequency = keyof typeof STATUS_USAGE_FREQUENCY;
 
 interface AffectedStatDescriptor<T extends object = {}> {
-    type: StatusType;
+    type: ModificationsType;
     from: keyof (NonConflicting<T, BasicStats> & BasicStats);
     to: keyof (NonConflicting<T, BasicStats> & BasicStats); // TODO comprobar este tipo
     value: number;
@@ -67,7 +66,6 @@ export {
     AffectedStatDescriptor,
     StatusDurationPermanent,
     StatusDurationTemporal,
-    StatusType,
     StatusDuration,
     StatusUsageFrequency,
     StatusActivationFunction,
