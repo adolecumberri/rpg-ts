@@ -28,12 +28,12 @@ const DEFAULT_ATTACK_FUNCTION: AttackFunction = (char) => {
 };
 
 const DEFAULT_DAMAGE_CALCULATION: DamageCalculation = {
-    [ATTACK_TYPE.NORMAL]: (stats: Stats<any>) => stats.getProp('attack'),
+    [ATTACK_TYPE.NORMAL]: (stats: Stats) => stats.getProp('attack'),
     [ATTACK_TYPE.MISS]: () => 0,
-    [ATTACK_TYPE.CRITICAL]: (stats: Stats<any>) => Math.floor(stats.getProp('attack') * 1.75),
-    [ATTACK_TYPE.TRUE]: (stats: Stats<any>) => stats.getProp('attack'),
-    [ATTACK_TYPE.SKILL]: (stats: Stats<any>) => stats.getProp('attack') + 10,
-    [ATTACK_TYPE.MAGIC]: (stats: Stats<any>) => stats.getProp('attack') + 5,
+    [ATTACK_TYPE.CRITICAL]: (stats: Stats) => Math.floor(stats.getProp('attack') * 1.75),
+    [ATTACK_TYPE.TRUE]: (stats: Stats) => stats.getProp('attack'),
+    [ATTACK_TYPE.SKILL]: (stats: Stats) => stats.getProp('attack') + 10,
+    [ATTACK_TYPE.MAGIC]: (stats: Stats) => stats.getProp('attack') + 5,
     [ATTACK_TYPE.OTHER]: () => 1,
 };
 
@@ -42,7 +42,7 @@ const DEFAULT_DEFENCE_FUNCTION: DefenceFunction = (char, attack) => ({
     value: Math.min(0, char.stats.getProp('defence') - attack.value),
 });
 
-const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = (incoming: number, stats: Stats<any>) => {
+const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = (incoming: number, stats: Stats) => {
     const defence = stats.getProp('defence');
     return Math.max(0, incoming - defence);
 };

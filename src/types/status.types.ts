@@ -5,13 +5,14 @@ import { STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../constants/status.co
 import { NonConflicting } from '../helpers/type.helpers';
 import { ModificationsType } from './common.types';
 import { CoreEvents, EventMoment } from './generalEvents.types';
+import { AnyStat } from './stats.types';
 
 
 type StatusInstanceConstructor = {
     definition: StatusDefinition;
     id?: string;
     timesUsed?: number;
-    timesActivated?: number;
+    timesTriggered?: number;
     valueToRecover?: Record<string, number>;
 }
 
@@ -40,8 +41,8 @@ type StatusUsageFrequency = keyof typeof STATUS_USAGE_FREQUENCY;
 
 interface AffectedStatDescriptor<T extends object = {}> {
     type: ModificationsType;
-    from: keyof (NonConflicting<T, BasicStats> & BasicStats);
-    to: keyof (NonConflicting<T, BasicStats> & BasicStats); // TODO comprobar este tipo
+    from: AnyStat,//TODO: keyof (NonConflicting<T, BasicStats> & BasicStats);
+    to: AnyStat, //Todo: keyof (NonConflicting<T, BasicStats> & BasicStats); // TODO comprobar este tipo
     value: number;
     id?: number;
     timesUsed?: number;

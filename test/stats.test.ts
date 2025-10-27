@@ -51,7 +51,7 @@ describe('Stats', () => {
     });
 
     it('should allow setting custom keys (extended type)', () => {
-        const stats = new Stats<ExtraStats>({
+        const stats = new Stats({
             agility: 15,
             hp: 80,
             totalHp: 100,
@@ -77,12 +77,12 @@ describe('Stats', () => {
         expect(stats.getProp('totalHp')).toBe(50);
         expect(stats.getProp('hp')).toBe(50);
 
-        stats.receiveDamage(20);
+        stats.setProp("hp", 30);
 
         expect(stats.getProp('totalHp')).toBe(50);
         expect(stats.getProp('hp')).toBe(30);
 
-        stats.receiveDamage(40);
+        stats.setProp("hp", -10);
 
         expect(stats.getProp('totalHp')).toBe(50);
         expect(stats.getProp('hp')).toBe(0);
@@ -95,7 +95,7 @@ describe('Stats', () => {
         expect(stats.getProp('totalHp')).toBe(70);
         expect(stats.getProp('hp')).toBe(50);
 
-        stats.heal(100);
+        stats.setProp("hp", 100);
 
         expect(stats.getProp('totalHp')).toBe(70);
         expect(stats.getProp('hp')).toBe(70);

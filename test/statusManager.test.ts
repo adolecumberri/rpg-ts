@@ -84,11 +84,11 @@ describe('Testing Status manager', () => {
         const char = new Character({ stats: new Stats({ hp: 100, totalHp: 100, attack: 10 }) });
         const manager = new StatusManager(char);
 
-        manager.add(percentage_debuff);
+        manager.addStatusInstance(percentage_debuff);
 
         // 5 turnos (after_attack → aplica el debuff)
         for (let i = 0; i < 5; i++) {
-            manager.activate('after_attack');
+            manager.trigger('after_attack');
         }
 
         // expect(char.isAlive()).toBe(false);
@@ -139,8 +139,8 @@ describe('Testing Status manager', () => {
         });
         const manager = new StatusManager(char);
 
-        manager.add(percentage_buff);
-        manager.add(fixed_buff);
+        manager.addStatusInstance(percentage_buff);
+        manager.addStatusInstance(fixed_buff);
 
         const percentage_buff_instance = manager.statuses.get(percentage_buff.id) as StatusInstance;
         const fixed_buff_instance = manager.statuses.get(fixed_buff.id) as StatusInstance;
@@ -163,19 +163,19 @@ describe('Testing Status manager', () => {
         expect(char.stats.getProp('attack')).toBe(170);
 
         expect(fixed_buff_instance.getAffectedInstances()[0].accumulated).toBe(20);
-        expect(fixed_buff_instance.getAffectedInstances()[0].timesUsed).toBe(1);
+        expect(fixed_buff_instance.timesUsed).toBe(1);
 
         // First attack (before_attack → triggers both)
-        manager.activate('after_turn');
+        manager.trigger('after_turn');
         expect(manager.statuses.size).toBe(1);
         expect(fixed_buff_instance.getAffectedInstances()[0].accumulated).toBe(20);
-        expect(fixed_buff_instance.getAffectedInstances()[0].timesUsed).toBe(1);
+        expect(fixed_buff_instance.timesUsed).toBe(1);
 
         expect(char.stats.getProp('attack')).toBe(120);
         expect(manager.hasStatus(percentage_buff.id)).toBe(false);
 
         // Second attack (before_attack again)
-        manager.activate('after_turn');
+        manager.trigger('after_turn');
         expect(fixed_buff_instance.hasBeenUsed()).toBe(true);
         expect(fixed_buff_instance.timesUsed).toBe(1);
         expect(fixed_buff_instance.canActivate()).toBe(false);

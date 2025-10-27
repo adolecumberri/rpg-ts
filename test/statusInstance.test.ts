@@ -1,7 +1,8 @@
 import { Character } from '../src/Classes/Character';
 import { Stats } from '../src/Classes/Stats';
 import { StatusInstance } from '../src/Classes/StatusInstance';
-import { STATUS_DURATIONS, STATUS_USAGE_FREQUENCY, STATUS_TYPES } from '../src/constants/status.constants';
+import { MODIFICATION_TYPES } from '../src/constants/common.constants';
+import { STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../src/constants/status.constants';
 import { StatusDefinition } from '../src/types/status.types';
 
 
@@ -13,7 +14,7 @@ const makeBuff = (overrides: Partial<StatusDefinition> = {}): StatusDefinition =
     duration: { type: STATUS_DURATIONS.PERMANENT },
     usageFrequency: STATUS_USAGE_FREQUENCY.PER_ACTION,
     statsAffected: [
-        { from: 'attack', to: 'attack', type: STATUS_TYPES.BUFF_FIXED, value: 10, recovers: true },
+        { from: 'attack', to: 'attack', type: MODIFICATION_TYPES.BUFF_FIXED, value: 10, recovers: true },
     ],
     ...overrides,
 });
@@ -32,7 +33,7 @@ describe('StatusInstance', () => {
         expect(s.canActivate()).toBe(true);
 
         const char = new Character({ stats: makeStats() });
-        s.activate(char);
+        s.triggerInstances(char.stats);
 
         expect(s.canActivate()).toBe(false);
     });
@@ -44,7 +45,7 @@ describe('StatusInstance', () => {
 
         expect(s.canActivate()).toBe(true);
         const char = new Character({ stats: makeStats() });
-        s.activate(char);
+        s.triggerInstances(char.stats);
         expect(s.canActivate()).toBe(true);
     });
 
@@ -54,7 +55,7 @@ describe('StatusInstance', () => {
         );
         const stats = makeStats();
         const char = new Character({ stats });
-        s.activate(char);
+        s.triggerInstances(char.stats);
         expect(s.canActivate()).toBe(false);
     });
 
@@ -63,7 +64,7 @@ describe('StatusInstance', () => {
         expect(s.hasBeenUsed()).toBe(false);
         const stats = makeStats();
         const char = new Character({ stats });
-        s.activate(char);
+        s.triggerInstances(char.stats);
         expect(s.hasBeenUsed()).toBe(true);
     });
 
@@ -74,11 +75,11 @@ describe('StatusInstance', () => {
         const stats = makeStats();
         const char = new Character({ stats });
         // First activation (duration goes 2 -> 1)
-        s.activate(char);
+        s.triggerInstances(char.stats);
         expect(s['canActivate']()).toBe(true);
 
         // Second activation (duration goes 1 -> 0)
-        s.activate(char);
+        s.triggerInstances(char.stats);
         expect(s['canActivate']()).toBe(false);
     });
 
@@ -90,7 +91,7 @@ describe('StatusInstance', () => {
 
         expect(permanent.isExpired()).toBe(false);
 
-        temporal.activate(char); // reduce to 0
+        temporal.triggerInstances(char.stats); // reduce to 0
         expect(temporal.isExpired()).toBe(true);
     });
 
@@ -100,9 +101,9 @@ describe('StatusInstance', () => {
         const char = new Character({ stats });
 
         // Apply buff 3 times
-        s.activate(char);
-        s.activate(char);
-        s.activate(char);
+        s.triggerInstances(char.stats);
+        s.triggerInstances(char.stats);
+        s.triggerInstances(char.stats);
 
         expect(stats.getProp('attack')).toBe(40); // 10 + 10*3
 
@@ -132,8 +133,8 @@ describe('StatusInstance', () => {
 
         const s = new StatusInstance({ definition: def });
 
-        s.activate(char); // attack: 10 + 10 + 5 = 25 ; defence: 5 - 2 = 3
-        s.activate(char); // attack: 25 + 10 + 5 = 40 ; defence: 3 - 2 = 1
+        s.triggerInstances(char.stats); // attack: 10 + 10 + 5 = 25 ; defence: 5 - 2 = 3
+        s.triggerInstances(char.stats); // attack: 25 + 10 + 5 = 40 ; defence: 3 - 2 = 1
 
         // Comprobamos acumulados por stat
         const affected = s.getAffectedInstances();

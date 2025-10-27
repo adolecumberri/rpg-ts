@@ -4,7 +4,7 @@ import { EventMoment } from "../types/generalEvents.types";
 export type EventHandler = (...args: any[]) => void;
 
 export interface EventEmitter {
-    on(event: string, listener: EventHandler): void; // setter
+    on(event: EventMoment, listener: EventHandler): void; // setter
     emit(event: EventMoment, ...args: any[]): void; // trigger
 }
 

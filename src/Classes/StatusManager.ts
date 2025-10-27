@@ -6,7 +6,6 @@ import { StatusInstance } from './StatusInstance';
 export class StatusManager {
     readonly character: Character;
     statuses: Map<string, StatusInstance> = new Map();
-    private registeredEvents: Set<string> = new Set();
 
     constructor(character: Character) {
         this.character = character;
@@ -17,17 +16,18 @@ export class StatusManager {
         });
     }
 
-    add(statusInstance: StatusInstance) {
+    addStatusInstance(statusInstance: StatusInstance) {
         statusInstance.definition.onAdd?.(this.character);
 
         if (statusInstance.definition.triggersOnAdd) {
-            statusInstance.activate(this.character);
+            statusInstance.triggerInstances(this.character.stats);
+            this.cleanup();
         }
 
         this.statuses.set(statusInstance.id, statusInstance);
 
-        // subscribir a los eventos necesarios (solo la primera vez)
-        this.ensureRegisteredFor(statusInstance.definition.applyOn);
+        // subscribir a los evento (acumulable en el array.)
+        this.character.on(statusInstance.definition.applyOn, () => this.trigger(statusInstance.definition.applyOn));
 
         return statusInstance.id;
     }
@@ -36,18 +36,18 @@ export class StatusManager {
         const status = this.statuses.get(id);
         if (!status) return;
 
-        status.recover(this.character.stats);
-        status.definition.onRemove?.(this.character);
+        status.remove(this.character);
+
         this.statuses.delete(id);
     }
 
-    activate(moment: EventMoment) {
+    trigger(moment: EventMoment) {
         // limpiamos expirados antes de activar
         this.cleanup();
 
         for (const status of this.statuses.values()) {
             if (status.definition.applyOn === moment) {
-                status.activate(this.character);
+                status.triggerInstances(this.character.stats);
             }
         }
     }
@@ -55,29 +55,21 @@ export class StatusManager {
     private cleanup() {
         for (const [id, status] of this.statuses) {
             if (status.isExpired()) {
-                status.recover(this.character.stats);
-                status.definition.onRemove?.(this.character);
-                this.statuses.delete(id);
+                this.removeStatusInstance(id);
             }
         }
     }
 
     removeAllStatuses() {
         for (const status of this.statuses.values()) {
-            status.recover(this.character.stats);
-            status.definition.onRemove?.(this.character);
+            status.remove(this.character);
         }
         this.statuses.clear();
-        this.registeredEvents.clear();
     }
 
     hasStatus(statusId: string) {
         return this.statuses.has(statusId);
     }
 
-    private ensureRegisteredFor(event: EventMoment) {
-        if (this.registeredEvents.has(event)) return;
-        this.character.on(event, () => this.activate(event));
-        this.registeredEvents.add(event);
-    }
+
 }

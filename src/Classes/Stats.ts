@@ -13,9 +13,14 @@ export type BasicStats = {
     hp: number;
 };
 
-type StatsConstructor = Partial<BasicStats> & {
+type StatsConstructor<TProps> = {
     statModifier?: StatsModifiers;
-};
+    attack?: number;
+    defence?: number;
+    isAlive?: number;
+    totalHp?: number;
+    hp?: number;
+} & Partial<NonConflicting<TProps, BasicStats>>;
 
 
 /**
@@ -23,13 +28,14 @@ type StatsConstructor = Partial<BasicStats> & {
  * Las almacena, devuelve y contiene los modificadores.
  */
 
-export class Stats { //TODO: <T extends { [K in keyof T]: number }> 
+export class Stats<TProps extends object = any> { //TODO: <T extends { [K in keyof T]: number }> 
     private _prop: BasicStats & Record<AnyStat, number>; //todo: Widen<NonConflicting<T, BasicStats>> & BasicStats
 
     private statModifier?: StatsModifiers;
 
-    constructor(defaultStats?: StatsConstructor) {
-        const { totalHp, hp, statModifier, ...restData } = defaultStats ?? {};
+    constructor(params?: Partial<StatsConstructor<TProps>>) {
+        if (!params) params = {};
+        const { totalHp, hp, statModifier, ...restData } = params;
 
         this._prop = Object.assign({ ...DEFAULT_STATS },
             {
@@ -77,6 +83,15 @@ export class Stats { //TODO: <T extends { [K in keyof T]: number }>
         }
         this.statModifier.setModifier(stat, type, value);
     }
+
+    substractModifier(stat: AnyStat, type: ModificationsType, value: number) {
+        if (!this.statModifier) {
+            throw new Error('No StatModifier instance available.');
+            return;
+        }
+        const currentValue = this.statModifier.getModifier(stat, type);
+        this.statModifier.setModifier(stat, type, currentValue - value);
+    };
 
     /** Elimina un modificador concreto */
     revert(stat: AnyStat, type: ModificationsType, value: number) {

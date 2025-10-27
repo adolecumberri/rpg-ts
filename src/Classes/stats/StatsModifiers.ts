@@ -54,13 +54,13 @@ export class StatsModifiers {
             || type === MODIFICATION_TYPES.DEBUFF_PERCENTAGE;
     };
 
-    resetModifier(stat: AnyStat, type: ModificationsType) {
+    removeModifier(stat: AnyStat, type: ModificationsType) {
         if (this.modifiers[stat]) {
             this.modifiers[stat][type] = 0;
         }
     };
 
-    resetModifiers() {
+    removeModifiers() {
         this.modifiers = {};
     };
 
@@ -79,4 +79,5 @@ export class StatsModifiers {
     setModifiers(modifiers: ModifiersRecord) {
         this.modifiers = modifiers;
     };
+
 }

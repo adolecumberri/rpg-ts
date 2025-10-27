@@ -25,10 +25,10 @@ export type AttackFunction = (char: Character, ...args: any[]) => AttackResult;
 export type DefenceFunction = (char: Character, attack: AttackResult, ...args: any[]) => DefenceResult;
 
 export type DamageCalculation = {
-  [key in AttackType]: (stats: Stats<any>) => number;
+  [key in AttackType]: (stats: Stats) => number;
 };
 
-export type DefenceCalculation = (incomingDamage: number, stats: Stats<any>) => number;
+export type DefenceCalculation = (incomingDamage: number, stats: Stats) => number;
 
 export type CombatBehaviorConstructor = {
   attackFn: AttackFunction,
