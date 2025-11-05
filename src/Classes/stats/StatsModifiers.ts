@@ -1,10 +1,13 @@
 import { MODIFICATION_TYPES } from "../../constants/common.constants";
 import { ModificationsType } from "../../types/common.types"
 import { AnyStat } from "../../types/stats.types";
+import { BasicStats } from "../Stats";
 
 
 type ModifiersRecord = Record<AnyStat, Record<ModificationsType, number>>;
-type StatsModificationConstructor = Partial<StatsModifiers>
+type StatsModificationConstructor = Partial<StatsModifiers> & {
+    stats?: BasicStats & Record<AnyStat, number>
+}
 
 /**
  * Gestiona las modificaciones de estadísticas.
@@ -46,6 +49,7 @@ export class StatsModifiers {
             [MODIFICATION_TYPES.BUFF_PERCENTAGE]: 0,
             [MODIFICATION_TYPES.DEBUFF_FIXED]: 0,
             [MODIFICATION_TYPES.DEBUFF_PERCENTAGE]: 0,
+            procesedStat: 0,
         }
     };
 
@@ -64,20 +68,34 @@ export class StatsModifiers {
         this.modifiers = {};
     };
 
-    setModifier(stat: AnyStat, type: ModificationsType, value: number) {
+    /**
+     * 
+     * @param stat stat changed
+     * @param type type of modifier
+     * @param value value to add to modifier
+     * @param statValue statValue user to recalculate the stat
+     */
+    setModifier(stat: AnyStat, type: ModificationsType, value: number, statValue: number) {
         if (!this.modifiers[stat]) {
             this.modifiers[stat] = {
                 [MODIFICATION_TYPES.BUFF_FIXED]: 0,
                 [MODIFICATION_TYPES.BUFF_PERCENTAGE]: 0,
                 [MODIFICATION_TYPES.DEBUFF_FIXED]: 0,
                 [MODIFICATION_TYPES.DEBUFF_PERCENTAGE]: 0,
+                procesedStat: 0,
             };
         }
         this.modifiers[stat][type] = value;
+        this.calculateStatValue(statValue, stat);
     };
 
     setModifiers(modifiers: ModifiersRecord) {
         this.modifiers = modifiers;
     };
 
+}
+
+export {
+    ModifiersRecord,
+    StatsModificationConstructor,
 }

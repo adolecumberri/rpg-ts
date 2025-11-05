@@ -1,5 +1,6 @@
 import { DEFAULT_STATS } from '../constants/stats.constants';
 import { lifeCheckHelper } from '../helpers/common.helpers';
+import { fromPropsToModifiers } from '../helpers/stats.helpers';
 import { NonConflicting, Widen } from '../helpers/type.helpers';
 import { ModificationsType } from '../types/common.types';
 import { AnyStat, StatModifier, StatModifierType } from '../types/stats.types';
@@ -37,14 +38,18 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
         if (!params) params = {};
         const { totalHp, hp, statModifier, ...restData } = params;
 
-        this._prop = Object.assign({ ...DEFAULT_STATS },
+        const procesedProps = Object.assign({ ...DEFAULT_STATS },
             {
                 ...restData,
                 ...lifeCheckHelper({ hp, totalHp }),
             },
         );
 
-        this.statModifier = statModifier;
+        this._prop = procesedProps;
+
+        this.statModifier = statModifier ?? new StatsModifiers({
+            modifiers: fromPropsToModifiers(procesedProps)
+        });
     }
 
     private setHp(newHp: number) {
@@ -59,7 +64,7 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
 
         let originalValue = this._prop[stat];
 
-        let modifiedValue = this.statModifier?.calculateStatValue(originalValue, stat);
+        let modifiedValue = this.statModifier?.getModifier(stat, 'procesedStat');
 
         return modifiedValue ?? originalValue;
     }
@@ -81,7 +86,7 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
         if (!this.statModifier) {
             this.statModifier = new StatsModifiers();
         }
-        this.statModifier.setModifier(stat, type, value);
+        this.statModifier.setModifier(stat, type, value, this.getProp(stat));
     }
 
     substractModifier(stat: AnyStat, type: ModificationsType, value: number) {
@@ -90,7 +95,7 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
             return;
         }
         const currentValue = this.statModifier.getModifier(stat, type);
-        this.statModifier.setModifier(stat, type, currentValue - value);
+        this.statModifier.setModifier(stat, type, currentValue - value, this.getProp(stat));
     };
 
     /** Elimina un modificador concreto */
@@ -99,7 +104,7 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
             return;
         }
         const currentValue = this.statModifier.getModifier(stat, type);
-        this.statModifier.setModifier(stat, type, currentValue - value);
+        this.statModifier.setModifier(stat, type, currentValue - value, this.getProp(stat));
     }
 
     /**

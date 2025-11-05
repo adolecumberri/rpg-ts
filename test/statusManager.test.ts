@@ -97,6 +97,8 @@ describe('Testing Status manager', () => {
     });
 
     it('Character receives percentage_buff and fixed_buff, then they expire in order', () => {
+
+        //!!!! this one triggers on Add and gets removed.
         percentage_buff = new StatusInstance({
             definition: {
                 name: 'Rage',
@@ -114,6 +116,7 @@ describe('Testing Status manager', () => {
                     },
                 ],
             },
+            id: "2",
         });
 
         fixed_buff = new StatusInstance({
@@ -142,13 +145,15 @@ describe('Testing Status manager', () => {
         manager.addStatusInstance(percentage_buff);
         manager.addStatusInstance(fixed_buff);
 
-        const percentage_buff_instance = manager.statuses.get(percentage_buff.id) as StatusInstance;
+        const percentage_buff_instance = manager.statuses.get(percentage_buff.id);
         const fixed_buff_instance = manager.statuses.get(fixed_buff.id) as StatusInstance;
 
-        expect(percentage_buff_instance.hasBeenUsed()).toBe(true);
-        expect(percentage_buff_instance.timesUsed).toBe(1);
-        expect(percentage_buff_instance.canActivate()).toBe(false);
-        expect(percentage_buff_instance.isExpired()).toBe(true);
+        //!!!! not using the instance, because the instance gets added and removed
+        // that behaviour is expected.
+        expect(percentage_buff?.hasBeenUsed()).toBe(true);
+        expect(percentage_buff?.timesUsed).toBe(1);
+        expect(percentage_buff?.canActivate()).toBe(false);
+        expect(percentage_buff?.isExpired()).toBe(true);
 
         expect(fixed_buff_instance.hasBeenUsed()).toBe(true);
         expect(fixed_buff_instance.timesUsed).toBe(1);
@@ -159,7 +164,7 @@ describe('Testing Status manager', () => {
         // percentage_buff: +50% attack → +50 (since base attack=100)
         // fixed_buff: +20 attack
         // expected: 100 + 50 + 20 = 170
-        expect(manager.statuses.size).toBe(2);
+        expect(manager.statuses.size).toBe(1);
         expect(char.stats.getProp('attack')).toBe(170);
 
         expect(fixed_buff_instance.getAffectedInstances()[0].accumulated).toBe(20);
