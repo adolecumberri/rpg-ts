@@ -12,6 +12,8 @@ const fromPropsToModifiers = (props: BasicStats & Record<AnyStat, number>): Modi
             [MODIFICATION_TYPES.DEBUFF_FIXED]: 0,
             [MODIFICATION_TYPES.DEBUFF_PERCENTAGE]: 0,
             procesedStat: props[key],
+            originalStatValue: props[key],
+            //TODO: añadir canBeBuffed para evitar triggers en stats como "isAlive"
         }
     }
     return modifiers;

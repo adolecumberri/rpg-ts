@@ -1,8 +1,14 @@
 import { MODIFICATION_TYPES } from "../constants/common.constants";
+import { Widen } from "../helpers/type.helpers";
 
+type ModificationTypes = typeof MODIFICATION_TYPES[keyof typeof MODIFICATION_TYPES]
 
-type ModificationsType = typeof MODIFICATION_TYPES[keyof typeof MODIFICATION_TYPES] | "procesedStat";
+type OtherModificationsType = "procesedStat" | "originalStatValue";
+
+type ModificationKeys = Widen<ModificationTypes | OtherModificationsType>;
 
 export {
-    ModificationsType
+    ModificationTypes,
+    ModificationKeys,
+    OtherModificationsType,
 }

@@ -60,11 +60,12 @@ export class StatusInstance {
             });
 
             // Aplica el cambio
-            stats.addModifier(desc.to, desc.type, result.finalValue);
+            stats.addModifier(desc.to, desc.type, result.initialValue);
+            stats.setProp(desc.to, result.finalValue);
 
             // Si este stat debe recuperarse, acumulamos lo aplicado para revertir luego
             if (desc.recovers) {
-                affected.accumulated += (result.appliedValue as number);
+                affected.accumulated += (result.initialValue as number);
             }
         }
 

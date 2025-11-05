@@ -2,7 +2,7 @@ import { DEFAULT_STATS } from '../constants/stats.constants';
 import { lifeCheckHelper } from '../helpers/common.helpers';
 import { fromPropsToModifiers } from '../helpers/stats.helpers';
 import { NonConflicting, Widen } from '../helpers/type.helpers';
-import { ModificationsType } from '../types/common.types';
+import { ModificationKeys } from '../types/common.types';
 import { AnyStat, StatModifier, StatModifierType } from '../types/stats.types';
 import { StatsModifiers } from './stats/StatsModifiers';
 
@@ -82,29 +82,31 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
     }
 
     /** Añade un modificador fijo o porcentual */
-    addModifier(stat: AnyStat, type: ModificationsType, value: number) {
+    addModifier(stat: AnyStat, type: ModificationKeys, value: number) {
         if (!this.statModifier) {
             this.statModifier = new StatsModifiers();
-        }
-        this.statModifier.setModifier(stat, type, value, this.getProp(stat));
+        };
+
+        this.statModifier.setModifier(stat, type, value + this.statModifier.getModifier(stat, type));
+        this.statModifier.processProcessedStats(stat, this._prop[stat]);
     }
 
-    substractModifier(stat: AnyStat, type: ModificationsType, value: number) {
+    substractModifier(stat: AnyStat, type: ModificationKeys, value: number) {
         if (!this.statModifier) {
             throw new Error('No StatModifier instance available.');
             return;
         }
         const currentValue = this.statModifier.getModifier(stat, type);
-        this.statModifier.setModifier(stat, type, currentValue - value, this.getProp(stat));
+        this.statModifier.setModifier(stat, type, currentValue - value);
     };
 
     /** Elimina un modificador concreto */
-    revert(stat: AnyStat, type: ModificationsType, value: number) {
+    revert(stat: AnyStat, type: ModificationKeys, value: number) {
         if (!this.statModifier) {
             return;
         }
         const currentValue = this.statModifier.getModifier(stat, type);
-        this.statModifier.setModifier(stat, type, currentValue - value, this.getProp(stat));
+        this.statModifier.setModifier(stat, type, currentValue - value);
     }
 
     /**

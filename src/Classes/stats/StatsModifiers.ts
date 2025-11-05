@@ -1,10 +1,11 @@
 import { MODIFICATION_TYPES } from "../../constants/common.constants";
-import { ModificationsType } from "../../types/common.types"
+import { DEFAULT_STAT_MODIFIERS } from "../../constants/stats.constants";
+import { ModificationKeys, ModificationTypes } from "../../types/common.types"
 import { AnyStat } from "../../types/stats.types";
 import { BasicStats } from "../Stats";
 
 
-type ModifiersRecord = Record<AnyStat, Record<ModificationsType, number>>;
+type ModifiersRecord = Record<AnyStat, Record<ModificationKeys, number>>;
 type StatsModificationConstructor = Partial<StatsModifiers> & {
     stats?: BasicStats & Record<AnyStat, number>
 }
@@ -39,26 +40,20 @@ export class StatsModifiers {
         return modifiedValue;
     };
 
-    getModifier(key: AnyStat, type: ModificationsType): number {
+    getModifier(key: AnyStat, type: ModificationKeys): number {
         return this.modifiers[key]?.[type] ?? 0;
     };
 
-    getModifiersForStat(key: AnyStat): Record<ModificationsType, number> {
-        return this.modifiers[key] ?? {
-            [MODIFICATION_TYPES.BUFF_FIXED]: 0,
-            [MODIFICATION_TYPES.BUFF_PERCENTAGE]: 0,
-            [MODIFICATION_TYPES.DEBUFF_FIXED]: 0,
-            [MODIFICATION_TYPES.DEBUFF_PERCENTAGE]: 0,
-            procesedStat: 0,
-        }
+    getModifiersForStat(key: AnyStat): Record<ModificationKeys, number> {
+        return this.modifiers[key] ?? { ...DEFAULT_STAT_MODIFIERS };
     };
 
-    isPercentageModification(type: ModificationsType): boolean {
+    isPercentageModification(type: ModificationTypes): boolean {
         return type === MODIFICATION_TYPES.BUFF_PERCENTAGE
             || type === MODIFICATION_TYPES.DEBUFF_PERCENTAGE;
     };
 
-    removeModifier(stat: AnyStat, type: ModificationsType) {
+    removeModifier(stat: AnyStat, type: ModificationKeys) {
         if (this.modifiers[stat]) {
             this.modifiers[stat][type] = 0;
         }
@@ -75,24 +70,20 @@ export class StatsModifiers {
      * @param value value to add to modifier
      * @param statValue statValue user to recalculate the stat
      */
-    setModifier(stat: AnyStat, type: ModificationsType, value: number, statValue: number) {
+    setModifier(stat: AnyStat, type: ModificationKeys, value: number) {
         if (!this.modifiers[stat]) {
-            this.modifiers[stat] = {
-                [MODIFICATION_TYPES.BUFF_FIXED]: 0,
-                [MODIFICATION_TYPES.BUFF_PERCENTAGE]: 0,
-                [MODIFICATION_TYPES.DEBUFF_FIXED]: 0,
-                [MODIFICATION_TYPES.DEBUFF_PERCENTAGE]: 0,
-                procesedStat: 0,
-            };
+            this.modifiers[stat] = { ...DEFAULT_STAT_MODIFIERS };
         }
         this.modifiers[stat][type] = value;
-        this.calculateStatValue(statValue, stat);
     };
 
     setModifiers(modifiers: ModifiersRecord) {
         this.modifiers = modifiers;
     };
 
+    processProcessedStats(stat: AnyStat, baseStatValue: number) {
+        this.modifiers[stat]["procesedStat"] = this.calculateStatValue(baseStatValue, stat);
+    };
 }
 
 export {

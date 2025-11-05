@@ -3,7 +3,7 @@ import { BasicStats } from '../Classes/Stats';
 import { StatusInstance } from '../Classes/StatusInstance';
 import { STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../constants/status.constants';
 import { NonConflicting } from '../helpers/type.helpers';
-import { ModificationsType } from './common.types';
+import { ModificationTypes } from './common.types';
 import { CoreEvents, EventMoment } from './generalEvents.types';
 import { AnyStat } from './stats.types';
 
@@ -31,7 +31,7 @@ type StatusActivationFunction = (arg: {
     value: number,
 }) => ({
     finalValue: number,
-    appliedValue: number;
+    initialValue: number;
 });
 
 type StatusDuration = StatusDurationPermanent | StatusDurationTemporal;
@@ -40,7 +40,7 @@ type StatusDuration = StatusDurationPermanent | StatusDurationTemporal;
 type StatusUsageFrequency = keyof typeof STATUS_USAGE_FREQUENCY;
 
 interface AffectedStatDescriptor<T extends object = {}> {
-    type: ModificationsType;
+    type: ModificationTypes;
     from: AnyStat,//TODO: keyof (NonConflicting<T, BasicStats> & BasicStats);
     to: AnyStat, //Todo: keyof (NonConflicting<T, BasicStats> & BasicStats); // TODO comprobar este tipo
     value: number;
