@@ -11,7 +11,7 @@ export class StatusManager {
         this.character = character;
 
         // limpieza automática al morir
-        this.character.on('after_die', () => {
+        this.character.on('on_die', () => {
             this.removeAllStatuses();
         });
     }
@@ -19,15 +19,15 @@ export class StatusManager {
     addStatusInstance(statusInstance: StatusInstance) {
         statusInstance.definition.onAdd?.(this.character);
 
-        if (statusInstance.definition.triggersOnAdd) {
-            statusInstance.triggerInstances(this.character.stats);
-            this.cleanup();
-        }
-
         this.statuses.set(statusInstance.id, statusInstance);
 
         // subscribir a los evento (acumulable en el array.)
         this.character.on(statusInstance.definition.applyOn, () => this.trigger(statusInstance.definition.applyOn));
+
+        if (statusInstance.definition.triggersOnAdd) {
+            statusInstance.triggerInstances(this.character.stats);
+            this.cleanup();
+        }
 
         return statusInstance.id;
     }

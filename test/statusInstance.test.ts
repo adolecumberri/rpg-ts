@@ -14,7 +14,7 @@ const makeBuff = (overrides: Partial<StatusDefinition> = {}): StatusDefinition =
     duration: { type: STATUS_DURATIONS.PERMANENT },
     usageFrequency: STATUS_USAGE_FREQUENCY.PER_ACTION,
     statsAffected: [
-        { from: 'attack', to: 'attack', type: MODIFICATION_TYPES.BUFF_FIXED, value: 13, recovers: true },
+        { from: 'attack', to: 'attack', type: MODIFICATION_TYPES.BUFF_FIXED, value: 10, recovers: true },
     ],
     ...overrides,
 });

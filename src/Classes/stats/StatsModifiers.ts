@@ -71,14 +71,17 @@ export class StatsModifiers {
             this.modifiers[stat] = { ...DEFAULT_STAT_MODIFIERS };
         }
         this.modifiers[stat][type] = Math.abs(value);
+        this.processProcessedStats(stat);
     };
 
     setModifiers(modifiers: ModifiersRecord) {
         this.modifiers = modifiers;
     };
 
-    processProcessedStats(stat: AnyStat, baseStatValue: number) {
-        this.modifiers[stat]["procesedStat"] = this.calculateStatValue(stat);
+    processProcessedStats(stat: AnyStat) {
+        const newValue = this.calculateStatValue(stat);
+        this.modifiers[stat]["procesedStat"] = newValue;
+        return newValue;
     };
 }
 

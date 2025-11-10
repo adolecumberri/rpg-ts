@@ -54,7 +54,7 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
 
     private setHp(newHp: number) {
         this._prop.isAlive = newHp > 0 ? 1 : 0;
-        this._prop.hp = Math.min(this._prop.totalHp, Math.max(0, newHp));
+        this._prop.hp = Math.max(0, newHp);
     }
 
     getProp(stat: AnyStat): number {
@@ -64,9 +64,12 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
 
         let originalValue = this._prop[stat];
 
-        let modifiedValue = this.statModifier?.getModifier(stat, 'procesedStat');
+        /*
+        
+        */
+        // let modifiedValue = this.statModifier?.getModifier(stat, 'procesedStat');
 
-        return modifiedValue ?? originalValue;
+        return originalValue;
     }
 
 
@@ -90,16 +93,18 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
         const previousValue = this.statModifier.getModifier(stat, type);
 
         this.statModifier.setModifier(stat, type, previousValue + value);
-        this.statModifier.processProcessedStats(stat, this._prop[stat]);
+        this.setProp(stat, this.statModifier.processProcessedStats(stat));
     }
 
     substractModifier(stat: AnyStat, type: ModificationKeys, value: number) {
         if (!this.statModifier) {
-            throw new Error('No StatModifier instance available.');
-            return;
-        }
-        const currentValue = this.statModifier.getModifier(stat, type);
-        this.statModifier.setModifier(stat, type, currentValue - value);
+            this.statModifier = new StatsModifiers();
+        };
+
+        const previousValue = this.statModifier.getModifier(stat, type);
+
+        this.statModifier.setModifier(stat, type, previousValue - value);
+        this.setProp(stat, this.statModifier.processProcessedStats(stat));
     };
 
     /** Elimina un modificador concreto */

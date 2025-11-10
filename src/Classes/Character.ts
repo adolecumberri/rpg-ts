@@ -84,6 +84,10 @@ class Character<
     }
 
     isAlive(): boolean {
+        const isAlive = this.stats.getProp('isAlive') === 1;
+        if (!isAlive) {
+            this._emitter.emit('on_die', this);
+        }
         return this.stats.getProp('isAlive') === 1;
     }
 
@@ -118,6 +122,9 @@ class Character<
         }
     }
 
+    getStat(key: AnyStat): number {
+        return this.stats.getProp(key);
+    };
 
     deleteProp(key: AnyPropKey) {
         if (this._props[key]) {

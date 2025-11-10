@@ -7,8 +7,7 @@ describe("StatsModifiers", () => {
     test("1️⃣ Calcula correctamente una estadística sin modificadores", () => {
         const statsModifier = new StatsModifiers();
 
-        const baseAttack = 100;
-        const result = statsModifier.calculateStatValue(baseAttack, "attack");
+        const result = statsModifier.calculateStatValue("attack");
 
         expect(result).toBe(100);
     });
@@ -18,11 +17,9 @@ describe("StatsModifiers", () => {
 
         // Añadimos modificadores fijos
         statsModifier.setModifier("attack", MODIFICATION_TYPES.BUFF_FIXED, 20);  // +20
-        statsModifier.processProcessedStats("attack", 100);
         statsModifier.setModifier("attack", MODIFICATION_TYPES.DEBUFF_FIXED, 10); // -10
-        statsModifier.processProcessedStats("attack", 100);
 
-        const result = statsModifier.calculateStatValue(100, "attack");
+        const result = statsModifier.calculateStatValue("attack");
 
         // 100 + 20 - 10 = 110
         expect(result).toBe(110);
@@ -33,17 +30,13 @@ describe("StatsModifiers", () => {
 
         // Buff fijo: +20, debuff fijo: -10
         statsModifier.setModifier("attack", MODIFICATION_TYPES.BUFF_FIXED, 20,);
-        statsModifier.processProcessedStats("attack", 100);
         statsModifier.setModifier("attack", MODIFICATION_TYPES.DEBUFF_FIXED, 10);
-        statsModifier.processProcessedStats("attack", 100);
 
         // Buff porcentual: +10%, debuff porcentual: -5%
         statsModifier.setModifier("attack", MODIFICATION_TYPES.BUFF_PERCENTAGE, 10);
-        statsModifier.processProcessedStats("attack", 100);
         statsModifier.setModifier("attack", MODIFICATION_TYPES.DEBUFF_PERCENTAGE, 5);
-        statsModifier.processProcessedStats("attack", 100);
 
-        const result = statsModifier.calculateStatValue(100, "attack");
+        const result = statsModifier.calculateStatValue("attack");
 
         /**
          * Cálculo esperado:

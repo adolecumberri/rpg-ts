@@ -9,7 +9,7 @@ type CoreEvents =
     | 'turn'
     | 'receive_damage';
 
-type EventMoment = `before_${CoreEvents}` | `after_${CoreEvents}` | (string & {});
+type EventMoment = `before_${CoreEvents}` | `after_${CoreEvents}` | `on_${CoreEvents}` | (string & {});
 
 
 export {

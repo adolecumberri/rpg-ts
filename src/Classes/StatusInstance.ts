@@ -67,12 +67,12 @@ export class StatusInstance {
             }
 
             // Aplica el cambio
-            stats.addModifier(desc.to, desc.type, result.variation);
+            stats.addModifier(desc.to, desc.type, Math.abs(result.variation));
             stats.setProp(desc.to, result.finalValue);
 
             // Si este stat debe recuperarse, acumulamos lo aplicado para revertir luego
             if (desc.recovers) {
-                affected.accumulated += (result.initialValue as number);
+                affected.accumulated += (result.variation as number);
             }
         }
 
@@ -91,8 +91,9 @@ export class StatusInstance {
             if (!desc.recovers) continue; // si no recupera, saltamos
 
             const key = desc.to;
+            
             stat.substractModifier(key, desc.type, affected.accumulated);
-
+            
             // limpiamos acumulador tras recuperar
             affected.accumulated = 0;
         }

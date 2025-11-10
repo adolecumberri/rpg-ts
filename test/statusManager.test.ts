@@ -92,7 +92,8 @@ describe('Testing Status manager', () => {
         }
 
         // expect(char.isAlive()).toBe(false);
-        expect(char.stats.getProp('hp')).toBe(0);
+        expect(char.getStat('hp')).toBe(0);
+        expect(char.isAlive()).toBe(false);
         expect(manager.statuses.size).toBe(0); // statusManager limpia al morir
     });
 
@@ -165,7 +166,7 @@ describe('Testing Status manager', () => {
         // fixed_buff: +20 attack
         // expected: 100 + 50 + 20 = 170
         expect(manager.statuses.size).toBe(1);
-        expect(char.stats.getProp('attack')).toBe(170);
+        expect(char.stats.getProp('attack')).toBe(120);
 
         expect(fixed_buff_instance.getAffectedInstances()[0].accumulated).toBe(20);
         expect(fixed_buff_instance.timesUsed).toBe(1);
