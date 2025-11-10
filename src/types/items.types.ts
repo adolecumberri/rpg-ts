@@ -14,7 +14,7 @@ export interface ItemEffect {
 export interface GeneralItemDefinition {
     name: string;
     description?: string;
-    id: string | number;
+    id?: string | number;
 };
 
 export interface UsableItemDefinition extends GeneralItemDefinition {
