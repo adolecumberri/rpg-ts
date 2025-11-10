@@ -32,6 +32,7 @@ type StatusActivationFunction = (arg: {
 }) => ({
     finalValue: number,
     initialValue: number;
+    variation: number;
 });
 
 type StatusDuration = StatusDurationPermanent | StatusDurationTemporal;

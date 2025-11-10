@@ -59,8 +59,15 @@ export class StatusInstance {
                 value: desc.value,
             });
 
+            // if the desc.type is percentage and "from" is diferent from "To", the variation after calculation
+            // is fixed, no a percentage anymore.
+            const isPercentageType = desc.type === 'BUFF_PERCENTAGE' || desc.type === 'DEBUFF_PERCENTAGE';
+            if (isPercentageType && desc.from !== desc.to) {
+                desc.type = desc.type === 'BUFF_PERCENTAGE' ? 'BUFF_FIXED' : 'DEBUFF_FIXED';
+            }
+
             // Aplica el cambio
-            stats.addModifier(desc.to, desc.type, result.initialValue);
+            stats.addModifier(desc.to, desc.type, result.variation);
             stats.setProp(desc.to, result.finalValue);
 
             // Si este stat debe recuperarse, acumulamos lo aplicado para revertir luego

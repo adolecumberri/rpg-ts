@@ -25,17 +25,13 @@ export class StatsModifiers {
         this.modifiers = params.modifiers ?? {};
     };
 
-    calculateStatValue(baseValue: number, key: AnyStat): number {
+    calculateStatValue(key: AnyStat): number {
         const statModifiers = this.getModifiersForStat(key);
-        let modifiedValue = baseValue;
+        let modifiedValue = statModifiers.originalStatValue ?? 0;
 
-        // Aplicar buffs fijos
-        modifiedValue += statModifiers[MODIFICATION_TYPES.BUFF_FIXED];
-        // Aplicar debuffs fijos
-        modifiedValue -= statModifiers[MODIFICATION_TYPES.DEBUFF_FIXED];
-        // Aplicar buffs porcentuales - debuffs porcentuales
-        modifiedValue += (modifiedValue * (statModifiers[MODIFICATION_TYPES.BUFF_PERCENTAGE]
-            - statModifiers[MODIFICATION_TYPES.DEBUFF_PERCENTAGE])) / 100;
+
+        modifiedValue += statModifiers.BUFF_FIXED - statModifiers.DEBUFF_FIXED;
+        modifiedValue += modifiedValue * ((statModifiers.BUFF_PERCENTAGE - statModifiers.DEBUFF_PERCENTAGE) / 100);
 
         return modifiedValue;
     };
@@ -74,7 +70,7 @@ export class StatsModifiers {
         if (!this.modifiers[stat]) {
             this.modifiers[stat] = { ...DEFAULT_STAT_MODIFIERS };
         }
-        this.modifiers[stat][type] = value;
+        this.modifiers[stat][type] = Math.abs(value);
     };
 
     setModifiers(modifiers: ModifiersRecord) {
@@ -82,7 +78,7 @@ export class StatsModifiers {
     };
 
     processProcessedStats(stat: AnyStat, baseStatValue: number) {
-        this.modifiers[stat]["procesedStat"] = this.calculateStatValue(baseStatValue, stat);
+        this.modifiers[stat]["procesedStat"] = this.calculateStatValue(stat);
     };
 }
 

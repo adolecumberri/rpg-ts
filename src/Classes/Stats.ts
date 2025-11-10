@@ -36,7 +36,7 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
 
     constructor(params?: Partial<StatsConstructor<TProps>>) {
         if (!params) params = {};
-        const { totalHp, hp, statModifier, ...restData } = params;
+        const { totalHp = DEFAULT_STATS.totalHp, hp = DEFAULT_STATS.hp, statModifier, ...restData } = params;
 
         const procesedProps = Object.assign({ ...DEFAULT_STATS },
             {
@@ -58,7 +58,7 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
     }
 
     getProp(stat: AnyStat): number {
-        if (!this._prop[stat]) {
+        if (!this._prop[stat] && this._prop[stat] !== 0) {
             throw new Error(`Stat ${stat} does not exist on Stats.`);
         };
 
@@ -87,7 +87,9 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
             this.statModifier = new StatsModifiers();
         };
 
-        this.statModifier.setModifier(stat, type, value + this.statModifier.getModifier(stat, type));
+        const previousValue = this.statModifier.getModifier(stat, type);
+
+        this.statModifier.setModifier(stat, type, previousValue + value);
         this.statModifier.processProcessedStats(stat, this._prop[stat]);
     }
 

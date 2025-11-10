@@ -17,8 +17,10 @@ describe("StatsModifiers", () => {
         const statsModifier = new StatsModifiers();
 
         // Añadimos modificadores fijos
-        statsModifier.setModifier("attack", MODIFICATION_TYPES.BUFF_FIXED, 20, 100);  // +20
-        statsModifier.setModifier("attack", MODIFICATION_TYPES.DEBUFF_FIXED, 10, 100); // -10
+        statsModifier.setModifier("attack", MODIFICATION_TYPES.BUFF_FIXED, 20);  // +20
+        statsModifier.processProcessedStats("attack", 100);
+        statsModifier.setModifier("attack", MODIFICATION_TYPES.DEBUFF_FIXED, 10); // -10
+        statsModifier.processProcessedStats("attack", 100);
 
         const result = statsModifier.calculateStatValue(100, "attack");
 
@@ -30,12 +32,16 @@ describe("StatsModifiers", () => {
         const statsModifier = new StatsModifiers();
 
         // Buff fijo: +20, debuff fijo: -10
-        statsModifier.setModifier("attack", MODIFICATION_TYPES.BUFF_FIXED, 20, 100);
-        statsModifier.setModifier("attack", MODIFICATION_TYPES.DEBUFF_FIXED, 10, 100);
+        statsModifier.setModifier("attack", MODIFICATION_TYPES.BUFF_FIXED, 20,);
+        statsModifier.processProcessedStats("attack", 100);
+        statsModifier.setModifier("attack", MODIFICATION_TYPES.DEBUFF_FIXED, 10);
+        statsModifier.processProcessedStats("attack", 100);
 
         // Buff porcentual: +10%, debuff porcentual: -5%
-        statsModifier.setModifier("attack", MODIFICATION_TYPES.BUFF_PERCENTAGE, 10, 100);
-        statsModifier.setModifier("attack", MODIFICATION_TYPES.DEBUFF_PERCENTAGE, 5, 100);
+        statsModifier.setModifier("attack", MODIFICATION_TYPES.BUFF_PERCENTAGE, 10);
+        statsModifier.processProcessedStats("attack", 100);
+        statsModifier.setModifier("attack", MODIFICATION_TYPES.DEBUFF_PERCENTAGE, 5);
+        statsModifier.processProcessedStats("attack", 100);
 
         const result = statsModifier.calculateStatValue(100, "attack");
 
