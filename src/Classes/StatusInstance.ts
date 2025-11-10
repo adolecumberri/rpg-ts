@@ -4,6 +4,7 @@ import { Stats } from './Stats';
 import { StatusDefinition, StatusDurationTemporal, AffectedStatDescriptor, StatusInstanceConstructor } from '../types/status.types';
 import { ACTION_HANDLERS } from '../helpers/status.helper';
 import { Character } from './Character';
+import { MODIFICATION_TYPES } from '../constants/common.constants';
 
 type AffectedStatInstance = {
     id: string | number;
@@ -52,7 +53,7 @@ export class StatusInstance {
         for (const affected of this._affected) {
             const desc = affected.descriptor;
 
-            const action = ACTION_HANDLERS[desc.type];
+            const action = ACTION_HANDLERS[desc.typeOfModification];
             const result = action({
                 from: stats.getProp(desc.from),
                 to: stats.getProp(desc.to),
@@ -61,13 +62,16 @@ export class StatusInstance {
 
             // if the desc.type is percentage and "from" is diferent from "To", the variation after calculation
             // is fixed, no a percentage anymore.
-            const isPercentageType = desc.type === 'BUFF_PERCENTAGE' || desc.type === 'DEBUFF_PERCENTAGE';
+            const isPercentageType = desc.typeOfModification === MODIFICATION_TYPES.BUFF_PERCENTAGE
+                || desc.typeOfModification === MODIFICATION_TYPES.DEBUFF_PERCENTAGE;
             if (isPercentageType && desc.from !== desc.to) {
-                desc.type = desc.type === 'BUFF_PERCENTAGE' ? 'BUFF_FIXED' : 'DEBUFF_FIXED';
+                desc.typeOfModification = desc.typeOfModification === MODIFICATION_TYPES.BUFF_PERCENTAGE
+                    ? MODIFICATION_TYPES.BUFF_FIXED
+                    : MODIFICATION_TYPES.DEBUFF_FIXED;
             }
 
             // Aplica el cambio
-            stats.addModifier(desc.to, desc.type, Math.abs(result.variation));
+            stats.addModifier(desc.to, desc.typeOfModification, Math.abs(result.variation));
             stats.setProp(desc.to, result.finalValue);
 
             // Si este stat debe recuperarse, acumulamos lo aplicado para revertir luego
@@ -92,7 +96,7 @@ export class StatusInstance {
 
             const key = desc.to;
 
-            stat.substractModifier(key, desc.type, affected.accumulated);
+            stat.substractModifier(key, desc.typeOfModification, affected.accumulated);
 
             // limpiamos acumulador tras recuperar
             affected.accumulated = 0;

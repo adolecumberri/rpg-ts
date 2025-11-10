@@ -7,6 +7,7 @@ import { createEventEmitter, wrapWithEvents } from '../helpers/event-wrapper';
 import { AnyPropKey } from '../types/character.types';
 import { AnyStat } from '../types/stats.types';
 import { EventMoment } from '../types/generalEvents.types';
+import { Inventory, InventoryItem } from './Inventory';
 
 
 type CharacterBase = {
@@ -18,12 +19,14 @@ type CharacterConstructor<TProps> = {
     id?: string;
     combat?: CombatBehavior;
     stats?: Stats;
+    inventory?: Inventory;
 } & Partial<NonConflicting<TProps, CharacterBase>>;
 
 class Character<
     TProps extends object = any
 > {
     public readonly id: string;
+    public inventory: Inventory;
     public stats: Stats;
     public readonly combat: CombatBehavior;
 
@@ -33,10 +36,11 @@ class Character<
     constructor(params?: Partial<CharacterConstructor<TProps>>) {
         if (!params) params = {};
 
-        const { id, combat, stats, ...rest } = params;
+        const { id, combat, stats, inventory, ...rest } = params;
 
         this.id = id ?? uniqueID();
         this.stats = stats ?? new Stats();
+        this.inventory = inventory ?? new Inventory();
 
         this.combat = combat ?? new CombatBehavior({ emitter: this._emitter });
         if (!this.combat.emitter) {
@@ -45,6 +49,14 @@ class Character<
 
         this._props = rest;
     }
+
+    addItemToInventory(item: InventoryItem, quantity: number = 1) {
+        this.inventory.addItem(item, quantity);
+    };
+
+    removeItemFromInventory(item: InventoryItem, quantity: number = 1) {
+        this.inventory.removeItem(item, quantity);
+    };
 
     /**
      *

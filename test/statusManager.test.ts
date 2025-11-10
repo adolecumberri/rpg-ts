@@ -11,7 +11,7 @@ const percentage_debuff = new StatusInstance({
         usageFrequency: 'PER_ACTION',
         statsAffected: [
             {
-                type: 'DEBUFF_PERCENTAGE',
+                typeOfModification: 'DEBUFF_PERCENTAGE',
                 from: 'totalHp',
                 to: 'hp',
                 value: 21,
@@ -30,7 +30,7 @@ let percentage_buff = new StatusInstance({
         usageFrequency: 'PER_ACTION',
         statsAffected: [
             {
-                type: 'BUFF_PERCENTAGE',
+                typeOfModification: 'BUFF_PERCENTAGE',
                 from: 'attack',
                 to: 'attack',
                 value: 50,
@@ -49,7 +49,7 @@ let fixed_buff = new StatusInstance({
         usageFrequency: 'ONCE',
         statsAffected: [
             {
-                type: 'BUFF_FIXED',
+                typeOfModification: 'BUFF_FIXED',
                 from: 'attack',
                 to: 'attack',
                 value: 20,
@@ -68,7 +68,7 @@ const fixed_debuff = new StatusInstance({
         usageFrequency: 'ONCE',
         statsAffected: [
             {
-                type: 'DEBUFF_FIXED',
+                typeOfModification: 'DEBUFF_FIXED',
                 from: 'attack',
                 to: 'attack',
                 value: 20,
@@ -109,7 +109,7 @@ describe('Testing Status manager', () => {
                 usageFrequency: 'ONCE',
                 statsAffected: [
                     {
-                        type: 'BUFF_PERCENTAGE',
+                        typeOfModification: 'BUFF_PERCENTAGE',
                         from: 'attack',
                         to: 'attack',
                         value: 50,
@@ -129,7 +129,7 @@ describe('Testing Status manager', () => {
                 usageFrequency: 'ONCE',
                 statsAffected: [
                     {
-                        type: 'BUFF_FIXED',
+                        typeOfModification: 'BUFF_FIXED',
                         from: 'attack',
                         to: 'attack',
                         value: 20,

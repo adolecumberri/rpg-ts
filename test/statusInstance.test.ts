@@ -14,7 +14,7 @@ const makeBuff = (overrides: Partial<StatusDefinition> = {}): StatusDefinition =
     duration: { type: STATUS_DURATIONS.PERMANENT },
     usageFrequency: STATUS_USAGE_FREQUENCY.PER_ACTION,
     statsAffected: [
-        { from: 'attack', to: 'attack', type: MODIFICATION_TYPES.BUFF_FIXED, value: 10, recovers: true },
+        { from: 'attack', to: 'attack', typeOfModification: MODIFICATION_TYPES.BUFF_FIXED, value: 10, recovers: true },
     ],
     ...overrides,
 });
@@ -123,11 +123,11 @@ describe('StatusInstance', () => {
             usageFrequency: STATUS_USAGE_FREQUENCY.PER_ACTION,
             statsAffected: [
                 // +10 attack (recovers)
-                { id: "attack_instance_id", from: 'attack', to: 'attack', type: 'BUFF_FIXED', value: 10, recovers: true },
+                { id: "attack_instance_id", from: 'attack', to: 'attack', typeOfModification: 'BUFF_FIXED', value: 10, recovers: true },
                 // -2 defence (recovers)
-                { id: "defence_instance_id", from: 'defence', to: 'defence', type: 'DEBUFF_FIXED', value: 2, recovers: true },
+                { id: "defence_instance_id", from: 'defence', to: 'defence', typeOfModification: 'DEBUFF_FIXED', value: 2, recovers: true },
                 // +5 attack (NO recovers)
-                { from: 'attack', to: 'attack', type: 'BUFF_FIXED', value: 5, recovers: false },
+                { from: 'attack', to: 'attack', typeOfModification: 'BUFF_FIXED', value: 5, recovers: false },
             ],
         };
 

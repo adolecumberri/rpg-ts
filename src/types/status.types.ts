@@ -41,7 +41,7 @@ type StatusDuration = StatusDurationPermanent | StatusDurationTemporal;
 type StatusUsageFrequency = keyof typeof STATUS_USAGE_FREQUENCY;
 
 interface AffectedStatDescriptor<T extends object = {}> {
-    type: ModificationTypes;
+    typeOfModification: ModificationTypes;
     from: AnyStat,//TODO: keyof (NonConflicting<T, BasicStats> & BasicStats);
     to: AnyStat, //Todo: keyof (NonConflicting<T, BasicStats> & BasicStats); // TODO comprobar este tipo
     value: number;
