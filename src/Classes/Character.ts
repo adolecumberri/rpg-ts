@@ -53,11 +53,11 @@ class Character<
      * @returns AttackResult
      */
     attack(...arg: any[]): AttackResult {
-        this._emitter.emit('before_attack', this, ...arg);
 
+        /**
+         * combat is wrapped with the attack event
+         */
         const result = this.combat.attack(this, ...arg);
-
-        this._emitter.emit('after_attack', result, this, ...arg);
         return result;
     }
 

@@ -45,7 +45,7 @@ interface AffectedStatDescriptor<T extends object = {}> {
     from: AnyStat,//TODO: keyof (NonConflicting<T, BasicStats> & BasicStats);
     to: AnyStat, //Todo: keyof (NonConflicting<T, BasicStats> & BasicStats); // TODO comprobar este tipo
     value: number;
-    id?: number;
+    id?: number | string;
     timesUsed?: number;
     recovers: boolean; // Indica si al acabarse el status la variación de estadísticas se devuelve.
 }

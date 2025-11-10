@@ -123,9 +123,9 @@ describe('StatusInstance', () => {
             usageFrequency: STATUS_USAGE_FREQUENCY.PER_ACTION,
             statsAffected: [
                 // +10 attack (recovers)
-                { from: 'attack', to: 'attack', type: 'BUFF_FIXED', value: 10, recovers: true },
+                { id: "attack_instance_id", from: 'attack', to: 'attack', type: 'BUFF_FIXED', value: 10, recovers: true },
                 // -2 defence (recovers)
-                { from: 'defence', to: 'defence', type: 'DEBUFF_FIXED', value: 2, recovers: true },
+                { id: "defence_instance_id", from: 'defence', to: 'defence', type: 'DEBUFF_FIXED', value: 2, recovers: true },
                 // +5 attack (NO recovers)
                 { from: 'attack', to: 'attack', type: 'BUFF_FIXED', value: 5, recovers: false },
             ],
@@ -139,11 +139,11 @@ describe('StatusInstance', () => {
         // Comprobamos acumulados por stat
         const affected = s.getAffectedInstances();
 
-        const atk = affected.find((a) => a.to === 'attack')!;
-        const defn = affected.find((a) => a.to === 'defence')!;
+        const atk = affected.find((a) => a.id === "attack_instance_id")!;
+        const defn = affected.find((a) => a.id === 'defence_instance_id')!;
 
         expect(atk.accumulated).toBe(20); // +10 * 2 (solo recovers)
-        expect(defn.accumulated).toBe(-4); // -2 * 2
+        expect(defn.accumulated).toBe(4); // +2 * 2 (saved as absolute. but it´s fixed_debuff)
 
         // Estado actual
         expect(stats.getProp('attack')).toBe(40);

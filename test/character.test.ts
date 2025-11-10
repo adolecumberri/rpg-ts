@@ -122,10 +122,10 @@ describe('Character', () => {
 
         const beforeSpy = jest.fn();
         const afterSpy = jest.fn();
-
+        expect(beforeSpy).toHaveBeenCalledTimes(0);
+        expect(afterSpy).toHaveBeenCalledTimes(0);
         char.on('before_attack', beforeSpy);
         char.on('after_attack', afterSpy);
-
         let result = char.attack();
 
         expect(result.value).toBe(10);

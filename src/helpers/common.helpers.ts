@@ -17,15 +17,14 @@ function getRandomInt(min = 0, max = 100) {
 /*
 encapsulates adding HP and totalHP check logic.
 */
-function lifeCheckHelper({ hp = 0, totalHp = 0 }: { hp?: number; totalHp?: number }) {
-    const newTotalHp = totalHp ?
-        Math.max(
-            totalHp ?? DEFAULT_STATS.totalHp,
-            hp ?? DEFAULT_STATS.hp,
-        ) :
-        DEFAULT_STATS.totalHp;
+function lifeCheckHelper({ hp = 0, totalHp = 0, clamped = false }: { hp?: number; totalHp?: number, clamped?: boolean }) {
+    let newTotalHp = Math.max(1, totalHp);
+    let newHp = Math.max(0, hp);
 
-    const newHp = Math.max(0, Math.min(hp, totalHp));
+    if (clamped && hp > totalHp) {
+        newHp = totalHp;
+    }
+
     return {
         hp: newHp,
         isAlive: newHp > 0 ? 1 : 0,

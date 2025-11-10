@@ -21,6 +21,7 @@ type StatsConstructor<TProps> = {
     isAlive?: number;
     totalHp?: number;
     hp?: number;
+    hpAndTotalHpClamped?: boolean;
 } & Partial<NonConflicting<TProps, BasicStats>>;
 
 
@@ -33,28 +34,34 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
     private _prop: BasicStats & Record<AnyStat, number>; //todo: Widen<NonConflicting<T, BasicStats>> & BasicStats
 
     private statModifier?: StatsModifiers;
+    hpAndTotalHpClamped?: boolean;
 
     constructor(params?: Partial<StatsConstructor<TProps>>) {
         if (!params) params = {};
-        const { totalHp = DEFAULT_STATS.totalHp, hp = DEFAULT_STATS.hp, statModifier, ...restData } = params;
+        const { totalHp = DEFAULT_STATS.totalHp, hp = DEFAULT_STATS.hp, statModifier, hpAndTotalHpClamped = false, ...restData } = params;
 
         const procesedProps = Object.assign({ ...DEFAULT_STATS },
             {
                 ...restData,
-                ...lifeCheckHelper({ hp, totalHp }),
+                ...lifeCheckHelper({ hp, totalHp, clamped: hpAndTotalHpClamped }),
             },
         );
 
         this._prop = procesedProps;
-
+        this.hpAndTotalHpClamped = hpAndTotalHpClamped;
         this.statModifier = statModifier ?? new StatsModifiers({
             modifiers: fromPropsToModifiers(procesedProps)
         });
     }
 
     private setHp(newHp: number) {
+
         this._prop.isAlive = newHp > 0 ? 1 : 0;
-        this._prop.hp = Math.max(0, newHp);
+        this._prop.hp = lifeCheckHelper({
+            hp: newHp,
+            totalHp: this._prop.totalHp,
+            clamped: this.hpAndTotalHpClamped,
+        }).hp;
     }
 
     getProp(stat: AnyStat): number {
@@ -114,6 +121,10 @@ export class Stats<TProps extends object = any> { //TODO: <T extends { [K in key
         }
         const currentValue = this.statModifier.getModifier(stat, type);
         this.statModifier.setModifier(stat, type, currentValue - value);
+    }
+
+    getStatsModifiers(): StatsModifiers | undefined {
+        return this.statModifier;
     }
 
     /**

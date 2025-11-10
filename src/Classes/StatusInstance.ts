@@ -6,7 +6,7 @@ import { ACTION_HANDLERS } from '../helpers/status.helper';
 import { Character } from './Character';
 
 type AffectedStatInstance = {
-    id: string;
+    id: string | number;
     descriptor: AffectedStatDescriptor;
     accumulated: number; // acumulado para recovery (puede ser negativo para debuffs)
 };
@@ -31,7 +31,7 @@ export class StatusInstance {
 
         // Creamos una instancia por cada affected stat, con su propia id y acumulador
         this._affected = config.definition.statsAffected.map((desc) => ({
-            id: uniqueID(),
+            id: desc.id ?? uniqueID(),
             descriptor: { ...desc }, // clonamos para evitar modificar la definición global
             accumulated: 0,
         } as AffectedStatInstance));
@@ -72,7 +72,7 @@ export class StatusInstance {
 
             // Si este stat debe recuperarse, acumulamos lo aplicado para revertir luego
             if (desc.recovers) {
-                affected.accumulated += (result.variation as number);
+                affected.accumulated += Math.abs(result.variation);
             }
         }
 
@@ -91,9 +91,9 @@ export class StatusInstance {
             if (!desc.recovers) continue; // si no recupera, saltamos
 
             const key = desc.to;
-            
+
             stat.substractModifier(key, desc.type, affected.accumulated);
-            
+
             // limpiamos acumulador tras recuperar
             affected.accumulated = 0;
         }

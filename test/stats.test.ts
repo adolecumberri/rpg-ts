@@ -1,3 +1,4 @@
+import { stat } from 'fs';
 import { Character } from '../src/Classes/Character';
 import { Stats } from '../src/Classes/Stats';
 import { DEFAULT_STATS } from '../src/constants/stats.constants';
@@ -32,16 +33,30 @@ describe('Stats', () => {
             hp: 120,
             totalHp: 100,
         });
-        expect(stats.getProp('totalHp')).toBe(120); // hp wins
+        expect(stats.getProp('totalHp')).toBe(100); // hp wins
         expect(stats.getProp('hp')).toBe(120);
     });
 
     it('should clamp hp to totalHp if set above it', () => {
-        const stats = new Stats({ totalHp: 100, hp: 90 });
-        stats.getProp('hp');
+        const stats = new Stats({ totalHp: 90, hp: 100, hpAndTotalHpClamped: true });
+
+        expect(stats.getProp('hp')).toBe(90);
+        expect(stats.getProp('totalHp')).toBe(90);
+
         stats.setProp('hp', 200); // try to over-heal
-        expect(stats.getProp('hp')).toBe(100); // clamped
+        expect(stats.getProp('hp')).toBe(90); // clamped
     });
+
+    it('should NOT clamp hp to totalHp if set above it', () => {
+        const stats = new Stats({ totalHp: 90, hp: 100, hpAndTotalHpClamped: false });
+
+        expect(stats.getProp('hp')).toBe(100);
+        expect(stats.getProp('totalHp')).toBe(90);
+
+        stats.setProp('hp', 200); // try to over-heal
+        expect(stats.getProp('hp')).toBe(200); // clamped
+    });
+
 
     it('should set isAlive to 0 when hp drops to 0', () => {
         const stats = new Stats();
@@ -74,17 +89,17 @@ describe('Stats', () => {
     it('should receive damage', () => {
         const stats = new Stats({ hp: 50 });
 
-        expect(stats.getProp('totalHp')).toBe(50);
+        expect(stats.getProp('totalHp')).toBe(DEFAULT_STATS.totalHp);
         expect(stats.getProp('hp')).toBe(50);
 
         stats.setProp("hp", 30);
 
-        expect(stats.getProp('totalHp')).toBe(50);
+        expect(stats.getProp('totalHp')).toBe(DEFAULT_STATS.totalHp);
         expect(stats.getProp('hp')).toBe(30);
 
         stats.setProp("hp", -10);
 
-        expect(stats.getProp('totalHp')).toBe(50);
+        expect(stats.getProp('totalHp')).toBe(DEFAULT_STATS.totalHp);
         expect(stats.getProp('hp')).toBe(0);
         expect(stats.getProp('isAlive')).toBe(0);
     });
@@ -98,7 +113,7 @@ describe('Stats', () => {
         stats.setProp("hp", 100);
 
         expect(stats.getProp('totalHp')).toBe(70);
-        expect(stats.getProp('hp')).toBe(70);
+        expect(stats.getProp('hp')).toBe(100); // It´s allowed overhealing for the moment.
     });
 
     describe('Custom Properties', () => {
