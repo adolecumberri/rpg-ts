@@ -26,7 +26,8 @@
     "camelcase": "off",
     "valid-jsdoc": "off",
     "linebreak-style": "off",
-    "object-curly-spacing": "off"
+    "object-curly-spacing": "off",
+    "space-before-function-paren": "off"
   },
   "ignorePatterns": ["dist", "node_modules"]
 }

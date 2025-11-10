@@ -1,0 +1,135 @@
+
+
+Guia sergio:
+
+-Esto es el proyecto de los heroes. La idea es rehacer las bases y hacer cosas con el proyecto.
+suelo usar este proyecto para comerme la cabeza con como hacer las cosas de una forma objetivamente impoluta
+lo que suele significar que el trabajo es cansino, lento y duro.
+
+Tu trabajo será coger partes nuevas y hacerlas. Tengo que ponert los links a las herramientas etc etc.
+
+Hay varias normas que estoy siguiendo en esta iteracion, tu no estas obligado a seguirlas pero bueno, si te tendré
+que revisar las PRs y comentar mejoras genericas. El objetivo del proyecto es didactico, la cosa es aprencer formas
+de trabajar o filosofias de desarrollo mas que escribir a lo loco y olvidar.
+
+------- DE QUE VA ESTO -------------
+
+Hay Characters.
+Esos characters tienen estadisticas (el objeto Stats) que gestiona los cambios y la administracion de estadisticas
+Esos Characters CombatBehavior para gestionar como combaten
+Sufren Status, esos Status los gestiona un Status Manager. Esta parte es algo mas tocha.
+
+Esta es el actual estado del proyecto.
+El proyecto sigue los principios SOLID y una Guia de CC (Clean code [https://github.com/ryanmcdermott/clean-code-javascript?tab=readme-ov-file#variables])
+se trabaja con typado y se hacen test para checkear el trabajo que se crea.
+
+Trabajo que queda por hacer?
+- Los Characters deben poder organizarse en Equipos (Teams)
+- Debe haber Objetos Batalla para que los Characters peleen individualmente o en equipo.
+- Los characters deben poder recibir mas personalizacion, como callbacks personalizados
+- inventario y tambien objetos.
+- En la version 1 les tenia puesto un log manager para saber qué hacian en cada momento del combate.
+
+Links:
+el character de la v1
+https://github.com/adolecumberri/rpg-ts/blob/master/src/classes/Character.ts
+
+Un link a Clean Code, este es el archivo de referencia para criticar tu codigo (si te critico, al menos saber las normas):
+https://github.com/ryanmcdermott/clean-code-javascript?tab=readme-ov-file#variables
+
+Definicion del tema de SOLID (esto debes buscarlo tu)
+1. S- Single Responsability Principle: 
+un modulo solo debe dedicarse a 1 cosa. Status, Character, Combat, Team... solo se dedican a una cosa.
+
+2. O- Open/Closed Principle
+El codigo debe estar abierto a extensiones pero cerrado a modificaciones.
+
+Ejemplo de chat gpt:
+// ❌ Cambiar esta función cada vez que agregas una nueva notificación
+function sendNotification(type, message) {
+  if (type === "email") { /* enviar email */ }
+  else if (type === "sms") { /* enviar sms */ }
+}
+
+// ✅ Extensión con clases o funciones
+class Notifier {
+  send(message) {}
+}
+
+class EmailNotifier extends Notifier {
+  send(message) {
+    // enviar email
+  }
+}
+
+class SMSNotifier extends Notifier {
+  send(message) {
+    // enviar sms
+  }
+}
+
+
+3. L-  Este no lo entiendo ni yo. Trata sobre herencia de clases
+
+4. I- Interface Segregation (de los mas utiles)
+Mejor varias interfaces pequeñas y especificas que una grande y general.
+
+Ejemplo del GPT chat:
+// ❌ Interface implícita muy grande
+class Machine {
+  print() {}
+  scan() {}
+  fax() {}
+}
+
+// ✅ Dividir responsabilidades
+class Printer {
+  print() {}
+}
+
+class Scanner {
+  scan() {}
+}
+
+5. D- Dependency Inversion
+Se trata en reducir el acople lo maximo posible. por ejemplo en Character, creo un objeto Stats en el constructor.
+Ese objeto deberia venir desde el constructor para evitar que las clases (como Character) tengan dependencias Directas.
+
+otro ejemplo de chat gpt:
+// ❌ Alta dependencia de implementación concreta
+class FileLogger {
+  log(msg) { console.log("File:", msg); }
+}
+
+class App {
+  constructor() {
+    this.logger = new FileLogger(); // acoplado
+  }
+
+  run() {
+    this.logger.log("App started");
+  }
+}
+
+// ✅ Inversión de dependencias
+class App {
+  constructor(logger) {
+    this.logger = logger; // se le pasa desde fuera
+  }
+
+  run() {
+    this.logger.log("App started");
+  }
+}
+
+const logger = new FileLogger();
+const app = new App(logger);
+
+
+
+Por ejemplo leyendo los principios solid (solo estaba aplicando 2), deberia refactorizar el Character para que aceptase
+interfaces mas abiertas y abstractas y no hacerlo todo tan rigido.
+
+De esto va el proyecto, de aprender. 
+
+Buenas noches
