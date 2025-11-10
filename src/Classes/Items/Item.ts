@@ -11,7 +11,7 @@ export class Item {
     description?: string;
     id: string | number;
 
-    constructor(def: ItemDefinition) {
+    constructor(def: ItemDefinition) { 
         this.definition = def;
         this.id = def.id ?? uniqueID();
 
