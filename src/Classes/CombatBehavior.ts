@@ -1,4 +1,5 @@
-import { Character } from '../Classes/Character';
+import { ATTACK_TYPE, DEFAULT_COMBAT_BEHAVIOR_CONFIG, DEFENCE_TYPE } from '../constants/combat.constants';
+import { Character } from './Character';
 import { Stats } from './Stats';
 
 
@@ -28,7 +29,7 @@ export type DamageCalculation = {
 
 export type DefenceCalculation = (incomingDamage: number, stats: Stats) => number;
 
-type CombatBehaviorConstructor = {
+export type CombatBehaviorConstructor = {
     attack: AttackFunction,
     damageCalculation: DamageCalculation,
     defence: DefenceFunction,

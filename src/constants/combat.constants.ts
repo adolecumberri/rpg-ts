@@ -1,4 +1,5 @@
-import { AttackFunction } from "../classes/CombatBehavior";
+import { AttackFunction, CombatBehaviorConstructor, DamageCalculation, DefenceCalculation, DefenceFunction } from "../classes/CombatBehavior";
+import { Stats } from "../classes/Stats";
 
 const ATTACK_TYPE = {
     NORMAL: 'normal',
@@ -26,31 +27,24 @@ const DEFAULT_ATTACK_FUNCTION: AttackFunction = (character) => {
 };
 
 const DEFAULT_DAMAGE_CALCULATION: DamageCalculation = {
-    [ATTACK_TYPE.NORMAL]: (stats: Stats) => stats.getProp('attack'),
-    [ATTACK_TYPE.MISS]: () => 0,
-    [ATTACK_TYPE.CRITICAL]: (stats: Stats) => Math.floor(stats.getProp('attack') * 1.75),
-    [ATTACK_TYPE.TRUE]: (stats: Stats) => stats.getProp('attack'),
-    [ATTACK_TYPE.SKILL]: (stats: Stats) => stats.getProp('attack') + 10,
-    [ATTACK_TYPE.MAGIC]: (stats: Stats) => stats.getProp('attack') + 5,
-    [ATTACK_TYPE.OTHER]: () => 1,
+    [ATTACK_TYPE.NORMAL]: (stats: Stats) => stats.attack,
 };
 
-const DEFAULT_DEFENCE_FUNCTION: DefenceFunction = (char, attack) => ({
+const DEFAULT_DEFENCE_FUNCTION: DefenceFunction = (character, attack) => ({
     type: DEFENCE_TYPE.NORMAL,
-    value: Math.min(0, char.stats.getProp('defence') - attack.value),
+    value: Math.min(0, character.stats.defence - attack.value),
 });
 
 const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = (incoming: number, stats: Stats) => {
-    const defence = stats.getProp('defence');
+    const defence = stats.defence;
     return Math.max(0, incoming - defence);
 };
 
 const DEFAULT_COMBAT_BEHAVIOR_CONFIG: CombatBehaviorConstructor = {
-    attackFn: DEFAULT_ATTACK_FUNCTION,
-    damageCalc: DEFAULT_DAMAGE_CALCULATION,
-    defenceFn: DEFAULT_DEFENCE_FUNCTION,
-    defenceCalc: DEFAULT_DEFENCE_CALCULATION,
-    emitter: undefined,
+    attack: DEFAULT_ATTACK_FUNCTION,
+    damageCalculation: DEFAULT_DAMAGE_CALCULATION,
+    defence: DEFAULT_DEFENCE_FUNCTION,
+    defenceCalculation: DEFAULT_DEFENCE_CALCULATION,
 };
 
 export {
