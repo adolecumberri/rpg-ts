@@ -1,13 +1,15 @@
-import { AttackFunction } from "../classes/CombatBehavior";
+import { Stats } from '../Classes/Stats';
+import { AttackFunction, CombatBehaviorConstructor, DamageCalculation, DefenceCalculation, DefenceFunction } from '../types/combat.types';
 
+// TODO: abrir a actualizaciones en caliente.
 const ATTACK_TYPE = {
     NORMAL: 'normal',
-    // MISS: 'miss',
-    // CRITICAL: 'critical',
-    // TRUE: 'true',
-    // SKILL: 'skill',
-    // MAGIC: 'magic',
-    // OTHER: 'other',
+    MISS: 'miss',
+    CRITICAL: 'critical',
+    TRUE: 'true',
+    SKILL: 'skill',
+    MAGIC: 'magic',
+    OTHER: 'other',
 } as const;
 
 const DEFENCE_TYPE = {
@@ -18,10 +20,10 @@ const DEFENCE_TYPE = {
     SKILL: 'skill',
 } as const;
 
-const DEFAULT_ATTACK_FUNCTION: AttackFunction = (character) => {
+const DEFAULT_ATTACK_FUNCTION: AttackFunction = (char) => {
     return {
         type: ATTACK_TYPE.NORMAL,
-        value: character.stats.attack,
+        value: char.stats.getProp('attack'),
     };
 };
 
