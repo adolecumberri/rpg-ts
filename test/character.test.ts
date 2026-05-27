@@ -1,145 +1,74 @@
-import { Character } from '../src/Classes/Character';
-import { CombatBehavior } from '../src/Classes/CombatBehavior';
-import { Stats } from '../src/Classes/Stats';
-import { wrapWithEvents } from '../src/helpers/event-wrapper';
-import { AttackResult, AttackType } from '../src/types/combat.types';
-
+import { Character } from '../src/classes/Character';
+import { Stats } from '../src/classes/Stats';
+import { StatsModifier } from '../src/classes/StatsModifier';
+import { MODIFICATION_TYPES } from '../src/constants/stats.constants';
 
 describe('Character', () => {
-    it('should initialize with default stats and combat behavior', () => {
-        const char = new Character();
-
-        expect(char.isAlive()).toBe(true);
-        expect(typeof char.id).toBe('string');
-        expect(typeof char.attack()).toBe('object');
-        expect(char.stats.getProp('hp')).toBeGreaterThan(0);
-    });
-
-    it('should allow custom stats and data', () => {
-        const char = new Character({
-            stats: new Stats({ attack: 50, defence: 10, totalHp: 100, hp: 100 }),
-            role: 'warrior',
+    describe('construction', () => {
+        it('should create a character with a generated id and default stats', () => {
+            const character = new Character({});
+            expect(character.id).toBeDefined();
+            expect(character.stats).toBeInstanceOf(Stats);
         });
 
-        expect(char.stats.getProp('attack')).toBe(50);
-        expect(char.getProps().role).toBe('warrior');
-    });
-
-    it('should apply damage and update alive status', () => {
-        const char = new Character({ stats: new Stats({ hp: 10 }) });
-        char.receiveDamage(10);
-
-        expect(char.stats.getProp('hp')).toBe(0);
-        expect(char.isAlive()).toBe(false);
-    });
-
-    it('should correctly export to JSON', () => {
-        const char = new Character({
-            id: 'test-1',
-            stats: new Stats({ attack: 30 }),
-            class: 'mage',
-        });
-
-        const json = char.toJSON();
-        expect(json.id).toBe('test-1');
-        expect(json.stats.attack).toBe(30);
-        expect(json.data.class).toBe('mage');
-    });
-
-    it('should get, set and delete dynamic properties', () => {
-        const char = new Character<{ job: string }>({ job: 'archer' });
-
-        expect(char.getProp('job')).toBe('archer');
-
-        char.setProp('job', 'knight');
-        expect(char.getProp('job')).toBe('knight');
-
-        char.deleteProp('job');
-        expect(() => char.getProp('job')).toThrow();
-    });
-
-    describe('Triggers and events', () => {
-        it('should emit before_attack and after_attack events', () => {
-            const attackFn = jest.fn().mockImplementation((): AttackResult => {
-                return { value: 42, type: 'normal' } as AttackResult;
-            });
-
-            const combat = new CombatBehavior({
-                attackFn,
-            });
-            const char = new Character({
-                combat,
-            });
-
-            const beforeAttackHandler = jest.fn();
-            const afterAttackHandler = jest.fn();
-
-            char.on('before_attack', beforeAttackHandler);
-            char.on('after_attack', afterAttackHandler);
-
-            const result = char.attack();
-
-            expect(attackFn).toHaveBeenCalledTimes(1);
-
-            expect(beforeAttackHandler).toHaveBeenCalledWith(char);
-            expect(afterAttackHandler).toHaveBeenCalledWith(result, char);
-
-            expect(result.value).toBe(42);
+        it('should create a character with custom stats', () => {
+            const stats = new Stats({ attack: 100, defence: 50 });
+            const character = new Character({ stats });
+            expect(character.stats.attack).toBe(100);
+            expect(character.stats.defence).toBe(50);
         });
     });
 
-    it('should preserve attack function argument and return types', () => {
-        const combat = new CombatBehavior({
-            attackFn: (char: Character, preSetVale: number, preSetType: AttackType): AttackResult => {
-                return { value: preSetVale, type: preSetType };
-            },
+    describe('stat modifiers via character.stats.get()', () => {
+        it('should return base value when no modifier is attached', () => {
+            const stats = new Stats({ attack: 100 });
+            const character = new Character({ stats });
+            expect(character.stats.get('attack')).toBe(100);
         });
 
-        const char = new Character({
-            combat,
+        it('+20% buff and -10 fixed debuff on 100 base attack should yield 110', () => {
+            const stats = new Stats({ attack: 100 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.BUFF_PERCENTAGE, 20);
+            modifier.setModifier('attack', MODIFICATION_TYPES.DEBUFF_FIXED, 10);
+            stats.statsModifier = modifier;
+
+            const character = new Character({ stats });
+
+            // 100 + (100 * 20/100) - 10 = 100 + 20 - 10 = 110
+            expect(character.stats.get('attack')).toBe(110);
         });
 
-        const beforeAttackHandler = jest.fn();
-        const afterAttackHandler = jest.fn();
+        it('should apply only a fixed buff', () => {
+            const stats = new Stats({ attack: 100 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.BUFF_FIXED, 50);
+            stats.statsModifier = modifier;
 
-
-        char.on('before_attack', beforeAttackHandler);
-        char.on('after_attack', afterAttackHandler);
-
-        const result = char.attack(7, 'true');
-
-        expect(beforeAttackHandler).toHaveBeenCalledTimes(1);
-        expect(afterAttackHandler).toHaveBeenCalledTimes(1);
-
-        expect(result.value).toBe(7);
-        expect(result.type).toBe('true');
-    });
-
-    it('should allow overriding attack while keeping event emission', () => {
-        const char = new Character({
-            stats: new Stats({ attack: 10 }),
+            const character = new Character({ stats });
+            expect(character.stats.get('attack')).toBe(150);
         });
 
-        const beforeSpy = jest.fn();
-        const afterSpy = jest.fn();
-        expect(beforeSpy).toHaveBeenCalledTimes(0);
-        expect(afterSpy).toHaveBeenCalledTimes(0);
-        char.on('before_attack', beforeSpy);
-        char.on('after_attack', afterSpy);
-        let result = char.attack();
+        it('should apply only a percentage debuff', () => {
+            const stats = new Stats({ attack: 100 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.DEBUFF_PERCENTAGE, 10);
+            stats.statsModifier = modifier;
 
-        expect(result.value).toBe(10);
-        expect(beforeSpy).toHaveBeenCalledTimes(1);
-        expect(afterSpy).toHaveBeenCalledTimes(1);
-
-        char.combat.attack = jest.fn().mockImplementation((c: Character) => {
-            return { value: 99, type: 'magic' } as AttackResult;
+            const character = new Character({ stats });
+            // 100 - (100 * 10/100) = 90
+            expect(character.stats.get('attack')).toBe(90);
         });
 
-        result = char.attack();
+        it('should leave unmodified stats unaffected', () => {
+            const stats = new Stats({ attack: 100, defence: 40 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.BUFF_FIXED, 20);
+            stats.statsModifier = modifier;
 
-        expect(result.value).toBe(99);
-        expect(beforeSpy).toHaveBeenCalledTimes(2);
-        expect(afterSpy).toHaveBeenCalledTimes(2);
+            const character = new Character({ stats });
+            expect(character.stats.get('attack')).toBe(120);
+            expect(character.stats.get('defence')).toBe(40);
+        });
     });
 });

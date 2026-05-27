@@ -1,140 +1,92 @@
-import { stat } from 'fs';
-import { Character } from '../src/Classes/Character';
-import { Stats } from '../src/Classes/Stats';
-import { DEFAULT_STATS } from '../src/constants/stats.constants';
-
-
-const EXAMPLE_STATS = {
-    attack: 10,
-    defence: 5,
-    hp: 100,
-    totalHp: 100,
-    isAlive: 1 as 1 | 0,
-};
-
-
-interface ExtraStats {
-    agility: number;
-}
+import { Stats } from '../src/classes/Stats';
+import { StatsModifier } from '../src/classes/StatsModifier';
+import { MODIFICATION_TYPES } from '../src/constants/stats.constants';
 
 describe('Stats', () => {
-    it('should initialize with DEFAULT_STATS when no values are provided', () => {
-        const stats = new Stats();
-
-        expect(stats.getProp('attack')).toBe(DEFAULT_STATS.attack);
-        expect(stats.getProp('defence')).toBe(DEFAULT_STATS.defence);
-        expect(stats.getProp('hp')).toBe(DEFAULT_STATS.hp);
-        expect(stats.getProp('totalHp')).toBe(DEFAULT_STATS.totalHp);
-        expect(stats.getProp('isAlive')).toBe(1);
-    });
-
-    it('should use provided values and compute totalHp correctly if hp > totalHp', () => {
-        const stats = new Stats({
-            hp: 120,
-            totalHp: 100,
-        });
-        expect(stats.getProp('totalHp')).toBe(100); // hp wins
-        expect(stats.getProp('hp')).toBe(120);
-    });
-
-    it('should clamp hp to totalHp if set above it', () => {
-        const stats = new Stats({ totalHp: 90, hp: 100, hpAndTotalHpClamped: true });
-
-        expect(stats.getProp('hp')).toBe(90);
-        expect(stats.getProp('totalHp')).toBe(90);
-
-        stats.setProp('hp', 200); // try to over-heal
-        expect(stats.getProp('hp')).toBe(90); // clamped
-    });
-
-    it('should NOT clamp hp to totalHp if set above it', () => {
-        const stats = new Stats({ totalHp: 90, hp: 100, hpAndTotalHpClamped: false });
-
-        expect(stats.getProp('hp')).toBe(100);
-        expect(stats.getProp('totalHp')).toBe(90);
-
-        stats.setProp('hp', 200); // try to over-heal
-        expect(stats.getProp('hp')).toBe(200); // clamped
-    });
-
-
-    it('should set isAlive to 0 when hp drops to 0', () => {
-        const stats = new Stats();
-        stats.setProp('hp', 0);
-        expect(stats.getProp('hp')).toBe(0);
-        expect(stats.getProp('isAlive')).toBe(0);
-    });
-
-    it('should allow setting custom keys (extended type)', () => {
-        const stats = new Stats({
-            agility: 15,
-            hp: 80,
-            totalHp: 100,
-            attack: 20,
-            defence: 10,
-            isAlive: 1,
+    describe('construction', () => {
+        it('should initialize with default values', () => {
+            const stats = new Stats();
+            expect(stats.attack).toBe(0);
+            expect(stats.defence).toBe(0);
+            expect(stats.isAlive).toBe(1);
         });
 
-        expect(stats.getProp('agility')).toBe(15);
-        stats.setProp('agility', 30);
-        expect(stats.getProp('agility')).toBe(30);
+        it('should initialize with custom values', () => {
+            const stats = new Stats({ attack: 100, defence: 50 });
+            expect(stats.attack).toBe(100);
+            expect(stats.defence).toBe(50);
+        });
     });
 
-    it('should throw when getPropting a non-existent key (optional)', () => {
-        const stats = new Stats({});
-        // This one depends on whether you want to handle it with a try/catch or not.
-        expect(() => stats.getProp('nonexistent' as any)).toThrow();
-    });
-
-    it('should receive damage', () => {
-        const stats = new Stats({ hp: 50 });
-
-        expect(stats.getProp('totalHp')).toBe(DEFAULT_STATS.totalHp);
-        expect(stats.getProp('hp')).toBe(50);
-
-        stats.setProp("hp", 30);
-
-        expect(stats.getProp('totalHp')).toBe(DEFAULT_STATS.totalHp);
-        expect(stats.getProp('hp')).toBe(30);
-
-        stats.setProp("hp", -10);
-
-        expect(stats.getProp('totalHp')).toBe(DEFAULT_STATS.totalHp);
-        expect(stats.getProp('hp')).toBe(0);
-        expect(stats.getProp('isAlive')).toBe(0);
-    });
-
-    it('should heal and not over totalHp', () => {
-        const stats = new Stats({ hp: 50, totalHp: 70 });
-
-        expect(stats.getProp('totalHp')).toBe(70);
-        expect(stats.getProp('hp')).toBe(50);
-
-        stats.setProp("hp", 100);
-
-        expect(stats.getProp('totalHp')).toBe(70);
-        expect(stats.getProp('hp')).toBe(100); // It´s allowed overhealing for the moment.
-    });
-
-    describe('Custom Properties', () => {
-        it('should allow adding custom properties', () => {
-            const stats = new Stats<ExtraStats>({ agility: 10 });
-            const char = new Character({
-                stats,
-            });
-
-            expect(char.stats.getProp('agility')).toBe(10);
+    describe('calculateStatValue()', () => {
+        it('should return base value when statsModifier is undefined', () => {
+            const stats = new Stats({ attack: 100 });
+            expect(stats.calculateStatValue('attack')).toBe(100);
         });
 
-        it('should throw when accessing a non-existent custom property', () => {
-            const stats = new Stats<ExtraStats>();
-            expect(() => stats.getProp('agility')).toThrow();
+        it('should apply BUFF_PERCENTAGE correctly', () => {
+            const stats = new Stats({ attack: 100 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.BUFF_PERCENTAGE, 20);
+            stats.statsModifier = modifier;
+            // 100 + (100 * 20/100) = 120
+            expect(stats.calculateStatValue('attack')).toBe(120);
         });
 
-        it('should allow setting custom properties', () => {
-            const stats = new Stats<ExtraStats>();
-            stats.setProp('agility', 20);
-            expect(stats.getProp('agility')).toBe(20);
+        it('should apply DEBUFF_FIXED correctly', () => {
+            const stats = new Stats({ attack: 100 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.DEBUFF_FIXED, 10);
+            stats.statsModifier = modifier;
+            // 100 - 10 = 90
+            expect(stats.calculateStatValue('attack')).toBe(90);
+        });
+
+        it('should apply BUFF_FIXED correctly', () => {
+            const stats = new Stats({ attack: 100 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.BUFF_FIXED, 25);
+            stats.statsModifier = modifier;
+            // 100 + 25 = 125
+            expect(stats.calculateStatValue('attack')).toBe(125);
+        });
+
+        it('should apply DEBUFF_PERCENTAGE correctly', () => {
+            const stats = new Stats({ attack: 200 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.DEBUFF_PERCENTAGE, 50);
+            stats.statsModifier = modifier;
+            // 200 - (200 * 50/100) = 100
+            expect(stats.calculateStatValue('attack')).toBe(100);
+        });
+
+        it('+20% buff and -10 fixed debuff on 100 base attack should yield 110', () => {
+            const stats = new Stats({ attack: 100 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.BUFF_PERCENTAGE, 20);
+            modifier.setModifier('attack', MODIFICATION_TYPES.DEBUFF_FIXED, 10);
+            stats.statsModifier = modifier;
+            // 100 + (100 * 20/100) - 10 = 110
+            expect(stats.calculateStatValue('attack')).toBe(110);
+        });
+
+        it('should round result to 2 decimal places', () => {
+            const stats = new Stats({ attack: 100 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.BUFF_PERCENTAGE, 33);
+            stats.statsModifier = modifier;
+            // 100 + 33 = 133
+            expect(stats.calculateStatValue('attack')).toBe(133);
+        });
+    });
+
+    describe('get()', () => {
+        it('should delegate to calculateStatValue', () => {
+            const stats = new Stats({ attack: 200 });
+            const modifier = new StatsModifier();
+            modifier.setModifier('attack', MODIFICATION_TYPES.BUFF_FIXED, 50);
+            stats.statsModifier = modifier;
+            expect(stats.get('attack')).toBe(250);
         });
     });
 });

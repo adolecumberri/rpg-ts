@@ -10,6 +10,9 @@ export interface Stats {
     hp: number;
 }
 
+// just an string taht represent an stat in the Stat object.
+export type AnyStat = string;
+
 export class Stats {
 
     statsModifier?: StatsModifier;
@@ -45,11 +48,11 @@ export class Stats {
 
         const allStatModifiers = this.statsModifier.getAllStatModifiers(key);
 
-
+        let originalValue = this[key as keyof Stats] as number;
         let modifiedValue = this[key as keyof Stats] as number;
 
         modifiedValue += allStatModifiers.BUFF_FIXED - allStatModifiers.DEBUFF_FIXED;
-        modifiedValue += modifiedValue * ((allStatModifiers.BUFF_PERCENTAGE - allStatModifiers.DEBUFF_PERCENTAGE) / 100);
+        modifiedValue += originalValue * ((allStatModifiers.BUFF_PERCENTAGE - allStatModifiers.DEBUFF_PERCENTAGE) / 100);
 
         //round on 2 decimals
         modifiedValue = Math.round(modifiedValue * 100) / 100;

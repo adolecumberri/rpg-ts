@@ -1,9 +1,9 @@
 import { MODIFICATION_TYPES } from "../../src_1/constants/common.constants";
 import { DEFAULT_STAT_MODIFIERS } from "../../src_1/constants/stats.constants";
+import { AnyStat } from "./Stats";
 
 
-// just an string taht represent an stat in the Stat object.
-export type AnyStat = string;
+
 
 // keys of modifications that an stat can receive.
 export type ModificationKeys = typeof MODIFICATION_TYPES[keyof typeof MODIFICATION_TYPES];
