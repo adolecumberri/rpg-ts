@@ -1,3 +1,4 @@
+import { MODIFICATION_TYPES, ModificationTypes } from "../constants/stats.constants";
 
 
 function uniqueID() {
@@ -26,8 +27,14 @@ function lifeCheckHelper({ hp = 0, totalHp = 0, clamped = false }: { hp?: number
     };
 }
 
+function isPercentageModification(type: ModificationTypes): boolean {
+    return type === MODIFICATION_TYPES.BUFF_PERCENTAGE
+        || type === MODIFICATION_TYPES.DEBUFF_PERCENTAGE;
+};
+
 export {
     getRandomInt,
     uniqueID,
     lifeCheckHelper,
+    isPercentageModification,
 };

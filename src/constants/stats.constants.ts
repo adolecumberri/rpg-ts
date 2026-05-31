@@ -6,19 +6,27 @@ const DEFAULT_STATS = {
     totalHp: 1,
 };
 
+type ModificationTypes = 'BUFF_FIXED' | 'BUFF_PERCENTAGE' | 'DEBUFF_FIXED' | 'DEBUFF_PERCENTAGE';
+
 // "tipo de modificacion", NO "tipo modificado."
-const MODIFICATION_TYPES = {
+const MODIFICATION_TYPES: { [key in ModificationTypes]: key } = {
     BUFF_FIXED: 'BUFF_FIXED',
     BUFF_PERCENTAGE: 'BUFF_PERCENTAGE',
     DEBUFF_FIXED: 'DEBUFF_FIXED',
     DEBUFF_PERCENTAGE: 'DEBUFF_PERCENTAGE',
 } as const;
 
-const DEFAULT_STAT_MODIFIERS = {
+
+const DEFAULT_STAT_MODIFIERS: { [key in ModificationTypes]: number } = {
     [MODIFICATION_TYPES.BUFF_FIXED]: 0,
     [MODIFICATION_TYPES.BUFF_PERCENTAGE]: 0,
     [MODIFICATION_TYPES.DEBUFF_FIXED]: 0,
     [MODIFICATION_TYPES.DEBUFF_PERCENTAGE]: 0,
 };
 
-export { DEFAULT_STATS, MODIFICATION_TYPES, DEFAULT_STAT_MODIFIERS };
+export {
+    DEFAULT_STATS,
+    MODIFICATION_TYPES,
+    DEFAULT_STAT_MODIFIERS,
+    ModificationTypes
+};

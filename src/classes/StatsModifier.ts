@@ -1,14 +1,10 @@
-import { MODIFICATION_TYPES } from "../../src_1/constants/common.constants";
-import { DEFAULT_STAT_MODIFIERS } from "../../src_1/constants/stats.constants";
-import { AnyStat } from "./Stats";
+import { DEFAULT_STAT_MODIFIERS, MODIFICATION_TYPES, ModificationTypes } from "../constants/stats.constants";
 
 
+// just an string taht represent an stat in the Stat object.
+export type AnyStat = string;
 
-
-// keys of modifications that an stat can receive.
-export type ModificationKeys = typeof MODIFICATION_TYPES[keyof typeof MODIFICATION_TYPES];
-
-export type ModifiersRecord = Record<AnyStat, Record<ModificationKeys, number>>;
+export type ModifiersRecord = Record<AnyStat, Record<ModificationTypes, number>>;
 
 type StatsModificationConstructor = { modifiers: ModifiersRecord };
 
@@ -25,7 +21,7 @@ export class StatsModifier {
         this.modifiers = params.modifiers ?? {};
     };
 
-    getStatModifier(key: AnyStat, type: ModificationKeys): number {
+    getStatModifier(key: AnyStat, type: ModificationTypes): number {
         if (!this.modifiers[key]) {
             this.modifiers[key] = { ...DEFAULT_STAT_MODIFIERS };
         }
@@ -33,7 +29,7 @@ export class StatsModifier {
         return this.modifiers[key][type];
     };
 
-    getAllStatModifiers(key: AnyStat): Record<ModificationKeys, number> {
+    getAllStatModifiers(key: AnyStat): Record<ModificationTypes, number> {
 
         if (!this.modifiers[key]) {
             this.modifiers[key] = { ...DEFAULT_STAT_MODIFIERS };
@@ -42,12 +38,7 @@ export class StatsModifier {
         return this.modifiers[key];
     };
 
-    isPercentageModification(type: ModificationKeys): boolean {
-        return type === MODIFICATION_TYPES.BUFF_PERCENTAGE
-            || type === MODIFICATION_TYPES.DEBUFF_PERCENTAGE;
-    };
-
-    removeStatModifier(stat: AnyStat, type: ModificationKeys) {
+    removeStatModifier(stat: AnyStat, type: ModificationTypes) {
         if (this.modifiers[stat]) {
             this.modifiers[stat][type] = DEFAULT_STAT_MODIFIERS[type];
         }
@@ -70,7 +61,7 @@ export class StatsModifier {
      * @param value value to add to modifier
      * @param statValue statValue user to recalculate the stat
      */
-    setModifier(stat: AnyStat, type: ModificationKeys, value: number) {
+    setModifier(stat: AnyStat, type: ModificationTypes, value: number) {
         if (!this.modifiers[stat]) {
             this.modifiers[stat] = { ...DEFAULT_STAT_MODIFIERS };
         }
