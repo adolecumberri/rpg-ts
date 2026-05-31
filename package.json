@@ -13,6 +13,7 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --fix --ext .ts",
     "test": "jest --coverage",
+    "world:test": "tsx worldTest/index.ts",
     "testto": "jest --watch",
     "pretty": "prettier --write \"./**/*.{js,jsx,json}\"",
     "prepublish": "npm run lint:fix && npm run build && tsc",
@@ -42,6 +43,7 @@
     "lint": "^1.1.2",
     "rollup": "^3.10.0",
     "ts-jest": "^28.0.3",
+    "tsx": "^4.22.4",
     "typescript": "^4.7.2"
   }
 }

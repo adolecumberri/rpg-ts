@@ -20,12 +20,14 @@ export interface DefenceResult {
     recordId?: number;
 }
 
-export type AttackFunction = (char: Character, ...args: any[]) => AttackResult;
-export type DefenceFunction = (char: Character, attack: AttackResult, ...args: any[]) => DefenceResult;
+export type AttackFunction = (attacker: Character, ...args: any[]) => AttackResult;
+export type DefenceFunction = (defender: Character, attack: AttackResult, ...args: any[]) => DefenceResult;
 
-export type DamageCalculation = {
-    [key in AttackType]: (stats: Stats) => number;
-};
+// export type DamageCalculation = {
+//     [key in AttackType]: (stats: Stats) => number;
+// };
+
+export type DamageCalculation = (stats: Stats) => number;
 
 export type DefenceCalculation = (incomingDamage: number, stats: Stats) => number;
 

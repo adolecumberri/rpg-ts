@@ -22,17 +22,15 @@ const DEFENCE_TYPE = {
 const DEFAULT_ATTACK_FUNCTION: AttackFunction = (character) => {
     return {
         type: ATTACK_TYPE.NORMAL,
-        value: character.stats.attack,
+        value: DEFAULT_DAMAGE_CALCULATION(character.stats),
     };
 };
 
-const DEFAULT_DAMAGE_CALCULATION: DamageCalculation = {
-    [ATTACK_TYPE.NORMAL]: (stats: Stats) => stats.attack,
-};
+const DEFAULT_DAMAGE_CALCULATION: DamageCalculation = (stats: Stats) => stats.attack;
 
 const DEFAULT_DEFENCE_FUNCTION: DefenceFunction = (character, attack) => ({
     type: DEFENCE_TYPE.NORMAL,
-    value: Math.min(0, character.stats.defence - attack.value),
+    value: DEFAULT_DEFENCE_CALCULATION(attack.value, character.stats),
 });
 
 const DEFAULT_DEFENCE_CALCULATION: DefenceCalculation = (incoming: number, stats: Stats) => {

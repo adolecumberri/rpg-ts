@@ -1,8 +1,5 @@
 import { DEFAULT_STAT_MODIFIERS, MODIFICATION_TYPES, ModificationTypes } from "../constants/stats.constants";
-
-
-// just an string taht represent an stat in the Stat object.
-export type AnyStat = string;
+import { AnyStat } from "./Stats";
 
 export type ModifiersRecord = Record<AnyStat, Record<ModificationTypes, number>>;
 

@@ -1,6 +1,7 @@
 import { DEFAULT_STATS } from "../constants/stats.constants";
 import { lifeCheckHelper } from "../helpers/common.helpers";
 import { StatsModifier } from "./StatsModifier";
+import { DEFAULT_STAT_MODIFIERS, ModificationTypes } from "../constants/stats.constants";
 
 export interface Stats {
     attack: number;
@@ -14,8 +15,15 @@ export interface Stats {
 export type AnyStat = string;
 
 export class Stats {
+    private modifierSources: Map<string, StatsModifier> = new Map();
 
-    statsModifier?: StatsModifier;
+    get statsModifier(): StatsModifier {
+        return this.getModifierSource("status");
+    }
+
+    set statsModifier(value: StatsModifier) {
+        this.modifierSources.set("status", value ?? new StatsModifier());
+    }
 
     constructor(params: Partial<Stats> = {}) {
         if (!params) params = {};
@@ -38,15 +46,46 @@ export class Stats {
         );
 
         Object.assign(this, procesedProps);
+        this.modifierSources.set("status", new StatsModifier());
+    }
+
+    getModifierSource(sourceId: string): StatsModifier {
+        if (!this.modifierSources.has(sourceId)) {
+            this.modifierSources.set(sourceId, new StatsModifier());
+        }
+
+        return this.modifierSources.get(sourceId) as StatsModifier;
+    }
+
+    setModifierSource(sourceId: string, modifier: StatsModifier): void {
+        this.modifierSources.set(sourceId, modifier);
+    }
+
+    removeModifierSource(sourceId: string): void {
+        this.modifierSources.delete(sourceId);
+    }
+
+    clearModifierSources(): void {
+        this.modifierSources.clear();
+        this.modifierSources.set("status", new StatsModifier());
+    }
+
+    getCombinedStatModifiers(key: keyof Stats): Record<ModificationTypes, number> {
+        const result: Record<ModificationTypes, number> = { ...DEFAULT_STAT_MODIFIERS };
+
+        for (const source of this.modifierSources.values()) {
+            const modifiers = source.getAllStatModifiers(key);
+            result.BUFF_FIXED += modifiers.BUFF_FIXED;
+            result.BUFF_PERCENTAGE += modifiers.BUFF_PERCENTAGE;
+            result.DEBUFF_FIXED += modifiers.DEBUFF_FIXED;
+            result.DEBUFF_PERCENTAGE += modifiers.DEBUFF_PERCENTAGE;
+        }
+
+        return result;
     }
 
     calculateStatValue(key: keyof Stats): number {
-
-        if (this.statsModifier === undefined) {
-            return this[key as keyof Stats] as number;
-        }
-
-        const allStatModifiers = this.statsModifier.getAllStatModifiers(key);
+        const allStatModifiers = this.getCombinedStatModifiers(key);
 
         let originalValue = this[key as keyof Stats] as number;
         let modifiedValue = this[key as keyof Stats] as number;
