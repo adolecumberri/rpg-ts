@@ -1,7 +1,7 @@
 import { Character } from "./Character";
 import { Team } from "./Team";
 
-type CombatSide = Character | Team;
+export type CombatSide = Character | Team;
 type CombatWinner = "left" | "right" | "draw";
 
 export type CombatOptions = {
@@ -114,7 +114,7 @@ export class Combat {
         };
     }
 
-    private resolveAttack(attacker: Character, defender: Character, round: number): CombatTurn {
+    resolveAttack(attacker: Character, defender: Character, round: number): CombatTurn {
         const attack = attacker.combat.attack(attacker);
 
         const defence = defender.combat.defence(defender, attack);

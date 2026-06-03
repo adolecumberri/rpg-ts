@@ -13,7 +13,7 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --fix --ext .ts",
     "test": "jest --coverage",
-    "world:test": "tsx worldTest2/index.ts",
+    "world:test": "tsx worldTest3/index.ts",
     "testto": "jest --watch",
     "pretty": "prettier --write \"./**/*.{js,jsx,json}\"",
     "prepublish": "npm run lint:fix && npm run build && tsc",

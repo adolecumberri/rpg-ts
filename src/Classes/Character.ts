@@ -4,7 +4,7 @@ import { Stats } from "../classes/Stats";
 import { Inventory } from "./Inventory";
 import { Experience } from "./Experience";
 import { EventEmitter } from "./EventEmitter";
-
+import { StatusManager } from "./StatusManager";
 
 type CharacterConstructor = {
     id?: string;
@@ -14,6 +14,7 @@ type CharacterConstructor = {
     inventory?: Inventory;
     experience?: Experience;
     eventEmitter?: EventEmitter<any>;
+    statusManager?: StatusManager;
 };
 
 export class Character {
@@ -24,6 +25,7 @@ export class Character {
     inventory: Inventory;
     experience: Experience;
     eventEmitter: EventEmitter<any>;
+    statusManager: StatusManager;
 
 
     constructor(params: Partial<CharacterConstructor> = {}) {
@@ -36,6 +38,8 @@ export class Character {
         this.experience = params.experience || new Experience();
         this.eventEmitter = params.eventEmitter || new EventEmitter();
         // ensure externally provided inventories are bound to this character
+
+        this.statusManager = params.statusManager || new StatusManager(this);
         this.inventory.setOwner(this);
     }
 
