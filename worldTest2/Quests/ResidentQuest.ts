@@ -1,0 +1,178 @@
+import { Quest } from "./Quest";
+import { Game } from "../Game/game";
+import { Character, Stats } from "../../src";
+
+function randomInt(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function pick<T>(list: T[]): T {
+    return list[randomInt(0, list.length - 1)];
+}
+
+function randomName(): string {
+
+    const prefixes = ["Ar", "Bel", "Cor", "Dra", "Ela", "Fen", "Gal", "Ira", "Ka", "Mor", "Nya", "Tor"];
+    const suffixes = ["dor", "wen", "rik", "lian", "mar", "thas", "ren", "vok", "riel", "dun", "zar", "fin"];
+    return `${pick(prefixes)}${pick(suffixes)}`;
+}
+
+
+function createCharacter(): Character {
+    const totalHp = randomInt(8, 15);
+
+    return new Character({
+        id: crypto.randomUUID(),
+        name: randomName(),
+
+        stats: new Stats({
+            attack: randomInt(2, 6),
+            defence: randomInt(1, 4),
+            hp: totalHp,
+            totalHp,
+        }),
+    });
+}
+
+export class StarterQuest implements Quest {
+    northResident = {
+        characterId: "default",
+        townId: "north_town",
+    };
+
+    southResident = {
+        characterId: "default",
+        townId: "south_town",
+    };
+
+    defeated = new Set<string>();
+
+    registerDefeat(characterId: string) {
+        this.defeated.add(characterId);
+    }
+
+    isCompleted(): boolean {
+        return (
+            this.defeated.has(this.northResident.characterId)
+            && this.defeated.has(this.southResident.characterId)
+        );
+    }
+
+    onComplete(game: Game) {
+        // unlock new area, give rewards, etc.
+    }
+
+    async start(game: Game) {
+
+        // 1. create candidates
+        const candidates = [
+            createCharacter(),
+            createCharacter(),
+            createCharacter(),
+        ];
+
+        // 2. let player choose
+        const index = await game.menu.selectMenuOption(
+            "CHOOSE YOUR CHARACTER",
+            candidates.map((c) => ({
+                label: `${c.name} | ATK ${c.stats.attack} | DEF ${c.stats.defence} | HP ${c.stats.hp}/${c.stats.totalHp}`,
+                execute: async () => true,
+            }))
+        );
+
+        const selected = candidates[index];
+        game.team.addCharacter(selected);
+
+        const remaining = candidates.filter((_, i) => i !== index);
+
+        this.northResident.characterId = remaining[0].id;
+        this.southResident.characterId = remaining[1].id;
+
+        game.addNPC("north_town", {
+            id: remaining[0].id,
+            character: remaining[0],
+            onDefeat: async (game, npc, placeId) => {
+                //recruit to team
+                game.recruitNPC(npc, placeId);
+                this.registerDefeat(npc.id);
+            },
+            interactions: [
+                {
+                    id: "talk",
+                    label: "Talk",
+                    onSelect: async (game, npc) => {
+                        console.clear();
+                        console.log(`${npc.character.name}: I don't trust strangers.`);
+                        await game.menu.waitForAnyKey("Press any key...");
+                    },
+                },
+                {
+                    id: "fight",
+                    label: "Fight",
+                    onSelect: async (game, npc) => {
+                        console.clear();
+                        await game.fightNPC(
+                            "north_town",
+                            npc.id,
+                        );
+                        await game.menu.waitForAnyKey("Press any key...");
+                        // later: hook combat system here
+                    },
+                },
+                {
+                    id: "recruit",
+                    label: "Recruit",
+                    onSelect: async (game, npc) => {
+                        console.clear();
+                        console.log(`${npc.character.name} joins you.`);
+                        game.recruitNPC(npc, "north_town");
+                        this.registerDefeat(npc.id);
+                        await game.menu.waitForAnyKey("Press any key...");
+                    },
+                },
+            ],
+        });
+
+        game.addNPC("south_town", {
+            id: remaining[1].id,
+            character: remaining[1],
+            onDefeat: async (game, npc, placeId) => {
+                //recruit to team
+                game.recruitNPC(npc, placeId);
+                this.registerDefeat(npc.id);
+            },
+            interactions: [
+                {
+                    id: "talk",
+                    label: "Talk",
+                    onSelect: async (game, npc) => {
+                        console.clear();
+                        console.log(`${npc.character.name}: The south is peaceful... for now.`);
+                        await game.menu.waitForAnyKey("Press any key...");
+                    },
+                },
+                {
+                    id: "fight",
+                    label: "Fight",
+                    onSelect: async (game, npc) => {
+                        console.clear();
+                        await game.fightNPC(
+                            "south_town",
+                            npc.id,
+                        );
+                        await game.menu.waitForAnyKey("Press any key...");
+                    },
+                },
+            ],
+        });
+
+        // 5. show result
+        await game.enqueueUI(async () => {
+            console.clear();
+            console.log(`You selected ${selected.name}`);
+            console.log(`${remaining[0].name} goes North`);
+            console.log(`${remaining[1].name} goes South`);
+            await game.menu.waitForAnyKey("Press any key...");
+        });
+    }
+}

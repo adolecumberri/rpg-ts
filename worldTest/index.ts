@@ -167,7 +167,7 @@ function describeCharacter(character: Character): string {
 
 function pick<T>(list: T[]): T {
     return list[randomInt(0, list.length - 1)];
-}
+} 
 
 function randomInt(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min;

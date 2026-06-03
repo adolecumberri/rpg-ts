@@ -1,4 +1,5 @@
 import { Game } from "../Game/game";
+import { NPC } from "../NPC/npc";
 
 const showMessage = (text: string) =>
     async (game: Game) => {
@@ -42,6 +43,8 @@ export type Place = {
 
     onEnter?: PlaceTrigger[];
     onExit?: PlaceTrigger[];
+
+    npcs?: NPC[];
 };
 
 export const PLACES: Record<string, Place> = {
@@ -53,6 +56,7 @@ export const PLACES: Record<string, Place> = {
         connections: [
             { label: "Go North", to: "north_town" },
             { label: "Go South", to: "south_town" },
+            { label: "Go to the Inn", to: "rest" },
         ],
         actions: [
             {
@@ -88,8 +92,21 @@ export const PLACES: Record<string, Place> = {
                 once: true,
                 effects: [
                     async (game) => {
-                        await game.menu.waitForAnyKey("A strange feeling appears...");
+                        game.enqueueUI(async () => {
+                            console.clear();
+                            console.log("A strange feeling appears...");
+                            await game.menu.waitForAnyKey("Press any key...");
+                        });
                     },
+
+                    async (game) => {
+                        game.enqueueUI(async () => {
+                            console.clear();
+                            console.log("A strange feeling appears... 2");
+                            await game.menu.waitForAnyKey("Press any key...");
+                        });
+                    },
+
                 ],
             }
         ]
@@ -103,6 +120,22 @@ export const PLACES: Record<string, Place> = {
         connections: [
             { label: "Return to Central", to: "central_town" },
         ],
+
+        onExit: [
+            {
+                id: "goodbye_message",
+                once: true,
+                effects: [
+                    async (game) => {
+                        game.enqueueUI(async () => {
+                            console.clear();
+                            console.log("You feel a chill as you leave...");
+                            await game.menu.waitForAnyKey("Press any key...");
+                        });
+                    },
+                ],
+            }
+        ]
     },
 
     south_town: {
@@ -114,4 +147,34 @@ export const PLACES: Record<string, Place> = {
             { label: "Return to Central", to: "central_town" },
         ],
     },
+    inn: {
+        id: "rest",
+        name: "Inn",
+        description: "Rest at Inn",
+        actions: [
+            {
+                id: "rest_at_inn",
+                label: "Rest at the Inn",
+                description: "Rest and recover your party's health.",
+                onSelect: async (game) => {
+
+
+                    for (const member of game.team.getAll()) {
+                        member.stats.hp = member.stats.totalHp;
+                        member.stats.isAlive = 1;
+                    }
+
+                    await game.menu.waitForAnyKey(
+                        "Your party feels refreshed."
+                    );
+
+                    return true;
+                }
+
+            }
+        ],
+        connections: [
+            { label: "Return to Central", to: "central_town" },
+        ],
+    }
 } as const;
