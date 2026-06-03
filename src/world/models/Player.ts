@@ -15,7 +15,7 @@ export type PlayerConstructor = {
     id?: string;
     name?: string;
     team?: Team;
-    startPlaceId: PlaceId;
+    startPlaceId?: PlaceId;
     maxTeamSize?: number;
 };
 
@@ -27,12 +27,12 @@ export class Player {
     currentPlaceId: PlaceId;
     private actions: PlayerAction[] = [];
 
-    constructor(config: PlayerConstructor) {
+    constructor(config: PlayerConstructor = {}) {
         this.id = config.id ?? uniqueID();
         this.name = config.name ?? "player";
         this.team = config.team ?? new Team();
         this.maxTeamSize = config.maxTeamSize ?? 4;
-        this.currentPlaceId = config.startPlaceId;
+        this.currentPlaceId = config.startPlaceId ?? "unknown";
 
         if (this.team.count() > this.maxTeamSize) {
             throw new Error(`Player team cannot be bigger than ${this.maxTeamSize}.`);

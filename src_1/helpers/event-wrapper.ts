@@ -12,6 +12,22 @@ export interface EventEmitterLike {
     emit(event: EventMoment, ...args: any[]): void;
 }
 
+/*
+    * Creates a simple event emitter that allows registering listeners and emitting events.
+        * Listeners are stored in a dictionary where the key is the event name and the value is an array of listener functions.
+        * The 'on' method is used to register a listener for a specific event, while the 'emit' method triggers all listeners associated with that event, passing any provided arguments to them.
+        * This implementation is basic and does not include features like 
+        * once-only listeners, 
+        * removing listeners, or handling edge cases such as emitting events with no listeners. 
+        * It serves as a simple utility for event-driven programming within the context of the Character class or other parts of the application.
+        * Example usage:
+        * const emitter = createEventEmitter();
+        * emitter.on('before_attack', (attacker, target) => {
+        *   console.log(`${attacker.name} is about to attack ${target.name}`);
+        * });
+        * emitter.emit('before_attack', characterA, characterB);
+        * This would log: "CharacterA is about to attack CharacterB" when the 'before_attack' event is emitted.
+*/
 export function createEventEmitter(): EventEmitter {
     const listeners: Partial<Record<EventMoment, EventHandler[]>> = {};
 

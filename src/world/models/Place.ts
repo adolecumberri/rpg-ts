@@ -2,9 +2,7 @@ export type PlaceId = string;
 
 export type PlaceType =
     | "town"
-    | "city"
     | "shop"
-    | "dungeon"
     | "wild";
 
 export type PlaceConnection = {

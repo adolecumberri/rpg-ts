@@ -1,39 +1,11 @@
-import * as readline from "readline";
-import { Character, Stats } from "../src";
-import { Player, Place, PlaceId, PlaceOption, TravelInfo, World } from "../src/world";
-
-type MenuChoice = {
-    label: string;
-    execute: () => Promise<boolean>;
-};
+import { Character, Combat, Stats, Team } from "../src";
+import { Player, PlaceId, World } from "../src/world";
+import { Towns } from "./constants/towns";
+import { Menu, MenuChoice } from "./Menu";
+import { buildMenuOptions, renderHeader } from "./menu/createMenu";
 
 const world = new World({
-    places: [
-        {
-            id: "town_1",
-            name: "North Town",
-            type: "town",
-            description: "A quiet town to the north. The wind smells like pine and smoke.",
-            options: [],
-            connections: [{ to: "town_2" }],
-        },
-        {
-            id: "town_2",
-            name: "Central Town",
-            type: "town",
-            description: "You stand at the crossroads in the center of the region.",
-            options: [],
-            connections: [{ to: "town_1" }, { to: "town_3" }],
-        },
-        {
-            id: "town_3",
-            name: "South Town",
-            type: "town",
-            description: "A market town full of travelers and carts.",
-            options: [],
-            connections: [{ to: "town_2" }],
-        },
-    ],
+    places: Towns,
     startPlaceId: "town_2",
 });
 
@@ -42,54 +14,91 @@ const player = new Player({
     startPlaceId: "town_2",
 });
 
+let mainCharacterId: string | undefined;
+
+const menu = new Menu();
+const combat = new Combat({
+    randomTarget: false,
+});
+
 const townResidents: Record<PlaceId, Character[]> = {
     town_1: [],
     town_2: [],
     town_3: [],
 };
 
+const initialResidentNamesById: Record<string, string> = {};
+const defeatedInitialResidentIds: Set<string> = new Set();
+let defeatedBothResidentsAnnounced = false;
+const innState = {
+    uses: 1,
+};
+
 async function main(): Promise<void> {
     await runCharacterDraft();
+    await handlePlaceEnter(player.currentPlaceId);
 
     let running = true;
 
     while (running) {
         const current = world.getPlace(player.currentPlaceId);
-        const options = buildMenuOptions(current);
+        const options = buildMenuOptions(current, {
+            player,
+            world,
+            townResidents,
+            waitForAnyKey: menu.waitForAnyKey,
+            printHistory,
+            printPartyStats,
+            getResidentEnemy,
+            fightResident,
+            onPlaceEnter: handlePlaceEnter,
+        });
 
-        const selected = await selectMenuOption(renderHeader(current), options);
+        const selected = await menu.selectMenuOption(renderHeader(current, {
+            player,
+            world,
+            townResidents,
+            waitForAnyKey: menu.waitForAnyKey,
+            printHistory,
+            printPartyStats,
+            getResidentEnemy,
+            fightResident,
+            onPlaceEnter: handlePlaceEnter,
+        }), options);
         running = await options[selected].execute();
     }
 
-    cleanupInput();
+    menu.cleanupInput();
     process.stdout.write("\nGoodbye.\n");
 }
 
-function renderHeader(place: Place): string {
-    const teamNames = player.team
-        .getAll()
-        .map((member) => member.name)
-        .join(", ");
-
-    const residents = townResidents[place.id] ?? [];
-    const residentNames = residents.length > 0
-        ? residents.map((resident) => resident.name).join(", ")
-        : "None";
-
-    return [
-        "WORLD TEST",
-        "==========",
-        `Location: ${place.definition.name} (${place.id})`,
-        `Team: ${teamNames || "Empty"}`,
-        `NPCs here: ${residentNames}`,
-        "",
-        `Description: ${place.definition.description ?? "No description yet."}`,
-        "",
-        "Choose an option:",
-    ].join("\n");
+async function runCharacterDraft(): Promise<void> {
+    await offerNewCharacterDraft({
+        clearCurrentTeam: false,
+        introLines: [
+            "Choose your starting character:",
+        ],
+        outroTemplate: ({ chosenName, northName, southName }) => [
+            `You chose ${chosenName}.`,
+            `${northName} is now in North Town.`,
+            `${southName} is now in South Town.`,
+            "",
+            "Press any key to begin your journey...",
+        ],
+    });
 }
 
-async function runCharacterDraft(): Promise<void> {
+async function offerNewCharacterDraft(config: {
+    clearCurrentTeam: boolean;
+    introLines: string[];
+    outroTemplate: (args: { chosenName: string; northName: string; southName: string }) => string[];
+}): Promise<void> {
+    if (config.clearCurrentTeam) {
+        player.team.clear();
+    }
+
+    resetResidentDefeatTracking();
+
     const candidates = buildRandomCharacterCandidates(3);
 
     const options: MenuChoice[] = candidates.map((candidate) => ({
@@ -97,29 +106,31 @@ async function runCharacterDraft(): Promise<void> {
         execute: async () => true,
     }));
 
-    const selected = await selectMenuOption(
+    const selected = await menu.selectMenuOption(
         [
             "CHARACTER DRAFT",
             "===============",
-            "Choose your starting character:",
+            ...config.introLines,
         ].join("\n"),
         options,
     );
 
     const chosenCharacter = candidates[selected];
     player.addCharacter(chosenCharacter);
+    mainCharacterId = chosenCharacter.id;
 
     const unselected = candidates.filter((_candidate, index) => index !== selected);
     townResidents.town_1 = [unselected[0]];
     townResidents.town_3 = [unselected[1]];
 
-    await waitForAnyKey([
-        `You chose ${chosenCharacter.name}.`,
-        `${unselected[0].name} is now in North Town.`,
-        `${unselected[1].name} is now in South Town.`,
-        "",
-        "Press any key to begin your journey...",
-    ].join("\n"));
+    initialResidentNamesById[unselected[0].id] = unselected[0].name;
+    initialResidentNamesById[unselected[1].id] = unselected[1].name;
+
+    await menu.waitForAnyKey(config.outroTemplate({
+        chosenName: chosenCharacter.name,
+        northName: unselected[0].name,
+        southName: unselected[1].name,
+    }).join("\n"));
 }
 
 function buildRandomCharacterCandidates(amount: number): Character[] {
@@ -135,6 +146,7 @@ function buildRandomCharacterCandidates(amount: number): Character[] {
                 totalHp,
                 hp: totalHp,
             }),
+
         });
 
         candidates.push(character);
@@ -161,76 +173,6 @@ function randomInt(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function buildMenuOptions(place: Place): MenuChoice[] {
-    const menu: MenuChoice[] = [];
-
-    const placeOptions = player.lookOptions(world);
-    for (const option of placeOptions) {
-        menu.push(buildPlaceOptionChoice(option));
-    }
-
-    for (const connection of place.getConnections()) {
-        const destination = world.getPlace(connection.to);
-        menu.push({
-            label: `Travel to ${destination.definition.name}`,
-            execute: async () => {
-                const info: TravelInfo = {
-                    data: {
-                        source: "terminal_menu",
-                    },
-                };
-                player.travelTo(world, destination.id, info);
-                return true;
-            },
-        });
-    }
-
-    menu.push({
-        label: "Show action history",
-        execute: async () => {
-            printHistory();
-            await waitForAnyKey("Press any key to continue...");
-            return true;
-        },
-    });
-
-    menu.push({
-        label: "Exit",
-        execute: async () => false,
-    });
-
-    return menu;
-}
-
-function buildPlaceOptionChoice(option: PlaceOption): MenuChoice {
-    return {
-        label: option.label,
-        execute: async () => {
-            const payload = option.payload ?? {};
-            const actionType = payload.actionType;
-
-            if (actionType === "travel") {
-                const to = payload.to as PlaceId | undefined;
-                if (!to) {
-                    await waitForAnyKey("Travel option is missing destination. Press any key...");
-                    return true;
-                }
-
-                player.travelTo(world, to, {
-                    data: {
-                        source: "place_option",
-                        optionId: option.id,
-                    },
-                });
-                return true;
-            }
-
-            await waitForAnyKey(`${option.description ?? "No action attached yet."}\n\nPress any key to continue...`);
-            return true;
-        },
-    };
-}
-
 function printHistory(): void {
     const history = player.getActions();
     process.stdout.write("\nAction history\n");
@@ -247,112 +189,258 @@ function printHistory(): void {
     process.stdout.write("\n");
 }
 
-async function selectMenuOption(header: string, options: MenuChoice[]): Promise<number> {
-    return new Promise((resolve) => {
-        ensureInputReady();
-        let selected = 0;
+function printPartyStats(): void {
+    const members = player.team.getAll();
 
-        const render = () => {
-            console.clear();
-            process.stdout.write(`${header}\n\n`);
-            options.forEach((option, index) => {
-                const pointer = index === selected ? ">" : " ";
-                process.stdout.write(`${pointer} ${index + 1}. ${option.label}\n`);
+    process.stdout.write("\nParty\n");
+    process.stdout.write("-----\n");
+
+    if (members.length === 0) {
+        process.stdout.write("No party members yet.\n\n");
+        return;
+    }
+
+    for (const member of members) {
+        const mainTag = member.id === mainCharacterId ? " [MAIN]" : "";
+        const hpRatio = member.stats.totalHp > 0 ? member.stats.hp / member.stats.totalHp : 0;
+        const lowHpTag = member.stats.hp <= 0
+            ? " [DEAD]"
+            : hpRatio < 0.25
+                ? " [LOW HP]"
+                : "";
+        process.stdout.write(`${member.name}${mainTag} (${member.id})\n`);
+        process.stdout.write(`  LVL ${member.experience.level} | XP ${member.experience.currentXp}/${member.experience.getXpToNextLevel()}\n`);
+        process.stdout.write(`  ATK ${member.stats.attack} | DEF ${member.stats.defence} | HP ${member.stats.hp}/${member.stats.totalHp}${lowHpTag}\n`);
+    }
+
+    process.stdout.write("\n");
+}
+
+function canUseInn(): boolean {
+    return innState.uses > 0;
+}
+
+function getResidentEnemy(placeId: PlaceId): Character | undefined {
+    const residents = townResidents[placeId] ?? [];
+    return residents[0];
+}
+
+async function fightResident(placeId: PlaceId, enemy: Character): Promise<boolean> {
+    const confirmed = await confirmAction(
+        `Do you want to fight ${enemy.name}?`,
+        "Yes, start battle",
+        "No, go back",
+    );
+
+    if (!confirmed) {
+        return true;
+    }
+
+    if (player.team.getAlive().length === 0) {
+        await menu.waitForAnyKey([
+            "Your party has no alive members.",
+            "Recover before starting another fight.",
+            "",
+            "Press any key to continue...",
+        ].join("\n"));
+        return true;
+    }
+
+    if (enemy.stats.hp <= 0 || enemy.stats.isAlive <= 0) {
+        enemy.stats.hp = 1;
+        enemy.stats.isAlive = 1;
+    }
+
+    const enemyTeam = new Team({
+        id: `enemy_${enemy.id}`,
+        members: [enemy],
+    });
+
+    const result = combat.autoBetweenTeams(player.team, enemyTeam);
+
+    if (result.winner === "draw")
+        console.log({ result })
+
+    if (result.winner === "left") {
+        const rewardSummary = grantSharedPartyExperience(100);
+        recruitEnemy(placeId, enemy);
+
+        const rewardLines = rewardSummary.map((item) => {
+            return `${item.name}: +${item.exp} XP${item.levels > 0 ? ` (LEVEL +${item.levels})` : ""}`;
+        });
+
+        await menu.waitForAnyKey([
+            `You defeated ${enemy.name} in ${result.rounds} rounds.`,
+            "XP reward (100 total, shared):",
+            ...rewardLines,
+            `${enemy.name} joined your party.`,
+            "",
+            "Press any key to continue...",
+        ].join("\n"));
+        return true;
+    }
+
+    if (result.winner === "right") {
+        await menu.waitForAnyKey([
+            `${enemy.name} won the fight.`,
+            "Recover and try again.",
+            "",
+            "Press any key to continue...",
+        ].join("\n"));
+
+        if (player.team.getAlive().length === 0) {
+            await offerNewCharacterDraft({
+                clearCurrentTeam: true,
+                introLines: [
+                    "Your team was defeated.",
+                    "Choose 3 new characters:",
+                ],
+                outroTemplate: ({ chosenName, northName, southName }) => [
+                    `You now continue as ${chosenName}.`,
+                    `${northName} is now in North Town.`,
+                    `${southName} is now in South Town.`,
+                    "",
+                    "Press any key to continue...",
+                ],
             });
-            process.stdout.write("\nUse Arrow Up/Down + Enter, or press a number.\n");
-        };
+        }
 
-        const cleanup = () => {
-            process.stdin.removeListener("keypress", onKeyPress);
-        };
-
-        const onKeyPress = (str: string, key: { name?: string; sequence?: string; ctrl?: boolean }) => {
-            if (key.ctrl && key.name === "c") {
-                cleanup();
-                cleanupInput();
-                process.exit(0);
-            }
-
-            if (key.name === "up") {
-                selected = selected <= 0 ? options.length - 1 : selected - 1;
-                render();
-                return;
-            }
-
-            if (key.name === "down") {
-                selected = selected >= options.length - 1 ? 0 : selected + 1;
-                render();
-                return;
-            }
-
-            if (key.name === "return") {
-                cleanup();
-                resolve(selected);
-                return;
-            }
-
-            const keyText = key.sequence ?? str;
-            if (/^[1-9]$/.test(keyText)) {
-                const numeric = Number(keyText) - 1;
-                if (numeric >= 0 && numeric < options.length) {
-                    cleanup();
-                    resolve(numeric);
-                }
-            }
-        };
-
-        process.stdin.on("keypress", onKeyPress);
-        render();
-    });
-}
-
-async function waitForAnyKey(message: string): Promise<void> {
-    ensureInputReady();
-    process.stdout.write(`\n${message}\n`);
-
-    await new Promise<void>((resolve) => {
-        const done = () => {
-            process.stdin.removeListener("keypress", onKeyPress);
-            resolve();
-        };
-
-        const onKeyPress = (_str: string, key: { ctrl?: boolean; name?: string }) => {
-            if (key.ctrl && key.name === "c") {
-                cleanupInput();
-                process.exit(0);
-            }
-            done();
-        };
-
-        process.stdin.on("keypress", onKeyPress);
-    });
-}
-
-let inputInitialized = false;
-
-function ensureInputReady(): void {
-    if (inputInitialized) return;
-
-    readline.emitKeypressEvents(process.stdin);
-    if (process.stdin.isTTY) {
-        process.stdin.setRawMode(true);
+        return true;
     }
-    process.stdin.resume();
-    inputInitialized = true;
+
+    console.log({
+        result,
+        left: player.team.getAlive().map((char) => char.name),
+        right: enemy.name,
+    })
+
+    await menu.waitForAnyKey([
+        "The battle ended in a draw.",
+        "",
+        "Press any key to continue...",
+    ].join("\n"));
+
+    const mutualDefeat = result.leftSurvivors.length === 0 && result.rightSurvivors.length === 0;
+    if (mutualDefeat) {
+        await offerNewCharacterDraft({
+            clearCurrentTeam: true,
+            introLines: [
+                "Both sides were defeated.",
+                "Choose your new character:",
+            ],
+            outroTemplate: ({ chosenName, northName, southName }) => [
+                `You now continue as ${chosenName}.`,
+                `${northName} is now in North Town.`,
+                `${southName} is now in South Town.`,
+                "",
+                "Press any key to continue...",
+            ],
+        });
+    }
+
+    return true;
 }
 
-function cleanupInput(): void {
-    if (!inputInitialized) return;
+function recruitEnemy(placeId: PlaceId, enemy: Character): void {
+    const residents = townResidents[placeId] ?? [];
+    townResidents[placeId] = residents.filter((resident) => resident.id !== enemy.id);
 
-    if (process.stdin.isTTY) {
-        process.stdin.setRawMode(false);
+    registerResidentDefeat(enemy);
+
+    enemy.stats.hp = 1;
+    enemy.stats.isAlive = 1;
+
+    player.addCharacter(enemy);
+}
+
+async function handlePlaceEnter(placeId: PlaceId): Promise<void> {
+    if (placeId !== "inn_1") {
+        return;
     }
-    process.stdin.pause();
-    inputInitialized = false;
+
+    if (!canUseInn()) {
+        console.log("The Inn is closed.");
+        return;
+    }
+
+    for (const member of player.team.getAll()) {
+        const healAmount = Math.floor(member.stats.totalHp / 2) + 50;
+        member.stats.hp = Math.min(member.stats.totalHp, member.stats.hp + healAmount);
+        member.stats.isAlive = member.stats.hp > 0 ? 1 : 0;
+    }
+
+    innState.uses = 0;
+    console.log("The Inn healed your party and is now closed.");
+}
+
+function registerResidentDefeat(enemy: Character): void {
+    if (!initialResidentNamesById[enemy.id]) {
+        return;
+    }
+
+    defeatedInitialResidentIds.add(enemy.id);
+
+    if (defeatedBothResidentsAnnounced) {
+        return;
+    }
+
+    const defeatedNames = Object.keys(initialResidentNamesById)
+        .filter((id) => defeatedInitialResidentIds.has(id))
+        .map((id) => initialResidentNamesById[id]);
+
+    if (defeatedNames.length === 2) {
+        console.log(`you have defeated ${defeatedNames[0]} and ${defeatedNames[1]}`);
+        defeatedBothResidentsAnnounced = true;
+    }
+}
+
+function resetResidentDefeatTracking(): void {
+    for (const id of Object.keys(initialResidentNamesById)) {
+        delete initialResidentNamesById[id];
+    }
+
+    defeatedInitialResidentIds.clear();
+    defeatedBothResidentsAnnounced = false;
+}
+
+function grantSharedPartyExperience(totalExp: number): Array<{ name: string; exp: number; levels: number }> {
+    const members = player.team.getAll();
+    if (members.length === 0 || totalExp <= 0) {
+        return [];
+    }
+
+    const baseExp = Math.floor(totalExp / members.length);
+    let remainder = totalExp % members.length;
+    const rewardSummary: Array<{ name: string; exp: number; levels: number }> = [];
+
+    for (const member of members) {
+        const reward = baseExp + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) {
+            remainder -= 1;
+        }
+
+        const levels = member.experience.gain(reward);
+        rewardSummary.push({
+            name: member.name,
+            exp: reward,
+            levels,
+        });
+    }
+
+    return rewardSummary;
+}
+
+async function confirmAction(title: string, yesLabel: string, noLabel: string): Promise<boolean> {
+    const index = await menu.selectMenuOption(title, [
+        { label: yesLabel, execute: async () => true },
+        { label: noLabel, execute: async () => true },
+    ]);
+
+    return index === 0;
 }
 
 main().catch((error) => {
-    cleanupInput();
+    menu.cleanupInput();
     console.error(error);
     process.exit(1);
 });
