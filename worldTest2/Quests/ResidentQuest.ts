@@ -47,8 +47,12 @@ export class StarterQuest implements Quest {
 
     defeated = new Set<string>();
 
-    registerDefeat(characterId: string) {
+    registerDefeat(characterId: string, game: Game) {
         this.defeated.add(characterId);
+
+        if (this.isCompleted()) {
+            void this.onComplete(game);
+        }
     }
 
     isCompleted(): boolean {
@@ -59,7 +63,26 @@ export class StarterQuest implements Quest {
     }
 
     onComplete(game: Game) {
-        // unlock new area, give rewards, etc.
+
+        game.enqueueUI(async () => {
+            console.clear();
+            console.log("Congratulations! You have completed the Starter Quest.");
+            console.log("You have recruited both residents to your team.");
+            console.log("The east city got unlocked");
+            await game.menu.waitForAnyKey("Press any key...");
+        });
+
+
+        game.addPlace({
+            id: "east_town",
+            name: "East Town",
+            description: "A mysterious town to the east.",
+            connections: [
+                { label: "Return to Central", to: "central_town" },
+            ],
+        });
+
+        game.addConnectionToPlace("central_town", "east_town", "Go East");
     }
 
     async start(game: Game) {
@@ -93,8 +116,10 @@ export class StarterQuest implements Quest {
             character: remaining[0],
             onDefeat: async (game, npc, placeId) => {
                 //recruit to team
+
+                npc.character.stats.hp = 1; // make it look like they survived with 1 hp
                 game.recruitNPC(npc, placeId);
-                this.registerDefeat(npc.id);
+                this.registerDefeat(npc.id, game);
             },
             interactions: [
                 {
@@ -119,17 +144,6 @@ export class StarterQuest implements Quest {
                         // later: hook combat system here
                     },
                 },
-                {
-                    id: "recruit",
-                    label: "Recruit",
-                    onSelect: async (game, npc) => {
-                        console.clear();
-                        console.log(`${npc.character.name} joins you.`);
-                        game.recruitNPC(npc, "north_town");
-                        this.registerDefeat(npc.id);
-                        await game.menu.waitForAnyKey("Press any key...");
-                    },
-                },
             ],
         });
 
@@ -138,8 +152,9 @@ export class StarterQuest implements Quest {
             character: remaining[1],
             onDefeat: async (game, npc, placeId) => {
                 //recruit to team
+                npc.character.stats.hp = 1; // make it look like they survived with 1 hp
                 game.recruitNPC(npc, placeId);
-                this.registerDefeat(npc.id);
+                this.registerDefeat(npc.id, game);
             },
             interactions: [
                 {

@@ -170,12 +170,12 @@ export class Game {
         await this.runTriggers(toPlace.onEnter, from);
     }
 
-    addConnectionToPlace(placeId: string, to: string, label: string) {
-        const place = this.places.get(placeId);
+    addConnectionToPlace(placeFromId: string, placeToId: string, label: string) {
+        const place = this.places.get(placeFromId);
         if (!place) {
-            throw new Error(`Place not found: ${placeId}`);
+            throw new Error(`Place not found: ${placeFromId}`);
         }
-        place.connections.push({ label, to });
+        place.connections.push({ label, to: placeToId });
     }
     removeActionFromPlace(placeId: string, actionId: string) {
         const place = this.places.get(placeId);

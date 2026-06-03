@@ -1,5 +1,6 @@
 import { Game } from "../Game/game";
 import { NPC } from "../NPC/npc";
+import { innAction } from "./InnAction";
 
 const showMessage = (text: string) =>
     async (game: Game) => {
@@ -56,9 +57,10 @@ export const PLACES: Record<string, Place> = {
         connections: [
             { label: "Go North", to: "north_town" },
             { label: "Go South", to: "south_town" },
-            { label: "Go to the Inn", to: "rest" },
         ],
         actions: [
+
+            innAction,
             {
                 id: "discover_east_east_town",
                 label: "Discover the town",
@@ -84,7 +86,7 @@ export const PLACES: Record<string, Place> = {
                     await game.menu.waitForAnyKey("Press any key to continue...");
                     return true;
                 }
-            }
+            },
         ],
         onEnter: [
             {
@@ -147,34 +149,34 @@ export const PLACES: Record<string, Place> = {
             { label: "Return to Central", to: "central_town" },
         ],
     },
-    inn: {
-        id: "rest",
-        name: "Inn",
-        description: "Rest at Inn",
-        actions: [
-            {
-                id: "rest_at_inn",
-                label: "Rest at the Inn",
-                description: "Rest and recover your party's health.",
-                onSelect: async (game) => {
+    // inn: {
+    //     id: "rest",
+    //     name: "Inn",
+    //     description: "Rest at Inn",
+    //     actions: [
+    //         {
+    //             id: "rest_at_inn",
+    //             label: "Rest at the Inn",
+    //             description: "Rest and recover your party's health.",
+    //             onSelect: async (game) => {
 
 
-                    for (const member of game.team.getAll()) {
-                        member.stats.hp = member.stats.totalHp;
-                        member.stats.isAlive = 1;
-                    }
+    //                 for (const member of game.team.getAll()) {
+    //                     member.stats.hp = member.stats.totalHp;
+    //                     member.stats.isAlive = 1;
+    //                 }
 
-                    await game.menu.waitForAnyKey(
-                        "Your party feels refreshed."
-                    );
+    //                 await game.menu.waitForAnyKey(
+    //                     "Your party feels refreshed."
+    //                 );
 
-                    return true;
-                }
+    //                 return true;
+    //             }
 
-            }
-        ],
-        connections: [
-            { label: "Return to Central", to: "central_town" },
-        ],
-    }
+    //         }
+    //     ],
+    //     connections: [
+    //         { label: "Return to Central", to: "central_town" },
+    //     ],
+    // }
 } as const;
