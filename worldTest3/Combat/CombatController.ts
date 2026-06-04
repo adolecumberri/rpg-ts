@@ -103,7 +103,6 @@ export class CombatController {
 
         await options[index].execute();
 
-        await this.menu.waitForAnyKey("Press any key...");
     }
 
     private async enemyAction(
@@ -116,7 +115,6 @@ export class CombatController {
             `${attacker.name} attacks ${defender.name}`
         );
 
-        await this.menu.waitForAnyKey("Press any key...");
     }
 
     // -------------------------

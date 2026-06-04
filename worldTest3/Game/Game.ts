@@ -1,4 +1,4 @@
-import { Character, Combat, CombatResult, Team } from "../../src";
+import { Character, Combat, Team } from "../../src";
 import { uniqueID } from "../../src/helpers/common.helpers";
 import { CombatController } from "../Combat/CombatController";
 import { Menu } from "../menu/Menu";
@@ -77,7 +77,7 @@ export class Game {
             }))
         );
 
-        const options = [
+        const menuOptions = [
             ...placeActions,
             ...npcInteractions,
             ...travelOptions,
@@ -91,8 +91,17 @@ export class Game {
                             console.log(`- ${character.name} | ATK ${character.stats.attack} | DEF ${character.stats.defence} | HP ${character.stats.hp}/${character.stats.totalHp}`);
                         });
                     } else {
-                        console.log("There are no NPCs here.");
+                        console.log("There are no characters in your team.");
                     }
+                    await this.menu.waitForAnyKey("Press any key...");
+                    return true;
+                },
+            },
+            {
+                label: "Inventory",
+                execute: async () => {
+                    console.clear();
+                    await this.showInventory();
                     await this.menu.waitForAnyKey("Press any key...");
                     return true;
                 },
@@ -125,10 +134,10 @@ export class Game {
 
         const index = await this.menu.selectMenuOption(
             `${place.name.toUpperCase()}`,
-            options
+            menuOptions
         );
 
-        return await options[index].execute();
+        return await menuOptions[index].execute();
 
     }
 
@@ -401,5 +410,42 @@ export class Game {
 
     isPlayerDefeated(): boolean {
         return this.team.getAlive().length === 0;
+    }
+
+
+    // INVENTORY
+    async showInventory() {
+        const items = this.team.inventory.getAllItems();
+
+        const Characters = this.team.getAll();
+
+        // display team inventory and after that display characters Items 
+        console.clear();
+        if (items.length > 0) {
+            console.log("Your inventory contains the following items:");
+            items.forEach(itemSlot => {
+                console.log(`${itemSlot.quantity}- ${itemSlot.item.name}: ${itemSlot.item.description}`);
+            });
+        }
+        else {
+            console.log("Your inventory is empty.");
+        }
+        console.log("\nYour characters:");
+        if (Characters.length > 0) {
+            Characters.forEach(character => {
+                const characterItems = character.inventory.getAllItems();
+                if (characterItems.length > 0) {
+                    console.log(`- ${character.name} has the following items:`);
+                    characterItems.forEach(ItemSlot => {
+                        console.log(`  - ${ItemSlot.item.name}: ${ItemSlot.item.description}`);
+                    });
+                } else {
+                    console.log(`- ${character.name} has no items.`);
+                }
+                console.log(" ")
+            });
+        } else {
+            console.log("There are no characters in your team.");
+        }
     }
 }

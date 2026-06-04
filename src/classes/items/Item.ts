@@ -13,21 +13,30 @@ export interface ItemDefinition {
     name: string;
     description?: string;
     effects?: ItemEffect[];
+    category?: ItemCategory;
     onEquip?: (self: Item, target: Character) => void;
     onUnEquip?: (self: Item, target: Character) => void;
 }
+
+export type ItemCategory =
+    | "equipment"
+    | "consumable"
+    | "quest"
+    | "utility";
 
 export class Item {
     readonly id: string;
     readonly definition: ItemDefinition;
     name: string;
     description?: string;
+    category: ItemCategory;
 
     constructor(definition: ItemDefinition) {
         this.definition = definition;
         this.id = String(definition.id ?? uniqueID());
         this.name = definition.name;
         this.description = definition.description;
+        this.category = definition.category ?? "equipment";
     }
 
     getModifierSourceId(): string {

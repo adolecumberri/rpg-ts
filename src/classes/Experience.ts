@@ -1,3 +1,5 @@
+import { Character } from "./Character";
+
 export type ExperienceConstructor = {
     level?: number;
     currentXp?: number;
@@ -25,7 +27,7 @@ export class Experience {
     baseXpToLevel: number;
     xpGrowthFactor: number;
     growthFunction?: ExperienceGrowthFunction;
-    private onLevelUpHandler?: ExperienceLevelUpHandler;
+    onLevelUpHandler?: ExperienceLevelUpHandler;
 
     constructor(config: ExperienceConstructor = {}) {
         this.level = Math.max(1, config.level ?? 1);

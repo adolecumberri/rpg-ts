@@ -1,4 +1,5 @@
 import { Character } from "./Character";
+import { Inventory } from "./Inventory2";
 
 
 type TeamConstructor = {
@@ -6,6 +7,7 @@ type TeamConstructor = {
     members: Character[];
     description?: string;
     name?: string;
+    inventory?: Inventory;
 }
 
 /**
@@ -13,9 +15,13 @@ type TeamConstructor = {
  */
 class Team {
     members: Map<string, Character> = new Map();
+    inventory: Inventory;
 
     constructor(params?: TeamConstructor) {
         params?.members.forEach((char) => this.addCharacter(char));
+
+        this.inventory = params?.inventory || new Inventory();
+
     }
 
     /**
