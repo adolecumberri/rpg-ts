@@ -5,6 +5,7 @@ import { Inventory } from "./Inventory2";
 import { Experience } from "./Experience";
 import { EventEmitter } from "./EventEmitter";
 import { StatusManager } from "./StatusManager";
+import { EquipmentManager } from "./items/EquipmentManager";
 
 type CharacterConstructor = {
     id?: string;
@@ -15,6 +16,7 @@ type CharacterConstructor = {
     experience?: Experience;
     eventEmitter?: EventEmitter<any>;
     statusManager?: StatusManager;
+    equipment?: EquipmentManager;
 };
 
 export class Character {
@@ -23,6 +25,7 @@ export class Character {
     stats: Stats;
     combat: CombatBehavior;
     inventory: Inventory;
+    equipment: EquipmentManager;
     experience: Experience;
     eventEmitter: EventEmitter<any>;
     statusManager: StatusManager;
@@ -37,6 +40,7 @@ export class Character {
         this.inventory = params.inventory || new Inventory();
         this.experience = params.experience || new Experience();
         this.eventEmitter = params.eventEmitter || new EventEmitter();
+        this.equipment = params.equipment ?? new EquipmentManager();
         // ensure externally provided inventories are bound to this character
 
         this.statusManager = params.statusManager || new StatusManager(this);

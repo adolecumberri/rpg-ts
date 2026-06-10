@@ -3,21 +3,25 @@ import { Item } from "./Item";
 
 
 export class EquipmentManager {
-    private equippedItems: Item[] = [];
+    private equippedItems = new Map<string, Item>();
 
     equip(character: Character, item: Item) {
-        this.equippedItems.push(item);
+        this.equippedItems.set(item.id, item);
+
         item.equip(character);
     }
 
     unequip(character: Character, item: Item) {
-        this.equippedItems =
-            this.equippedItems.filter(i => i.id !== item.id);
+        this.equippedItems.delete(item.id);
 
         item.unEquip(character);
     }
 
-    getEquippedItems() {
-        return [...this.equippedItems];
+    getEquippedItems(): Item[] {
+        return [...this.equippedItems.values()];
+    }
+
+    isEquipped(itemId: string): boolean {
+        return this.equippedItems.has(itemId);
     }
 }

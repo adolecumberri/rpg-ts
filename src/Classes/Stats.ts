@@ -18,7 +18,7 @@ export class Stats {
     private modifierSources: Map<string, StatsModifier> = new Map();
 
     get statsModifier(): StatsModifier {
-        return this.getModifierSource("status");
+        return this.getModifierSource("status"); //TODO: this¿¿???
     }
 
     set statsModifier(value: StatsModifier) {
