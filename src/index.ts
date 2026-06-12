@@ -2,7 +2,7 @@ export * from './classes/Character';
 export * from './classes/Combat';
 export * from './classes/CombatBehavior';
 export * from './classes/Experience';
-export * from './classes/Inventory2';
+export * from './classes/Inventory';
 export * from './classes/Stats';
 export * from './classes/StatsModifier';
 export * from './classes/Team';

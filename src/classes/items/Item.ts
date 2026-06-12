@@ -1,9 +1,11 @@
 import { ModificationTypes } from "../../constants/stats.constants";
 import { uniqueID } from "../../helpers/common.helpers";
 import type { Character } from "../Character";
+import { AnyStat } from "../Stats";
+import { EquipmentSlot } from "./EquipmentManager";
 
 export interface ItemEffect {
-    stat: string;
+    stat: AnyStat;
     typeOfModification: ModificationTypes;
     value: number;
 }
@@ -14,22 +16,26 @@ export interface ItemDefinition {
     description?: string;
     effects?: ItemEffect[];
     category?: ItemCategory;
+    slot?: EquipmentSlot;
     onEquip?: (self: Item, target: Character) => void;
     onUnEquip?: (self: Item, target: Character) => void;
-}
+} //TODO: añadir condicionante. 
 
 export type ItemCategory =
     | "equipment"
     | "consumable"
     | "quest"
+    | "key"
     | "utility";
 
 export class Item {
-    readonly id: string;
+    id: string;
     readonly definition: ItemDefinition;
     name: string;
     description?: string;
     category: ItemCategory;
+    ownerId?: string;
+    equiped: boolean;
 
     constructor(definition: ItemDefinition) {
         this.definition = definition;
@@ -37,6 +43,7 @@ export class Item {
         this.name = definition.name;
         this.description = definition.description;
         this.category = definition.category ?? "equipment";
+        this.equiped = false;
     }
 
     getModifierSourceId(): string {
@@ -44,6 +51,7 @@ export class Item {
     }
 
     equip(target: Character): void {
+
         const source = target.stats.getModifierSource(this.getModifierSourceId());
 
         for (const effect of this.definition.effects ?? []) {

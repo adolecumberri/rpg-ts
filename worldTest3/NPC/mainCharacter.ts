@@ -28,10 +28,5 @@ export function CreateMainCharacter(name: string = "hero"): Character {
         mainCharacter.stats.hp = mainCharacter.stats.totalHp;
     };
 
-    mainCharacter.inventory.addItem(
-        defaultInventory.rusty_sword,
-        1
-    );
-
     return mainCharacter;
 }

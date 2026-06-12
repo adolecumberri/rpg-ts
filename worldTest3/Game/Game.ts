@@ -1,7 +1,7 @@
-import { Character, Combat, Team } from "../../src";
+import { Character, Combat, Item, Team } from "../../src";
 import { uniqueID } from "../../src/helpers/common.helpers";
 import { CombatController } from "../Combat/CombatController";
-import { Menu } from "../menu/Menu";
+import { Menu, MenuChoice } from "../menu/Menu";
 import { NPC } from "../NPC/npc";
 import { Place, PLACES, PlaceTrigger } from "../Places/Place";
 import { Quest } from "../quests/Quest";
@@ -84,24 +84,15 @@ export class Game {
             {
                 label: "Display Team",
                 execute: async () => {
-                    console.clear();
-                    if (this.team.getAll().length > 0) {
-                        console.log("Your team consists of the following characters:");
-                        this.team.getAll().forEach(character => {
-                            console.log(`- ${character.name} | ATK ${character.stats.attack} | DEF ${character.stats.defence} | HP ${character.stats.hp}/${character.stats.totalHp}`);
-                        });
-                    } else {
-                        console.log("There are no characters in your team.");
-                    }
-                    await this.menu.waitForAnyKey("Press any key...");
+                    await this.showTeamMenu();
                     return true;
-                },
+                }
             },
             {
                 label: "Inventory",
                 execute: async () => {
                     console.clear();
-                    await this.showInventory();
+                    await this.showInventoryMenu();
                     await this.menu.waitForAnyKey("Press any key...");
                     return true;
                 },
@@ -114,7 +105,7 @@ export class Game {
                     if (place.npcs && place.npcs.length > 0) {
                         console.log("You see the following NPCs:");
                         place.npcs.forEach(npc => {
-                            console.log(`- ${npc.character.name} | ATK ${npc.character.stats.attack} | DEF ${npc.character.stats.defence} | HP ${npc.character.stats.hp}/${npc.character.stats.totalHp}`);
+                            console.log(`- ${npc.character.name} | ATK ${npc.character.getStat("attack")} | DEF ${npc.character.getStat("defence")} | HP ${npc.character.getStat("hp")}/${npc.character.getStat("totalHp")}`);
                         });
                     } else {
                         console.log("There are no NPCs here.");
@@ -417,8 +408,6 @@ export class Game {
     async showInventory() {
         const items = this.team.inventory.getAllItems();
 
-        const Characters = this.team.getAll();
-
         // display team inventory and after that display characters Items 
         console.clear();
         if (items.length > 0) {
@@ -430,22 +419,294 @@ export class Game {
         else {
             console.log("Your inventory is empty.");
         }
-        console.log("\nYour characters:");
-        if (Characters.length > 0) {
-            Characters.forEach(character => {
-                const characterItems = character.inventory.getAllItems();
-                if (characterItems.length > 0) {
-                    console.log(`- ${character.name} has the following items:`);
-                    characterItems.forEach(ItemSlot => {
-                        console.log(`  - ${ItemSlot.item.name}: ${ItemSlot.item.description}`);
-                    });
-                } else {
-                    console.log(`- ${character.name} has no items.`);
+
+    }
+
+    async showTeamMenu() {
+
+        while (true) {
+
+            const characters = this.team.getAll();
+
+            const options = [
+                ...characters.map(character => ({
+                    label: character.name,
+                    execute: async () => {
+                        await this.showCharacterMenu(character);
+                        return true;
+                    }
+                })),
+                {
+                    label: "Back",
+                    execute: async () => false
                 }
-                console.log(" ")
-            });
-        } else {
-            console.log("There are no characters in your team.");
+            ];
+
+            const index = await this.menu.selectMenuOption(
+                "TEAM",
+                options
+            );
+
+            const keepGoing =
+                await options[index].execute();
+
+            if (!keepGoing) {
+                return;
+            }
         }
     }
+
+    async showCharacterMenu(character: Character) {
+
+        while (true) {
+
+            const options = [
+                {
+                    label: "View Stats",
+                    execute: async () => {
+                        await this.showCharacterStats(character);
+                        return true;
+                    }
+                },
+                {
+                    label: "Equipment",
+                    execute: async () => {
+                        await this.showEquipmentMenu(character);
+                        return true;
+                    }
+                },
+                {
+                    label: "Back",
+                    execute: async () => false
+                }
+            ];
+
+            const index =
+                await this.menu.selectMenuOption(
+                    character.name,
+                    options
+                );
+
+            const keepGoing =
+                await options[index].execute();
+
+            if (!keepGoing) {
+                return;
+            }
+        }
+    }
+
+    async showCharacterStats(character: Character) {
+
+        console.clear();
+
+        console.log(character.name);
+
+        console.log(
+            `Level: ${character.experience.level}`
+        );
+
+        console.log(
+            `HP: ${character.getStat("hp")}/${character.getStat("totalHp")}`
+        );
+
+        console.log(
+            `ATK: ${character.getStat("attack")}`
+        );
+
+        console.log(
+            `DEF: ${character.getStat("defence")}`
+        );
+
+        await this.menu.waitForAnyKey(
+            "Press any key..."
+        );
+    }
+
+    async showEquipmentMenu(character: Character) {
+
+        while (true) {
+
+            const weapon =
+                character.equipment.get("weapon");
+
+            const armor =
+                character.equipment.get("armor");
+
+            const accessory =
+                character.equipment.get("accessory");
+
+            const options = [
+                {
+                    label: `Weapon: ${weapon ? weapon.name + ` [${weapon.id}]` : "Empty"}`,
+                    execute: async () => true
+                },
+                {
+                    label: `Armor: ${armor ? armor.name + ` [${armor.id}]` : "Empty"}`,
+                    execute: async () => true
+                },
+                {
+                    label: `Accessory: ${accessory ? accessory.name + ` [${accessory.id}]` : "Empty"}`,
+                    execute: async () => true
+                },
+                {
+                    label: "Back",
+                    execute: async () => false
+                }
+            ];
+
+            const index =
+                await this.menu.selectMenuOption(
+                    "Equipment",
+                    options
+                );
+
+            const keepGoing =
+                await options[index].execute();
+
+            if (!keepGoing) {
+                return;
+            }
+        }
+    }
+
+    async showInventoryMenu() {
+        while (true) {
+            const itemsSortedByCategory = this.team.inventory.getAllItemsSortedByCategory();
+
+            let options: MenuChoice[] = [];
+
+            for (const category in itemsSortedByCategory) {
+                options.push({
+                    label: `--- ${category.toUpperCase()} ---`,
+                    execute: async () => true,
+                    isDisabled: true
+                });
+
+                for (const slot of itemsSortedByCategory[category]) {
+                    if (category === "equipment") {
+                        let owner = this.team.getAll().find(c => c.id === slot.item.ownerId);
+                        options.push({
+                            label: `(${slot.quantity}) ${slot.item.name} [${slot.id}][${slot.item.id}]${slot.item.equiped ? "(Equipped)" : "(Not equipped)"}`,
+                            execute: async () => {
+                                await this.showItemMenu(slot.item, owner);
+                                return true;
+                            }
+                        });
+                    } else {
+                        options.push({
+                            label: `${slot.quantity}x ${slot.item.name}`,
+                            execute: async () => {
+                                return true;
+                            }
+                        });
+                    }
+                }
+            }
+
+            options.push({
+                label: "Back",
+                execute: async () => false
+            });
+
+            const index = await this.menu.selectMenuOption("Inventory", options);
+            const keepGoing = await options[index].execute();
+
+            if (!keepGoing) {
+                return;
+            }
+        }
+    }
+
+    async showItemMenu(item: Item, ownerCharacter?: Character) {
+
+        while (true) {
+
+            const options = [];
+
+            if (item.category === "equipment" && !item.equiped) {
+
+                options.push({
+                    label: "Equip",
+                    execute: async () => {
+
+                        await this.equipItemMenu(item, ownerCharacter?.id);
+
+                        return false;
+                    }
+                });
+            } else if (item.category === "equipment" && item.equiped) {
+
+                options.push({
+                    label: "Unequip",
+                    execute: async () => {
+
+                        await this.unequipItem(item, ownerCharacter?.id);
+
+                        return false;
+                    }
+                });
+            }
+
+            options.push({
+                label: "Back",
+                execute: async () => false
+            });
+
+            const index =
+                await this.menu.selectMenuOption(
+                    item.name,
+                    options
+                );
+
+            const keepGoing =
+                await options[index].execute();
+
+            if (!keepGoing) {
+                return;
+            }
+        }
+    }
+
+    async equipItemMenu(item: Item, ownerId?: string) {
+
+        const characters =
+            this.team.getAll();
+
+        const options = characters.map(character => ({
+            label: character.name,
+            execute: async () => {
+
+                character.equipment.equipOrReplace(
+                    item,
+                    character.id
+                );
+
+                return false;
+            }
+        }));
+
+        const index =
+            await this.menu.selectMenuOption(
+                `Equip ${item.name} to who?`,
+                options
+            );
+
+        await options[index].execute();
+    }
+
+    async unequipItem(item: Item, ownerId?: string) {
+        const character = this.team.getAll().find(c => c.id === ownerId);
+
+        if (!character) {
+            throw new Error("Owner character not found");
+        }
+
+        if (!item.definition.slot) {
+            throw new Error("Item has no equipment slot defined");
+        }
+
+        character.equipment.unequip(item.definition.slot);
+    }
+
 }

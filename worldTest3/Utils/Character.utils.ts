@@ -1,4 +1,5 @@
-import { Character, Stats } from "../../src";
+import { Character, createStats, Stats } from "../../src";
+import { NewStatistics } from "../augmentations";
 
 
 export function randomInt(min: number, max: number): number {
@@ -19,16 +20,18 @@ export function randomName(): string {
 
 export function createCharacter(params?: Partial<Stats>): Character {
     const totalHp = params?.totalHp ?? randomInt(8, 15);
+    let s = createStats<NewStatistics>({
+        attack: params?.attack ?? randomInt(2, 6),
+        defence: params?.defence ?? randomInt(1, 4),
+        hp: params?.hp ?? totalHp,
+        totalHp: params?.totalHp ?? totalHp,
+    });
 
     return new Character({
         id: crypto.randomUUID(),
         name: randomName(),
 
-        stats: new Stats({
-            attack: params?.attack ?? randomInt(2, 6),
-            defence: params?.defence ?? randomInt(1, 4),
-            hp: params?.hp ?? totalHp,
-            totalHp: params?.totalHp ?? totalHp,
-        }),
+        stats: s
     });
+
 }

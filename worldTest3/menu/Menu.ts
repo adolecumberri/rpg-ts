@@ -3,6 +3,7 @@ import * as readline from "readline";
 export type MenuChoice = {
     label: string;
     execute: () => Promise<boolean>;
+    isDisabled?: boolean;
 };
 
 export class Menu {
@@ -18,7 +19,8 @@ export class Menu {
                 process.stdout.write(`${header}\n\n`);
                 options.forEach((option, index) => {
                     const pointer = index === selected ? ">" : " ";
-                    process.stdout.write(`${pointer} ${index + 1}. ${option.label}\n`);
+                    const label = option.isDisabled ? `${option.label} (Disabled)` : option.label;
+                    process.stdout.write(`${pointer} ${option.isDisabled ? "" : index + 1 + "."} ${label}\n`);
                 });
                 process.stdout.write("\nUse Arrow Up/Down + Enter, or press a number.\n");
             };

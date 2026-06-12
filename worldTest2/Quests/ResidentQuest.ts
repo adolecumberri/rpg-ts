@@ -1,5 +1,5 @@
-import { Quest } from "./Quest";
-import { Game } from "../Game/game";
+import { Quest } from "../quests/Quest";
+import { Game } from "../Game/Game";
 import { Character, Stats } from "../../src";
 
 function randomInt(min: number, max: number): number {
@@ -98,7 +98,7 @@ export class StarterQuest implements Quest {
         const index = await game.menu.selectMenuOption(
             "CHOOSE YOUR CHARACTER",
             candidates.map((c) => ({
-                label: `${c.name} | ATK ${c.stats.attack} | DEF ${c.stats.defence} | HP ${c.stats.hp}/${c.stats.totalHp}`,
+                label: `${c.name} | ATK ${c.getStat("attack")} | DEF ${c.getStat("defence")} | HP ${c.getStat("hp")}/${c.getStat("totalHp")}`,
                 execute: async () => true,
             }))
         );

@@ -1,7 +1,8 @@
-import { Quest } from "./Quest";
 import { Game } from "../Game/game";
 import { Character, Stats } from "../../src";
 import { createCharacter } from "../Utils/Character.utils";
+import { Quest } from "../quests/Quest";
+
 
 
 
@@ -69,7 +70,7 @@ export class StarterQuest implements Quest {
         const index = await game.menu.selectMenuOption(
             "CHOOSE YOUR CHARACTER",
             candidates.map((c) => ({
-                label: `${c.name} | ATK ${c.stats.attack} | DEF ${c.stats.defence} | HP ${c.stats.hp}/${c.stats.totalHp}`,
+                label: `${c.name} | ATK ${c.getStat("attack")} | DEF ${c.getStat("defence")} | HP ${c.getStat("hp")}/${c.getStat("totalHp")}`,
                 execute: async () => true,
             }))
         );

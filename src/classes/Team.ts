@@ -1,5 +1,5 @@
 import { Character } from "./Character";
-import { Inventory } from "./Inventory2";
+import { Inventory } from "./Inventory";
 
 
 type TeamConstructor = {

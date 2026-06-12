@@ -114,21 +114,34 @@ export class Combat {
         };
     }
 
-    resolveAttack(attacker: Character, defender: Character, round: number): CombatTurn {
-        const attack = attacker.combat.attack(attacker);
+    resolveAttack(
+        attacker: Character,
+        defender: Character,
+        round: number
+    ): CombatTurn {
 
-        const defence = defender.combat.defence(defender, attack);
+        const attackValue = attacker.getStat("attack");
+        const defenceValue = defender.getStat("defence");
 
-        defender.stats.hp = Math.max(0, defender.stats.hp - defence.value);
-        defender.stats.isAlive = defender.stats.hp > 0 ? 1 : 0;
+        const damage =
+            Math.max(1, attackValue - defenceValue);
+
+        defender.stats.hp =
+            Math.max(
+                0,
+                defender.stats.hp - damage
+            );
+
+        defender.stats.isAlive =
+            defender.stats.hp > 0 ? 1 : 0;
 
         return {
             round,
             attackerId: attacker.id,
             defenderId: defender.id,
-            attackType: attack.type,
-            rawDamage: attack.value,
-            damageApplied: defence.value,
+            attackType: "basic",
+            rawDamage: attackValue,
+            damageApplied: damage,
             defenderHpAfter: defender.stats.hp,
             defenderAlive: defender.stats.isAlive > 0,
         };
