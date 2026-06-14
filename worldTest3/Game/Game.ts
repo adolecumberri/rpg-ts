@@ -63,12 +63,24 @@ export class Game {
         const place = this.getCurrentPlace();
 
         const travelOptions = (place.connections ?? [])
-            .filter(conn => !this.isConnectionLocked(place.id, conn.to))
             .map(conn => ({
-                label: conn.label,
+                label:
+                    conn.canTravel && !conn.canTravel(this)
+                        ? `${conn.label} (Locked)`
+                        : conn.label,
                 execute: async () => {
+                    if (
+                        conn.canTravel &&
+                        !conn.canTravel(this)
+                    ) {
+                        console.clear();
+                        console.log(conn.lockedMessage ?? "You cannot go there.");
+
+                        await this.menu.waitForAnyKey("Press any key...");
+                        return true;
+                    }
+
                     await this.travelTo(conn.to);
-                    // await this.menu.waitForAnyKey("Press any key...");
                     return true;
                 },
             }));
@@ -417,17 +429,40 @@ export class Game {
 
             const options = [
 
-                ...shop.entries.map(entry => ({
-                    label:
-                        `${entry.item.name} - ${entry.price}g`,
-
+                {
+                    label: "Buy items",
                     execute: async () => {
-
-                        await this.buyItem(entry);
-
+                        await this.screenManager.shop.showBuyMenu(
+                            this.team,
+                            shop,
+                            this.buyItem.bind(this)
+                        );
                         return true;
                     }
-                })),
+                },
+                {
+                    label: "Sell items",
+                    execute: async () => {
+                        await this.screenManager.shop.showSellMenu(
+                            this.team,
+                            shop,
+                            this.sellItem.bind(this)
+                        );
+                        return true;
+                    }
+                },
+
+                // ...shop.entries.map(entry => ({
+                //     label:
+                //         `${entry.item.name} - ${entry.buyPrice}g`,
+
+                //     execute: async () => {
+
+                //         await this.buyItem(entry);
+
+                //         return true;
+                //     }
+                // })),
 
                 {
                     label: "Leave",
@@ -450,9 +485,9 @@ export class Game {
         }
     }
 
-    async buyItem(entry: ShopEntry) {
+    async buyItem(entry: ShopEntry, team: Team) {
 
-        if (this.team.gold < entry.price) {
+        if (team.gold < entry.buyPrice) {
 
             await this.menu.waitForAnyKey(
                 "Not enough gold."
@@ -461,14 +496,32 @@ export class Game {
             return;
         }
 
-        this.team.gold -= entry.price;
+        team.gold -= entry.buyPrice;
 
-        this.team.inventory.addItem(
+        team.inventory.addItem(
             entry.item
         );
 
         await this.menu.waitForAnyKey(
             `Purchased ${entry.item.name}`
+        );
+    };
+
+    async sellItem(entry: ShopEntry, team: Team) {
+
+        const itemSlot = team.inventory.getItemSlotByItemId(entry.item.id);
+        if (!itemSlot) {
+            await this.menu.waitForAnyKey(
+                "Item not found in inventory."
+            );
+            return;
+        }
+
+        team.gold += entry.sellPrice;
+        team.inventory.removeItem(itemSlot.item.id, 1);
+
+        await this.menu.waitForAnyKey(
+            `Sold ${entry.item.name}`
         );
     }
 
@@ -488,6 +541,11 @@ export class Game {
             console.log("Your inventory is empty.");
         }
 
+    }
+
+    hasItem(itemId: string): boolean {
+        return this.team.inventory
+            .hasItemByDefinitionId(itemId);
     }
 
     async equipItemMenu(item: Item) {

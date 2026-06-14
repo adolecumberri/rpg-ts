@@ -32,7 +32,11 @@ export type PlaceConnection = {
     label: string;
     to: string;
 
-    locked?: boolean; // default false
+    canTravel?: (game: Game) => boolean | Promise<boolean>;
+    lockedMessage?: string;
+    locked?: boolean;
+
+    requiredItemId?: string;
 };
 
 export type Place = {
@@ -56,7 +60,16 @@ export const PLACES: Record<string, Place> = {
         description: "The starting point of your journey.",
 
         connections: [
+            {
+                label: "Enter Cave",
+                to: "cave",
 
+                canTravel: (game) =>
+                    game.hasItem("cave_key"),
+
+                lockedMessage:
+                    "The cave entrance is locked."
+            }
         ],
         actions: [
 
@@ -67,6 +80,27 @@ export const PLACES: Record<string, Place> = {
 
         ]
     },
-
+    cave: {
+        id: "cave",
+        name: "Cave",
+        description: "A dark and mysterious cave.",
+        actions: [
+            {
+                label: "Explore the cave",
+                onSelect: async (game) => {
+                    console.clear();
+                    console.log("You venture into the cave and find a hidden treasure!");
+                    await game.menu.waitForAnyKey("Press any key...");
+                    return true;
+                }
+            }
+        ],
+        connections: [
+            {
+                label: "Return to Central Town",
+                to: "central_town"
+            }
+        ],
+    }
 
 } as const;

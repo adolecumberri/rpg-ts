@@ -12,17 +12,25 @@ export interface ItemEffect {
 
 export interface ItemDefinition {
     id?: string | number;
+
     name: string;
     description?: string;
+
     category?: ItemCategory;
+
+    buyValue?: number;
+    sellValue?: number;
+
     effects?: ItemEffect[];
     slot?: EquipmentSlot;
+
     onEquip?: (self: Item, target: Character) => void;
     onUnEquip?: (self: Item, target: Character) => void;
+
     onUse?: (
         self: Item,
         target: Character
-    ) => boolean; // return true if consumed.
+    ) => boolean;
 } //TODO: añadir condicionante. 
 
 export type ItemCategory =
@@ -41,6 +49,9 @@ export class Item {
     ownerId?: string;
     equiped: boolean;
 
+    buyValue: number;
+    sellValue: number;
+
     constructor(definition: ItemDefinition) {
         this.definition = definition;
         this.id = String(definition.id ?? uniqueID());
@@ -48,6 +59,8 @@ export class Item {
         this.description = definition.description;
         this.category = definition.category ?? "equipment";
         this.equiped = false;
+        this.buyValue = definition.buyValue ?? 0;
+        this.sellValue = definition.sellValue ?? 0;
     }
 
     getModifierSourceId(): string {

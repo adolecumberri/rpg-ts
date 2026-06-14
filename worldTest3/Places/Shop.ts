@@ -4,14 +4,38 @@ import { PlaceAction } from "./Place";
 
 export type ShopEntry = {
     item: Item;
-    price: number;
+
+    buyPrice: number;
+    sellPrice: number;
 };
 
 export class Shop {
+
+    public readonly name: string;
+    public readonly entries: ShopEntry[];
+    public readonly allowSelling: boolean;
+
     constructor(
-        public readonly name: string,
-        public readonly entries: ShopEntry[],
-    ) { }
+        name: string,
+        entries: {
+            item: Item;
+
+            buyPrice?: number;
+            sellPrice?: number;
+        }[],
+        allowSelling = true
+    ) {
+        entries.forEach(entry => {
+            entry.buyPrice = entry.buyPrice
+                ?? entry.item.buyValue ?? 0;
+            entry.sellPrice = entry.sellPrice
+                ?? entry.item.sellValue ?? 0;
+        });
+
+        this.name = name;
+        this.entries = entries as ShopEntry[];
+        this.allowSelling = allowSelling;
+    }
 }
 
 export const CENTRAL_SHOP = new Shop(
@@ -19,11 +43,9 @@ export const CENTRAL_SHOP = new Shop(
     [
         {
             item: defaultInventory.health_potion(),
-            price: 10,
         },
         {
             item: defaultInventory.rusty_sword(),
-            price: 50,
         },
     ]
 );

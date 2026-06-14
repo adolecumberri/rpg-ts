@@ -9,6 +9,8 @@ export const defaultInventory = {
         name: "Rusty Sword",
         description: "An old and worn sword. Better than nothing.",
         slot: "weapon",
+        buyValue: 50,
+        sellValue: 25,
         effects: [
             {
                 stat: "attack",
@@ -23,6 +25,8 @@ export const defaultInventory = {
         name: "Wooden Shield",
         description: "A basic wooden shield. Provides minimal protection.",
         slot: "armor",
+        buyValue: 40,
+        sellValue: 20,
         effects: [
             {
                 stat: "defence",
@@ -43,6 +47,8 @@ export const defaultInventory = {
         id: "health_potion",
         name: "Health Potion",
         description: "Restores 30 HP when used.",
+        buyValue: 10,
+        sellValue: 5,
         onUse: (item, target) => {
 
             target.stats.hp = Math.min(
@@ -55,7 +61,8 @@ export const defaultInventory = {
     }),
     cursed_ring: () => new Item({
         name: "Cursed Ring",
-
+        buyValue: 40,
+        sellValue: 32,
         effects: [
             {
                 stat: "attack",
@@ -68,5 +75,14 @@ export const defaultInventory = {
                 value: 30,
             },
         ],
+    }),
+    cave_key: () => new Item({
+        id: "cave_key",
+        category: "key",
+
+        name: "Cave Key",
+
+        description:
+            "Opens the entrance to the Cave.",
     })
 } as const;

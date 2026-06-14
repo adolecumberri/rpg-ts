@@ -44,6 +44,16 @@ export class Inventory {
         return Array.from(this.slots.values());
     }
 
+    getAllNotEquipedItems(): InventorySlot[] {
+        return Array.from(this.slots.values()).filter(
+            (slot) => !slot.item.equiped
+        );
+    }
+
+    getItemSlotByItemId(itemId: string): InventorySlot | undefined {
+        return this.slots.get(itemId);
+    }
+
     getAllItemsSortedByCategory(): { [category: string]: InventorySlot[] } {
         const sorted: { [category: string]: InventorySlot[] } = {};
         for (const slot of this.getAllItems()) {
@@ -54,6 +64,29 @@ export class Inventory {
             sorted[category].push(slot);
         }
         return sorted;
+    }
+
+    hasItemByDefinitionId(itemId: string): boolean {
+
+        return this.getAllItems().some(
+            slot => slot.item.definition.id === itemId
+        );
+    }
+
+    removeItem(itemId: string, quantity: number = 1): boolean {
+
+        const slot = this.slots.get(itemId);
+        if (!slot) {
+            return false;
+        }
+
+        if (slot.quantity > quantity) {
+            slot.quantity -= quantity;
+        } else {
+            this.slots.delete(itemId);
+        }
+
+        return true;
     }
 
     count(): number {

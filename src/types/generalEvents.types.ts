@@ -2,8 +2,8 @@
 
 type CoreEvents =
     | 'attack'
-    | 'battle'
     | 'defence'
+    | 'battle'
     | 'die'
     | 'revive'
     | 'turn'

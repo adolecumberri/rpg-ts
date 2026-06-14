@@ -16,6 +16,7 @@ game.team.addCharacter(CreateMainCharacter("companion"));
 game.team.inventory.addItem(defaultInventory.wooden_shield());
 game.team.inventory.addItem(defaultInventory.rusty_sword());
 game.team.inventory.addItem(defaultInventory.rusty_sword());
+game.team.inventory.addItem(defaultInventory.cave_key());
 game.team.gold += 20;
 game.team.inventory.addItem(defaultInventory.health_potion(), 3);
 
