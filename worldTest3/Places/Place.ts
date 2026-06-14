@@ -1,6 +1,7 @@
 import { Game } from "../Game/game";
 import { NPC } from "../NPC/npc";
 import { innAction } from "./InnAction";
+import { CENTRAL_SHOP, shopAction } from "./Shop";
 
 const showMessage = (text: string) =>
     async (game: Game) => {
@@ -60,7 +61,7 @@ export const PLACES: Record<string, Place> = {
         actions: [
 
             innAction,
-
+            shopAction,
         ],
         onEnter: [
 

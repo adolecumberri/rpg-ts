@@ -60,6 +60,37 @@ export class Inventory {
         return this.slots.size;
     }
 
+    useItem(
+        inventorySlotId: string,
+        target: Character
+    ): boolean {
+
+        const slot = this.slots.get(
+            inventorySlotId
+        );
+
+        if (!slot) {
+            return false;
+        }
+
+        const consumed =
+            slot.item.definition.onUse?.(
+                slot.item,
+                target
+            ) ?? false;
+
+        if (consumed) {
+
+            slot.quantity--;
+
+            if (slot.quantity <= 0) {
+                this.slots.delete(slot.id);
+            }
+        }
+
+        return consumed;
+    }
+
     private requireOwner(): Character {
         if (!this.owner) {
             throw new Error("Inventory has no owner character assigned.");

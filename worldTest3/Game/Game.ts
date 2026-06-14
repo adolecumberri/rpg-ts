@@ -4,7 +4,10 @@ import { CombatController } from "../Combat/CombatController";
 import { Menu, MenuChoice } from "../menu/Menu";
 import { NPC } from "../NPC/npc";
 import { Place, PLACES, PlaceTrigger } from "../Places/Place";
+import { Shop, ShopEntry } from "../Places/Shop";
 import { Quest } from "../quests/Quest";
+import { GameScreens } from "../UI/GameScreen";
+import { ScreenManager } from "../UI/ScreenManager";
 
 export class Game {
     private running = true;
@@ -23,14 +26,19 @@ export class Game {
     private combat = new Combat({
         randomTarget: false,
     });
+    private screenManager: ScreenManager;
 
     constructor(menu: Menu) {
         this.menu = menu;
         this.team = new Team();
+        this.screenManager = new ScreenManager(menu)
+
 
         this.currentPlaceId = "central_town";
 
         this.loadPlaces(PLACES);
+
+
     }
 
     async start() {
@@ -84,7 +92,7 @@ export class Game {
             {
                 label: "Display Team",
                 execute: async () => {
-                    await this.showTeamMenu();
+                    await this.screenManager.game.showTeam(this.team);
                     return true;
                 }
             },
@@ -92,7 +100,7 @@ export class Game {
                 label: "Inventory",
                 execute: async () => {
                     console.clear();
-                    await this.showInventoryMenu();
+                    await this.screenManager.game.showTeamInventory(this.team);
                     await this.menu.waitForAnyKey("Press any key...");
                     return true;
                 },
@@ -403,6 +411,66 @@ export class Game {
         return this.team.getAlive().length === 0;
     }
 
+    async openShop(shop: Shop) {
+
+        while (true) {
+
+            const options = [
+
+                ...shop.entries.map(entry => ({
+                    label:
+                        `${entry.item.name} - ${entry.price}g`,
+
+                    execute: async () => {
+
+                        await this.buyItem(entry);
+
+                        return true;
+                    }
+                })),
+
+                {
+                    label: "Leave",
+                    execute: async () => false
+                }
+            ];
+
+            const index =
+                await this.menu.selectMenuOption(
+                    `${shop.name} | Gold: ${this.team.gold}`,
+                    options
+                );
+
+            const keepGoing =
+                await options[index].execute();
+
+            if (!keepGoing) {
+                return;
+            }
+        }
+    }
+
+    async buyItem(entry: ShopEntry) {
+
+        if (this.team.gold < entry.price) {
+
+            await this.menu.waitForAnyKey(
+                "Not enough gold."
+            );
+
+            return;
+        }
+
+        this.team.gold -= entry.price;
+
+        this.team.inventory.addItem(
+            entry.item
+        );
+
+        await this.menu.waitForAnyKey(
+            `Purchased ${entry.item.name}`
+        );
+    }
 
     // INVENTORY
     async showInventory() {
@@ -422,253 +490,7 @@ export class Game {
 
     }
 
-    async showTeamMenu() {
-
-        while (true) {
-
-            const characters = this.team.getAll();
-
-            const options = [
-                ...characters.map(character => ({
-                    label: character.name,
-                    execute: async () => {
-                        await this.showCharacterMenu(character);
-                        return true;
-                    }
-                })),
-                {
-                    label: "Back",
-                    execute: async () => false
-                }
-            ];
-
-            const index = await this.menu.selectMenuOption(
-                "TEAM",
-                options
-            );
-
-            const keepGoing =
-                await options[index].execute();
-
-            if (!keepGoing) {
-                return;
-            }
-        }
-    }
-
-    async showCharacterMenu(character: Character) {
-
-        while (true) {
-
-            const options = [
-                {
-                    label: "View Stats",
-                    execute: async () => {
-                        await this.showCharacterStats(character);
-                        return true;
-                    }
-                },
-                {
-                    label: "Equipment",
-                    execute: async () => {
-                        await this.showEquipmentMenu(character);
-                        return true;
-                    }
-                },
-                {
-                    label: "Back",
-                    execute: async () => false
-                }
-            ];
-
-            const index =
-                await this.menu.selectMenuOption(
-                    character.name,
-                    options
-                );
-
-            const keepGoing =
-                await options[index].execute();
-
-            if (!keepGoing) {
-                return;
-            }
-        }
-    }
-
-    async showCharacterStats(character: Character) {
-
-        console.clear();
-
-        console.log(character.name);
-
-        console.log(
-            `Level: ${character.experience.level}`
-        );
-
-        console.log(
-            `HP: ${character.getStat("hp")}/${character.getStat("totalHp")}`
-        );
-
-        console.log(
-            `ATK: ${character.getStat("attack")}`
-        );
-
-        console.log(
-            `DEF: ${character.getStat("defence")}`
-        );
-
-        await this.menu.waitForAnyKey(
-            "Press any key..."
-        );
-    }
-
-    async showEquipmentMenu(character: Character) {
-
-        while (true) {
-
-            const weapon =
-                character.equipment.get("weapon");
-
-            const armor =
-                character.equipment.get("armor");
-
-            const accessory =
-                character.equipment.get("accessory");
-
-            const options = [
-                {
-                    label: `Weapon: ${weapon ? weapon.name + ` [${weapon.id}]` : "Empty"}`,
-                    execute: async () => true
-                },
-                {
-                    label: `Armor: ${armor ? armor.name + ` [${armor.id}]` : "Empty"}`,
-                    execute: async () => true
-                },
-                {
-                    label: `Accessory: ${accessory ? accessory.name + ` [${accessory.id}]` : "Empty"}`,
-                    execute: async () => true
-                },
-                {
-                    label: "Back",
-                    execute: async () => false
-                }
-            ];
-
-            const index =
-                await this.menu.selectMenuOption(
-                    "Equipment",
-                    options
-                );
-
-            const keepGoing =
-                await options[index].execute();
-
-            if (!keepGoing) {
-                return;
-            }
-        }
-    }
-
-    async showInventoryMenu() {
-        while (true) {
-            const itemsSortedByCategory = this.team.inventory.getAllItemsSortedByCategory();
-
-            let options: MenuChoice[] = [];
-
-            for (const category in itemsSortedByCategory) {
-                options.push({
-                    label: `--- ${category.toUpperCase()} ---`,
-                    execute: async () => true,
-                    isDisabled: true
-                });
-
-                for (const slot of itemsSortedByCategory[category]) {
-                    if (category === "equipment") {
-                        let owner = this.team.getAll().find(c => c.id === slot.item.ownerId);
-                        options.push({
-                            label: `(${slot.quantity}) ${slot.item.name} [${slot.id}][${slot.item.id}]${slot.item.equiped ? "(Equipped)" : "(Not equipped)"}`,
-                            execute: async () => {
-                                await this.showItemMenu(slot.item, owner);
-                                return true;
-                            }
-                        });
-                    } else {
-                        options.push({
-                            label: `${slot.quantity}x ${slot.item.name}`,
-                            execute: async () => {
-                                return true;
-                            }
-                        });
-                    }
-                }
-            }
-
-            options.push({
-                label: "Back",
-                execute: async () => false
-            });
-
-            const index = await this.menu.selectMenuOption("Inventory", options);
-            const keepGoing = await options[index].execute();
-
-            if (!keepGoing) {
-                return;
-            }
-        }
-    }
-
-    async showItemMenu(item: Item, ownerCharacter?: Character) {
-
-        while (true) {
-
-            const options = [];
-
-            if (item.category === "equipment" && !item.equiped) {
-
-                options.push({
-                    label: "Equip",
-                    execute: async () => {
-
-                        await this.equipItemMenu(item, ownerCharacter?.id);
-
-                        return false;
-                    }
-                });
-            } else if (item.category === "equipment" && item.equiped) {
-
-                options.push({
-                    label: "Unequip",
-                    execute: async () => {
-
-                        await this.unequipItem(item, ownerCharacter?.id);
-
-                        return false;
-                    }
-                });
-            }
-
-            options.push({
-                label: "Back",
-                execute: async () => false
-            });
-
-            const index =
-                await this.menu.selectMenuOption(
-                    item.name,
-                    options
-                );
-
-            const keepGoing =
-                await options[index].execute();
-
-            if (!keepGoing) {
-                return;
-            }
-        }
-    }
-
-    async equipItemMenu(item: Item, ownerId?: string) {
+    async equipItemMenu(item: Item) {
 
         const characters =
             this.team.getAll();

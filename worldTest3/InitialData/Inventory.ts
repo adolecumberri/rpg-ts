@@ -42,7 +42,16 @@ export const defaultInventory = {
         category: "consumable",
         id: "health_potion",
         name: "Health Potion",
-        description: "Restores 50 HP when used.",
+        description: "Restores 30 HP when used.",
+        onUse: (item, target) => {
+
+            target.stats.hp = Math.min(
+                target.getStat("totalHp"),
+                target.stats.hp + 30
+            );
+
+            return true;
+        }
     }),
     cursed_ring: () => new Item({
         name: "Cursed Ring",

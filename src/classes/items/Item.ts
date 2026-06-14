@@ -14,11 +14,15 @@ export interface ItemDefinition {
     id?: string | number;
     name: string;
     description?: string;
-    effects?: ItemEffect[];
     category?: ItemCategory;
+    effects?: ItemEffect[];
     slot?: EquipmentSlot;
     onEquip?: (self: Item, target: Character) => void;
     onUnEquip?: (self: Item, target: Character) => void;
+    onUse?: (
+        self: Item,
+        target: Character
+    ) => boolean; // return true if consumed.
 } //TODO: añadir condicionante. 
 
 export type ItemCategory =

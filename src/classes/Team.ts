@@ -17,6 +17,8 @@ class Team {
     members: Map<string, Character> = new Map();
     inventory: Inventory;
 
+    gold: number = 0;
+
     constructor(params?: TeamConstructor) {
         params?.members.forEach((char) => this.addCharacter(char));
 
