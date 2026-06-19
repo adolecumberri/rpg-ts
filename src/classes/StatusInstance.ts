@@ -10,7 +10,6 @@ export type StatusInstanceConstructor = {
     id?: string;
     timesUsed?: number;
     timesTriggered?: number;
-    valueToRecover?: Record<string, number>;
 }
 
 export interface StatusDurationPermanent {
@@ -58,7 +57,7 @@ export interface StatusDefinition {
     triggersOnAdd?: boolean;
     onAdd?: (character: Character) => void;
     onRemove?: (character: Character) => void;
-} // plantilla sin cambios (sin valueToRecover etc)
+}
 
 
 export class StatusInstance {

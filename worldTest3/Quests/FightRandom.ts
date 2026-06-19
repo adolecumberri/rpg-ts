@@ -65,3 +65,4 @@ export class FightRandomQuest implements Quest {
         game.addNPC("central_town", this.createNPC(RandomNPC));
     }
 }
+

@@ -1,4 +1,5 @@
-export type CombatEffectType =
+
+export type DamageType =
     | "physical"
     | "piercing"
     | "fire"
@@ -7,10 +8,13 @@ export type CombatEffectType =
     | "heal"
     | "poison";
 
-export interface CombatEffect {
-    type: CombatEffectType;
+export interface DamagePacket {
+    type: DamageType;
 
-    value: number;
+    amount: number;
 
     source?: string;
+
+
 }
+

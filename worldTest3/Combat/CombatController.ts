@@ -1,6 +1,10 @@
 
 import { Character, Combat, CombatSide, Team } from "../../src";
+import { CombatEngine } from "../../src/classes/Combat/CombatEngine";
+import { EnemyTarget } from "../../src/classes/Skills";
 import { Menu } from "../menu/Menu";
+import { CreateMainCharacter } from "../NPC/mainCharacter";
+import { ScreenManager } from "../UI/ScreenManager";
 
 
 
@@ -16,14 +20,12 @@ type TurnResult = {
 };
 
 export class CombatController {
-    private combat: Combat;
     private menu: Menu;
 
     private combatLog: string[] = [];
 
-    constructor(menu: Menu, combat: Combat) {
+    constructor(menu: Menu) {
         this.menu = menu;
-        this.combat = combat;
     }
 
     async startBattle(left: CombatParticipant, right: CombatParticipant): Promise<{
@@ -32,7 +34,7 @@ export class CombatController {
         let round = 1;
 
         while (this.isAlive(left.side) && this.isAlive(right.side)) {
-            console.clear();
+            // console.clear();
             console.log(`=== ROUND ${round} ===`);
 
             await this.teamTurn(left.side, right.side, left.controlledByPlayer);
@@ -152,5 +154,220 @@ export class CombatController {
 
     private pickTarget(defenders: Character[]): Character {
         return defenders[Math.floor(Math.random() * defenders.length)];
+    }
+
+    // -------------------------
+    // RANDOM BATTLE
+    // -------------------------
+
+    async startBattleToTestSkills(
+        playerTeam: Team,
+        enemyTeam: Team,
+        screenManager: ScreenManager
+    ): Promise<{ winner: "left" | "right" | "draw" }> {
+        const combatEngine = new CombatEngine();
+
+        while (this.isAlive(playerTeam) && this.isAlive(enemyTeam)) {
+
+            // --- Player turn ---
+            for (const attacker of this.getAlive(playerTeam)) {
+                if (!this.isAlive(enemyTeam)) break;
+
+                const enemies = this.getAlive(enemyTeam);
+                const allies = this.getAlive(playerTeam);
+
+                const options = [
+                    {
+                        label: "Use Skill",
+                        execute: async () => {
+                            const skill = await screenManager.skill.selectSkill(attacker.skills);
+                            
+                            let explicitTargets: Character | undefined = await screenManager.character.selectMultipleCharacters(
+                                enemies,
+                                1,
+                                false
+                            ).then(selection => selection[0]?.character);
+                            
+                            const CE = new CombatEngine();
+
+                            CE.executeSkill({
+                                skill,
+                                attacker,
+                                allies: playerTeam,
+                                enemies: enemyTeam,
+                                explicitTargets: explicitTargets ? [explicitTargets] : undefined,
+                            })
+
+                            // if (skill.targeting === "ENEMY") {
+                            //     const selections = await screenManager.character.selectMultipleCharacters(
+                            //         enemies,
+                            //         1,
+                            //         false
+                            //     );
+                            //     explicitTargets = selections.map(s => s.character);
+                            // } else if (skill.targeting === "ALLY") {
+                            //     const selections = await screenManager.character.selectMultipleCharacters(
+                            //         allies,
+                            //         1,
+                            //         false
+                            //     );
+                            //     explicitTargets = selections.map(s => s.character);
+                            // }
+
+                            // combatEngine.executeSkill({
+                            //     skill,
+                            //     attacker,
+                            //     allies: playerTeam,
+                            //     enemies: enemyTeam,
+                            //     explicitTargets,
+                            // });
+
+                            this.combatLog.push(
+                                JSON.stringify(skill),
+                                JSON.stringify(explicitTargets),
+                            );
+                            this.combatLog.push(
+                                `${attacker.name} used ${skill.name}`
+                            );
+
+                            return true;
+                        },
+                    },
+
+                ];
+
+                const index = await this.menu.selectMenuOption(
+                    [
+                        ...this.combatLog.slice(-10),
+                        "",
+                        `${attacker.name}'s turn`,
+                    ].join("\n"),
+                    options
+                );
+
+                await options[index].execute();
+            }
+
+            // --- Enemy turn ---
+            for (const attacker of this.getAlive(enemyTeam)) {
+                if (!this.isAlive(playerTeam)) break;
+
+                const defender = this.pickTarget(this.getAlive(playerTeam));
+                await this.enemyAction(attacker, defender);
+            }
+        }
+
+        const leftAlive = this.isAlive(playerTeam);
+        const rightAlive = this.isAlive(enemyTeam);
+
+        if (leftAlive && !rightAlive) return { winner: "left" };
+        if (rightAlive && !leftAlive) return { winner: "right" };
+        return { winner: "draw" };
+    }
+
+    async battleToTestFlow(
+        playerTeam: Team,
+        enemyTeam: Team,
+        screenManager: ScreenManager
+    ): Promise<{ winner: "left" | "right" | "draw" }> {
+        const combatEngine = new CombatEngine();
+
+        while (this.isAlive(playerTeam) && this.isAlive(enemyTeam)) {
+
+            // --- Player turn ---
+            for (const attacker of this.getAlive(playerTeam)) {
+                if (!this.isAlive(enemyTeam)) break;
+
+                const enemies = this.getAlive(enemyTeam);
+                const allies = this.getAlive(playerTeam);
+
+                const options = [
+                    {
+                        label: "Use Skill",
+                        execute: async () => {
+                            const skill = await screenManager.skill.selectSkill(attacker.skills);
+                            console.log({ skill })
+                            let explicitTargets: Character | undefined = await screenManager.character.selectMultipleCharacters(
+                                enemies,
+                                1,
+                                false
+                            ).then(selection => selection[0]?.character);
+
+                            const CE = new CombatEngine();
+
+                            CE.executeSkill({
+                                skill,
+                                attacker,
+                                allies: playerTeam,
+                                enemies: enemyTeam,
+                                explicitTargets: explicitTargets ? [explicitTargets] : undefined,
+                            })
+
+                            // if (skill.targeting === "ENEMY") {
+                            //     const selections = await screenManager.character.selectMultipleCharacters(
+                            //         enemies,
+                            //         1,
+                            //         false
+                            //     );
+                            //     explicitTargets = selections.map(s => s.character);
+                            // } else if (skill.targeting === "ALLY") {
+                            //     const selections = await screenManager.character.selectMultipleCharacters(
+                            //         allies,
+                            //         1,
+                            //         false
+                            //     );
+                            //     explicitTargets = selections.map(s => s.character);
+                            // }
+
+                            // combatEngine.executeSkill({
+                            //     skill,
+                            //     attacker,
+                            //     allies: playerTeam,
+                            //     enemies: enemyTeam,
+                            //     explicitTargets,
+                            // });
+
+                            this.combatLog.push(
+                                `${attacker.name} used ${skill.name}`
+                            );
+
+                            return true;
+                        },
+                    },
+                    {
+                        label: "Back",
+                        execute: async () => {
+                            return false;
+                        },
+                    }
+                ];
+
+                const index = await this.menu.selectMenuOption(
+                    [
+                        ...this.combatLog.slice(-10),
+                        "",
+                        `${attacker.name}'s turn`,
+                    ].join("\n"),
+                    options
+                );
+
+                await options[index].execute();
+            }
+
+            // --- Enemy turn ---
+            for (const attacker of this.getAlive(enemyTeam)) {
+                if (!this.isAlive(playerTeam)) break;
+
+                const defender = this.pickTarget(this.getAlive(playerTeam));
+                await this.enemyAction(attacker, defender);
+            }
+        }
+
+        const leftAlive = this.isAlive(playerTeam);
+        const rightAlive = this.isAlive(enemyTeam);
+
+        if (leftAlive && !rightAlive) return { winner: "left" };
+        if (rightAlive && !leftAlive) return { winner: "right" };
+        return { winner: "draw" };
     }
 }

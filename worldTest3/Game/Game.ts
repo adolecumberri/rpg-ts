@@ -26,7 +26,7 @@ export class Game {
     private combat = new Combat({
         randomTarget: false,
     });
-    private screenManager: ScreenManager;
+    screenManager: ScreenManager;
 
     constructor(menu: Menu) {
         this.menu = menu;
@@ -164,6 +164,10 @@ export class Game {
 
     private getCurrentPlace(): Place {
         return this.places.get(this.currentPlaceId)!;
+    }
+
+    getPlace(placeId: string): Place | undefined {
+        return this.places.get(placeId);
     }
 
     placeCount(): string {
@@ -347,7 +351,7 @@ export class Game {
         //     npc.character,
         // );
 
-        const controller = new CombatController(this.menu, this.combat);
+        const controller = new CombatController(this.menu);
 
         const combatResult = await controller.startBattle(
             {
@@ -378,7 +382,7 @@ export class Game {
 
 
     private async showCombatResult(result: { winner: "left" | "right" | "draw" }) {
-        console.clear();
+        // console.clear();
         console.log("Combat Result:");
         console.log(`Winner: ${result.winner}`);
         // console.log(`Rounds: ${result.rounds}`);

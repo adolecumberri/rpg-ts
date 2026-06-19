@@ -3,6 +3,7 @@ import { CharacterScreen } from "./CharacterScreen";
 import { GameScreens } from "./GameScreen";
 import { InventoryScreen } from "./InventoryScreen";
 import { ShopScreen } from "./ShopScreen";
+import { SkillScreen } from "./SkillScreen";
 
 
 export class ScreenManager {
@@ -11,7 +12,7 @@ export class ScreenManager {
     inventory: InventoryScreen;
     game: GameScreens;
     shop: ShopScreen;
-
+    skill: SkillScreen;
     constructor(menu: Menu) {
 
         this.character =
@@ -24,5 +25,7 @@ export class ScreenManager {
             new GameScreens(menu, this);
 
         this.shop = new ShopScreen(menu, this);
+
+        this.skill = new SkillScreen(menu, this);
     }
 }

@@ -44,7 +44,7 @@ export type Place = {
     name: string;
     description: string;
 
-    actions?: PlaceAction[];
+    actions: PlaceAction[];
     connections: PlaceConnection[];
 
     onEnter?: PlaceTrigger[];
@@ -60,21 +60,21 @@ export const PLACES: Record<string, Place> = {
         description: "The starting point of your journey.",
 
         connections: [
-            {
-                label: "Enter Cave",
-                to: "cave",
+            // {
+            //     label: "Enter Cave",
+            //     to: "cave",
 
-                canTravel: (game) =>
-                    game.hasItem("cave_key"),
+            //     canTravel: (game) =>
+            //         game.hasItem("cave_key"),
 
-                lockedMessage:
-                    "The cave entrance is locked."
-            }
+            //     lockedMessage:
+            //         "The cave entrance is locked."
+            // }
         ],
         actions: [
 
-            innAction,
-            shopAction,
+            // innAction,
+            // shopAction,
         ],
         onEnter: [
 

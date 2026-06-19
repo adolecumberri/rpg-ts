@@ -35,6 +35,8 @@ const DEFAULT_COMBAT_OPTIONS: Required<CombatOptions> = {
     stopOnStalemate: true,
 };
 
+
+// TODO: maybe this will get replaced by combatEngine
 export class Combat {
     private options: Required<CombatOptions>;
 

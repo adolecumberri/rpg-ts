@@ -1,4 +1,5 @@
 import { Character, Experience, Item, Stats } from "../../src";
+import { SKILLS } from "../Combat/SkillsConstants";
 import { defaultInventory } from "../InitialData/Inventory";
 
 
@@ -17,6 +18,10 @@ export function CreateMainCharacter(name: string = "hero"): Character {
                 return level * 50;
             },
         }),
+        skills: [
+            SKILLS.fireball,
+            SKILLS.basicAttack
+        ]
     });
 
     mainCharacter.experience.onLevelUpHandler = ({ newLevel }) => {

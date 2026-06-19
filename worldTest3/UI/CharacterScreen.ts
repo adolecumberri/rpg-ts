@@ -23,6 +23,62 @@ export class CharacterScreen {
         return characters[index];
     }
 
+    async selectMultipleCharacters(
+        characters: Character[],
+        count: number,
+        multipleSelections: boolean = false
+    ): Promise<{ timeSelected: number; character: Character; id: string }[]> {
+
+        const selections = new Map<string, { timeSelected: number; character: Character; id: string }>();
+        let remaining = count;
+
+        while (remaining > 0) {
+
+            const options: MenuChoice[] = [
+                ...characters.map((c) => {
+                    const times = selections.get(c.id)?.timeSelected ?? 0;
+                    const xMarks = times > 0 ? "X".repeat(times) + " " : "";
+                    const alreadySelected = !multipleSelections && times > 0;
+                    return {
+                        label: `${xMarks}${c.name} | ATK ${c.getStat("attack")} | DEF ${c.getStat("defence")} | HP ${c.getStat("hp")}/${c.getStat("totalHp")}`,
+                        execute: async () => true,
+                        isDisabled: alreadySelected,
+                    };
+                }),
+                {
+                    label: "Done",
+                    execute: async () => false,
+                },
+            ];
+
+            const index = await this.menu.selectMenuOption(
+                `SELECT CHARACTERS (${count - remaining + 1}/${count}):`,
+                options
+            );
+
+            if (index === characters.length) {
+                break;
+            }
+
+            const picked = characters[index];
+            const existing = selections.get(picked.id);
+
+            if (existing) {
+                existing.timeSelected += 1;
+            } else {
+                selections.set(picked.id, {
+                    timeSelected: 1,
+                    character: picked,
+                    id: picked.id,
+                });
+            }
+
+            remaining -= 1;
+        }
+
+        return Array.from(selections.values());
+    }
+
     async showCharacterStats(character: Character) {
 
         console.clear();

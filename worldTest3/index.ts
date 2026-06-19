@@ -4,6 +4,8 @@ import { Menu } from "./menu/Menu";
 import { CreateMainCharacter } from "./NPC/mainCharacter";
 import { FightRandomQuest } from "./Quests/FightRandom";
 import "./augmentations";
+import { FightRandomGroup } from "./Quests/FightRandomGroup";
+import { FightGoblin } from "./Quests/FightGoblin.test";
 
 
 const menu = new Menu();
@@ -20,7 +22,8 @@ game.team.inventory.addItem(defaultInventory.cave_key());
 game.team.gold += 20;
 game.team.inventory.addItem(defaultInventory.health_potion(), 3);
 
-game.addQuest(new FightRandomQuest());
+game.addQuest(new FightRandomGroup());
+game.addQuest(new FightGoblin());
 
 game.start().catch((err) => {
     menu.cleanupInput();

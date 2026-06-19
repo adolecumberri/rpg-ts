@@ -54,4 +54,6 @@ export class CombatBehavior {
         this.defenceCalculation = config.defenceCalculation || fallback.defenceCalculation;
     }
 
+    
+
 }

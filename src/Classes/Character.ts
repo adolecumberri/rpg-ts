@@ -6,6 +6,8 @@ import { Experience } from "./Experience";
 import { EventEmitter } from "./EventEmitter";
 import { StatusManager } from "./StatusManager";
 import { EquipmentManager } from "./items/EquipmentManager";
+import { Skill } from "./Skills";
+import { CombatTrigger } from "./Combat/Combat.interfaces";
 
 type CharacterConstructor = {
     id?: string;
@@ -17,6 +19,7 @@ type CharacterConstructor = {
     eventEmitter?: EventEmitter<any>;
     statusManager?: StatusManager;
     equipment?: EquipmentManager;
+    skills?: Skill[];
 };
 
 export class Character {
@@ -28,7 +31,8 @@ export class Character {
     experience: Experience;
     eventEmitter: EventEmitter<any>;
     statusManager: StatusManager;
-
+    combatTriggers: CombatTrigger[] = [];
+    skills: Skill[] = [];
 
     constructor(params: Partial<CharacterConstructor> = {}) {
 
@@ -42,6 +46,7 @@ export class Character {
         // ensure externally provided inventories are bound to this character
 
         this.statusManager = params.statusManager || new StatusManager(this);
+        this.skills = params.skills ?? [];
     }
 
     getStat(stat: keyof Statistics): number {

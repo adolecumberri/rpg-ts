@@ -15,7 +15,7 @@ export class Menu {
             let selected = 0;
 
             const render = () => {
-                console.clear();
+                // console.clear();
                 process.stdout.write(`${header}\n\n`);
                 options.forEach((option, index) => {
                     const pointer = index === selected ? ">" : " ";

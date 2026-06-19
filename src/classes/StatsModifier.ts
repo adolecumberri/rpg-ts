@@ -1,7 +1,7 @@
 import { DEFAULT_STAT_MODIFIERS, MODIFICATION_TYPES, ModificationTypes } from "../constants/stats.constants";
 import { AnyStat } from "./Stats";
 
-export type ModifiersRecord = Record<AnyStat, Record<ModificationTypes, number>>;
+export type ModifiersRecord = Partial<Record<AnyStat, Record<ModificationTypes, number>>>;
 
 type StatsModificationConstructor = { modifiers: ModifiersRecord };
 
