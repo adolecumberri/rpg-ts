@@ -3,6 +3,7 @@ import { Skill } from "../Skills";
 import { Team } from "../Team";
 import { CombatContext } from "./Combat.interfaces";
 import { DamageResolver } from "./DamageResolver";
+import { StatusResolver } from "./StatusResolver";
 import { TargetResolver } from "./TargetResolver";
 
 
@@ -29,28 +30,26 @@ export class CombatEngine {
             targets
         });
 
-        const context = {
+        const context: CombatContext = {
             attacker,
-            targets,
-            damagePackets: []
-        }
+            skill,
+            logs: [],
+            targetEffects: targets.map(target => ({
+                target,
+                damagePackets: [],
+                statusEffects: []
+            }))
+        };
 
         console.log({
             context,
         });
 
-        // 1. run effects
-        for (const effect of skill.effects) {
+        for (const effect of skill.effects)
             effect.execute(context);
-        }
 
-        console.log(context.damagePackets);
-        // 2. apply damage
         DamageResolver.apply(context);
 
-        // 3. trigger statuses
-        for (const target of targets) {
-            target.statusManager.trigger("on_action");
-        }
+        StatusResolver.apply(context);
     }
 }

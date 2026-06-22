@@ -25,6 +25,7 @@ export interface Skill {
     effects: SkillEffect[];
     targeting: SkillTarget;
     numberOfTargets?: number;
+    multipleSelections?: boolean;
 }
 
 export interface SkillEffect {

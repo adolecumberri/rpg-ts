@@ -26,21 +26,21 @@ export class TargetResolver {
 
             case "RANDOM_ENEMY":
                 if (enemies.members.size > 0) {
-                    const randomIndex = Math.floor(Math.random() * enemies.members.size);
-                    solution.push(enemies.getAll()[randomIndex]);
+                    const randomIndex = Math.floor(Math.random() * enemies.getAlive().length);
+                    solution.push(enemies.getAlive()[randomIndex]);
                 }
                 break;
 
             case "ALL_ENEMIES":
-                solution.push(...enemies.getAll());
+                solution.push(...enemies.getAlive());
                 break;
 
             case "ALL_ALLIES":
-                solution.push(...allies.getAll());
+                solution.push(...allies.getAlive());
                 break;
 
             case "RANDOM":
-                const allCharacters = [...allies.getAll(), ...enemies.getAll()];
+                const allCharacters = [...allies.getAlive(), ...enemies.getAlive()];
                 if (allCharacters.length > 0) {
                     const randomIndex = Math.floor(Math.random() * allCharacters.length);
                     solution.push(allCharacters[randomIndex]);
@@ -48,7 +48,7 @@ export class TargetResolver {
                 break;
 
             case "ALL":
-                solution.push(...allies.getAll(), ...enemies.getAll());
+                solution.push(...allies.getAlive(), ...enemies.getAlive());
                 break;
 
             case "ALLY":

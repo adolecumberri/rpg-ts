@@ -9,7 +9,7 @@ export const SKILLS: Record<string, Skill> = {
         id: "fireball",
         name: "Fireball",
 
-        targeting: "RANDOM_ENEMY",
+        targeting: "ENEMY",
         numberOfTargets: 3,
 
         effects: [
@@ -31,27 +31,23 @@ export const SKILLS: Record<string, Skill> = {
                 "physical"
             ),
 
-            new ApplyStatusEffect(
-                new StatusInstance({
-                    definition: {
-                        applyOn: "on_turn",
-                        duration: {
-                            type: "TEMPORAL",
-                            value: 3
-                        },
-                        usageFrequency: "PER_ACTION",
-                        statsAffected: [
-                            {
-                                value: 5,
-                                typeOfModification: "DEBUFF_PERCENTAGE",
-                                from: "totalHp",
-                                to: "hp",
-                            }
-                        ],
-                        name: "Poisoned",
+            new ApplyStatusEffect({
+                applyOn: "on_turn",
+                duration: {
+                    type: "TEMPORAL",
+                    value: 3
+                },
+                usageFrequency: "PER_ACTION",
+                statsAffected: [
+                    {
+                        value: 5,
+                        typeOfModification: "DEBUFF_PERCENTAGE",
+                        from: "totalHp",
+                        to: "hp",
                     }
-                })
-            )
+                ],
+                name: "Poisoned",
+            })
         ]
     },
     basicAttack: {

@@ -25,7 +25,7 @@ export class CharacterScreen {
 
     async selectMultipleCharacters(
         characters: Character[],
-        count: number,
+        count: number = 1,
         multipleSelections: boolean = false
     ): Promise<{ timeSelected: number; character: Character; id: string }[]> {
 

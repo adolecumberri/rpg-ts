@@ -1,3 +1,4 @@
+import { Character } from "../Character";
 
 export type DamageType =
     | "physical"
@@ -9,12 +10,18 @@ export type DamageType =
     | "poison";
 
 export interface DamagePacket {
-    type: DamageType;
-
     amount: number;
+
+    type: DamageType;
 
     source?: string;
 
+    attacker?: Character;
 
+    target?: Character;
+
+    canCrit?: boolean;
+
+    ignoreDefence?: boolean;
 }
 

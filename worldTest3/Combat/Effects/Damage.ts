@@ -6,17 +6,17 @@ export class DamageEffect implements SkillEffect {
 
     constructor(
         public amount: number,
-        public damageType: DamagePacket["type"]
+        public type: DamagePacket["type"]
     ) { }
 
+    // esto mueve cada paquete a cada targetEffect, que luego será procesado por DamageResolver
     execute(context: CombatContext) {
 
-        context.damagePackets ??= [];
+        for (const targetEffect of context.targetEffects) {
+            // TODO: do this pass-by-reference will be problematic?
+            targetEffect.damagePackets.push(this);
 
-        context.damagePackets.push({
-            type: this.damageType,
-            amount: this.amount,
-        });
+        }
 
     }
 }

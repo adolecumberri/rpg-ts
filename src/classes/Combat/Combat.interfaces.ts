@@ -1,21 +1,26 @@
 import { EventMoment } from "../../types/generalEvents.types";
 import { Character } from "../Character";
+import { Skill } from "../Skills";
+import { StatusInstance } from "../StatusInstance";
 import { DamagePacket } from "./DamagePacket";
 
-export interface CombatAction {
-    source: Character;
+export interface TargetEffect {
+    target: Character; // "victima" del efecto
 
-    targets: Character[];
+    damagePackets: DamagePacket[]; //daño 
 
-    effects: DamagePacket[];
+    statusEffects: StatusInstance[]; // status
 }
 
 export interface CombatContext {
+
     attacker: Character;
 
-    targets: Character[];
+    skill: Skill;
 
-    damagePackets: DamagePacket[];
+    targetEffects: TargetEffect[]; // paquetes que se le asignaran a cara objetivo
+
+    logs: string[];
 }
 
 export interface CombatTrigger {

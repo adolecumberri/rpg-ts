@@ -181,13 +181,13 @@ export class CombatController {
                         label: "Use Skill",
                         execute: async () => {
                             const skill = await screenManager.skill.selectSkill(attacker.skills);
-                            
+
                             let explicitTargets: Character | undefined = await screenManager.character.selectMultipleCharacters(
                                 enemies,
-                                1,
-                                false
+                                skill.numberOfTargets,
+                                skill.multipleSelections 
                             ).then(selection => selection[0]?.character);
-                            
+
                             const CE = new CombatEngine();
 
                             CE.executeSkill({
