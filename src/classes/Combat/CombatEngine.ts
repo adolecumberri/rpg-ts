@@ -25,10 +25,6 @@ export class CombatEngine {
             explicitTargets
         );
 
-        console.log({
-            explicitTargets: explicitTargets,
-            targets
-        });
 
         const context: CombatContext = {
             attacker,
@@ -40,10 +36,6 @@ export class CombatEngine {
                 statusEffects: []
             }))
         };
-
-        console.log({
-            context,
-        });
 
         for (const effect of skill.effects)
             effect.execute(context);

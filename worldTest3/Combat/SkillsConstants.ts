@@ -1,10 +1,11 @@
 
 import { Skill } from "../../src/classes/Skills";
 import { StatusInstance } from "../../src/classes/StatusInstance";
-import { ApplyStatusEffect } from "./Effects/ApplyStatus";
-import { DamageEffect } from "./Effects/Damage";
+import { ApplyStatusEffect } from "./Effects/ApplyStatusEffect";
+import { DamageEffect } from "./Effects/DamageEffect";
 
-export const SKILLS: Record<string, Skill> = {
+type skillNames = "fireball" | "poisonStrike" | "basicAttack" | "groupHeal";
+export const SKILLS: Record<skillNames, Skill> = {
     fireball: {
         id: "fireball",
         name: "Fireball",
@@ -61,5 +62,37 @@ export const SKILLS: Record<string, Skill> = {
                 "physical"
             )
         ]
+    },
+    groupHeal: {
+        id: "groupHeal",
+        name: "Regeneration",
+
+        targeting: "ALL_ALLIES",
+
+        effects: [
+            new ApplyStatusEffect(
+                {
+                    name: "Regeneration",
+
+                    applyOn: "on_turn",
+
+                    duration: {
+                        type: "TEMPORAL",
+                        value: 3
+                    },
+
+                    usageFrequency: "PER_ACTION",
+
+                    statsAffected: [
+                        {
+                            from: "totalHp",
+                            to: "hp",
+                            value: 10,
+                            typeOfModification: "BUFF_PERCENTAGE"
+                        }
+                    ]
+                },
+            )
+        ]
     }
-}
+};

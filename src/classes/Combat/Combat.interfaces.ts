@@ -18,7 +18,7 @@ export interface CombatContext {
 
     skill: Skill;
 
-    targetEffects: TargetEffect[]; // paquetes que se le asignaran a cara objetivo
+    targetEffects: TargetEffect[]; 
 
     logs: string[];
 }

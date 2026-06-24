@@ -1,6 +1,7 @@
 
 import { Character, Combat, CombatSide, Team } from "../../src";
 import { CombatEngine } from "../../src/classes/Combat/CombatEngine";
+import { TargetResolver } from "../../src/classes/Combat/TargetResolver";
 import { EnemyTarget } from "../../src/classes/Skills";
 import { Menu } from "../menu/Menu";
 import { CreateMainCharacter } from "../NPC/mainCharacter";
@@ -185,8 +186,8 @@ export class CombatController {
                             let explicitTargets: Character | undefined = await screenManager.character.selectMultipleCharacters(
                                 enemies,
                                 skill.numberOfTargets,
-                                skill.multipleSelections 
-                            ).then(selection => selection[0]?.character);
+                                skill.multipleSelections
+                            ).then(selection => selection[0]);
 
                             const CE = new CombatEngine();
 
@@ -286,12 +287,31 @@ export class CombatController {
                         label: "Use Skill",
                         execute: async () => {
                             const skill = await screenManager.skill.selectSkill(attacker.skills);
-                            console.log({ skill })
-                            let explicitTargets: Character | undefined = await screenManager.character.selectMultipleCharacters(
-                                enemies,
-                                1,
-                                false
-                            ).then(selection => selection[0]?.character);
+                            let explicitTargets: Character[] | undefined;
+                            // if skill.tageting is in enemyTarget, I will select in the enemi team.
+                            // if it´s in the allyTarget, I will select in the ally team.
+                            if (skill.targeting === "ENEMY") {
+                                explicitTargets = await screenManager.character.selectMultipleCharacters(
+                                    enemies,
+                                    skill.numberOfTargets,
+                                    skill.multipleSelections
+                                );
+                            } else if (skill.targeting === "ALLY") {
+                                explicitTargets = await screenManager.character.selectMultipleCharacters(
+                                    allies,
+                                    skill.numberOfTargets,
+                                    skill.multipleSelections
+                                );
+                            } else {
+                                explicitTargets = TargetResolver.resolve(
+                                    skill,
+                                    attacker,
+                                    playerTeam,
+                                    enemyTeam
+                                );
+                            }
+
+
 
                             const CE = new CombatEngine();
 
@@ -300,32 +320,9 @@ export class CombatController {
                                 attacker,
                                 allies: playerTeam,
                                 enemies: enemyTeam,
-                                explicitTargets: explicitTargets ? [explicitTargets] : undefined,
+                                explicitTargets: explicitTargets ? explicitTargets : undefined,
                             })
 
-                            // if (skill.targeting === "ENEMY") {
-                            //     const selections = await screenManager.character.selectMultipleCharacters(
-                            //         enemies,
-                            //         1,
-                            //         false
-                            //     );
-                            //     explicitTargets = selections.map(s => s.character);
-                            // } else if (skill.targeting === "ALLY") {
-                            //     const selections = await screenManager.character.selectMultipleCharacters(
-                            //         allies,
-                            //         1,
-                            //         false
-                            //     );
-                            //     explicitTargets = selections.map(s => s.character);
-                            // }
-
-                            // combatEngine.executeSkill({
-                            //     skill,
-                            //     attacker,
-                            //     allies: playerTeam,
-                            //     enemies: enemyTeam,
-                            //     explicitTargets,
-                            // });
 
                             this.combatLog.push(
                                 `${attacker.name} used ${skill.name}`
@@ -335,7 +332,21 @@ export class CombatController {
                         },
                     },
                     {
-                        label: "Back",
+                        label: "check enemy team",
+                        execute: async () => {
+                            await screenManager.game.showTeamStats(enemyTeam);
+                            return true;
+                        }
+                    },
+                    {
+                        label: "check player team",
+                        execute: async () => {
+                            await screenManager.game.showTeamStats(playerTeam);
+                            return true;
+                        },
+                    },
+                    {
+                        label: "Nothing (skip turn)",
                         execute: async () => {
                             return false;
                         },
@@ -344,8 +355,8 @@ export class CombatController {
 
                 const index = await this.menu.selectMenuOption(
                     [
-                        ...this.combatLog.slice(-10),
-                        "",
+                        // ...this.combatLog.slice(-10),
+                        // "",
                         `${attacker.name}'s turn`,
                     ].join("\n"),
                     options
@@ -355,12 +366,12 @@ export class CombatController {
             }
 
             // --- Enemy turn ---
-            for (const attacker of this.getAlive(enemyTeam)) {
-                if (!this.isAlive(playerTeam)) break;
+            // for (const attacker of this.getAlive(enemyTeam)) {
+            //     if (!this.isAlive(playerTeam)) break;
 
-                const defender = this.pickTarget(this.getAlive(playerTeam));
-                await this.enemyAction(attacker, defender);
-            }
+            //     const defender = this.pickTarget(this.getAlive(playerTeam));
+            //     await this.enemyAction(attacker, defender);
+            // }
         }
 
         const leftAlive = this.isAlive(playerTeam);

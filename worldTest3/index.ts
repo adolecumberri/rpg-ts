@@ -14,6 +14,7 @@ const game = new Game(menu);
 
 game.team.addCharacter(CreateMainCharacter());
 game.team.addCharacter(CreateMainCharacter("companion"));
+game.team.addCharacter(CreateMainCharacter("companion2"));
 
 game.team.inventory.addItem(defaultInventory.wooden_shield());
 game.team.inventory.addItem(defaultInventory.rusty_sword());

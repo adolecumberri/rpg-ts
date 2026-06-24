@@ -18,6 +18,7 @@ export class TargetResolver {
                 solution.push(attacker);
                 break;
 
+            //TODO check if this is the way
             case "ENEMY":
                 if (explicitTargets) {
                     solution.push(...explicitTargets);
@@ -51,6 +52,7 @@ export class TargetResolver {
                 solution.push(...allies.getAlive(), ...enemies.getAlive());
                 break;
 
+            //TODO: check if this is the way
             case "ALLY":
                 if (explicitTargets) {
                     solution.push(...explicitTargets);
@@ -71,4 +73,5 @@ export class TargetResolver {
         // TODO: Ampliar.
         return solution;
     }
+
 }

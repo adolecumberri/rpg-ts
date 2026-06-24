@@ -44,6 +44,39 @@ export class GameScreens {
         }
     };
 
+    async showTeamStats(team: Team): Promise<void> {
+
+        while (true) {
+            const characters = team.getAll();
+
+            const options = [
+                ...characters.map(character => ({
+                    label: `${character.name} | ${character.statusManager.statuses.size} | ATK ${character.getStat("attack")} | DEF ${character.getStat("defence")} | HP ${character.getStat("hp")}/${character.getStat("totalHp")}`,
+                    execute: async () => {
+                        await this.screenManager.character.showCharacterOptions(character);
+                        return true;
+                    }
+                })),
+                {
+                    label: "Back",
+                    execute: async () => false
+                }
+            ];
+
+            const index = await this.menu.selectMenuOption(
+                "TEAM STATS",
+                options
+            );
+
+            const keepGoing =
+                await options[index].execute();
+
+            if (!keepGoing) {
+                return;
+            }
+        }
+    };
+
     async showTeamInventory(team: Team) {
         while (true) {
             const itemsSortedByCategory = team.inventory.getAllItemsSortedByCategory();

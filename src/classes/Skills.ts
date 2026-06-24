@@ -17,6 +17,15 @@ export type OtherTarget = "ALL" | "RANDOM" | "SELF";
 
 export type SkillTarget = EnemyTarget | AllyTarget | OtherTarget;
 
+export type EffectTargeting =
+    | "ALL"
+    | "FIRST"
+    | "LAST"
+    | "RANDOM"
+    | "RANDOM_N"
+    | "EXPLICIT"
+    | "SELF";
+
 export interface Skill {
     id: string;
     name: string;
@@ -29,6 +38,8 @@ export interface Skill {
 }
 
 export interface SkillEffect {
+    targeting?: EffectTargeting; // to cherry pick
+
     execute(
         context: CombatContext
     ): void;

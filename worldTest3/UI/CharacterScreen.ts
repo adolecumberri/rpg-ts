@@ -27,16 +27,17 @@ export class CharacterScreen {
         characters: Character[],
         count: number = 1,
         multipleSelections: boolean = false
-    ): Promise<{ timeSelected: number; character: Character; id: string }[]> {
+    ): Promise<Character[]> {
 
-        const selections = new Map<string, { timeSelected: number; character: Character; id: string }>();
+        const result: Character[] = [];
+        const selectedCount = new Map<string, number>();
         let remaining = count;
 
         while (remaining > 0) {
 
             const options: MenuChoice[] = [
                 ...characters.map((c) => {
-                    const times = selections.get(c.id)?.timeSelected ?? 0;
+                    const times = selectedCount.get(c.id) ?? 0;
                     const xMarks = times > 0 ? "X".repeat(times) + " " : "";
                     const alreadySelected = !multipleSelections && times > 0;
                     return {
@@ -61,22 +62,12 @@ export class CharacterScreen {
             }
 
             const picked = characters[index];
-            const existing = selections.get(picked.id);
-
-            if (existing) {
-                existing.timeSelected += 1;
-            } else {
-                selections.set(picked.id, {
-                    timeSelected: 1,
-                    character: picked,
-                    id: picked.id,
-                });
-            }
-
+            selectedCount.set(picked.id, (selectedCount.get(picked.id) ?? 0) + 1);
+            result.push(picked);
             remaining -= 1;
         }
 
-        return Array.from(selections.values());
+        return result;
     }
 
     async showCharacterStats(character: Character) {
@@ -122,6 +113,13 @@ export class CharacterScreen {
                     label: "Equipment",
                     execute: async () => {
                         await this.screenManager.character.showEquipmentFromCharacter(character);
+                        return true;
+                    }
+                },
+                {
+                    label: "View Status Effects",
+                    execute: async () => {
+                        await this.screenManager.character.showStatusEffectsFromCharacter(character);
                         return true;
                     }
                 },
@@ -182,5 +180,34 @@ export class CharacterScreen {
             }
         }
 
+    };
+
+    async showStatusEffectsFromCharacter(character: Character) {
+
+        while (true) {
+            const statusEffects = character.statusManager.statuses.values();
+
+            const options = [
+                ...Array.from(statusEffects).map(status => ({
+                    label: `${character.name}: ${status.definition.name} | Duration: ${status.definition.statsAffected.map(stat => `${stat.from} -> ${stat.to} (${stat.value})`).join(", ")}`,
+                    execute: async () => true
+                })),
+                {
+                    label: "Back",
+                    execute: async () => false
+                }
+            ];
+
+            const index = await this.menu.selectMenuOption(
+                "STATUS EFFECTS",
+                options
+            );
+
+            const keepGoing = await options[index].execute();
+
+            if (!keepGoing) {
+                return;
+            }
+        }
     }
 }

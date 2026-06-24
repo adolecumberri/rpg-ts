@@ -3,6 +3,7 @@ import { ACTION_HANDLER, STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from "../con
 import { uniqueID } from "../helpers/common.helpers";
 import { EventMoment } from "../types/generalEvents.types";
 import { Character } from "./Character";
+import { CombatTrigger } from "./Combat/Combat.interfaces";
 import { AnyStat, Stats } from "./Stats";
 
 export type StatusInstanceConstructor = {
@@ -54,6 +55,7 @@ export interface StatusDefinition {
     duration: StatusDuration;
     usageFrequency: StatusUsageFrequency;
     statsAffected: AffectedStatDescriptor[];
+    // triggers?: CombatTrigger[]; //TODO: create trigger base actions
     triggersOnAdd?: boolean;
     onAdd?: (character: Character) => void;
     onRemove?: (character: Character) => void;

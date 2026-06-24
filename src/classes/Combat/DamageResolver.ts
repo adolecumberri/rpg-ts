@@ -23,6 +23,10 @@ export class DamageResolver {
     }
 
     static calculate(packet: DamagePacket, target: Character): number {
+        if (packet.type === "heal") {
+            return -packet.amount;
+        }
+
         return packet.amount; // later expand with resistances, armor, etc
     }
 

@@ -8,7 +8,7 @@ export function CreateMainCharacter(name: string = "hero"): Character {
         name: name,
         id: name,
         stats: new Stats({
-            hp: 100,
+            hp: 50,
             totalHp: 100,
             attack: 10,
             defence: 5,
@@ -20,7 +20,8 @@ export function CreateMainCharacter(name: string = "hero"): Character {
         }),
         skills: [
             SKILLS.fireball,
-            SKILLS.basicAttack
+            SKILLS.basicAttack,
+            SKILLS.groupHeal
         ]
     });
 
