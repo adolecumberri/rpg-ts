@@ -21,7 +21,8 @@ export function CreateMainCharacter(name: string = "hero"): Character {
         skills: [
             SKILLS.fireball,
             SKILLS.basicAttack,
-            SKILLS.groupHeal
+            SKILLS.groupHeal,
+            SKILLS.poisonCloud,
         ]
     });
 

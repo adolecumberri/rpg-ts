@@ -53,7 +53,7 @@ export type Place = {
     npcs?: NPC[];
 };
 
-export const PLACES: Record<string, Place> = {
+export const PLACES = {
     central_town: {
         id: "central_town",
         name: "Central Town",
@@ -103,4 +103,4 @@ export const PLACES: Record<string, Place> = {
         ],
     }
 
-} as const;
+} satisfies Record<string, Place>;

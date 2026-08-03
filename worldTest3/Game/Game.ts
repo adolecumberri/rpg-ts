@@ -9,13 +9,13 @@ import { Quest } from "../quests/Quest";
 import { GameScreens } from "../UI/GameScreen";
 import { ScreenManager } from "../UI/ScreenManager";
 
-export class Game {
+export class Game<TPlaceId extends string = string> {
     private running = true;
     menu: Menu;
     team: Team;
 
-    private places: Map<string, Place> = new Map();
-    private currentPlaceId: string = "default";
+    private places: Map<TPlaceId, Place> = new Map();
+    private currentPlaceId: TPlaceId;
     // private previousPlaceId: string = "default";
     private quests: Quest[] = [];
     private lockedConnections = new Set<string>(); //`${fromId}->${toId}`
@@ -28,15 +28,15 @@ export class Game {
     });
     screenManager: ScreenManager;
 
-    constructor(menu: Menu) {
+    constructor(menu: Menu, places: Record<TPlaceId, Place>, initialPlaceId: TPlaceId) {
         this.menu = menu;
         this.team = new Team();
         this.screenManager = new ScreenManager(menu)
 
 
-        this.currentPlaceId = "central_town";
+        this.currentPlaceId = initialPlaceId;
 
-        this.loadPlaces(PLACES);
+        this.loadPlaces(places);
 
 
     }
@@ -80,7 +80,7 @@ export class Game {
                         return true;
                     }
 
-                    await this.travelTo(conn.to);
+                    await this.travelTo(conn.to as TPlaceId);
                     return true;
                 },
             }));
@@ -152,29 +152,33 @@ export class Game {
 
     }
 
-    private loadPlaces(places: Record<string, Place>) {
-        for (const place of Object.values(places)) {
-            this.places.set(place.id, place);
+    private loadPlaces(places: Record<TPlaceId, Place>) {
+        for (const placeId in places) {
+            this.places.set(placeId as TPlaceId, places[placeId]);
         }
     }
 
     addPlace(place: Place) {
-        this.places.set(place.id, place);
+        this.places.set(place.id as TPlaceId, place);
     }
 
     private getCurrentPlace(): Place {
         return this.places.get(this.currentPlaceId)!;
     }
 
-    getPlace(placeId: string): Place | undefined {
-        return this.places.get(placeId);
+    getPlace(placeId: TPlaceId) {
+        const place = this.places.get(placeId);
+        if (place === undefined) {
+            throw new Error(`Place not found: ${placeId}`);
+        }
+        return place;
     }
 
     placeCount(): string {
         return uniqueID();
     }
 
-    private async travelTo(placeId: string): Promise<void> {
+    private async travelTo(placeId: TPlaceId): Promise<void> {
         if (!this.places.has(placeId)) {
             throw new Error(`Place not found: ${placeId}`);
         }
@@ -195,14 +199,14 @@ export class Game {
         await this.runTriggers(toPlace.onEnter, from);
     }
 
-    addConnectionToPlace(placeFromId: string, placeToId: string, label: string) {
+    addConnectionToPlace(placeFromId: TPlaceId, placeToId: TPlaceId, label: string) {
         const place = this.places.get(placeFromId);
         if (!place) {
             throw new Error(`Place not found: ${placeFromId}`);
         }
         place.connections.push({ label, to: placeToId });
     }
-    removeActionFromPlace(placeId: string, actionId: string) {
+    removeActionFromPlace(placeId: TPlaceId, actionId: string) {
         const place = this.places.get(placeId);
         if (!place) {
             throw new Error(`Place not found: ${placeId}`);
@@ -212,15 +216,15 @@ export class Game {
 
 
     // LOCK/UNLOCK CONNECTIONS
-    lockConnection(from: string, to: string) {
+    lockConnection(from: TPlaceId, to: TPlaceId) {
         this.lockedConnections.add(`${from}->${to}`);
     }
 
-    unlockConnection(from: string, to: string) {
+    unlockConnection(from: TPlaceId, to: TPlaceId) {
         this.lockedConnections.delete(`${from}->${to}`);
     }
 
-    isConnectionLocked(from: string, to: string): boolean {
+    isConnectionLocked(from: TPlaceId, to: TPlaceId): boolean {
         const key = `${from}->${to}`;
 
         const place = this.places.get(from);
@@ -235,7 +239,7 @@ export class Game {
     // TRIGGERS
     private async runTriggers(
         triggers: PlaceTrigger[] | undefined,
-        from?: string
+        from?: TPlaceId
     ) {
         if (!triggers) return;
 
@@ -285,7 +289,7 @@ export class Game {
     }
 
     //NPCs
-    addNPC(placeId: string, npc: NPC) {
+    addNPC(placeId: TPlaceId, npc: NPC) {
         const place = this.places.get(placeId);
         if (!place) throw new Error(`Place not found: ${placeId}`);
 
@@ -296,18 +300,18 @@ export class Game {
         place.npcs.push(npc);
     }
 
-    removeNPC(placeId: string, npcId: string) {
+    removeNPC(placeId: TPlaceId, npcId: string) {
         const place = this.places.get(placeId);
         if (!place?.npcs) return;
         place.npcs = place.npcs.filter(n => n.id !== npcId);
     }
 
-    getNPC(placeId: string, npcId: string): NPC | undefined {
+    getNPC(placeId: TPlaceId, npcId: string): NPC | undefined {
         const place = this.places.get(placeId);
         return place?.npcs?.find(n => n.id === npcId);
     }
 
-    moveNPC(npcId: string, fromPlace: string, toPlace: string) {
+    moveNPC(npcId: string, fromPlace: TPlaceId, toPlace: TPlaceId) {
         const from = this.places.get(fromPlace);
         const to = this.places.get(toPlace);
 
@@ -323,7 +327,7 @@ export class Game {
         to.npcs.push(npc);
     }
 
-    recruitNPC(npc: NPC, fromPlaceId: string) {
+    recruitNPC(npc: NPC, fromPlaceId: TPlaceId) {
         const place = this.places.get(fromPlaceId);
         if (!place?.npcs) return false;
 
@@ -335,7 +339,7 @@ export class Game {
 
 
     // COMBAT
-    async fightNPC(placeId: string, npcId: string) {
+    async fightNPC(placeId: TPlaceId, npcId: string) {
 
         const npc = this.getNPC(placeId, npcId);
 
@@ -415,7 +419,7 @@ export class Game {
             "You wake up in Central Town..."
         );
 
-        this.currentPlaceId = "central_town";
+        this.currentPlaceId = "central_town" as TPlaceId;
 
         for (const member of this.team.getAll()) {
             member.stats.hp = 1;

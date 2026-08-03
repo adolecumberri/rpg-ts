@@ -27,7 +27,7 @@ export class CharacterScreen {
         characters: Character[],
         count: number = 1,
         multipleSelections: boolean = false
-    ): Promise<Character[]> {
+    ): Promise<Character[] | null> {
 
         const result: Character[] = [];
         const selectedCount = new Map<string, number>();
@@ -47,7 +47,7 @@ export class CharacterScreen {
                     };
                 }),
                 {
-                    label: "Done",
+                    label: "Back",
                     execute: async () => false,
                 },
             ];
@@ -58,7 +58,7 @@ export class CharacterScreen {
             );
 
             if (index === characters.length) {
-                break;
+                return null;
             }
 
             const picked = characters[index];
@@ -189,7 +189,7 @@ export class CharacterScreen {
 
             const options = [
                 ...Array.from(statusEffects).map(status => ({
-                    label: `${character.name}: ${status.definition.name} | Duration: ${status.definition.statsAffected.map(stat => `${stat.from} -> ${stat.to} (${stat.value})`).join(", ")}`,
+                    label: `${status.definition.name} [${status.id}]:  | Duration: ${status.definition.duration.type === "TEMPORAL" ? status.definition.duration.value + " turns" : "Permanent"} | Applied on: ${status.definition.applyOn}`,
                     execute: async () => true
                 })),
                 {

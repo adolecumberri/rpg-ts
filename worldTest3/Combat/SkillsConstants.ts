@@ -4,7 +4,7 @@ import { StatusInstance } from "../../src/classes/StatusInstance";
 import { ApplyStatusEffect } from "./Effects/ApplyStatusEffect";
 import { DamageEffect } from "./Effects/DamageEffect";
 
-type skillNames = "fireball" | "poisonStrike" | "basicAttack" | "groupHeal";
+type skillNames = "fireball" | "poisonStrike" | "basicAttack" | "groupHeal" | "poisonCloud";
 export const SKILLS: Record<skillNames, Skill> = {
     fireball: {
         id: "fireball",
@@ -33,7 +33,7 @@ export const SKILLS: Record<skillNames, Skill> = {
             ),
 
             new ApplyStatusEffect({
-                applyOn: "on_turn",
+                applyOn: "after_turn",
                 duration: {
                     type: "TEMPORAL",
                     value: 3
@@ -74,7 +74,7 @@ export const SKILLS: Record<skillNames, Skill> = {
                 {
                     name: "Regeneration",
 
-                    applyOn: "on_turn",
+                    applyOn: "after_turn",
 
                     duration: {
                         type: "TEMPORAL",
@@ -88,10 +88,41 @@ export const SKILLS: Record<skillNames, Skill> = {
                             from: "totalHp",
                             to: "hp",
                             value: 10,
-                            typeOfModification: "BUFF_PERCENTAGE"
+                            typeOfModification: "BUFF_FIXED"
                         }
                     ]
                 },
+            )
+        ]
+    },
+    poisonCloud: {
+        id: "poisonCloud",
+        name: "Poison Cloud",
+        targeting: "ALL_ENEMIES",
+
+        effects: [
+            new ApplyStatusEffect(
+                {
+                    name: "Poison",
+
+                    applyOn: "before_turn",
+
+                    duration: {
+                        type: "TEMPORAL",
+                        value: 5
+                    },
+
+                    usageFrequency: "PER_ACTION",
+
+                    statsAffected: [
+                        {
+                            from: "totalHp",
+                            to: "hp",
+                            value: 5,
+                            typeOfModification: "DEBUFF_FIXED"
+                        }
+                    ]
+                }
             )
         ]
     }

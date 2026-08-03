@@ -2,14 +2,16 @@ import { Game } from "./Game/game";
 import { defaultInventory } from "./InitialData/Inventory";
 import { Menu } from "./menu/Menu";
 import { CreateMainCharacter } from "./NPC/mainCharacter";
+import { PLACES } from "./Places/Place";
 import { FightRandomQuest } from "./Quests/FightRandom";
 import "./augmentations";
 import { FightRandomGroup } from "./Quests/FightRandomGroup";
 import { FightGoblin } from "./Quests/FightGoblin.test";
+import { GeneralTestingQuest } from "./Quests/GeneralTesting.test";
 
 
 const menu = new Menu();
-const game = new Game(menu);
+const game = new Game(menu, PLACES, "central_town");
 
 
 game.team.addCharacter(CreateMainCharacter());
@@ -23,6 +25,7 @@ game.team.inventory.addItem(defaultInventory.cave_key());
 game.team.gold += 20;
 game.team.inventory.addItem(defaultInventory.health_potion(), 3);
 
+game.addQuest(new GeneralTestingQuest());
 game.addQuest(new FightRandomGroup());
 game.addQuest(new FightGoblin());
 

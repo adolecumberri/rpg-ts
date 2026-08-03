@@ -13,8 +13,8 @@ export class FightRandomGroup implements Quest {
 
     npcStats = {
         attack: 6,
-        hp: 5,
-        totalHp: 5,
+        hp: 10,
+        totalHp: 15,
         defence: 0,
     };
 
@@ -38,9 +38,6 @@ export class FightRandomGroup implements Quest {
         const RandomNPC = createCharacter(this.npcStats);
 
         const centralTownPlace = game.getPlace("central_town");
-        if (centralTownPlace === undefined) {
-            throw new Error("Central Town place not found.");
-        }
 
         centralTownPlace.actions.push({
             id: "fight_random",
