@@ -1,8 +1,8 @@
-import { ModificationTypes } from "../../constants/stats.constants";
-import { uniqueID } from "../../helpers/common.helpers";
-import type { Character } from "../Character";
-import { AnyStat } from "../Stats";
-import { EquipmentSlot } from "./EquipmentManager";
+import { ModificationTypes } from '../../constants/stats.constants';
+import { uniqueID } from '../../helpers/common.helpers';
+import type { Character } from '../Character';
+import { AnyStat } from '../Stats';
+import { EquipmentSlot } from './EquipmentManager';
 
 export interface ItemEffect {
     stat: AnyStat;
@@ -31,14 +31,14 @@ export interface ItemDefinition {
         self: Item,
         target: Character
     ) => boolean;
-} //TODO: añadir condicionante. 
+} // TODO: añadir condicionante.
 
 export type ItemCategory =
-    | "equipment"
-    | "consumable"
-    | "quest"
-    | "key"
-    | "utility";
+    | 'equipment'
+    | 'consumable'
+    | 'quest'
+    | 'key'
+    | 'utility';
 
 export class Item {
     id: string;
@@ -57,7 +57,7 @@ export class Item {
         this.id = String(definition.id ?? uniqueID());
         this.name = definition.name;
         this.description = definition.description;
-        this.category = definition.category ?? "equipment";
+        this.category = definition.category ?? 'equipment';
         this.equiped = false;
         this.buyValue = definition.buyValue ?? 0;
         this.sellValue = definition.sellValue ?? 0;
@@ -68,12 +68,14 @@ export class Item {
     }
 
     equip(target: Character): void {
-
         const source = target.stats.getModifierSource(this.getModifierSourceId());
 
         for (const effect of this.definition.effects ?? []) {
             source.setModifier(effect.stat, effect.typeOfModification, effect.value);
         }
+
+        this.equiped = true;
+        this.ownerId = target.id;
 
         this.definition.onEquip?.(this, target);
     }
@@ -81,5 +83,8 @@ export class Item {
     unEquip(target: Character): void {
         target.stats.removeModifierSource(this.getModifierSourceId());
         this.definition.onUnEquip?.(this, target);
+
+        this.equiped = false;
+        this.ownerId = undefined;
     }
 }

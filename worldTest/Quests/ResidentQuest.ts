@@ -1,7 +1,7 @@
-import { Game } from "../Game/game";
+﻿import { Game } from "../Game/Game";
 import { Character, Stats } from "../../src";
 import { createCharacter } from "../Utils/Character.utils";
-import { Quest } from "../quests/Quest";
+import { Quest } from "../Quests/Quest";
 
 
 

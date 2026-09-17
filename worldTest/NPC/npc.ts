@@ -1,5 +1,5 @@
-import { Character } from "../../src";
-import { Game } from "../Game/game";
+﻿import { Character } from "../../src";
+import { Game } from "../Game/Game";
 
 
 export type NPCInteraction = {

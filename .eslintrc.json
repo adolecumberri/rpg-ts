@@ -24,6 +24,7 @@
     "require-jsdoc": "off",
     "no-unused-vars": "off",
     "camelcase": "off",
+    "new-cap": "off",
     "valid-jsdoc": "off",
     "linebreak-style": "off",
     "object-curly-spacing": "off",

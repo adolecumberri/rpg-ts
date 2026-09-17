@@ -1,13 +1,13 @@
-import { Character } from "../Character";
+import { Character } from '../Character';
 
 export type DamageType =
-    | "physical"
-    | "piercing"
-    | "fire"
-    | "ice"
-    | "lightning"
-    | "heal"
-    | "poison";
+    | 'physical'
+    | 'piercing'
+    | 'fire'
+    | 'ice'
+    | 'lightning'
+    | 'heal'
+    | 'poison';
 
 export interface DamagePacket {
     amount: number;

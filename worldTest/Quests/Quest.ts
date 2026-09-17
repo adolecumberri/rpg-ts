@@ -1,4 +1,4 @@
-import { Game } from "../Game/game";
+﻿import { Game } from "../Game/Game";
 
 export type Quest = {
     start: (game: Game) => Promise<void>;

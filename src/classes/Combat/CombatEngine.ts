@@ -1,10 +1,10 @@
-import { Character } from "../Character";
-import { Skill } from "../Skills";
-import { Team } from "../Team";
-import { CombatContext } from "./Combat.interfaces";
-import { DamageResolver } from "./DamageResolver";
-import { StatusResolver } from "./StatusResolver";
-import { TargetResolver } from "./TargetResolver";
+import { Character } from '../Character';
+import { Skill } from '../Skills';
+import { Team } from '../Team';
+import { CombatContext } from './Combat.interfaces';
+import { DamageResolver } from './DamageResolver';
+import { StatusResolver } from './StatusResolver';
+import { TargetResolver } from './TargetResolver';
 
 
 export class CombatEngine {
@@ -22,7 +22,7 @@ export class CombatEngine {
             attacker,
             allies,
             enemies,
-            explicitTargets
+            explicitTargets,
         );
 
 
@@ -30,15 +30,16 @@ export class CombatEngine {
             attacker,
             skill,
             logs: [],
-            targetEffects: targets.map(target => ({
+            targetEffects: targets.map((target) => ({
                 target,
                 damagePackets: [],
-                statusEffects: []
-            }))
+                statusEffects: [],
+            })),
         };
 
-        for (const effect of skill.effects)
+        for (const effect of skill.effects) {
             effect.execute(context);
+        }
 
         DamageResolver.apply(context);
 

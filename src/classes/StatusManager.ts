@@ -1,7 +1,6 @@
-import { EventMoment } from "../types/generalEvents.types";
-import { Character } from "./Character";
-import { StatusInstance } from "./StatusInstance";
-
+import { EventMoment } from '../types/generalEvents.types';
+import { Character } from './Character';
+import { StatusInstance } from './StatusInstance';
 
 
 export class StatusManager {
@@ -70,5 +69,4 @@ export class StatusManager {
     hasStatus(statusId: string) {
         return this.statuses.has(statusId);
     }
-
 }

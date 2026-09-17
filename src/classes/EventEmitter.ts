@@ -13,7 +13,7 @@ export class EventEmitter<TEvents extends EventMap> {
      */
     on<K extends keyof TEvents>(
         event: K,
-        listener: Listener<TEvents[K]>
+        listener: Listener<TEvents[K]>,
     ): () => void {
         (this.listeners[event] ??= []).push(listener);
 
@@ -25,7 +25,7 @@ export class EventEmitter<TEvents extends EventMap> {
      */
     once<K extends keyof TEvents>(
         event: K,
-        listener: Listener<TEvents[K]>
+        listener: Listener<TEvents[K]>,
     ): () => void {
         const wrapper: Listener<TEvents[K]> = (...args) => {
             this.off(event, wrapper);
@@ -40,7 +40,7 @@ export class EventEmitter<TEvents extends EventMap> {
      */
     off<K extends keyof TEvents>(
         event: K,
-        listener: Listener<TEvents[K]>
+        listener: Listener<TEvents[K]>,
     ): void {
         const listeners = this.listeners[event];
 
@@ -49,7 +49,7 @@ export class EventEmitter<TEvents extends EventMap> {
         }
 
         this.listeners[event] = listeners.filter(
-            (fn) => fn !== listener
+            (fn) => fn !== listener,
         ) as Listener<TEvents[K]>[];
     }
 

@@ -1,11 +1,11 @@
-import { Character } from "../../classes/Character";
-import { Team } from "../../classes/Team";
-import { uniqueID } from "../../helpers/common.helpers";
-import { PlaceId, PlaceOption, TravelInfo } from "./Place";
-import { World } from "./World";
+import { Character } from '../../classes/Character';
+import { Team } from '../../classes/Team';
+import { uniqueID } from '../../helpers/common.helpers';
+import { PlaceId, PlaceOption, TravelInfo } from './Place';
+import { World } from './World';
 
 export type PlayerAction = {
-    type: "look_options" | "travel" | "add_character" | "remove_character" | (string & {});
+    type: 'look_options' | 'travel' | 'add_character' | 'remove_character' | (string & {});
     placeId?: PlaceId;
     timestamp: number;
     data?: Record<string, unknown>;
@@ -29,10 +29,10 @@ export class Player {
 
     constructor(config: PlayerConstructor = {}) {
         this.id = config.id ?? uniqueID();
-        this.name = config.name ?? "player";
+        this.name = config.name ?? 'player';
         this.team = config.team ?? new Team();
         this.maxTeamSize = config.maxTeamSize ?? 4;
-        this.currentPlaceId = config.startPlaceId ?? "unknown";
+        this.currentPlaceId = config.startPlaceId ?? 'unknown';
 
         if (this.team.count() > this.maxTeamSize) {
             throw new Error(`Player team cannot be bigger than ${this.maxTeamSize}.`);
@@ -46,7 +46,7 @@ export class Player {
 
         this.team.addCharacter(character);
         this.recordAction({
-            type: "add_character",
+            type: 'add_character',
             placeId: this.currentPlaceId,
             timestamp: Date.now(),
             data: {
@@ -58,7 +58,7 @@ export class Player {
     removeCharacter(characterId: string): void {
         this.team.removeCharacter(characterId);
         this.recordAction({
-            type: "remove_character",
+            type: 'remove_character',
             placeId: this.currentPlaceId,
             timestamp: Date.now(),
             data: {
@@ -72,7 +72,7 @@ export class Player {
         const options = place.getOptions();
 
         this.recordAction({
-            type: "look_options",
+            type: 'look_options',
             placeId: place.id,
             timestamp: Date.now(),
             data: {
@@ -96,7 +96,7 @@ export class Player {
         this.currentPlaceId = result.to.id;
 
         this.recordAction({
-            type: "travel",
+            type: 'travel',
             placeId: this.currentPlaceId,
             timestamp: Date.now(),
             data: {

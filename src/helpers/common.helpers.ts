@@ -1,4 +1,4 @@
-import { MODIFICATION_TYPES, ModificationTypes } from "../constants/stats.constants";
+import { MODIFICATION_TYPES, ModificationTypes } from '../constants/stats.constants';
 
 
 function uniqueID() {
@@ -13,7 +13,7 @@ function getRandomInt(min = 0, max = 100) {
 encapsulates adding HP and totalHP check logic.
 */
 function lifeCheckHelper({ hp = 0, totalHp = 0, clamped = false }: { hp?: number; totalHp?: number, clamped?: boolean }) {
-    let newTotalHp = Math.max(1, totalHp);
+    const newTotalHp = Math.max(1, totalHp);
     let newHp = Math.max(0, hp);
 
     if (clamped && hp > totalHp) {
@@ -28,8 +28,8 @@ function lifeCheckHelper({ hp = 0, totalHp = 0, clamped = false }: { hp?: number
 }
 
 function isPercentageModification(type: ModificationTypes): boolean {
-    return type === MODIFICATION_TYPES.BUFF_PERCENTAGE
-        || type === MODIFICATION_TYPES.DEBUFF_PERCENTAGE;
+    return type === MODIFICATION_TYPES.BUFF_PERCENTAGE ||
+        type === MODIFICATION_TYPES.DEBUFF_PERCENTAGE;
 };
 
 export {

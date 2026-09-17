@@ -1,4 +1,4 @@
-import { Game } from "../Game/game";
+﻿import { Game } from "../Game/Game";
 import { NPC } from "../NPC/npc";
 import { innAction } from "./InnAction";
 import { CENTRAL_SHOP, shopAction } from "./Shop";

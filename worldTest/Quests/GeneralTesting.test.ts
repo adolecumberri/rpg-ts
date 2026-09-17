@@ -1,5 +1,5 @@
-import { Game } from "../Game/game";
-import { Quest } from "../quests/Quest";
+﻿import { Game } from "../Game/Game";
+import { Quest } from "../Quests/Quest";
 
 
 

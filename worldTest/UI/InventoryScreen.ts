@@ -25,7 +25,7 @@ export class InventoryScreen {
 
                         selectedCharacter.equipment.equipOrReplace(
                             item,
-                            selectedCharacter.id
+                            selectedCharacter
                         );
 
                         return false;
@@ -36,7 +36,7 @@ export class InventoryScreen {
                     label: "Unequip",
                     execute: async () => {
                         if (item.definition.slot && ownerCharacter) {
-                            ownerCharacter.equipment.unequip(item.definition.slot);
+                            ownerCharacter.equipment.unequip(item.definition.slot, ownerCharacter);
                         }
 
                         return false;

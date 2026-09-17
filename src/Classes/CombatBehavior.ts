@@ -3,7 +3,6 @@ import { Character } from './Character';
 import { Stats } from './Stats';
 
 
-
 export type AttackType = typeof ATTACK_TYPE[keyof typeof ATTACK_TYPE];
 export type DefenceType = typeof DEFENCE_TYPE[keyof typeof DEFENCE_TYPE];
 
@@ -39,7 +38,6 @@ export type CombatBehaviorConstructor = {
 }
 
 export class CombatBehavior {
-
     attack: AttackFunction;
     defence: DefenceFunction;
     damageCalculation: DamageCalculation;
@@ -53,7 +51,4 @@ export class CombatBehavior {
         this.defence = config.defence || fallback.defence;
         this.defenceCalculation = config.defenceCalculation || fallback.defenceCalculation;
     }
-
-    
-
 }

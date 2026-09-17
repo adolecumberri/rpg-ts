@@ -1,9 +1,9 @@
-import { Character } from "../../src";
+﻿import { Character } from "../../src";
 import { uniqueID } from "../../src/helpers/common.helpers";
-import { Game } from "../Game/game";
+import { Game } from "../Game/Game";
 import { NPC } from "../NPC/npc";
 import { createCharacter } from "../Utils/Character.utils";
-import { Quest } from "../quests/Quest";
+import { Quest } from "../Quests/Quest";
 
 export class FightRandomQuest implements Quest {
     id = "fight_random";

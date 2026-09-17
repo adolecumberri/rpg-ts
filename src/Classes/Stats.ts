@@ -1,7 +1,7 @@
-import { DEFAULT_STATS } from "../constants/stats.constants";
-import { lifeCheckHelper } from "../helpers/common.helpers";
-import { StatsModifier } from "./StatsModifier";
-import { DEFAULT_STAT_MODIFIERS, ModificationTypes } from "../constants/stats.constants";
+import { DEFAULT_STATS } from '../constants/stats.constants';
+import { lifeCheckHelper } from '../helpers/common.helpers';
+import { StatsModifier } from './StatsModifier';
+import { DEFAULT_STAT_MODIFIERS, ModificationTypes } from '../constants/stats.constants';
 
 export interface Statistics {
     attack: number;
@@ -25,11 +25,11 @@ export class Stats<T extends Statistics = Statistics> implements Statistics {
     private modifierSources: Map<string, StatsModifier> = new Map();
 
     get statsModifier(): StatsModifier {
-        return this.getModifierSource("status"); //TODO: this¿¿???
+        return this.getModifierSource('status'); // TODO: this¿¿???
     }
 
     set statsModifier(value: StatsModifier) {
-        this.modifierSources.set("status", value ?? new StatsModifier());
+        this.modifierSources.set('status', value ?? new StatsModifier());
     }
 
     constructor(params: Partial<T> = {} as Partial<T>) {
@@ -48,14 +48,13 @@ export class Stats<T extends Statistics = Statistics> implements Statistics {
                 ...lifeCheckHelper({
                     hp,
                     totalHp,
-                    clamped: true
+                    clamped: true,
                 }),
             },
         );
 
         Object.assign(this, procesedProps);
-        this.modifierSources.set("status", new StatsModifier());
-
+        this.modifierSources.set('status', new StatsModifier());
     }
 
     getModifierSource(sourceId: string): StatsModifier {
@@ -76,7 +75,7 @@ export class Stats<T extends Statistics = Statistics> implements Statistics {
 
     clearModifierSources(): void {
         this.modifierSources.clear();
-        this.modifierSources.set("status", new StatsModifier());
+        this.modifierSources.set('status', new StatsModifier());
     }
 
     getCombinedStatModifiers(key: keyof Statistics): Record<ModificationTypes, number> {
@@ -96,23 +95,28 @@ export class Stats<T extends Statistics = Statistics> implements Statistics {
     calculateStatVariation(key: keyof Statistics): number {
         const allStatModifiers = this.getCombinedStatModifiers(key);
 
-        let originalValue = this[key] as number;
+        const originalValue = this[key] as number;
         let modifiedValue = 0;
 
         modifiedValue += allStatModifiers.BUFF_FIXED - allStatModifiers.DEBUFF_FIXED;
         modifiedValue += originalValue * ((allStatModifiers.BUFF_PERCENTAGE - allStatModifiers.DEBUFF_PERCENTAGE) / 100);
 
-        //round on 2 decimals
+        // round on 2 decimals
         modifiedValue = Math.round(modifiedValue * 100) / 100;
         return modifiedValue;
     };
 
-    //create a general get that every time that the user tries to access a value runs
-    //the life check helper to update the isAlive and totalHp values.
-    get(prop: keyof Statistics) {
-        return this.calculateStatVariation(prop);
+    // Calculates the final value of a stat (base value + all modifier sources).
+    calculateStatValue(key: keyof Statistics): number {
+        const value = (this[key] as number) + this.calculateStatVariation(key);
+        return Math.round(value * 100) / 100;
     }
 
+    // create a general get that every time that the user tries to access a value runs
+    // the life check helper to update the isAlive and totalHp values.
+    get(prop: keyof Statistics) {
+        return this.calculateStatValue(prop);
+    }
 }
 
 export function createStats<T extends Statistics = Statistics>(params: Partial<T> = {} as Partial<T>): Stats<T> & T {

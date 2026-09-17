@@ -1,6 +1,6 @@
-import { uniqueID } from "../helpers/common.helpers";
-import type { Character } from "./Character";
-import { Item } from "./items/Item";
+import { uniqueID } from '../helpers/common.helpers';
+import type { Character } from './Character';
+import { Item } from './items/Item';
 
 export type InventorySlot = {
     id: string;
@@ -21,16 +21,15 @@ export class Inventory {
     }
 
     addItem(item: Item, quantity: number = 1): void {
-
         const existing = this.slots.get(item.id);
 
-        if (item.category !== "equipment" && existing) {
+        if (item.category !== 'equipment' && existing) {
             existing.quantity += quantity;
             return;
         }
 
         this.slots.set(item.id, {
-            id: item.category === "equipment" ? uniqueID() : item.id,
+            id: item.category === 'equipment' ? uniqueID() : item.id,
             item,
             quantity,
         });
@@ -46,7 +45,7 @@ export class Inventory {
 
     getAllNotEquipedItems(): InventorySlot[] {
         return Array.from(this.slots.values()).filter(
-            (slot) => !slot.item.equiped
+            (slot) => !slot.item.equiped,
         );
     }
 
@@ -57,7 +56,7 @@ export class Inventory {
     getAllItemsSortedByCategory(): { [category: string]: InventorySlot[] } {
         const sorted: { [category: string]: InventorySlot[] } = {};
         for (const slot of this.getAllItems()) {
-            const category = slot.item.category ?? "equipment";
+            const category = slot.item.category ?? 'equipment';
             if (!sorted[category]) {
                 sorted[category] = [];
             }
@@ -67,14 +66,12 @@ export class Inventory {
     }
 
     hasItemByDefinitionId(itemId: string): boolean {
-
         return this.getAllItems().some(
-            slot => slot.item.definition.id === itemId
+            (slot) => slot.item.definition.id === itemId,
         );
     }
 
     removeItem(itemId: string, quantity: number = 1): boolean {
-
         const slot = this.slots.get(itemId);
         if (!slot) {
             return false;
@@ -95,11 +92,10 @@ export class Inventory {
 
     useItem(
         inventorySlotId: string,
-        target: Character
+        target: Character,
     ): boolean {
-
         const slot = this.slots.get(
-            inventorySlotId
+            inventorySlotId,
         );
 
         if (!slot) {
@@ -109,11 +105,10 @@ export class Inventory {
         const consumed =
             slot.item.definition.onUse?.(
                 slot.item,
-                target
+                target,
             ) ?? false;
 
         if (consumed) {
-
             slot.quantity--;
 
             if (slot.quantity <= 0) {
@@ -124,9 +119,33 @@ export class Inventory {
         return consumed;
     }
 
+    equipItem(itemId: string): boolean {
+        const owner = this.requireOwner();
+        const slot = this.slots.get(itemId);
+
+        if (!slot || slot.item.category !== 'equipment') {
+            return false;
+        }
+
+        slot.item.equip(owner);
+        return true;
+    }
+
+    unEquipItem(itemId: string): boolean {
+        const owner = this.requireOwner();
+        const slot = this.slots.get(itemId);
+
+        if (!slot) {
+            return false;
+        }
+
+        slot.item.unEquip(owner);
+        return true;
+    }
+
     private requireOwner(): Character {
         if (!this.owner) {
-            throw new Error("Inventory has no owner character assigned.");
+            throw new Error('Inventory has no owner character assigned.');
         }
 
         return this.owner;

@@ -28,5 +28,5 @@ export {
     DEFAULT_STATS,
     MODIFICATION_TYPES,
     DEFAULT_STAT_MODIFIERS,
-    ModificationTypes
+    ModificationTypes,
 };

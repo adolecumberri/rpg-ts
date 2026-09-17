@@ -1,11 +1,10 @@
 import { Character, Combat, Item, Team } from "../../src";
-import { uniqueID } from "../../src/helpers/common.helpers";
 import { CombatController } from "../Combat/CombatController";
 import { Menu, MenuChoice } from "../menu/Menu";
 import { NPC } from "../NPC/npc";
 import { Place, PLACES, PlaceTrigger } from "../Places/Place";
 import { Shop, ShopEntry } from "../Places/Shop";
-import { Quest } from "../quests/Quest";
+import { Quest } from "../Quests/Quest";
 import { GameScreens } from "../UI/GameScreen";
 import { ScreenManager } from "../UI/ScreenManager";
 
@@ -174,8 +173,8 @@ export class Game<TPlaceId extends string = string> {
         return place;
     }
 
-    placeCount(): string {
-        return uniqueID();
+    placeCount(): number {
+        return this.places.size;
     }
 
     private async travelTo(placeId: TPlaceId): Promise<void> {
@@ -567,7 +566,7 @@ export class Game<TPlaceId extends string = string> {
 
                 character.equipment.equipOrReplace(
                     item,
-                    character.id
+                    character
                 );
 
                 return false;
@@ -594,7 +593,7 @@ export class Game<TPlaceId extends string = string> {
             throw new Error("Item has no equipment slot defined");
         }
 
-        character.equipment.unequip(item.definition.slot);
+        character.equipment.unequip(item.definition.slot, character);
     }
 
 }

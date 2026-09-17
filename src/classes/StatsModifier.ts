@@ -1,5 +1,5 @@
-import { DEFAULT_STAT_MODIFIERS, MODIFICATION_TYPES, ModificationTypes } from "../constants/stats.constants";
-import { AnyStat } from "./Stats";
+import { DEFAULT_STAT_MODIFIERS, MODIFICATION_TYPES, ModificationTypes } from '../constants/stats.constants';
+import { AnyStat } from './Stats';
 
 export type ModifiersRecord = Partial<Record<AnyStat, Record<ModificationTypes, number>>>;
 
@@ -10,11 +10,9 @@ type StatsModificationConstructor = { modifiers: ModifiersRecord };
  * Gestiona las modificaciones de estadísticas.
  */
 export class StatsModifier {
-
     modifiers: ModifiersRecord = {};
 
     constructor(params: StatsModificationConstructor = { modifiers: {} }) {
-
         this.modifiers = params.modifiers ?? {};
     };
 
@@ -27,7 +25,6 @@ export class StatsModifier {
     };
 
     getAllStatModifiers(key: AnyStat): Record<ModificationTypes, number> {
-
         if (!this.modifiers[key]) {
             this.modifiers[key] = { ...DEFAULT_STAT_MODIFIERS };
         }
@@ -52,7 +49,7 @@ export class StatsModifier {
     }
 
     /**
-     * 
+     *
      * @param stat stat changed
      * @param type type of modifier
      * @param value value to add to modifier
@@ -70,5 +67,8 @@ export class StatsModifier {
         this.modifiers = modifiers;
     };
 
-
+    isPercentageModification(type: ModificationTypes): boolean {
+        return type === MODIFICATION_TYPES.BUFF_PERCENTAGE ||
+            type === MODIFICATION_TYPES.DEBUFF_PERCENTAGE;
+    }
 }

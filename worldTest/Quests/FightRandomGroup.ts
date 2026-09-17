@@ -1,10 +1,10 @@
-import { Character, Stats, Team } from "../../src";
+﻿import { Character, Stats, Team } from "../../src";
 import { uniqueID } from "../../src/helpers/common.helpers";
 import { CombatController } from "../Combat/CombatController";
-import { Game } from "../Game/game";
+import { Game } from "../Game/Game";
 import { NPC } from "../NPC/npc";
 import { createCharacter } from "../Utils/Character.utils";
-import { Quest } from "../quests/Quest";
+import { Quest } from "../Quests/Quest";
 
 export class FightRandomGroup implements Quest {
     id = "fight_random";

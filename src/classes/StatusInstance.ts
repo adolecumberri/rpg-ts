@@ -1,10 +1,10 @@
-import { ModificationTypes } from "../constants/stats.constants";
-import { ACTION_HANDLER, STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from "../constants/status.constants";
-import { uniqueID } from "../helpers/common.helpers";
-import { EventMoment } from "../types/generalEvents.types";
-import { Character } from "./Character";
-import { CombatTrigger } from "./Combat/Combat.interfaces";
-import { AnyStat, Stats } from "./Stats";
+import { ModificationTypes } from '../constants/stats.constants';
+import { ACTION_HANDLER, STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../constants/status.constants';
+import { uniqueID } from '../helpers/common.helpers';
+import { EventMoment } from '../types/generalEvents.types';
+import { Character } from './Character';
+import { CombatTrigger } from './Combat/Combat.interfaces';
+import { AnyStat, Stats } from './Stats';
 
 export type StatusInstanceConstructor = {
     definition: StatusDefinition;
@@ -22,12 +22,12 @@ export interface StatusDurationTemporal {
     value?: number;
 }
 
-//TODO: pending to check
+// TODO: pending to check
 export type StatusActivationFunction = (arg: {
     from: number,
     to: number,
     value: number,
-    modificationType: ModificationTypes,// TODO: reconsider
+    modificationType: ModificationTypes, // TODO: reconsider
 }) => ({
     finalValue: number,
     initialValue: number;
@@ -86,7 +86,8 @@ export class StatusInstance {
 
         // Si no se puede activar, solo reducimos duración si es temporal y salimos
         if (!this.canActivate() && this.definition.duration.type === STATUS_DURATIONS.TEMPORAL) {
-            (this.definition.duration as StatusDurationTemporal).value = ((this.definition.duration as StatusDurationTemporal).value ?? 0) - 1;
+            const temporalValue = (this.definition.duration as StatusDurationTemporal).value ?? 0;
+            (this.definition.duration as StatusDurationTemporal).value = temporalValue - 1;
             return;
         };
 
@@ -96,9 +97,11 @@ export class StatusInstance {
 
         // stat Affected es AffectedStatDescriptor
         for (const statAffectedDescriptor of this.definition.statsAffected) {
-
             if (!stats[statAffectedDescriptor.from as keyof Stats] || !stats[statAffectedDescriptor.to as keyof Stats]) {
-                console.warn(`Stat "${statAffectedDescriptor.from}" or "${statAffectedDescriptor.to}" not found in stats object. Skipping status effect application.`);
+                console.warn(
+                    `Stat "${statAffectedDescriptor.from}" or "${statAffectedDescriptor.to}" ` +
+                    'not found in stats object. Skipping status effect application.',
+                );
                 continue;
             }
 
@@ -114,8 +117,11 @@ export class StatusInstance {
 
 
             // Aplica el cambio
-            stats.statsModifier?.setModifier(statAffectedDescriptor.to, statAffectedDescriptor.typeOfModification, Math.abs(result.variation));
-
+            stats.statsModifier?.setModifier(
+                statAffectedDescriptor.to,
+                statAffectedDescriptor.typeOfModification,
+                Math.abs(result.variation),
+            );
         }
 
         // Reducir duración temporal si aplica
@@ -128,7 +134,7 @@ export class StatusInstance {
 
     /** devuelve true si se puede activar según duration/usage rules */
     canActivate(): boolean {
-        const { type, } = this.definition.duration;
+        const { type } = this.definition.duration;
 
         // Temporal
         if (type === STATUS_DURATIONS.TEMPORAL) {
@@ -137,7 +143,7 @@ export class StatusInstance {
                 return false;
             }
 
-            //asumo que usageFrequency es PER_ACTION
+            // asumo que usageFrequency es PER_ACTION
             return ((this.definition.duration as StatusDurationTemporal).value ?? 0) > 0;
         } else if (type === STATUS_DURATIONS.PERMANENT) {
             if (this.definition.usageFrequency === 'PER_ACTION') return true;

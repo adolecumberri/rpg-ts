@@ -1,8 +1,8 @@
-import { Character } from "./Character";
-import { Team } from "./Team";
+import { Character } from './Character';
+import { Team } from './Team';
 
 export type CombatSide = Character | Team;
-type CombatWinner = "left" | "right" | "draw";
+type CombatWinner = 'left' | 'right' | 'draw';
 
 export type CombatOptions = {
     maxRounds?: number;
@@ -60,13 +60,13 @@ export class Combat {
         const turns: CombatTurn[] = [];
 
         if (this.getAlive(left).length === 0 || this.getAlive(right).length === 0) {
-            throw new Error("Both sides must have at least one alive character before combat starts.");
+            throw new Error('Both sides must have at least one alive character before combat starts.');
         }
 
         let rounds = 0;
-        while (rounds < config.maxRounds
-            && this.getAlive(left).length > 0
-            && this.getAlive(right).length > 0
+        while (rounds < config.maxRounds &&
+            this.getAlive(left).length > 0 &&
+            this.getAlive(right).length > 0
         ) {
             rounds++;
             let damageThisRound = 0;
@@ -103,9 +103,9 @@ export class Combat {
         const leftSurvivors = this.getAlive(left).map((char) => char.id);
         const rightSurvivors = this.getAlive(right).map((char) => char.id);
 
-        let winner: CombatWinner = "draw";
-        if (leftSurvivors.length > 0 && rightSurvivors.length === 0) winner = "left";
-        if (rightSurvivors.length > 0 && leftSurvivors.length === 0) winner = "right";
+        let winner: CombatWinner = 'draw';
+        if (leftSurvivors.length > 0 && rightSurvivors.length === 0) winner = 'left';
+        if (rightSurvivors.length > 0 && leftSurvivors.length === 0) winner = 'right';
 
         return {
             winner,
@@ -119,19 +119,18 @@ export class Combat {
     resolveAttack(
         attacker: Character,
         defender: Character,
-        round: number
+        round: number,
     ): CombatTurn {
-
-        const attackValue = attacker.getStat("attack");
-        const defenceValue = defender.getStat("defence");
+        const attackValue = attacker.getStat('attack');
+        const defenceValue = defender.getStat('defence');
 
         const damage =
-            Math.max(1, attackValue - defenceValue);
+            Math.max(0, attackValue - defenceValue);
 
         defender.stats.hp =
             Math.max(
                 0,
-                defender.stats.hp - damage
+                defender.stats.hp - damage,
             );
 
         defender.stats.isAlive =
@@ -141,7 +140,7 @@ export class Combat {
             round,
             attackerId: attacker.id,
             defenderId: defender.id,
-            attackType: "basic",
+            attackType: 'basic',
             rawDamage: attackValue,
             damageApplied: damage,
             defenderHpAfter: defender.stats.hp,

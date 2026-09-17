@@ -1,5 +1,11 @@
-import { AttackFunction, CombatBehaviorConstructor, DamageCalculation, DefenceCalculation, DefenceFunction } from "../classes/CombatBehavior";
-import { Stats } from "../classes/Stats";
+import {
+    AttackFunction,
+    CombatBehaviorConstructor,
+    DamageCalculation,
+    DefenceCalculation,
+    DefenceFunction,
+} from '../classes/CombatBehavior';
+import { Stats } from '../classes/Stats';
 
 const ATTACK_TYPE = {
     NORMAL: 'normal',

@@ -1,13 +1,13 @@
-import { uniqueID } from "../helpers/common.helpers";
-import { CombatBehavior } from "../classes/CombatBehavior";
-import { Statistics, Stats } from "../classes/Stats";
-import { Inventory } from "./Inventory";
-import { Experience } from "./Experience";
-import { EventEmitter } from "./EventEmitter";
-import { StatusManager } from "./StatusManager";
-import { EquipmentManager } from "./items/EquipmentManager";
-import { Skill } from "./Skills";
-import { CombatTrigger } from "./Combat/Combat.interfaces";
+import { uniqueID } from '../helpers/common.helpers';
+import { CombatBehavior } from '../classes/CombatBehavior';
+import { Statistics, Stats } from '../classes/Stats';
+import { Inventory } from './Inventory';
+import { Experience } from './Experience';
+import { EventEmitter } from './EventEmitter';
+import { StatusManager } from './StatusManager';
+import { EquipmentManager } from './items/EquipmentManager';
+import { Skill } from './Skills';
+import { CombatTrigger } from './Combat/Combat.interfaces';
 
 type CharacterConstructor = {
     id?: string;
@@ -28,6 +28,7 @@ export class Character {
     stats: Stats;
     combat: CombatBehavior;
     equipment: EquipmentManager;
+    inventory: Inventory;
     experience: Experience;
     eventEmitter: EventEmitter<any>;
     statusManager: StatusManager;
@@ -35,7 +36,6 @@ export class Character {
     skills: Skill[] = [];
 
     constructor(params: Partial<CharacterConstructor> = {}) {
-
         this.id = params.id || uniqueID();
         this.name = params.name || this.id;
         this.stats = params.stats || new Stats();
@@ -43,21 +43,16 @@ export class Character {
         this.experience = params.experience || new Experience();
         this.eventEmitter = params.eventEmitter || new EventEmitter();
         this.equipment = params.equipment ?? new EquipmentManager();
+        this.inventory = params.inventory ?? new Inventory(this);
         // ensure externally provided inventories are bound to this character
+        this.inventory.setOwner(this);
 
         this.statusManager = params.statusManager || new StatusManager(this);
         this.skills = params.skills ?? [];
     }
 
     getStat(stat: keyof Statistics): number {
-        let rawValue = this.stats[stat as keyof Statistics] as number;
-
-        rawValue = rawValue +
-            this.stats.calculateStatVariation(stat) +
-            this.equipment.calculateStatVariation(rawValue, stat);
-
-        return Math.round(rawValue * 100) / 100;
+        return this.stats.calculateStatValue(stat);
     }
-
 }
 

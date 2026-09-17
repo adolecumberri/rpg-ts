@@ -1,5 +1,5 @@
-import { Character } from "./Character";
-import { Inventory } from "./Inventory";
+import { Character } from './Character';
+import { Inventory } from './Inventory';
 
 
 type TeamConstructor = {
@@ -23,7 +23,6 @@ class Team {
         params?.members.forEach((char) => this.addCharacter(char));
 
         this.inventory = params?.inventory || new Inventory();
-
     }
 
     /**
@@ -91,7 +90,6 @@ class Team {
     getAlive(): Character[] {
         return this.getAll().filter((character) => character.stats.hp > 0 && character.stats.isAlive > 0);
     }
-
 }
 
 export { Team };

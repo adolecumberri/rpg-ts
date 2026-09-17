@@ -17,9 +17,7 @@
     ]
   },
   "include": [
-    "src/**/*",
-    "index.ts",
-    "worldTest3/statistics.d.ts"
+    "src/**/*"
   ],
   "exclude": [
     "dist",

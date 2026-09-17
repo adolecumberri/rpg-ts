@@ -7,7 +7,7 @@ import {
     WorldNavigator,
     WorldTravelRequest,
     WorldTravelResult,
-} from "./Place";
+} from './Place';
 
 export type WorldConstructor = {
     places?: Array<Place | PlaceDefinition>;
@@ -106,7 +106,7 @@ export class World implements WorldNavigator {
         onEvent?: PlaceEventHandler;
     }): WorldTravelResult {
         if (!this.currentPlaceId) {
-            throw new Error("World has no current place set.");
+            throw new Error('World has no current place set.');
         }
 
         return this.travel({

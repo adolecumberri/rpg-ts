@@ -1,5 +1,5 @@
-import { StatusDefinition } from "../classes/StatusInstance";
-import { MODIFICATION_TYPES, ModificationTypes } from "./stats.constants";
+import { StatusDefinition } from '../classes/StatusInstance';
+import { MODIFICATION_TYPES, ModificationTypes } from './stats.constants';
 
 // Duración de los estados
 export const STATUS_DURATIONS = {
@@ -61,7 +61,7 @@ export function ACTION_HANDLER({
     modificationType,
     from,
     to,
-    value, }: {
+    value }: {
         from: number,
         to: number,
         value: number,
