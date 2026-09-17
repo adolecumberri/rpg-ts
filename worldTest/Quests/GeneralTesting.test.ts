@@ -19,7 +19,9 @@ export class GeneralTestingQuest implements Quest {
             id: "a",
             label: "a",
             onSelect: async (game) => {
+                game.getPlace("central_town");
 
+                
 
 
                 return true;
