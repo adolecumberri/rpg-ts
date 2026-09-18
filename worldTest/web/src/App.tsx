@@ -6,6 +6,9 @@ import { InventoryScreen } from './screens/InventoryScreen';
 import { ShopScreen } from './screens/ShopScreen';
 import { CombatScreen } from './screens/CombatScreen';
 import { NpcScreen } from './screens/NpcScreen';
+import { SkillTreeScreen } from './screens/SkillTreeScreen';
+import { MapScreen } from './screens/MapScreen';
+import { LootScreen } from './screens/LootScreen';
 
 function Header() {
     const api = useGame();
@@ -19,6 +22,9 @@ function Header() {
     else if (route.name === 'combat') title = 'Combat';
     else if (route.name === 'npc') title = api.findNpc(route.npcId)?.character.name ?? 'Character';
     else if (route.name === 'character') title = api.team.getCharacter(route.characterId)?.name ?? 'Character';
+    else if (route.name === 'skilltree') title = 'Skill Tree';
+    else if (route.name === 'map') title = 'World Map';
+    else if (route.name === 'loot') title = 'Loot Tables';
 
     return (
         <div className="header">
@@ -28,6 +34,14 @@ function Header() {
                 <div style={{ width: 38 }} />
             )}
             <div className="header-title">{title}</div>
+            <button
+                className="back"
+                style={{ marginRight: 8, width: 'auto', padding: '0 10px' }}
+                onClick={() => api.save()}
+                aria-label="Save game"
+            >
+                💾
+            </button>
             <div className="header-meta">🪙 {api.team.gold}g</div>
         </div>
     );
@@ -48,9 +62,15 @@ function Router() {
         case 'shop':
             return <ShopScreen />;
         case 'combat':
-            return <CombatScreen npcId={api.current.npcId} placeId={api.current.placeId} group={api.current.group} />;
+            return <CombatScreen npcId={api.current.npcId} placeId={api.current.placeId} group={api.current.group} groupId={api.current.groupId} />;
         case 'npc':
             return <NpcScreen npcId={api.current.npcId} placeId={api.current.placeId} />;
+        case 'skilltree':
+            return <SkillTreeScreen characterId={api.current.characterId} />;
+        case 'map':
+            return <MapScreen />;
+        case 'loot':
+            return <LootScreen />;
         default:
             return <PlaceScreen />;
     }

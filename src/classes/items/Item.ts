@@ -10,6 +10,18 @@ export interface ItemEffect {
     value: number;
 }
 
+// Generic elemental properties for an item: extra attack of an
+// element and/or resistance to it. Element ids are strings so the
+// library stays agnostic of specific element lists.
+export type ItemElement = {
+    element: string;
+    attackValue?: number;
+    resistanceValue?: number;
+    // When true, the wielder's whole attack is converted into this
+    // element and attackValue is added on top of the base attack.
+    convertsAttack?: boolean;
+};
+
 export interface ItemDefinition {
     id?: string | number;
 
@@ -23,6 +35,7 @@ export interface ItemDefinition {
 
     effects?: ItemEffect[];
     slot?: EquipmentSlot;
+    elements?: ItemElement[];
 
     onEquip?: (self: Item, target: Character) => void;
     onUnEquip?: (self: Item, target: Character) => void;
@@ -35,10 +48,23 @@ export interface ItemDefinition {
 
 export type ItemCategory =
     | 'equipment'
+    | 'weapon'
+    | 'magic_weapon'
+    | 'ranged_weapon'
+    | 'armor'
     | 'consumable'
     | 'quest'
     | 'key'
     | 'utility';
+
+// Categories that can be equipped by a character.
+export function isEquippableCategory(category: ItemCategory): boolean {
+    return category === 'equipment' ||
+        category === 'weapon' ||
+        category === 'magic_weapon' ||
+        category === 'ranged_weapon' ||
+        category === 'armor';
+}
 
 export class Item {
     id: string;

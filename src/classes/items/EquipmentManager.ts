@@ -1,5 +1,5 @@
 import { Character } from '../Character';
-import { Item } from './Item';
+import { isEquippableCategory, Item } from './Item';
 
 export type EquipmentSlot =
     | 'weapon'
@@ -10,7 +10,7 @@ export class EquipmentManager {
     private slots: Partial<Record<EquipmentSlot, Item>> = {};
 
     equip(item: Item, target: Character) {
-        if (item.category !== 'equipment') {
+        if (!isEquippableCategory(item.category)) {
             throw new Error(
                 `${item.name} cannot be equipped`,
             );
@@ -34,7 +34,7 @@ export class EquipmentManager {
     }
 
     equipOrReplace(item: Item, target: Character) {
-        if (item.category !== 'equipment') {
+        if (!isEquippableCategory(item.category)) {
             throw new Error(
                 `${item.name} cannot be equipped`,
             );

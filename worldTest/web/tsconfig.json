@@ -16,6 +16,8 @@
     "noUnusedParameters": false,
     "baseUrl": ".",
     "paths": {
+      "@core": ["../core/index.ts"],
+      "@core/*": ["../core/*"],
       "@rpg": ["../../src/index.ts"],
       "@rpg/*": ["../../src/*"]
     }

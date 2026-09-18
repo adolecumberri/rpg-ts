@@ -1,14 +1,17 @@
 import { useGame } from '../game/GameContext';
-import { Menu, type MenuOption } from '../components/Menu';
+import { MenuSection, type MenuOption } from '../components/Menu';
 
 export function PlaceScreen() {
     const api = useGame();
     const place = api.currentPlace;
 
-    const options: MenuOption[] = [];
+    const talks: MenuOption[] = [];
+    const combats: MenuOption[] = [];
+    const services: MenuOption[] = [];
+    const travels: MenuOption[] = [];
 
     for (const npc of api.npcsAtCurrent) {
-        options.push({
+        talks.push({
             icon: '👤',
             label: npc.character.name,
             sub: 'Talk / Fight',
@@ -17,12 +20,8 @@ export function PlaceScreen() {
     }
 
     for (const action of place.actions) {
-        if (action.kind === 'shop') {
-            options.push({ icon: action.icon ?? '🛒', label: action.label, onClick: () => api.navigate({ name: 'shop' }) });
-        } else if (action.kind === 'rest') {
-            options.push({ icon: action.icon ?? '🛏️', label: action.label, onClick: () => api.rest() });
-        } else if (action.kind === 'message') {
-            options.push({
+        if (action.kind === 'message') {
+            talks.push({
                 icon: action.icon ?? '💬',
                 label: action.label,
                 onClick: () => {
@@ -32,23 +31,27 @@ export function PlaceScreen() {
                 },
             });
         } else if (action.kind === 'fight') {
-            options.push({
+            combats.push({
                 icon: action.icon ?? '⚔️',
                 label: action.label,
                 onClick: () => api.navigate({ name: 'combat', npcId: action.npcId, placeId: place.id }),
             });
         } else if (action.kind === 'fight_group') {
-            options.push({
+            combats.push({
                 icon: action.icon ?? '⚔️',
                 label: action.label,
-                onClick: () => api.navigate({ name: 'combat', group: true, placeId: place.id }),
+                onClick: () => api.navigate({ name: 'combat', group: true, groupId: action.groupId, placeId: place.id }),
             });
+        } else if (action.kind === 'shop') {
+            services.push({ icon: action.icon ?? '🛒', label: action.label, onClick: () => api.navigate({ name: 'shop' }) });
+        } else if (action.kind === 'rest') {
+            services.push({ icon: action.icon ?? '🛏️', label: action.label, onClick: () => api.rest() });
         }
     }
 
     for (const conn of place.connections) {
         const locked = Boolean(conn.requiredFlag && !api.unlocked.has(conn.requiredFlag));
-        options.push({
+        travels.push({
             icon: conn.icon ?? '🧭',
             label: conn.label,
             sub: locked ? 'Locked' : undefined,
@@ -56,10 +59,12 @@ export function PlaceScreen() {
         });
     }
 
-    options.push(
+    const party: MenuOption[] = [
         { icon: '👥', label: 'Team', onClick: () => api.navigate({ name: 'team' }) },
         { icon: '🎒', label: 'Inventory', onClick: () => api.navigate({ name: 'inventory' }) },
-    );
+        { icon: '🗺️', label: 'World Map', onClick: () => api.navigate({ name: 'map' }) },
+        { icon: '🎲', label: 'Loot Tables', onClick: () => api.navigate({ name: 'loot' }) },
+    ];
 
     return (
         <div className="screen">
@@ -68,7 +73,11 @@ export function PlaceScreen() {
                 <h1>{place.name}</h1>
                 <p>{place.description}</p>
             </div>
-            <Menu options={options} />
+            <MenuSection title="Talks" icon="💬" options={talks} />
+            <MenuSection title="Combats" icon="⚔️" options={combats} />
+            <MenuSection title="Services" icon="🏪" options={services} />
+            <MenuSection title="Travel" icon="🧭" options={travels} />
+            <MenuSection title="Party" icon="🎒" options={party} />
         </div>
     );
 }

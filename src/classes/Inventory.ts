@@ -1,16 +1,20 @@
 import { uniqueID } from '../helpers/common.helpers';
 import type { Character } from './Character';
-import { Item } from './items/Item';
+import { isEquippableCategory, Item } from './items/Item';
 
 export type InventorySlot = {
     id: string;
     item: Item;
+    // Copies currently in the bag (not equipped).
     quantity: number;
+    // Copies owned overall (available + equipped).
+    totalQuantity: number;
 };
 
 export class Inventory {
     private owner?: Character;
     private slots: Map<string, InventorySlot> = new Map();
+    private equippedInstances: Map<string, Item[]> = new Map();
 
     constructor(owner?: Character) {
         this.owner = owner;
@@ -23,15 +27,17 @@ export class Inventory {
     addItem(item: Item, quantity: number = 1): void {
         const existing = this.slots.get(item.id);
 
-        if (item.category !== 'equipment' && existing) {
+        if (existing) {
             existing.quantity += quantity;
+            existing.totalQuantity += quantity;
             return;
         }
 
         this.slots.set(item.id, {
-            id: item.category === 'equipment' ? uniqueID() : item.id,
+            id: isEquippableCategory(item.category) ? uniqueID() : item.id,
             item,
             quantity,
+            totalQuantity: quantity,
         });
     }
 
@@ -43,9 +49,10 @@ export class Inventory {
         return Array.from(this.slots.values());
     }
 
+    // Items that have at least one available copy (used by the sell UI).
     getAllNotEquipedItems(): InventorySlot[] {
         return Array.from(this.slots.values()).filter(
-            (slot) => !slot.item.equiped,
+            (slot) => slot.quantity > 0,
         );
     }
 
@@ -71,16 +78,28 @@ export class Inventory {
         );
     }
 
+    /**
+     * Removes available (not equipped) copies from the bag.
+     * The slot is kept while equipped copies remain, so a fully
+     * equipped item still shows in the inventory with quantity 0.
+     */
     removeItem(itemId: string, quantity: number = 1): boolean {
         const slot = this.slots.get(itemId);
         if (!slot) {
             return false;
         }
 
-        if (slot.quantity > quantity) {
-            slot.quantity -= quantity;
-        } else {
+        const removed = Math.min(slot.quantity, quantity);
+        if (removed <= 0) {
+            return false;
+        }
+
+        slot.quantity -= removed;
+        slot.totalQuantity -= removed;
+
+        if (slot.totalQuantity <= 0) {
             this.slots.delete(itemId);
+            this.equippedInstances.delete(itemId);
         }
 
         return true;
@@ -94,10 +113,7 @@ export class Inventory {
         inventorySlotId: string,
         target: Character,
     ): boolean {
-        const slot = this.slots.get(
-            inventorySlotId,
-        );
-
+        const slot = this.slots.get(inventorySlotId);
         if (!slot) {
             return false;
         }
@@ -110,9 +126,10 @@ export class Inventory {
 
         if (consumed) {
             slot.quantity--;
+            slot.totalQuantity--;
 
-            if (slot.quantity <= 0) {
-                this.slots.delete(slot.id);
+            if (slot.totalQuantity <= 0) {
+                this.slots.delete(slot.item.id);
             }
         }
 
@@ -123,24 +140,61 @@ export class Inventory {
         const owner = this.requireOwner();
         const slot = this.slots.get(itemId);
 
-        if (!slot || slot.item.category !== 'equipment') {
+        if (!slot || !isEquippableCategory(slot.item.category) || slot.quantity <= 0) {
             return false;
         }
 
-        slot.item.equip(owner);
+        // Equips a copy so the stack stays in the bag.
+        const instance = new Item(slot.item.definition);
+        instance.equip(owner);
+
+        const equipped = this.equippedInstances.get(itemId) ?? [];
+        equipped.push(instance);
+        this.equippedInstances.set(itemId, equipped);
+
+        slot.quantity -= 1;
         return true;
     }
 
     unEquipItem(itemId: string): boolean {
         const owner = this.requireOwner();
         const slot = this.slots.get(itemId);
-
         if (!slot) {
             return false;
         }
 
-        slot.item.unEquip(owner);
+        const equipped = this.equippedInstances.get(itemId);
+        const instance = equipped?.pop();
+        if (!instance) {
+            return false;
+        }
+
+        instance.unEquip(owner);
+        slot.quantity += 1;
         return true;
+    }
+
+    // Decrements the available count (used when an external system,
+    // like an EquipmentManager, equips a copy of this item).
+    consumeAvailable(itemId: string, quantity: number = 1): boolean {
+        const slot = this.slots.get(itemId);
+        if (!slot || slot.quantity < quantity) {
+            return false;
+        }
+
+        slot.quantity -= quantity;
+        return true;
+    }
+
+    // Increments the available count (used when an equipped copy
+    // comes back to the bag).
+    returnAvailable(itemId: string, quantity: number = 1): void {
+        const slot = this.slots.get(itemId);
+        if (!slot) {
+            return;
+        }
+
+        slot.quantity = Math.min(slot.totalQuantity, slot.quantity + quantity);
     }
 
     private requireOwner(): Character {

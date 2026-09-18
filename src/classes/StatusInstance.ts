@@ -59,6 +59,7 @@ export interface StatusDefinition {
     triggersOnAdd?: boolean;
     onAdd?: (character: Character) => void;
     onRemove?: (character: Character) => void;
+    onTrigger?: (character: Character) => void;
 }
 
 
@@ -69,14 +70,22 @@ export class StatusInstance {
     timesUsed: number = 0;
 
     constructor(config: StatusInstanceConstructor) {
-        this.definition = config.definition;
+        // Cada instancia se queda con una copia propia de la definición,
+        // para que la duración no se comparta entre instancias.
+        this.definition = { ...config.definition };
         this.id = config.id ?? uniqueID();
         this.timesTriggered = config.timesTriggered ?? 0;
         this.timesUsed = config.timesUsed ?? 0;
 
-        if (config.definition.duration.type === STATUS_DURATIONS.TEMPORAL) {
-            this.definition.duration = { ...config.definition.duration };
+        if (this.definition.duration.type === STATUS_DURATIONS.TEMPORAL) {
+            this.definition.duration = { ...this.definition.duration };
         }
+    }
+
+    // Cada instancia de status tiene su propia fuente de modificadores,
+    // para no pisarse con otros statuses y poder limpiarse al expirar.
+    getModifierSourceId(): string {
+        return `status:${this.id}`;
     }
 
     /*
@@ -116,8 +125,8 @@ export class StatusInstance {
             // is fixed, no a percentage anymore.
 
 
-            // Aplica el cambio
-            stats.statsModifier?.setModifier(
+            // Aplica el cambio en la fuente propia del status
+            stats.getModifierSource(this.getModifierSourceId()).setModifier(
                 statAffectedDescriptor.to,
                 statAffectedDescriptor.typeOfModification,
                 Math.abs(result.variation),

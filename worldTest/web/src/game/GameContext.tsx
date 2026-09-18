@@ -1,11 +1,33 @@
 import { createContext, useContext, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
-import type { Character, InventorySlot, Item, Team } from '@rpg';
-import { PLACES_BY_ID, createInitialWorld } from './data';
-import type { NPC, Place, Route, ShopEntry } from './types';
+import type { InventorySlot, Team } from '@rpg';
+import { WorldSession } from '@core';
+import type { NPC, Place, SaveData, ShopEntry } from '@core';
 
-export type CombatContext = { npc?: NPC; placeId: string };
+const SAVE_KEY = 'rpg-ts-save-v1';
+
+function loadSave(): SaveData | null {
+    try {
+        const raw = window.localStorage.getItem(SAVE_KEY);
+        return raw ? (JSON.parse(raw) as SaveData) : null;
+    } catch {
+        return null;
+    }
+}
+
+export type Route =
+    | { name: 'place' }
+    | { name: 'team' }
+    | { name: 'character'; characterId: string }
+    | { name: 'inventory' }
+    | { name: 'shop' }
+    | { name: 'combat'; npcId?: string; placeId: string; group?: boolean; groupId?: string }
+    | { name: 'npc'; npcId: string; placeId: string }
+    | { name: 'skilltree'; characterId: string }
+    | { name: 'map' }
+    | { name: 'loot' };
 
 type GameApi = {
+    session: WorldSession;
     team: Team;
     currentPlace: Place;
     npcsAtCurrent: NPC[];
@@ -16,37 +38,35 @@ type GameApi = {
     navigate: (route: Route) => void;
     back: () => void;
     showToast: (message: string) => void;
+    save: () => void;
     travel: (to: string) => void;
     rest: () => void;
     buy: (entry: ShopEntry) => void;
     sell: (slot: InventorySlot) => void;
-    equipTo: (item: Item, characterId: string) => void;
+    equipTo: (itemId: string, characterId: string) => void;
     useOn: (slot: InventorySlot, characterId: string) => void;
     findNpc: (npcId: string) => NPC | undefined;
-    finishCombat: (result: 'won' | 'lost', context: CombatContext) => void;
     refresh: () => void;
 };
 
 const GameContext = createContext<GameApi | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
-    const worldRef = useRef<ReturnType<typeof createInitialWorld>>();
-    if (!worldRef.current) {
-        worldRef.current = createInitialWorld();
+    const sessionRef = useRef<WorldSession>();
+    if (!sessionRef.current) {
+        const saved = loadSave();
+        sessionRef.current = saved ? WorldSession.fromSave(saved) : new WorldSession();
     }
+    const session = sessionRef.current;
 
-    const [currentPlaceId, setCurrentPlaceId] = useState('central_town');
-    const [unlocked, setUnlocked] = useState<Set<string>>(() => new Set());
     const [routes, setRoutes] = useState<Route[]>([{ name: 'place' }]);
     const [toast, setToast] = useState<string | null>(null);
     const [version, bump] = useReducer((x: number) => x + 1, 0);
     const toastTimer = useRef<number | undefined>(undefined);
 
-    const { team, npcs } = worldRef.current;
-
     const current = routes[routes.length - 1];
-    const currentPlace = PLACES_BY_ID[currentPlaceId];
-    const npcsAtCurrent = npcs.get(currentPlaceId) ?? [];
+    const currentPlace = session.currentPlace;
+    const npcsAtCurrent = session.npcsAt(session.currentPlaceId);
 
     const showToast = (message: string) => {
         setToast(message);
@@ -57,153 +77,79 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const navigate = (route: Route) => setRoutes((rs) => [...rs, route]);
     const back = () => setRoutes((rs) => (rs.length > 1 ? rs.slice(0, -1) : rs));
 
-    const travel = (to: string) => {
-        const conn = currentPlace.connections.find((c) => c.to === to);
-        if (!conn) return;
-        if (conn.requiredFlag && !unlocked.has(conn.requiredFlag)) {
-            showToast(conn.lockedMessage ?? 'The way is closed.');
-            return;
+    const save = () => {
+        try {
+            window.localStorage.setItem(SAVE_KEY, JSON.stringify(session.exportSave()));
+            showToast('Game saved.');
+        } catch {
+            showToast('Could not save.');
         }
-        setCurrentPlaceId(to);
+    };
+
+    const travel = (to: string) => {
+        const result = session.travel(to);
+        if (!result.ok && result.message) showToast(result.message);
+        bump();
     };
 
     const rest = () => {
-        for (const member of team.getAll()) {
-            member.stats.hp = member.stats.totalHp;
-            member.stats.isAlive = 1;
-        }
+        session.rest();
         bump();
         showToast('Your party is fully rested.');
     };
 
     const buy = (entry: ShopEntry) => {
-        if (team.gold < entry.buyPrice) {
-            showToast('Not enough gold.');
-            return;
-        }
-        team.gold -= entry.buyPrice;
-        team.inventory.addItem(entry.item);
+        const result = session.buy(entry);
         bump();
-        showToast(`Purchased ${entry.item.name}.`);
+        showToast(result === 'ok' ? `Purchased ${entry.item.name}.` : 'Not enough gold.');
     };
 
     const sell = (slot: InventorySlot) => {
-        team.gold += slot.item.sellValue;
-        team.inventory.removeItem(slot.item.id, 1);
+        const ok = session.sell(slot);
         bump();
-        showToast(`Sold ${slot.item.name}.`);
+        showToast(ok ? `Sold ${slot.item.name}.` : 'No available copies to sell.');
     };
 
-    const equipTo = (item: Item, characterId: string) => {
-        const character = team.getCharacter(characterId);
-        if (!character || item.category !== 'equipment') return;
-        character.equipment.equipOrReplace(item, character);
+    const equipTo = (itemId: string, characterId: string) => {
+        const character = session.team.getCharacter(characterId);
+        const item = session.team.inventory.getItemSlotByItemId(itemId)?.item;
+        const ok = session.equipTo(itemId, characterId);
         bump();
-        showToast(`Equipped ${item.name} on ${character.name}.`);
+        showToast(ok && character && item ? `Equipped ${item.name} on ${character.name}.` : 'Nothing available to equip.');
     };
 
     const useOn = (slot: InventorySlot, characterId: string) => {
-        const character = team.getCharacter(characterId);
-        if (!character) return;
-        const consumed = team.inventory.useItem(slot.id, character);
+        const character = session.team.getCharacter(characterId);
+        const ok = session.useOn(slot, characterId);
         bump();
-        showToast(consumed ? `${character.name} used ${slot.item.name}.` : 'Could not use that item.');
-    };
-
-    const findNpc = (npcId: string): NPC | undefined => {
-        for (const list of npcs.values()) {
-            const found = list.find((n) => n.id === npcId);
-            if (found) return found;
-        }
-        return undefined;
-    };
-
-    const shareExperience = (characters: Character[], xp: number): number => {
-        let levels = 0;
-        for (const member of characters) {
-            levels += member.experience.gain(xp / characters.length);
-        }
-        return levels;
-    };
-
-    const finishCombat = (result: 'won' | 'lost', context: CombatContext) => {
-        if (result === 'lost') {
-            setCurrentPlaceId('central_town');
-            for (const member of team.getAll()) {
-                member.stats.hp = 1;
-                member.stats.isAlive = 1;
-            }
-            bump();
-            showToast('Your party was defeated. You wake up in Central Town.');
-            back();
-            return;
-        }
-
-        const { npc, placeId } = context;
-
-        if (npc) {
-            const levels = shareExperience(team.getAlive(), npc.xpReward);
-            team.gold += npc.goldReward;
-
-            if (npc.recruitOnDefeat) {
-                npc.character.stats.hp = 1;
-                npc.character.stats.isAlive = 1;
-                team.addCharacter(npc.character);
-            }
-
-            const list = npcs.get(placeId) ?? [];
-            npcs.set(placeId, list.filter((n) => n.id !== npc.id));
-
-            const united = ['north_resident', 'south_resident'].every((id) =>
-                team.getAll().some((c) => c.id === id),
-            );
-
-            if (npc.recruitOnDefeat) {
-                showToast(`${npc.character.name} joined your party!`);
-            }
-
-            if (united && !unlocked.has('east_unlocked')) {
-                setUnlocked((prev) => new Set(prev).add('east_unlocked'));
-                showToast('You united the villages! The east road is now open.');
-            } else if (levels > 0) {
-                showToast(`Victory! +${npc.goldReward}g, +${npc.xpReward} XP, leveled up!`);
-            } else {
-                showToast(`Victory! +${npc.goldReward}g, +${npc.xpReward} XP.`);
-            }
-        } else {
-            const levels = shareExperience(team.getAlive(), 40);
-            team.gold += 15;
-            showToast(levels > 0 ? 'Victory over the bandits! Someone leveled up.' : 'Victory over the bandits!');
-        }
-
-        bump();
-        back();
+        showToast(ok && character ? `${character.name} used ${slot.item.name}.` : 'Could not use that item.');
     };
 
     const api = useMemo<GameApi>(
         () => ({
-            team,
+            session,
+            team: session.team,
             currentPlace,
             npcsAtCurrent,
-            unlocked,
+            unlocked: session.unlocked,
             routes,
             current,
             toast,
             navigate,
             back,
             showToast,
+            save,
             travel,
             rest,
             buy,
             sell,
             equipTo,
             useOn,
-            findNpc,
-            finishCombat,
+            findNpc: session.findNpc.bind(session),
             refresh: bump,
         }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [version, currentPlace, npcsAtCurrent, unlocked, routes, current, toast],
+        [version, currentPlace, npcsAtCurrent, routes, current, toast],
     );
 
     return <GameContext.Provider value={api}>{children}</GameContext.Provider>;

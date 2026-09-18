@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useGame } from '../game/GameContext';
-import { Menu } from '../components/Menu';
-import { SHOP_ENTRIES } from '../game/data';
+import { MenuSection } from '../components/Menu';
+import { CATEGORY_ICONS, groupItemsBySection, itemStatsText, SHOP_STOCK } from '@core';
 
 export function ShopScreen() {
     const api = useGame();
     const [tab, setTab] = useState<'buy' | 'sell'>('buy');
     const sellable = api.team.inventory.getAllNotEquipedItems();
+
+    const buySections = groupItemsBySection(SHOP_STOCK);
+    const sellSections = groupItemsBySection(sellable);
 
     return (
         <div className="screen">
@@ -25,25 +28,39 @@ export function ShopScreen() {
             </div>
 
             {tab === 'buy' ? (
-                <Menu
-                    options={SHOP_ENTRIES.map((entry) => ({
-                        icon: '🛒',
-                        label: entry.item.name,
-                        sub: `${entry.buyPrice}g`,
-                        onClick: () => api.buy(entry),
-                    }))}
-                />
+                buySections.map((section) => (
+                    <MenuSection
+                        key={section.title}
+                        title={section.title}
+                        options={section.entries.map((entry) => {
+                            const stats = itemStatsText(entry.item);
+                            return {
+                                icon: CATEGORY_ICONS[entry.item.category] ?? '🛒',
+                                label: entry.item.name,
+                                sub: stats ? `${stats} · ${entry.buyPrice}g` : `${entry.buyPrice}g`,
+                                onClick: () => api.buy(entry),
+                            };
+                        })}
+                    />
+                ))
             ) : sellable.length === 0 ? (
                 <div className="empty">Nothing to sell.</div>
             ) : (
-                <Menu
-                    options={sellable.map((slot) => ({
-                        icon: '💰',
-                        label: slot.item.name,
-                        sub: `${slot.item.sellValue}g`,
-                        onClick: () => api.sell(slot),
-                    }))}
-                />
+                sellSections.map((section) => (
+                    <MenuSection
+                        key={section.title}
+                        title={section.title}
+                        options={section.entries.map((slot) => {
+                            const stats = itemStatsText(slot.item);
+                            return {
+                                icon: CATEGORY_ICONS[slot.item.category] ?? '💰',
+                                label: slot.item.name,
+                                sub: `${stats ? `${stats} · ` : ''}${slot.item.sellValue}g · ${slot.quantity} available`,
+                                onClick: () => api.sell(slot),
+                            };
+                        })}
+                    />
+                ))
             )}
         </div>
     );

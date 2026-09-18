@@ -24,3 +24,22 @@ export function Menu({ options }: { options: MenuOption[] }) {
         </div>
     );
 }
+
+export function MenuSection({
+    title,
+    icon,
+    options,
+}: {
+    title: string;
+    icon?: string;
+    options: MenuOption[];
+}) {
+    if (options.length === 0) return null;
+
+    return (
+        <div>
+            <div className="section-title">{icon ? `${icon} ${title}` : title}</div>
+            <Menu options={options} />
+        </div>
+    );
+}
