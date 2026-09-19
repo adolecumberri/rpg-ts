@@ -6,7 +6,8 @@ export type PlaceAction =
     | { id: string; label: string; kind: 'shop'; icon?: string }
     | { id: string; label: string; kind: 'rest'; icon?: string }
     | { id: string; label: string; kind: 'fight'; npcId: string; icon?: string }
-    | { id: string; label: string; kind: 'fight_group'; icon?: string; groupId?: string };
+    | { id: string; label: string; kind: 'fight_group'; icon?: string; groupId?: string }
+    | { id: string; label: string; kind: 'interval'; icon?: string };
 
 export type PlaceConnection = {
     label: string;

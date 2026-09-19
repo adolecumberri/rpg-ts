@@ -60,6 +60,7 @@ export const PLACES: Place[] = [
             { id: 'fight_tank', label: 'Fight the Iron Golem', kind: 'fight', npcId: 'iron_golem', icon: '🗿' },
             { id: 'fight_group', label: 'Fight the Bandit Gang', kind: 'fight_group', icon: '⚔️' },
             { id: 'fight_elemental', label: 'Elemental Test (2 monsters)', kind: 'fight_group', groupId: 'elemental', icon: '🔥' },
+            { id: 'interval', label: 'Interval Battle (auto)', kind: 'interval', icon: '⏱️' },
         ],
         connections: [{ label: 'Central Town', to: 'central_town', icon: '🏰' }],
     },

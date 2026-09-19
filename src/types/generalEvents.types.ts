@@ -12,7 +12,7 @@ type CoreEvents =
 type EventMoment = `before_${CoreEvents}` | `after_${CoreEvents}` | `on_${CoreEvents}` | (string & {});
 
 
-export {
+export type {
     CoreEvents,
     EventMoment,
 };

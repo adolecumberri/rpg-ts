@@ -211,6 +211,12 @@ body {
     color: var(--danger);
 }
 
+.btn--selected {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--card-2);
+}
+
 .btn:disabled {
     opacity: 0.45;
     cursor: default;
@@ -303,6 +309,225 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+}
+
+.battle-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 6px;
+}
+
+/* Bigger teams get more columns (assigned by columnsFor) so the
+   squares shrink and the whole team always fits on the page. */
+.battle-grid.cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.battle-grid.cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.battle-grid.cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.battle-grid.cols-6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.combatant-square {
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    font-size: 16px;
+    padding: 0.625em 0.625em 0.75em;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 0.75em;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* Each tier sets one font-size on the card and every inner size is in
+   em, so the content scales down together with the container. The
+   border radius also shrinks with the tier so small squares never
+   look round. */
+.battle-grid.cols-3 .combatant-square {
+    font-size: 13px;
+    border-radius: 0.6em;
+}
+
+.battle-grid.cols-4 .combatant-square {
+    font-size: 11px;
+    padding: 0.55em;
+    border-radius: 0.45em;
+}
+
+.battle-grid.cols-5 .combatant-square {
+    font-size: 9.5px;
+    padding: 0.5em;
+    border-radius: 0.35em;
+}
+
+.battle-grid.cols-6 .combatant-square {
+    font-size: 8.5px;
+    padding: 0.45em;
+    border-radius: 0.3em;
+}
+
+.combatant-square.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(245, 185, 66, 0.22);
+}
+
+.combatant-square.dead {
+    opacity: 0.55;
+    filter: grayscale(0.85);
+}
+
+.combatant-square .portrait {
+    width: 1.65em;
+    height: 1.65em;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.25em;
+    overflow: hidden;
+}
+
+.battle-grid.cols-3 .combatant-square .portrait {
+    font-size: 22px;
+}
+
+.battle-grid.cols-4 .combatant-square .portrait {
+    font-size: 16.5px;
+}
+
+.battle-grid.cols-5 .combatant-square .portrait {
+    font-size: 13px;
+}
+
+.battle-grid.cols-6 .combatant-square .portrait {
+    width: 1.55em;
+    height: 1.55em;
+    font-size: 10.5px;
+}
+
+.combatant-square .portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.combatant-square .name {
+    margin-top: 0.45em;
+    font-weight: 700;
+    font-size: 0.875em;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.battle-grid.cols-3 .combatant-square .name {
+    font-size: 0.85em;
+}
+
+.battle-grid.cols-5 .combatant-square .name {
+    margin-top: 0.4em;
+    font-size: 0.8em;
+}
+
+.battle-grid.cols-6 .combatant-square .name {
+    margin-top: 0.35em;
+    font-size: 0.8em;
+}
+
+.combatant-square .stats {
+    margin-top: 0.2em;
+    color: var(--muted);
+    font-size: 0.6875em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Below 2 columns there is no room for the stat row; the attack log
+   still carries the numbers. */
+.battle-grid.cols-3 .combatant-square .stats,
+.battle-grid.cols-4 .combatant-square .stats,
+.battle-grid.cols-5 .combatant-square .stats,
+.battle-grid.cols-6 .combatant-square .stats {
+    display: none;
+}
+
+.combatant-square .hp-row {
+    margin-top: auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+}
+
+.combatant-square .hp-row .bar {
+    height: 0.5625em;
+}
+
+.battle-grid.cols-3 .combatant-square .hp-row .bar {
+    height: 0.6em;
+}
+
+.battle-grid.cols-4 .combatant-square .hp-row .bar {
+    height: 0.55em;
+}
+
+.battle-grid.cols-5 .combatant-square .hp-row .bar {
+    height: 0.5em;
+}
+
+.battle-grid.cols-6 .combatant-square .hp-row .bar {
+    height: 0.45em;
+}
+
+.combatant-square .hp-row .hp-text {
+    flex: none;
+    font-size: 0.625em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.battle-grid.cols-3 .combatant-square .hp-row .hp-text,
+.battle-grid.cols-4 .combatant-square .hp-row .hp-text {
+    font-size: 0.7em;
+}
+
+.battle-grid.cols-5 .combatant-square .hp-row .hp-text,
+.battle-grid.cols-6 .combatant-square .hp-row .hp-text {
+    display: none;
+}
+
+/* The interval tag stays as a bottom tag in 2 columns and becomes a
+   corner badge from 3 columns up, so the mechanic is always visible. */
+.combatant-square .interval {
+    margin-top: 0.3em;
+    font-size: 0.625em;
+}
+
+.battle-grid.cols-3 .combatant-square .interval,
+.battle-grid.cols-4 .combatant-square .interval,
+.battle-grid.cols-5 .combatant-square .interval,
+.battle-grid.cols-6 .combatant-square .interval {
+    position: absolute;
+    top: 0.35em;
+    right: 0.35em;
+    margin-top: 0;
+    padding: 0.15em 0.4em;
+    background: rgba(15, 17, 23, 0.85);
 }
 
 .log {

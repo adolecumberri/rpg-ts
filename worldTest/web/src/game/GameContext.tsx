@@ -24,7 +24,8 @@ export type Route =
     | { name: 'npc'; npcId: string; placeId: string }
     | { name: 'skilltree'; characterId: string }
     | { name: 'map' }
-    | { name: 'loot' };
+    | { name: 'loot' }
+    | { name: 'interval' };
 
 type GameApi = {
     session: WorldSession;

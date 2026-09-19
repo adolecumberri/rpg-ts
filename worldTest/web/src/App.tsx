@@ -9,6 +9,7 @@ import { NpcScreen } from './screens/NpcScreen';
 import { SkillTreeScreen } from './screens/SkillTreeScreen';
 import { MapScreen } from './screens/MapScreen';
 import { LootScreen } from './screens/LootScreen';
+import { IntervalCombatScreen } from './screens/IntervalCombatScreen';
 
 function Header() {
     const api = useGame();
@@ -25,6 +26,7 @@ function Header() {
     else if (route.name === 'skilltree') title = 'Skill Tree';
     else if (route.name === 'map') title = 'World Map';
     else if (route.name === 'loot') title = 'Loot Tables';
+    else if (route.name === 'interval') title = 'Interval Battle';
 
     return (
         <div className="header">
@@ -71,6 +73,8 @@ function Router() {
             return <MapScreen />;
         case 'loot':
             return <LootScreen />;
+        case 'interval':
+            return <IntervalCombatScreen />;
         default:
             return <PlaceScreen />;
     }

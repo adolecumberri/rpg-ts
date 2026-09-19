@@ -42,6 +42,12 @@ export function PlaceScreen() {
                 label: action.label,
                 onClick: () => api.navigate({ name: 'combat', group: true, groupId: action.groupId, placeId: place.id }),
             });
+        } else if (action.kind === 'interval') {
+            combats.push({
+                icon: action.icon ?? '⏱️',
+                label: action.label,
+                onClick: () => api.navigate({ name: 'interval' }),
+            });
         } else if (action.kind === 'shop') {
             services.push({ icon: action.icon ?? '🛒', label: action.label, onClick: () => api.navigate({ name: 'shop' }) });
         } else if (action.kind === 'rest') {
