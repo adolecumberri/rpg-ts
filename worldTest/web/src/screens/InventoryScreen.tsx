@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { InventorySlot } from '@rpg';
 import { isEquippableCategory } from '@rpg/classes/items/Item';
-import { CATEGORY_ICONS, groupItemsBySection, itemStatsText } from '@core';
+import { CATEGORY_ICONS, groupItemsBySection, itemDescriptionText } from '@core';
 import { useGame } from '../game/GameContext';
 import { Menu, MenuSection } from '../components/Menu';
 
@@ -51,11 +51,11 @@ export function InventoryScreen() {
                             const available = slot.quantity;
                             const owned = slot.totalQuantity;
                             const equipped = owned - available;
-                            const stats = itemStatsText(slot.item);
                             return {
                                 icon: CATEGORY_ICONS[slot.item.category] ?? '🎒',
                                 label: slot.item.name,
-                                sub: `${stats ? `${stats} · ` : ''}${available}/${owned}${equipped > 0 ? ` · ${equipped} equipped` : ''}`,
+                                description: itemDescriptionText(slot.item),
+                                sub: `${available}/${owned}${equipped > 0 ? ` · ${equipped} equipped` : ''}`,
                                 disabled: (equippable || consumable) && available === 0,
                                 onClick: () => {
                                     if (equippable || consumable) setPicked(slot);

@@ -2,6 +2,20 @@ import { Character, Stats } from '../src';
 import { StatusInstance } from '../src/classes/StatusInstance';
 import { burnStatus } from '../worldTest/core/statuses';
 import { WorldSession } from '../worldTest/core/session';
+import { buildHero } from '../worldTest/core/config/characters';
+import type { NPC } from '../worldTest/core/types';
+
+function fixtureNpc(id: string, overrides: Partial<NPC> = {}): NPC {
+    return {
+        id,
+        character: new Character({ id, name: id, stats: new Stats({ hp: 30, totalHp: 30, attack: 6, defence: 0 }) }),
+        talk: '…',
+        xpReward: 10,
+        goldReward: 5,
+        respawns: true,
+        ...overrides,
+    };
+}
 
 describe('combat flows', () => {
     it('fireball does not one-shot a fresh 50 hp enemy: the direct hit leaves 10, burn finishes it later', () => {
@@ -23,7 +37,7 @@ describe('combat flows', () => {
 
     it('resets the fought npc when the party loses, so rematches start fresh', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const goblin = session.findNpc('goblin')!;
+        const goblin = fixtureNpc('goblin');
         goblin.character.stats.hp = 10; // damaged in the lost battle
 
         session.finishCombat('lost', { npc: goblin, placeId: 'forest' });
@@ -35,10 +49,15 @@ describe('combat flows', () => {
 
     it('defeated grunt npcs respawn at full hp for the next fight', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const goblin = session.findNpc('goblin')!;
+        session.team.addCharacter(buildHero());
+        const goblin = fixtureNpc('goblin');
         goblin.character.stats.hp = 3;
 
-        session.finishCombat('won', { npc: goblin, placeId: 'forest' });
+        session.finishCombat('won', {
+            npc: goblin,
+            placeId: 'forest',
+            kills: [{ enemyId: 'goblin', killerId: 'hero' }],
+        });
 
         expect(goblin.character.stats.hp).toBe(goblin.character.stats.totalHp);
     });

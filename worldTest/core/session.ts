@@ -1,7 +1,7 @@
 import { Team } from '../../src';
 import type { Character, InventorySlot, Item } from '../../src';
 import type { EquipmentSlot } from '../../src/classes/items/EquipmentManager';
-import { PLACES_BY_ID, BANDIT_DROP, createInitialWorld } from './world';
+import { PLACES_BY_ID, createInitialNpcs, createInitialWorld } from './world';
 import { buyItem, sellItem } from './shop';
 import { equipToCharacter, unequipFromCharacter, useItemOn } from './inventory';
 import { grantCombatXp } from './xp/xpSystem';
@@ -17,6 +17,7 @@ import { SPECIAL_ENCOUNTERS, buildSpecialNpc } from './encounters/specialEncount
 import { skillIdsOf } from './skills';
 import { SkillTree } from './skillTree/skillTree';
 import { createCompanionTree, createHeroTree } from './skillTree/trees';
+import { GROWTH, applyGrowthAtLevel, jobIdOf, wireGrowth } from './config/growth';
 import type { NPC, Place, ShopEntry } from './types';
 
 export type CombatEndContext = {
@@ -107,6 +108,27 @@ export class WorldSession {
         }
     }
 
+    /**
+     * Testing shortcut: levels every party member up by `levels`
+     * (clamped to the growth level cap), applying their job growth and
+     * healing them to full.
+     */
+    train(levels: number): { message: string } {
+        const summary: string[] = [];
+        for (const member of this.team.getAll()) {
+            const next = Math.min(GROWTH.levelCap, member.experience.level + levels);
+            if (next === member.experience.level) {
+                summary.push(`${member.name} (max Lv ${GROWTH.levelCap})`);
+                continue;
+            }
+            member.experience.level = next;
+            member.experience.currentXp = 0;
+            applyGrowthAtLevel(member, jobIdOf(member.id), next);
+            summary.push(`${member.name} Lv ${next}`);
+        }
+        return { message: `💪 ${summary.join(' · ')}` };
+    }
+
     buy(entry: ShopEntry): 'ok' | 'no_gold' {
         return buyItem(this.team, entry);
     }
@@ -178,6 +200,9 @@ export class WorldSession {
 
     private grantLoot(drops: LootDrop[]): void {
         for (const drop of drops) {
+            // Drops referencing items outside the catalog are skipped:
+            // loot tables may outlive the item catalog during rebuilds.
+            if (!this.itemTable.has(drop.itemId)) continue;
             this.team.inventory.addItem(this.itemTable.createItem(drop.itemId), drop.quantity);
         }
     }
@@ -295,7 +320,7 @@ export class WorldSession {
             message = leveled ? `Victory! ${totalXp} XP total — someone leveled up!` : `Victory! ${totalXp} XP total.`;
         }
 
-        const drops = this.rollLoot(npc ? npc.dropTable : BANDIT_DROP);
+        const drops = this.rollLoot(npc ? npc.dropTable : undefined);
         this.grantLoot(drops);
 
         const specialSpawn = this.checkSpecialEncounters(placeId);
@@ -330,6 +355,14 @@ export class WorldSession {
             }
         }
 
+        // World npcs that are no longer around (recruited/defeated).
+        const removedNpcs: string[] = [];
+        for (const [placeId, list] of createInitialNpcs()) {
+            for (const npc of list) {
+                if (!this.findNpc(npc.id)) removedNpcs.push(npc.id);
+            }
+        }
+
         return {
             version: SAVE_VERSION,
             currentPlaceId: this.currentPlaceId,
@@ -355,6 +388,7 @@ export class WorldSession {
                 totalQuantity: slot.totalQuantity,
             })),
             npcs,
+            removedNpcs,
             encounters: this.encounterTracker.snapshot(),
             spawnedSpecials: Array.from(this.spawnedSpecials),
             skillTrees: Array.from(this.skillTrees).map(([characterId, tree]) => ({
@@ -374,13 +408,19 @@ export class WorldSession {
         const team = new Team();
         for (const saved of data.team) {
             const character = buildCharacterFromSave(saved);
+            // Normalize stats to the deterministic growth curve for the
+            // saved level (hp is preserved) and reattach the growth.
+            applyGrowthAtLevel(character, jobIdOf(character.id), character.experience.level, false);
+            wireGrowth(character, jobIdOf(character.id));
             team.addCharacter(character);
             for (const equipment of saved.equipment) {
+                if (!session.itemTable.has(equipment.itemId)) continue;
                 const item = session.itemTable.createItem(equipment.itemId);
                 character.equipment.equipOrReplace(item, character);
             }
         }
         for (const slot of data.inventory) {
+            if (!session.itemTable.has(slot.itemId)) continue;
             const item = session.itemTable.createItem(slot.itemId);
             team.inventory.addItem(item, slot.totalQuantity);
             team.inventory.consumeAvailable(slot.itemId, slot.totalQuantity - slot.quantity);
@@ -391,29 +431,49 @@ export class WorldSession {
         session.currentPlaceId = data.currentPlaceId;
         session.unlocked = new Set(data.unlocked);
 
-        // npcs: keep only the saved ones and restore their hp.
+        // npcs: the current world defines which npcs exist; the save only
+        // carries their hp/alive state and which world npcs were
+        // permanently removed. World npcs added after the save was made
+        // (new fights, new dummies...) appear automatically at full hp.
         const initial = createInitialWorld();
-        const savedIds = new Set(data.npcs.map((npc) => npc.id));
+        const savedById = new Map(data.npcs.map((npc) => [npc.id, npc]));
+        const removed = new Set<string>(data.removedNpcs ?? []);
+
+        if (!data.removedNpcs) {
+            // Legacy save: removed world npcs are the ones missing from
+            // the save whose character joined the team (recruits).
+            const teamIds = new Set(data.team.map((character) => character.id));
+            for (const [, list] of initial.npcs) {
+                for (const npc of list) {
+                    if (!savedById.has(npc.id) && teamIds.has(npc.id)) removed.add(npc.id);
+                }
+            }
+        }
+
         for (const [placeId, list] of initial.npcs) {
-            initial.npcs.set(placeId, list.filter((npc) => savedIds.has(npc.id)));
+            initial.npcs.set(placeId, list.filter((npc) => !removed.has(npc.id)));
         }
         session.npcs = initial.npcs;
+
+        for (const npc of session.allNpcs()) {
+            const saved = savedById.get(npc.id);
+            if (saved) {
+                npc.character.stats.hp = saved.hp;
+                npc.character.stats.isAlive = saved.isAlive;
+            }
+        }
+
         for (const saved of data.npcs) {
-            const existing = session.findNpc(saved.id);
-            if (existing) {
-                existing.character.stats.hp = saved.hp;
-                existing.character.stats.isAlive = saved.isAlive;
-            } else {
-                // A dynamically spawned special encounter.
-                const special = session.specials.find((entry) => entry.id === saved.id);
-                if (special) {
-                    const npc = buildSpecialNpc(special);
-                    npc.character.stats.hp = saved.hp;
-                    npc.character.stats.isAlive = saved.isAlive;
-                    const list = session.npcs.get(saved.placeId) ?? [];
-                    list.push(npc);
-                    session.npcs.set(saved.placeId, list);
-                }
+            if (session.findNpc(saved.id)) continue;
+            // A dynamically spawned special encounter.
+            const special = session.specials.find((entry) => entry.id === saved.id);
+            if (special) {
+                const npc = buildSpecialNpc(special);
+                npc.character.stats.hp = saved.hp;
+                npc.character.stats.isAlive = saved.isAlive;
+                const list = session.npcs.get(saved.placeId) ?? [];
+                list.push(npc);
+                session.npcs.set(saved.placeId, list);
             }
         }
 

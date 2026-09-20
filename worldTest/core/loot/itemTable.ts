@@ -2,6 +2,8 @@ import { Item } from '../../../src';
 import type { Character } from '../../../src';
 import type { ItemCategory, ItemEffect, ItemElement } from '../../../src/classes/items/Item';
 import type { EquipmentSlot } from '../../../src/classes/items/EquipmentManager';
+import type { ItemAttackContext } from '../damage/general';
+import type { DamageComponent } from '../damage/composer';
 
 /**
  * Data-driven item definition. Items are created from these entries
@@ -16,6 +18,12 @@ export type ItemTableEntry = {
     slot?: EquipmentSlot;
     effects?: ItemEffect[];
     elements?: ItemElement[];
+    // Weapon logic hook: runs on every basic attack of the bearer and
+    // may add/scale/duplicate damage components using both combatants'
+    // stats and per-item state.
+    onAttack?: (context: ItemAttackContext) => DamageComponent[];
+    onEquip?: (self: Item, target: Character) => void;
+    onUnEquip?: (self: Item, target: Character) => void;
     buyValue?: number;
     sellValue?: number;
     onUse?: (self: Item, target: Character) => boolean;

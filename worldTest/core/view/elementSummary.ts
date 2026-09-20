@@ -1,11 +1,16 @@
 import type { Character } from '../../../src';
 import { attackComponentsOf, defenceLayersOf } from '../damage/character';
 import type { ElementId } from '../damage/elements';
+import type { DamageKind } from '../config/damage';
 
 export type ElementalAttack = {
     element: ElementId;
     amount: number;
-    // True when the whole attack was converted into this element.
+    // How the bonus damage is mitigated: physical (defence), magical
+    // (magicDefence) or true (nothing).
+    kind: DamageKind;
+    // Legacy flag: attacks no longer convert (the base stays physical),
+    // so this is always false now.
     converted: boolean;
 };
 
@@ -35,6 +40,7 @@ export function characterElementsSummary(character: Character): CharacterElement
         attack.push({
             element: component.element,
             amount: component.amount,
+            kind: component.kind ?? 'physical',
             converted: !hasPhysical,
         });
     }

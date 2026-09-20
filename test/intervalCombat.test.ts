@@ -2,6 +2,7 @@ import { Character, IntervalCombat, Stats } from '../src';
 import type { IntervalCombatant } from '../src';
 import { WorldSession } from '../worldTest/core/session';
 import { grantIntervalKillXp } from '../worldTest/core/config/intervalBattle';
+import { buildEmber, buildHero } from '../worldTest/core/config/characters';
 import { XP } from '../worldTest/core/xp/xpConfig';
 
 function combatant(id: string, interval: number, hp: number, attack: number, defence = 0): IntervalCombatant {
@@ -103,6 +104,8 @@ describe('interval combat', () => {
 describe('interval battle xp', () => {
     it('grants kill and assist xp when a character kills an opponent', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.team.addCharacter(buildHero());
+        session.team.addCharacter(buildEmber());
         const hero = session.team.getCharacter('hero')!;
         const ember = session.team.getCharacter('ember')!;
         const heroXp = hero.experience.currentXp;
@@ -117,6 +120,7 @@ describe('interval battle xp', () => {
 
     it('gives only 1 xp to a killer 5+ levels above the creature', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.team.addCharacter(buildHero());
         const hero = session.team.getCharacter('hero')!;
         hero.experience.level = 10;
         const heroXp = hero.experience.currentXp;

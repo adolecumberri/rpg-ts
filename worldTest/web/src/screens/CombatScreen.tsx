@@ -8,19 +8,32 @@ import {
     DEFAULT_ELEMENTS,
     affinitiesOf,
     attackComponentsOf,
+    compareBySpeed,
     defenceLayersOf,
+    intervalFromSpeed,
+    kindMultiplierFor,
+    kindOfElement,
     makeGroupTeam,
+    resolveGeneralAttack,
     specOf,
 } from '@core';
 import type { CombatEndResult, DamageResult, SkillSpec } from '@core';
 import { useGame } from '../game/GameContext';
 import { StatBar } from '../components/StatBar';
+import { TOAST_MS } from '../constants/toast';
 
-type Phase = 'action' | 'pick-target' | 'pick-targets' | 'enemy' | 'won' | 'lost';
+type Phase = 'action' | 'pick-target' | 'pick-targets' | 'resolve' | 'won' | 'lost';
 type LogEntry = { text: string; kind: 'info' | 'damage' | 'heal' };
 type Pending =
     | { kind: 'attack' }
     | { kind: 'skill'; spec: SkillSpec; maxTargets: number };
+
+// An action locked in during the pick phase, executed in the resolve
+// phase ordered by speed (skills can carry a priority later).
+type PickedAction =
+    | { actor: Character; kind: 'attack'; targets: Character[] }
+    | { actor: Character; kind: 'skill'; spec: SkillSpec; targets: Character[] }
+    | { actor: Character; kind: 'wait' };
 
 function StatusChips({ character }: { character: Character }) {
     const statuses = Array.from(character.statusManager.statuses.values());
@@ -40,7 +53,8 @@ function StatusChips({ character }: { character: Character }) {
 }
 
 function ElementalChips({ character }: { character: Character }) {
-    const parts: { key: string; icon: string; text: string }[] = [];
+    const api = useGame();
+    const parts: { key: string; icon: string; text: string; hint: string }[] = [];
 
     const attack = new Map<string, number>();
     for (const component of attackComponentsOf(character)) {
@@ -48,18 +62,33 @@ function ElementalChips({ character }: { character: Character }) {
         attack.set(component.element, (attack.get(component.element) ?? 0) + component.amount);
     }
     for (const [element, amount] of attack) {
-        parts.push({ key: `atk-${element}`, icon: DEFAULT_ELEMENTS.get(element)?.icon ?? '✨', text: `+${Math.round(amount)}` });
+        const name = DEFAULT_ELEMENTS.get(element)?.name ?? element;
+        const kind = kindOfElement(element);
+        const hintText = kind === 'true'
+            ? `${name} +${Math.round(amount)}: true damage, ignores defence, resistances and affinities.`
+            : `${name} +${Math.round(amount)}: ${kind} bonus damage.`;
+        parts.push({ key: `atk-${element}`, icon: DEFAULT_ELEMENTS.get(element)?.icon ?? '✨', text: `+${Math.round(amount)}`, hint: hintText });
     }
 
     for (const [element, multiplier] of Object.entries(affinitiesOf(character.id))) {
-        parts.push({ key: `aff-${element}`, icon: DEFAULT_ELEMENTS.get(element)?.icon ?? '✨', text: `×${multiplier}` });
+        const name = DEFAULT_ELEMENTS.get(element)?.name ?? element;
+        const hint = multiplier > 1
+            ? `${name} affinity ×${multiplier}: takes ${multiplier}× ${name.toLowerCase()} damage (weak).`
+            : `${name} affinity ×${multiplier}: takes ${multiplier}× ${name.toLowerCase()} damage (resistant).`;
+        parts.push({ key: `aff-${element}`, icon: DEFAULT_ELEMENTS.get(element)?.icon ?? '✨', text: `×${multiplier}`, hint });
     }
 
     if (parts.length === 0) return null;
     return (
         <span style={{ marginLeft: 6, display: 'inline-flex', gap: 4 }}>
             {parts.map((part) => (
-                <span key={part.key} className="tag" style={{ fontSize: 10, padding: '1px 6px' }}>
+                <span
+                    key={part.key}
+                    className="tag"
+                    style={{ fontSize: 10, padding: '1px 6px' }}
+                    title={part.hint}
+                    onClick={() => api.showToast(part.hint, TOAST_MS.help)}
+                >
                     {part.icon} {part.text}
                 </span>
             ))}
@@ -91,6 +120,9 @@ export function CombatScreen({
     const [phase, setPhase] = useState<Phase>('action');
     const [round, setRound] = useState(1);
     const [allyQueue, setAllyQueue] = useState<string[]>([]);
+    const [picked, setPicked] = useState<PickedAction[]>([]);
+    const [order, setOrder] = useState<PickedAction[]>([]);
+    const [resolveIndex, setResolveIndex] = useState(0);
     const [pending, setPending] = useState<Pending | null>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showBreakdown, setShowBreakdown] = useState(false);
@@ -110,24 +142,24 @@ export function CombatScreen({
 
     const pushBreakdown = (result: DamageResult) => {
         for (const line of result.breakdown) {
+            const multiplier = Math.round(line.multiplier * 100) / 100;
             push(
-                `  ${line.label} (${line.element}): ${Math.round(line.damage)} - ${Math.round(line.reducedBy)} = ${Math.round(line.final)}`,
+                `  ${line.label} (${line.element}${line.crit ? ', crit' : ''}): ${Math.round(line.damage)} × ${multiplier} − ${Math.round(line.reducedBy)} = ${Math.round(line.final)}`,
                 'info',
             );
         }
     };
 
-    const basicAttack = (attacker: Character, defender: Character) => {
-        const result = DamageComposer.resolve(
-            attackComponentsOf(attacker),
-            defenceLayersOf(defender),
-            { breakdown: showBreakdown },
-        );
-        defender.stats.hp = Math.max(0, defender.stats.hp - result.total);
+    const performAttack = (attacker: Character, defender: Character) => {
+        const outcome = resolveGeneralAttack(attacker, defender, Math.random, { breakdown: showBreakdown });
+        defender.stats.hp = Math.max(0, defender.stats.hp - outcome.damage);
         defender.stats.isAlive = defender.stats.hp > 0 ? 1 : 0;
         lastHitBy.current.set(defender.id, attacker.id);
-        push(`${attacker.name} attacked ${defender.name} for ${Math.round(result.total)}.`, 'damage');
-        if (showBreakdown) pushBreakdown(result);
+        push(
+            `${attacker.name} attacked ${defender.name} for ${Math.round(outcome.damage)}${outcome.note ? ` (${outcome.note})` : ''}.`,
+            'damage',
+        );
+        if (showBreakdown && outcome.breakdown) pushBreakdown({ total: outcome.damage, breakdown: outcome.breakdown });
     };
 
     const triggerAll = (moment: EventMoment) => {
@@ -147,7 +179,7 @@ export function CombatScreen({
         }
     };
 
-    // Triggers statuses at the end of a character's own turn (e.g., Regeneration).
+    // Triggers statuses at the end of a character's own action (e.g., Regeneration).
     const triggerTurnEnd = (character: Character) => {
         const hpBefore = character.stats.hp;
         character.statusManager.trigger('turn_end');
@@ -174,22 +206,8 @@ export function CombatScreen({
     const beginRound = () => {
         triggerAll('before_turn');
         setAllyQueue(allies.getAlive().map((ally) => ally.id));
-        bump();
-    };
-
-    const advanceTurn = () => {
-        setPending(null);
-        setSelectedIds([]);
-        if (active) triggerTurnEnd(active);
-        const next = allyQueue.slice(1);
-        if (next.length === 0) {
-            setAllyQueue([]);
-            bump();
-            if (checkEnd()) return;
-            setPhase('enemy');
-            return;
-        }
-        setAllyQueue(next);
+        setPicked([]);
+        setPhase('action');
         bump();
     };
 
@@ -208,108 +226,124 @@ export function CombatScreen({
         }
     };
 
-    const runSkill = (spec: SkillSpec, explicit?: Character[]) => {
-        if (!active) return;
-        const targets = targetsFor(spec, explicit);
-        if (targets.length === 0) return;
-
-        if (spec.damage) {
-            for (const target of targets) {
-                const result = DamageComposer.resolve(spec.damage, defenceLayersOf(target), { breakdown: showBreakdown });
-                target.stats.hp = Math.max(0, target.stats.hp - result.total);
-                target.stats.isAlive = target.stats.hp > 0 ? 1 : 0;
-                lastHitBy.current.set(target.id, active.id);
-                push(`${active.name} used ${spec.name} on ${target.name}: ${Math.round(result.total)} damage.`, 'damage');
-                if (showBreakdown) pushBreakdown(result);
-            }
-        }
-
-        if (spec.heal) {
-            for (const target of targets) {
-                if (target.stats.hp <= 0) continue;
-                target.stats.hp = Math.min(target.stats.totalHp, target.stats.hp + spec.heal);
-            }
-            push(`${active.name} used ${spec.name}: healed ${spec.heal} HP each.`, 'heal');
-        }
-
-        if (spec.statusOnTargets) {
-            for (const target of targets) {
-                target.statusManager.addStatusInstance(new StatusInstance({ definition: spec.statusOnTargets }));
-            }
-        }
-        if (spec.statusOnSelf) {
-            active.statusManager.addStatusInstance(new StatusInstance({ definition: spec.statusOnSelf }));
-        }
-
-        advanceTurn();
+    const sortOrder = (a: PickedAction, b: PickedAction): number => {
+        // Skill priority (0 by default) goes above speed; the priority
+        // values themselves are not defined yet.
+        const priorityOf = (action: PickedAction) => action.kind === 'skill' ? action.spec.priority ?? 0 : 0;
+        return priorityOf(b) - priorityOf(a) || compareBySpeed(a.actor, b.actor);
     };
 
-    const executePending = (ids: string[]) => {
-        if (!pending || !active) return;
-        const targets = aliveEnemies.filter((enemy) => ids.includes(enemy.id));
-        if (targets.length === 0) return;
+    const startResolve = (finalPicked: PickedAction[]) => {
+        const enemyPicks: PickedAction[] = enemyTeam.getAlive().map((enemy) => {
+            const targets = allies.getAlive();
+            const target = targets[Math.floor(Math.random() * targets.length)];
+            return { actor: enemy, kind: 'attack' as const, targets: [target] };
+        });
+        setOrder([...finalPicked, ...enemyPicks].sort(sortOrder));
+        setResolveIndex(0);
+        setPhase('resolve');
+    };
 
-        if (pending.kind === 'attack') {
-            basicAttack(active, targets[0]);
-            advanceTurn();
+    // Executes one locked action. Pure execution: no turn advancement.
+    const applyAction = (action: PickedAction) => {
+        const actor = action.actor;
+
+        if (actor.stats.hp <= 0) {
+            push(`${actor.name} is down and cannot act.`);
             return;
         }
 
-        runSkill(pending.spec, targets);
-    };
-
-    const startSkill = (spec: SkillSpec) => {
-        if (spec.targeting === 'ENEMY') {
-            const max = spec.numberOfTargets ?? 1;
-            setPending({ kind: 'skill', spec, maxTargets: max });
-            if (max > 1) {
-                setSelectedIds([]);
-                setPhase('pick-targets');
+        if (action.kind === 'wait') {
+            push(`${actor.name} waits.`);
+        } else if (action.kind === 'attack') {
+            const target = action.targets[0];
+            if (!target || target.stats.hp <= 0) {
+                push(`${actor.name}'s target is already down.`);
             } else {
-                setPhase('pick-target');
+                performAttack(actor, target);
             }
         } else {
-            // SELF / ALL_ENEMIES / ALL_ALLIES need no explicit target
-            runSkill(spec);
+            const spec = action.spec;
+            const targets = action.targets.filter((target) => target.stats.hp > 0);
+
+            if (spec.damage) {
+                for (const target of targets) {
+                    const components = spec.damage.map((component) => ({
+                        ...component,
+                        kind: component.kind ?? kindOfElement(component.element),
+                    }));
+                    const result = DamageComposer.resolveKinds(
+                        components,
+                        defenceLayersOf(target),
+                        kindMultiplierFor(target),
+                        { breakdown: showBreakdown },
+                    );
+                    target.stats.hp = Math.max(0, target.stats.hp - result.total);
+                    target.stats.isAlive = target.stats.hp > 0 ? 1 : 0;
+                    lastHitBy.current.set(target.id, actor.id);
+                    push(`${actor.name} used ${spec.name} on ${target.name}: ${Math.round(result.total)} damage.`, 'damage');
+                    if (showBreakdown) pushBreakdown(result);
+                }
+            }
+
+            if (spec.heal) {
+                for (const target of targets) {
+                    if (target.stats.hp <= 0) continue;
+                    target.stats.hp = Math.min(target.stats.totalHp, target.stats.hp + spec.heal);
+                }
+                push(`${actor.name} used ${spec.name}: healed ${spec.heal} HP each.`, 'heal');
+            }
+
+            if (spec.statusOnTargets) {
+                for (const target of targets) {
+                    target.statusManager.addStatusInstance(new StatusInstance({ definition: spec.statusOnTargets }));
+                }
+            }
+            if (spec.statusOnSelf) {
+                actor.statusManager.addStatusInstance(new StatusInstance({ definition: spec.statusOnSelf }));
+            }
         }
+
+        triggerTurnEnd(actor);
     };
 
-    const passTurn = () => {
-        if (!active) return;
-        push(`${active.name} passes the turn.`);
-        advanceTurn();
-    };
+    // Resolve the locked actions one by one, in speed order. The battle
+    // ends the moment a side is wiped: later actions never happen.
+    useEffect(() => {
+        if (phase !== 'resolve') return;
 
-    const enemyTurn = () => {
-        const enemies = enemyTeam.getAlive();
-        const targets = allies.getAlive();
-
-        for (const enemy of enemies) {
-            const target = targets[Math.floor(Math.random() * targets.length)];
-            basicAttack(enemy, target);
-            triggerTurnEnd(enemy);
+        if (resolveIndex >= order.length) {
+            triggerAll('after_turn');
+            bump();
+            if (checkEnd()) return;
+            setRound((r) => r + 1);
+            beginRound();
+            return;
         }
 
-        triggerAll('after_turn');
-        bump();
-        if (checkEnd()) return;
+        const timer = window.setTimeout(() => {
+            const action = order[resolveIndex];
+            applyAction(action);
 
-        setRound((r) => r + 1);
-        beginRound();
-        setPhase('action');
-    };
+            const enemiesLeft = enemyTeam.getAlive().length;
+            const alliesLeft = allies.getAlive().length;
+            if (enemiesLeft === 0 || alliesLeft === 0) {
+                setPhase(enemiesLeft === 0 ? 'won' : 'lost');
+                return;
+            }
+
+            setResolveIndex((index) => index + 1);
+            bump();
+        }, 550);
+
+        return () => window.clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase, resolveIndex, order]);
 
     useEffect(() => {
         beginRound();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    useEffect(() => {
-        if (phase !== 'enemy') return;
-        const timer = window.setTimeout(enemyTurn, 650);
-        return () => window.clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase]);
 
     const [outcome, setOutcome] = useState<CombatEndResult | null>(null);
     const settled = useRef(false);
@@ -349,6 +383,62 @@ export function CombatScreen({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // ------------------------------------------------------------------
+    // Picking helpers
+    // ------------------------------------------------------------------
+    const advancePicking = (nextPicked: PickedAction[]) => {
+        setPending(null);
+        setSelectedIds([]);
+        setPhase('action');
+        const next = allyQueue.slice(1);
+        if (next.length === 0) {
+            setAllyQueue([]);
+            bump();
+            startResolve(nextPicked);
+            return;
+        }
+        setAllyQueue(next);
+        bump();
+    };
+
+    const commitPick = (action: PickedAction) => {
+        // Build the final list synchronously: the last ally's pick must
+        // reach the resolve phase, so it cannot read stale state.
+        const nextPicked = [...picked, action];
+        setPicked(nextPicked);
+        advancePicking(nextPicked);
+    };
+
+    const startSkill = (spec: SkillSpec) => {
+        if (!active) return;
+        if (spec.targeting === 'ENEMY') {
+            const max = spec.numberOfTargets ?? 1;
+            setPending({ kind: 'skill', spec, maxTargets: max });
+            if (max > 1) {
+                setSelectedIds([]);
+                setPhase('pick-targets');
+            } else {
+                setPhase('pick-target');
+            }
+        } else {
+            // SELF / ALL_ENEMIES / ALL_ALLIES need no explicit target.
+            commitPick({ actor: active, kind: 'skill', spec, targets: targetsFor(spec) });
+        }
+    };
+
+    const executePending = (ids: string[]) => {
+        if (!pending || !active) return;
+        const targets = aliveEnemies.filter((enemy) => ids.includes(enemy.id));
+        if (targets.length === 0) return;
+
+        if (pending.kind === 'attack') {
+            commitPick({ actor: active, kind: 'attack', targets: [targets[0]] });
+            return;
+        }
+
+        commitPick({ actor: active, kind: 'skill', spec: pending.spec, targets });
+    };
+
     const toggleTarget = (id: string, max: number) => {
         setSelectedIds((ids) => {
             if (ids.includes(id)) return ids.filter((x) => x !== id);
@@ -357,6 +447,9 @@ export function CombatScreen({
         });
     };
 
+    // ------------------------------------------------------------------
+    // Screens
+    // ------------------------------------------------------------------
     if (phase === 'won') {
         return (
             <div className="screen">
@@ -484,6 +577,7 @@ export function CombatScreen({
         );
     }
 
+    const pickedIds = new Set(picked.map((action) => action.actor.id));
     const skillSpecs: SkillSpec[] = active
         ? (api.session.availableSkillIds(active)
             .map((id) => specOf(id))
@@ -502,6 +596,24 @@ export function CombatScreen({
         return parts.join(' · ');
     };
 
+    const headerTitle = phase === 'resolve' ? 'Resolving round…' : active ? `${active.name}'s pick` : 'Battle';
+
+    const speedHint = (character: Character): string => {
+        const speed = Math.round(character.getStat('speed'));
+        return `Speed ${speed}: acts earlier in the round; in the interval battle, acts every ${intervalFromSpeed(speed)} ticks.`;
+    };
+
+    const speedTag = (character: Character) => (
+        <span
+            className="tag"
+            style={{ marginLeft: 6 }}
+            title={speedHint(character)}
+            onClick={() => api.showToast(speedHint(character), TOAST_MS.help)}
+        >
+            ⚡ {Math.round(character.getStat('speed'))}
+        </span>
+    );
+
     return (
         <div className="screen">
             <div className="section-title">Round {round} · Enemies</div>
@@ -513,6 +625,7 @@ export function CombatScreen({
                         <div style={{ fontWeight: 600, marginBottom: 4 }}>
                             {enemy.name}
                             <ElementalChips character={enemy} />
+                            {speedTag(enemy)}
                         </div>
                         <StatBar label="HP" value={enemy.getStat('hp')} max={enemy.getStat('totalHp')} suffix={`/ ${Math.round(enemy.getStat('totalHp'))}`} />
                         <StatusChips character={enemy} />
@@ -530,6 +643,8 @@ export function CombatScreen({
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>
                         {ally.name}
                         <ElementalChips character={ally} />
+                        {speedTag(ally)}
+                        {pickedIds.has(ally.id) ? <span className="tag" style={{ marginLeft: 6 }}>✓ picked</span> : null}
                     </div>
                     <StatBar label="HP" value={ally.getStat('hp')} max={ally.getStat('totalHp')} suffix={`/ ${Math.round(ally.getStat('totalHp'))}`} />
                     <StatusChips character={ally} />
@@ -552,27 +667,29 @@ export function CombatScreen({
                 ))}
             </div>
 
-            <div className="section-title">{active ? `${active.name}'s turn` : 'Battle'}</div>
-            <div className="btn-row">
-                <button
-                    className="btn"
-                    onClick={() => {
-                        setPending({ kind: 'attack' });
-                        setPhase('pick-target');
-                    }}
-                >
-                    ⚔️ Attack
-                </button>
-                {skillSpecs.map((spec) => (
-                    <button key={spec.id} className="btn" onClick={() => startSkill(spec)}>
-                        <span style={{ display: 'block' }}>{spec.name}</span>
-                        <span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: 'var(--muted)' }}>
-                            {specHint(spec)}
-                        </span>
+            <div className="section-title">{headerTitle}</div>
+            {phase === 'action' && active ? (
+                <div className="btn-row">
+                    <button
+                        className="btn"
+                        onClick={() => {
+                            setPending({ kind: 'attack' });
+                            setPhase('pick-target');
+                        }}
+                    >
+                        ⚔️ Attack
                     </button>
-                ))}
-                <button className="btn" onClick={passTurn}>⏳ Wait</button>
-            </div>
+                    {skillSpecs.map((spec) => (
+                        <button key={spec.id} className="btn" onClick={() => startSkill(spec)}>
+                            <span style={{ display: 'block' }}>{spec.name}</span>
+                            <span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: 'var(--muted)' }}>
+                                {specHint(spec)}
+                            </span>
+                        </button>
+                    ))}
+                    <button className="btn" onClick={() => commitPick({ actor: active, kind: 'wait' })}>⏳ Wait</button>
+                </div>
+            ) : null}
         </div>
     );
 }

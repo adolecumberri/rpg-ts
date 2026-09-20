@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useReducer, useRef, useState, type 
 import type { InventorySlot, Team } from '@rpg';
 import { WorldSession } from '@core';
 import type { NPC, Place, SaveData, ShopEntry } from '@core';
+import { TOAST_MS } from '../constants/toast';
 
 const SAVE_KEY = 'rpg-ts-save-v1';
 
@@ -38,7 +39,7 @@ type GameApi = {
     toast: string | null;
     navigate: (route: Route) => void;
     back: () => void;
-    showToast: (message: string) => void;
+    showToast: (message: string, durationMs?: number) => void;
     save: () => void;
     travel: (to: string) => void;
     rest: () => void;
@@ -55,8 +56,21 @@ const GameContext = createContext<GameApi | null>(null);
 export function GameProvider({ children }: { children: ReactNode }) {
     const sessionRef = useRef<WorldSession>();
     if (!sessionRef.current) {
-        const saved = loadSave();
-        sessionRef.current = saved ? WorldSession.fromSave(saved) : new WorldSession();
+        let session: WorldSession;
+        try {
+            const saved = loadSave();
+            session = saved ? WorldSession.fromSave(saved) : new WorldSession();
+        } catch {
+            // A save referencing removed content (old worlds, wiped item
+            // catalogs) cannot be restored: start fresh.
+            session = new WorldSession();
+            try {
+                window.localStorage.removeItem(SAVE_KEY);
+            } catch {
+                // storage unavailable: nothing to clean
+            }
+        }
+        sessionRef.current = session;
     }
     const session = sessionRef.current;
 
@@ -69,10 +83,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const currentPlace = session.currentPlace;
     const npcsAtCurrent = session.npcsAt(session.currentPlaceId);
 
-    const showToast = (message: string) => {
+    const showToast = (message: string, durationMs: number = TOAST_MS.default) => {
         setToast(message);
         if (toastTimer.current) window.clearTimeout(toastTimer.current);
-        toastTimer.current = window.setTimeout(() => setToast(null), 2400);
+        toastTimer.current = window.setTimeout(() => setToast(null), durationMs);
     };
 
     const navigate = (route: Route) => setRoutes((rs) => [...rs, route]);

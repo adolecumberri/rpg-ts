@@ -14,6 +14,9 @@ export type SkillSpec = {
     description: string;
     targeting: SkillTargeting;
     numberOfTargets?: number;
+    // Priority tier (0 = normal): actions resolve by priority first and
+    // speed second. No skill defines one yet, the field is ready for it.
+    priority?: number;
     // Damage components resolved with the compound damage composer.
     damage?: DamageComponent[];
     // Flat heal applied to every target.

@@ -1,5 +1,5 @@
 import { Character } from '../../../src';
-import { buildCharacterById } from '../config/characters';
+import { buildCharacterById, flatExperience } from '../config/characters';
 import type { SavedCharacter } from './saveData';
 
 /**
@@ -9,7 +9,11 @@ import type { SavedCharacter } from './saveData';
  * (e.g., recruited npcs) are rebuilt generically.
  */
 export function buildCharacterFromSave(saved: SavedCharacter): Character {
-    const character = buildCharacterById(saved.id) ?? new Character({ id: saved.id, name: saved.name });
+    const character = buildCharacterById(saved.id) ?? new Character({
+        id: saved.id,
+        name: saved.name,
+        experience: flatExperience(),
+    });
 
     character.name = saved.name;
     character.stats.attack = saved.attack;

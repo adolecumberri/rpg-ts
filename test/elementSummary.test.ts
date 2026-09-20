@@ -10,18 +10,18 @@ describe('character elements summary', () => {
         expect(characterElementsSummary(hero)).toEqual({ attack: [], defence: [] });
     });
 
-    it('reports a converted attack (fire sword)', () => {
+    it('reports the fire sword as a magical fire bonus attack (base stays physical)', () => {
         const ember = new Character({ id: 'ember', stats: new Stats({ attack: 9 }) });
         ember.equipment.equipOrReplace(new Item({
             id: 'fire_sword',
             name: 'Fire Sword',
             category: 'weapon',
             slot: 'weapon',
-            elements: [{ element: 'fire', attackValue: 12, convertsAttack: true }],
+            elements: [{ element: 'fire', attackValue: 12 }],
         }), ember);
 
         const summary = characterElementsSummary(ember);
-        expect(summary.attack).toEqual([{ element: 'fire', amount: 21, converted: true }]);
+        expect(summary.attack).toEqual([{ element: 'fire', amount: 12, kind: 'magical', converted: false }]);
         expect(summary.defence).toEqual([]);
     });
 
@@ -43,7 +43,7 @@ describe('character elements summary', () => {
         }), hero);
 
         const summary = characterElementsSummary(hero);
-        expect(summary.attack).toEqual([{ element: 'fire', amount: 8, converted: false }]);
+        expect(summary.attack).toEqual([{ element: 'fire', amount: 8, kind: 'magical', converted: false }]);
         expect(summary.defence).toEqual([{ element: 'fire', reduction: 4, multiplier: 1 }]);
     });
 

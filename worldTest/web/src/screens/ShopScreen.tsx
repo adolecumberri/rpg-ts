@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGame } from '../game/GameContext';
 import { MenuSection } from '../components/Menu';
-import { CATEGORY_ICONS, groupItemsBySection, itemStatsText, SHOP_STOCK } from '@core';
+import { CATEGORY_ICONS, groupItemsBySection, itemDescriptionText, SHOP_STOCK } from '@core';
 
 export function ShopScreen() {
     const api = useGame();
@@ -32,15 +32,13 @@ export function ShopScreen() {
                     <MenuSection
                         key={section.title}
                         title={section.title}
-                        options={section.entries.map((entry) => {
-                            const stats = itemStatsText(entry.item);
-                            return {
-                                icon: CATEGORY_ICONS[entry.item.category] ?? '🛒',
-                                label: entry.item.name,
-                                sub: stats ? `${stats} · ${entry.buyPrice}g` : `${entry.buyPrice}g`,
-                                onClick: () => api.buy(entry),
-                            };
-                        })}
+                        options={section.entries.map((entry) => ({
+                            icon: CATEGORY_ICONS[entry.item.category] ?? '🛒',
+                            label: entry.item.name,
+                            description: itemDescriptionText(entry.item),
+                            sub: `${entry.buyPrice}g`,
+                            onClick: () => api.buy(entry),
+                        }))}
                     />
                 ))
             ) : sellable.length === 0 ? (
@@ -50,15 +48,13 @@ export function ShopScreen() {
                     <MenuSection
                         key={section.title}
                         title={section.title}
-                        options={section.entries.map((slot) => {
-                            const stats = itemStatsText(slot.item);
-                            return {
-                                icon: CATEGORY_ICONS[slot.item.category] ?? '💰',
-                                label: slot.item.name,
-                                sub: `${stats ? `${stats} · ` : ''}${slot.item.sellValue}g · ${slot.quantity} available`,
-                                onClick: () => api.sell(slot),
-                            };
-                        })}
+                        options={section.entries.map((slot) => ({
+                            icon: CATEGORY_ICONS[slot.item.category] ?? '💰',
+                            label: slot.item.name,
+                            description: itemDescriptionText(slot.item),
+                            sub: `${slot.item.sellValue}g · ${slot.quantity} available`,
+                            onClick: () => api.sell(slot),
+                        }))}
                     />
                 ))
             )}

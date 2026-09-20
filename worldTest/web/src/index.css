@@ -164,15 +164,32 @@ body {
     flex: none;
 }
 
-.menu-item .menu-label {
+.menu-item .menu-body {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.menu-item .menu-label {
     font-weight: 600;
+}
+
+.menu-item .menu-desc {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+    white-space: pre-line;
+    line-height: 1.45;
 }
 
 .menu-item .menu-sub {
     color: var(--muted);
     font-size: 12px;
     font-weight: 400;
+    flex: none;
+    white-space: nowrap;
 }
 
 .btn-row {
@@ -591,6 +608,43 @@ body {
     height: 1px;
     background: var(--border);
     margin: 4px 0;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.stat-cell {
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.stat-cell .stat-cell-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.stat-cell .stat-cell-value {
+    font-weight: 700;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-cell .stat-cell-label {
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    text-align: center;
 }
 
 .empty {

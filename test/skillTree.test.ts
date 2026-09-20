@@ -1,23 +1,31 @@
+import { Item } from '../src';
 import { WorldSession } from '../worldTest/core/session';
 import { SkillTree } from '../worldTest/core/skillTree/skillTree';
 import { LevelCondition } from '../worldTest/core/skillTree/conditions';
+import { buildCompanion, buildHero } from '../worldTest/core/config/characters';
+
+function sessionWithHero(): WorldSession {
+    const session = new WorldSession({ random: () => 0.5 });
+    session.team.addCharacter(buildHero());
+    return session;
+}
 
 describe('unlock conditions', () => {
     it('LevelCondition checks the character level', () => {
-        const session = new WorldSession({ random: () => 0.5 });
+        const session = sessionWithHero();
         const hero = session.team.getCharacter('hero')!;
         const context = { character: hero, session, tree: new SkillTree([]) };
         const condition = new LevelCondition(2);
 
         expect(condition.isMet(context)).toBe(false);
-        hero.experience.gain(50); // hero needs 50 xp for level 2
+        hero.experience.gain(100); // flat 100 xp = level 2
         expect(condition.isMet(context)).toBe(true);
     });
 });
 
 describe('skill trees', () => {
     it('does not unlock a node until its conditions are met', () => {
-        const session = new WorldSession({ random: () => 0.5 });
+        const session = sessionWithHero();
 
         const result = session.unlockNode('hero', 'warcry');
 
@@ -27,18 +35,18 @@ describe('skill trees', () => {
     });
 
     it('unlocks after leveling and grants the skill', () => {
-        const session = new WorldSession({ random: () => 0.5 });
+        const session = sessionWithHero();
         const hero = session.team.getCharacter('hero')!;
-        hero.experience.gain(50); // level 2
+        hero.experience.gain(100); // level 2
 
         expect(session.unlockNode('hero', 'warcry').ok).toBe(true);
         expect(session.availableSkillIds(hero)).toContain('warcry');
     });
 
     it('requires the previous node before unlocking the next', () => {
-        const session = new WorldSession({ random: () => 0.5 });
+        const session = sessionWithHero();
         const hero = session.team.getCharacter('hero')!;
-        hero.experience.gain(50); // level 2
+        hero.experience.gain(100); // level 2
 
         expect(session.unlockNode('hero', 'chain_bolt').ok).toBe(false); // warcry not learned yet
 
@@ -47,16 +55,22 @@ describe('skill trees', () => {
     });
 
     it('gates nodes by owned items', () => {
-        const session = new WorldSession({ random: () => 0.5 });
+        const session = sessionWithHero();
         const hero = session.team.getCharacter('hero')!;
         hero.experience.level = 4;
+        session.team.inventory.addItem(new Item({
+            id: 'rusty_sword',
+            name: 'Rusty Sword',
+            category: 'weapon',
+            slot: 'weapon',
+        }));
 
-        // the team starts with a rusty sword, so blade dance is unlockable
+        // owning the rusty sword unlocks blade dance
         expect(session.unlockNode('hero', 'blade_dance').ok).toBe(true);
     });
 
     it('applies stat bonuses when a node is learned', () => {
-        const session = new WorldSession({ random: () => 0.5 });
+        const session = sessionWithHero();
         session.unlocked.add('east_unlocked');
         const hero = session.team.getCharacter('hero')!;
         const attackBefore = hero.stats.attack;
@@ -71,16 +85,17 @@ describe('skill trees', () => {
     });
 
     it('cannot unlock a node twice', () => {
-        const session = new WorldSession({ random: () => 0.5 });
+        const session = sessionWithHero();
         const hero = session.team.getCharacter('hero')!;
-        hero.experience.gain(50);
+        hero.experience.gain(100);
 
         expect(session.unlockNode('hero', 'warcry').ok).toBe(true);
         expect(session.unlockNode('hero', 'warcry')).toMatchObject({ ok: false });
     });
 
     it('keeps trees separate per character', () => {
-        const session = new WorldSession({ random: () => 0.5 });
+        const session = sessionWithHero();
+        session.team.addCharacter(buildCompanion());
         const hero = session.team.getCharacter('hero')!;
         const companion = session.team.getCharacter('companion')!;
 
@@ -88,7 +103,7 @@ describe('skill trees', () => {
         expect(session.skillTreeOf('companion')!.isLearned('warcry')).toBe(false);
         expect(session.skillTreeOf('companion')!.node('warcry')).toBeUndefined();
 
-        companion.experience.gain(1000); // reaches level 3
+        companion.experience.gain(200); // reaches level 3
         expect(session.unlockNode('companion', 'fireball').ok).toBe(true);
         expect(session.availableSkillIds(companion)).toContain('fireball');
         expect(session.availableSkillIds(hero)).toEqual(['fireball', 'regenerate']); // hero kit unchanged

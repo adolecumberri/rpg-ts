@@ -1,7 +1,22 @@
+import { Character, Stats } from '../src';
 import { ItemTable } from '../worldTest/core/loot/itemTable';
 import { DropTable } from '../worldTest/core/loot/dropTable';
 import { LootRoller } from '../worldTest/core/loot/lootRoller';
 import { WorldSession } from '../worldTest/core/session';
+import { buildHero } from '../worldTest/core/config/characters';
+import type { NPC } from '../worldTest/core/types';
+
+function fixtureNpc(id: string, dropTable?: DropTable): NPC {
+    return {
+        id,
+        character: new Character({ id, name: id, stats: new Stats({ hp: 30, totalHp: 30, attack: 6, defence: 0 }) }),
+        talk: '…',
+        xpReward: 10,
+        goldReward: 5,
+        respawns: true,
+        dropTable,
+    };
+}
 
 describe('item table', () => {
     it('registers and creates items from data', () => {
@@ -60,26 +75,45 @@ describe('loot roller', () => {
 describe('session loot', () => {
     it('grants npc drops to the team inventory on victory', () => {
         const session = new WorldSession({ random: () => 0 }); // all chances pass
-        const npc = session.findNpc('goblin')!;
-        const before = session.team.inventory.getItemSlotByItemId('health_potion')?.totalQuantity ?? 0;
+        session.team.addCharacter(buildHero());
+        session.itemTable.register({
+            id: 'test_potion',
+            name: 'Test Potion',
+            category: 'consumable',
+        });
 
-        const result = session.finishCombat('won', { npc, placeId: 'forest' });
+        const npc = fixtureNpc('goblin', new DropTable([
+            { itemId: 'test_potion', chance: 1, minQty: 1, maxQty: 2 },
+        ]));
+        const before = session.team.inventory.getItemSlotByItemId('test_potion')?.totalQuantity ?? 0;
+
+        const result = session.finishCombat('won', {
+            npc,
+            placeId: 'forest',
+            kills: [{ enemyId: 'goblin', killerId: 'hero' }],
+        });
 
         expect(result.drops.length).toBeGreaterThan(0);
-        const after = session.team.inventory.getItemSlotByItemId('health_potion')?.totalQuantity ?? 0;
+        const after = session.team.inventory.getItemSlotByItemId('test_potion')?.totalQuantity ?? 0;
         expect(after).toBeGreaterThan(before);
-        expect(session.findNpc('goblin')).toBeDefined(); // grunt npc respawns with full hp
     });
 
-    it('only awards drops that exist in the item table', () => {
+    it('skips drops that are missing from the item catalog', () => {
         const session = new WorldSession({ random: () => 0 });
-        const npc = session.findNpc('goblin')!;
+        session.team.addCharacter(buildHero());
 
-        const result = session.finishCombat('won', { npc, placeId: 'forest' });
+        const npc = fixtureNpc('ghost', new DropTable([
+            { itemId: 'ghost_item', chance: 1, minQty: 1, maxQty: 1 },
+        ]));
 
-        for (const drop of result.drops) {
-            expect(session.itemTable.has(drop.itemId)).toBe(true);
-        }
+        const result = session.finishCombat('won', {
+            npc,
+            placeId: 'forest',
+            kills: [{ enemyId: 'ghost', killerId: 'hero' }],
+        });
+
+        expect(result.drops.length).toBe(1);
+        expect(session.team.inventory.getItemSlotByItemId('ghost_item')).toBeUndefined();
     });
 
     it('does not drop loot on defeat', () => {
@@ -93,14 +127,12 @@ describe('session loot', () => {
         expect(session.currentPlaceId).toBe('central_town');
     });
 
-    it('awards bandit drops on group victories', () => {
+    it('grants no drops on group victories without a configured table', () => {
         const session = new WorldSession({ random: () => 0 });
-        const before = session.team.inventory.getItemSlotByItemId('health_potion')?.totalQuantity ?? 0;
+        session.team.addCharacter(buildHero());
 
         const result = session.finishCombat('won', { placeId: 'training' });
 
-        expect(result.drops.length).toBeGreaterThan(0);
-        const after = session.team.inventory.getItemSlotByItemId('health_potion')?.totalQuantity ?? 0;
-        expect(after).toBeGreaterThan(before);
+        expect(result.drops).toEqual([]);
     });
 });

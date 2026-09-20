@@ -2,44 +2,24 @@ import { WorldSession } from '../worldTest/core/session';
 import { buildTravelGraph } from '../worldTest/core/view/travelGraph';
 import { buildSkillTreeView } from '../worldTest/core/view/skillTreeView';
 import { dropTableRows, dropTableSummaries } from '../worldTest/core/view/dropTableView';
-import { PLACES, BANDIT_DROP } from '../worldTest/core/world';
+import { PLACES } from '../worldTest/core/world';
+import { DropTable } from '../worldTest/core/loot/dropTable';
+import { buildHero } from '../worldTest/core/config/characters';
 
 describe('travel graph', () => {
-    it('builds nodes and collapses bidirectional connections into one edge', () => {
+    it('builds one node for the blank world and no edges', () => {
         const graph = buildTravelGraph(PLACES, new Set());
 
-        expect(graph.nodes).toHaveLength(PLACES.length);
-
-        const centralForest = graph.edges.filter(
-            (edge) =>
-                (edge.from === 'central_town' && edge.to === 'forest') ||
-                (edge.from === 'forest' && edge.to === 'central_town'),
-        );
-        expect(centralForest).toHaveLength(1);
-    });
-
-    it('marks flag-gated edges as locked until the flag is unlocked', () => {
-        const lockedGraph = buildTravelGraph(PLACES, new Set());
-        const lockedEdge = lockedGraph.edges.find(
-            (edge) =>
-                (edge.from === 'central_town' && edge.to === 'east_town') ||
-                (edge.from === 'east_town' && edge.to === 'central_town'),
-        );
-        expect(lockedEdge?.locked).toBe(true);
-
-        const unlockedGraph = buildTravelGraph(PLACES, new Set(['east_unlocked']));
-        const unlockedEdge = unlockedGraph.edges.find(
-            (edge) =>
-                (edge.from === 'central_town' && edge.to === 'east_town') ||
-                (edge.from === 'east_town' && edge.to === 'central_town'),
-        );
-        expect(unlockedEdge?.locked).toBe(false);
+        expect(graph.nodes).toHaveLength(1);
+        expect(graph.nodes[0].id).toBe('central_town');
+        expect(graph.edges).toEqual([]);
     });
 });
 
 describe('skill tree view', () => {
     it('maps nodes with learned/unlockable state and previous-node edges', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.team.addCharacter(buildHero());
         const hero = session.team.getCharacter('hero')!;
         const tree = session.skillTreeOf('hero')!;
         const context = { character: hero, session, tree };
@@ -49,7 +29,7 @@ describe('skill tree view', () => {
         expect(view.edges).toEqual([{ from: 'warcry', to: 'chain_bolt' }]);
         expect(view.nodes.find((node) => node.id === 'warcry')!.unlockable).toBe(false); // level 1
 
-        hero.experience.gain(50); // level 2
+        hero.experience.gain(100); // level 2
         const viewAfterLevel = buildSkillTreeView(tree, context);
         const warcry = viewAfterLevel.nodes.find((node) => node.id === 'warcry')!;
         expect(warcry.unlockable).toBe(true);
@@ -60,24 +40,27 @@ describe('skill tree view', () => {
 describe('drop table view', () => {
     it('converts drop tables into rows with item names and chances', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const rows = dropTableRows(BANDIT_DROP, session.itemTable);
+        session.itemTable.register({
+            id: 'potion',
+            name: 'Potion',
+            category: 'consumable',
+        });
+        const table = new DropTable([
+            { itemId: 'potion', chance: 0.5, minQty: 1, maxQty: 2 },
+            { itemId: 'gold_coin', chance: 0.25, minQty: 1, maxQty: 1 },
+        ]);
+
+        const rows = dropTableRows(table, session.itemTable);
 
         expect(rows).toHaveLength(2);
-        expect(rows[0].itemName).toBe('Health Potion');
+        expect(rows[0].itemName).toBe('Potion');
         expect(rows[0].chance).toBe(0.5);
         expect(rows[0].minQty).toBe(1);
         expect(rows[0].maxQty).toBe(2);
     });
 
-    it('summarizes every creature drop table', () => {
+    it('returns no summaries while the world has no content', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const sources = dropTableSummaries(session).map((summary) => summary.source);
-
-        expect(sources).toContain('Goblin');
-        expect(sources).toContain('Cave Troll');
-        expect(sources).toContain('Iron Golem');
-        expect(sources).toContain('Bandits');
-        expect(sources).toContain('Goblin Chief');
-        expect(sources).toContain('Arena Champion');
+        expect(dropTableSummaries(session)).toEqual([]);
     });
 });

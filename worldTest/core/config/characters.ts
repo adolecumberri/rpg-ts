@@ -1,36 +1,49 @@
 import { Character, Experience, Stats } from '../../../src';
+// Loads the enhanced-stat augmentation and seeds DEFAULT_STATS with the
+// new stat defaults (magicDefence, critChance, critMultiplier, speed).
+import './damage';
+import { GROWTH, wireGrowth } from './growth';
+import { XP } from '../xp/xpConfig';
 
-// Fixed values and behaviors for the starting characters.
+// Every character levels with the same flat XP requirement (FFTA2 style).
+export function flatExperience(): Experience {
+    return new Experience({ baseXpToLevel: XP.perLevel, xpGrowthFactor: 1 });
+}
+
+// Fixed values and behaviors for the starting characters. The base
+// stats come from the growth table so level-ups and factories always
+// agree on the level-1 values.
 export function buildHero(): Character {
     const hero = new Character({
         id: 'hero',
         name: 'Hero',
-        stats: new Stats({ hp: 50, totalHp: 100, attack: 10, defence: 5 }),
-        experience: new Experience({ growthFunction: ({ level }) => level * 50 }),
+        stats: new Stats(GROWTH.jobs.hero.bases),
+        experience: flatExperience(),
     });
-    hero.experience.onLevelUpHandler = () => {
-        hero.stats.attack += 2;
-        hero.stats.defence += 1;
-        hero.stats.totalHp += 10;
-        hero.stats.hp = hero.stats.totalHp;
-    };
+    wireGrowth(hero, 'hero');
     return hero;
 }
 
 export function buildCompanion(): Character {
-    return new Character({
+    const companion = new Character({
         id: 'companion',
         name: 'Companion',
-        stats: new Stats({ hp: 40, totalHp: 80, attack: 8, defence: 4 }),
+        stats: new Stats(GROWTH.jobs.companion.bases),
+        experience: flatExperience(),
     });
+    wireGrowth(companion, 'companion');
+    return companion;
 }
 
 export function buildEmber(): Character {
-    return new Character({
+    const ember = new Character({
         id: 'ember',
         name: 'Ember',
-        stats: new Stats({ hp: 45, totalHp: 90, attack: 9, defence: 3 }),
+        stats: new Stats(GROWTH.jobs.ember.bases),
+        experience: flatExperience(),
     });
+    wireGrowth(ember, 'ember');
+    return ember;
 }
 
 // Rebuilds a known character by id (used by the save system to restore

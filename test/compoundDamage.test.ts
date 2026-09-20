@@ -81,7 +81,7 @@ describe('character compound damage', () => {
 
         const components = attackComponentsOf(attacker);
         expect(components).toHaveLength(2);
-        expect(components[1]).toEqual({ element: 'fire', amount: 8, label: 'Fire Staff' });
+        expect(components[1]).toEqual({ kind: 'magical', element: 'fire', amount: 8, label: 'Fire Staff' });
     });
 
     it('merges item resistances into the defence layers', () => {
@@ -119,9 +119,10 @@ describe('character compound damage', () => {
 
         const result = resolveBasicAttack(attacker, defender, { breakdown: true });
 
-        expect(result.total).toBe(9); // (10 - 5) + (8 - 4)
+        // physical: 10 * 50/(50+5); fire: 8 (no magicDefence) - 4 resistance
+        expect(result.total).toBe(13.09);
         expect(result.breakdown).toHaveLength(2);
-        expect(defender.stats.hp).toBe(91);
+        expect(defender.stats.hp).toBe(86.91);
         expect(defender.stats.isAlive).toBe(1);
     });
 });

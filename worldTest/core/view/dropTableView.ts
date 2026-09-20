@@ -1,7 +1,6 @@
 import type { WorldSession } from '../session';
 import type { DropTable } from '../loot/dropTable';
 import type { ItemTable } from '../loot/itemTable';
-import { BANDIT_DROP } from '../world';
 
 export type DropTableRow = {
     itemId: string;
@@ -28,8 +27,8 @@ export function dropTableRows(table: DropTable | undefined, itemTable: ItemTable
 }
 
 /**
- * Reference view of every creature's drop table (grunt npcs, special
- * encounters and the bandit group).
+ * Reference view of every creature's drop table (grunt npcs and special
+ * encounters). Empty until content returns.
  */
 export function dropTableSummaries(session: WorldSession): DropTableSummary[] {
     const summaries: DropTableSummary[] = [];
@@ -46,6 +45,5 @@ export function dropTableSummaries(session: WorldSession): DropTableSummary[] {
         }
     }
 
-    summaries.push({ source: 'Bandits', rows: dropTableRows(BANDIT_DROP, session.itemTable) });
     return summaries;
 }

@@ -52,6 +52,16 @@ export function PlaceScreen() {
             services.push({ icon: action.icon ?? '🛒', label: action.label, onClick: () => api.navigate({ name: 'shop' }) });
         } else if (action.kind === 'rest') {
             services.push({ icon: action.icon ?? '🛏️', label: action.label, onClick: () => api.rest() });
+        } else if (action.kind === 'train') {
+            services.push({
+                icon: action.icon ?? '💪',
+                label: action.label,
+                onClick: () => {
+                    const result = api.session.train(action.levels);
+                    api.refresh();
+                    api.showToast(result.message);
+                },
+            });
         }
     }
 

@@ -12,6 +12,21 @@
     "sourceMap": true,
     "target": "es6",
     "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@rpg": [
+        "src"
+      ],
+      "@rpg/*": [
+        "src/*"
+      ],
+      "@core": [
+        "worldTest/core"
+      ],
+      "@core/*": [
+        "worldTest/core/*"
+      ]
+    },
     "types": [
       "jest"
     ]

@@ -95,7 +95,9 @@ export class Stats<T extends Statistics = Statistics> implements Statistics {
     calculateStatVariation(key: keyof Statistics): number {
         const allStatModifiers = this.getCombinedStatModifiers(key);
 
-        const originalValue = this[key] as number;
+        // Indexed through a cast so consumers can widen `Statistics`
+        // through interface merging without breaking this lookup.
+        const originalValue = (this as unknown as Record<keyof Statistics, number>)[key];
         let modifiedValue = 0;
 
         modifiedValue += allStatModifiers.BUFF_FIXED - allStatModifiers.DEBUFF_FIXED;
@@ -108,7 +110,7 @@ export class Stats<T extends Statistics = Statistics> implements Statistics {
 
     // Calculates the final value of a stat (base value + all modifier sources).
     calculateStatValue(key: keyof Statistics): number {
-        const value = (this[key] as number) + this.calculateStatVariation(key);
+        const value = (this as unknown as Record<keyof Statistics, number>)[key] + this.calculateStatVariation(key);
         return Math.round(value * 100) / 100;
     }
 

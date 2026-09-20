@@ -1,60 +1,35 @@
 import type { Character } from '../../../src';
 import { DEFAULT_ELEMENTS } from './elements';
-import { DamageComposer } from './composer';
 import type { DamageComponent, DamageResult, DefenceLayer, ResolveOptions } from './composer';
 import type { ElementId } from './elements';
 import { CHARACTER_AFFINITIES } from './affinities';
+import { kindOfElement } from '../config/damage';
+import { resolveGeneralAttack } from './general';
 
 /**
- * Attack components of a character: base physical attack plus the
- * elemental attack of every equipped item. An equipped item with
- * `convertsAttack` converts the whole attack into its element and
- * adds its attackValue on top.
+ * Attack components of a character: the base physical attack plus the
+ * damage of every equipped item, each with the kind of its element
+ * (physical, magical or true). Components are derived from the
+ * currently equipped items on every call, so equipping and unequipping
+ * items updates the attack automatically.
  */
 export function attackComponentsOf(character: Character): DamageComponent[] {
     const baseAttack = character.getStat('attack');
     const equipped = character.equipment.getEquippedItems();
 
-    const converter = (() => {
-        for (const item of equipped) {
-            for (const element of item.definition.elements ?? []) {
-                if (element.convertsAttack) {
-                    return { element, item };
-                }
-            }
-        }
-        return undefined;
-    })();
-
-    if (converter) {
-        const components: DamageComponent[] = [{
-            element: converter.element.element as ElementId,
-            amount: baseAttack + (converter.element.attackValue ?? 0),
-            label: converter.item.name,
-        }];
-
-        // Other elemental bonuses (non-converting) still apply.
-        for (const item of equipped) {
-            for (const element of item.definition.elements ?? []) {
-                if (element.convertsAttack) continue;
-                if (element.attackValue) {
-                    components.push({ element: element.element as ElementId, amount: element.attackValue, label: item.name });
-                }
-            }
-        }
-
-        return components;
-    }
-
     const components: DamageComponent[] = [
-        { element: 'physical', amount: baseAttack, label: 'Attack' },
+        { kind: 'physical', element: 'physical', amount: baseAttack, label: 'Attack' },
     ];
 
     for (const item of equipped) {
         for (const element of item.definition.elements ?? []) {
-            if (element.attackValue) {
-                components.push({ element: element.element as ElementId, amount: element.attackValue, label: item.name });
-            }
+            if (!element.attackValue) continue;
+            components.push({
+                kind: kindOfElement(element.element),
+                element: element.element as ElementId,
+                amount: element.attackValue,
+                label: item.name,
+            });
         }
     }
 
@@ -62,22 +37,20 @@ export function attackComponentsOf(character: Character): DamageComponent[] {
 }
 
 /**
- * Defence layers of a character: base physical defence, the elemental
- * resistances of every equipped item (merged by element), plus the
- * character's elemental affinities (multipliers).
+ * Defence layers of a character: the elemental resistances of every
+ * equipped item (merged by element) plus the character's elemental
+ * affinities (multipliers). The flat defence/magicDefence reduction is
+ * NOT a layer: the general resolver applies it by damage kind.
  */
 export function defenceLayersOf(character: Character): DefenceLayer[] {
     const layers: DefenceLayer[] = [];
 
     const reductions = new Map<ElementId, number>();
-    reductions.set('physical', character.getStat('defence'));
-
     for (const item of character.equipment.getEquippedItems()) {
         for (const element of item.definition.elements ?? []) {
-            if (element.resistanceValue) {
-                const id = element.element as ElementId;
-                reductions.set(id, (reductions.get(id) ?? 0) + element.resistanceValue);
-            }
+            if (!element.resistanceValue) continue;
+            const id = element.element as ElementId;
+            reductions.set(id, (reductions.get(id) ?? 0) + element.resistanceValue);
         }
     }
 
@@ -85,7 +58,7 @@ export function defenceLayersOf(character: Character): DefenceLayer[] {
         layers.push({
             element,
             reduction,
-            label: element === 'physical' ? 'Defence' : (DEFAULT_ELEMENTS.get(element)?.name ?? element),
+            label: DEFAULT_ELEMENTS.get(element)?.name ?? element,
         });
     }
 
@@ -111,14 +84,21 @@ export function applyDamageResult(character: Character, result: DamageResult): v
 }
 
 /**
- * Full compound resolution of a basic attack and its application.
+ * Full general resolution of a basic attack and its application. By
+ * default no crit is ever rolled (the injected random returns 1) so
+ * plain attacks stay deterministic; pass a `random` source to enable
+ * crits.
  */
 export function resolveBasicAttack(
     attacker: Character,
     defender: Character,
-    options?: ResolveOptions,
+    options: ResolveOptions & { random?: () => number } = {},
 ): DamageResult {
-    const result = DamageComposer.resolve(attackComponentsOf(attacker), defenceLayersOf(defender), options);
+    const outcome = resolveGeneralAttack(attacker, defender, options.random ?? (() => 1), options);
+    const result: DamageResult = {
+        total: outcome.damage,
+        breakdown: outcome.breakdown ?? [],
+    };
     applyDamageResult(defender, result);
     return result;
 }

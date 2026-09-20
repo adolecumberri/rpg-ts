@@ -32,18 +32,19 @@ describe('elemental multipliers', () => {
         expect(result.total).toBe(18); // 10 * 2 - 2
     });
 
-    it('converts the whole attack into fire with the converting sword', () => {
+    it('keeps the base attack physical and adds the sword fire as a magical component', () => {
         const ember = new Character({ id: 'ember', stats: new Stats({ attack: 9 }) });
         ember.equipment.equipOrReplace(new Item({
             id: 'fire_sword',
             name: 'Fire Sword',
             category: 'weapon',
             slot: 'weapon',
-            elements: [{ element: 'fire', attackValue: 12, convertsAttack: true }],
+            elements: [{ element: 'fire', attackValue: 12 }],
         }), ember);
 
         expect(attackComponentsOf(ember)).toEqual([
-            { element: 'fire', amount: 21, label: 'Fire Sword' },
+            { kind: 'physical', element: 'physical', amount: 9, label: 'Attack' },
+            { kind: 'magical', element: 'fire', amount: 12, label: 'Fire Sword' },
         ]);
     });
 
@@ -54,7 +55,7 @@ describe('elemental multipliers', () => {
             name: 'Fire Sword',
             category: 'weapon',
             slot: 'weapon',
-            elements: [{ element: 'fire', attackValue: 12, convertsAttack: true }],
+            elements: [{ element: 'fire', attackValue: 12 }],
         }), ember);
 
         const golem = new Character({ id: 'fire_golem', stats: new Stats({ hp: 100, totalHp: 100, defence: 0 }) });
@@ -64,9 +65,11 @@ describe('elemental multipliers', () => {
         setAffinity('ice_wraith', 'fire', 2);
 
         const vsGolem = resolveBasicAttack(ember, golem);
-        expect(vsGolem.total).toBe(10.5); // (9 + 12) * 0.5
+        // physical 9 (defence 0) + fire 12 * 0.5 affinity (no magicDefence here)
+        expect(vsGolem.total).toBe(15);
 
         const vsWraith = resolveBasicAttack(ember, wraith);
-        expect(vsWraith.total).toBe(42); // (9 + 12) * 2
+        // physical 9 + fire 12 * 2 affinity (no magicDefence here)
+        expect(vsWraith.total).toBe(33);
     });
 });

@@ -1,4 +1,4 @@
-export type ElementId = 'physical' | 'fire' | 'ice' | 'lightning' | 'poison';
+export type ElementId = 'physical' | 'fire' | 'ice' | 'lightning' | 'poison' | 'pierce' | 'blunt' | 'arcane' | 'true';
 
 export type ElementDefinition = {
     id: ElementId;
@@ -31,7 +31,11 @@ export class ElementRegistry {
 
 export const DEFAULT_ELEMENTS = new ElementRegistry();
 DEFAULT_ELEMENTS.register({ id: 'physical', name: 'Physical', icon: '⚔️' });
+DEFAULT_ELEMENTS.register({ id: 'pierce', name: 'Pierce', icon: '🏹' });
+DEFAULT_ELEMENTS.register({ id: 'blunt', name: 'Blunt', icon: '🔨' });
 DEFAULT_ELEMENTS.register({ id: 'fire', name: 'Fire', icon: '🔥' });
 DEFAULT_ELEMENTS.register({ id: 'ice', name: 'Ice', icon: '❄️' });
+DEFAULT_ELEMENTS.register({ id: 'arcane', name: 'Arcane', icon: '✨' });
 DEFAULT_ELEMENTS.register({ id: 'lightning', name: 'Lightning', icon: '⚡' });
 DEFAULT_ELEMENTS.register({ id: 'poison', name: 'Poison', icon: '☠️' });
+DEFAULT_ELEMENTS.register({ id: 'true', name: 'True', icon: '💥' });

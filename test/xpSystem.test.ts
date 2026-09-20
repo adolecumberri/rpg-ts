@@ -1,7 +1,9 @@
 import { Character, Experience, Stats } from '../src';
+import type { NPC } from '../worldTest/core/types';
 import { grantCombatXp } from '../worldTest/core/xp/xpSystem';
 import { XP } from '../worldTest/core/xp/xpConfig';
 import { WorldSession } from '../worldTest/core/session';
+import { buildEmber, buildHero } from '../worldTest/core/config/characters';
 
 function makeChar(id: string, level = 1): Character {
     return new Character({
@@ -10,6 +12,18 @@ function makeChar(id: string, level = 1): Character {
         stats: new Stats({ hp: 50, totalHp: 100 }),
         experience: new Experience({ level }),
     });
+}
+
+function fixtureNpc(id: string, overrides: Partial<NPC> = {}): NPC {
+    return {
+        id,
+        character: new Character({ id, name: id, stats: new Stats({ hp: 30, totalHp: 30, attack: 6, defence: 0 }) }),
+        talk: '…',
+        xpReward: 10,
+        goldReward: 5,
+        respawns: true,
+        ...overrides,
+    };
 }
 
 describe('individual experience system', () => {
@@ -47,36 +61,43 @@ describe('individual experience system', () => {
         expect(ally.experience.currentXp).toBe(0);
     });
 
-    it('the Sage Spirit in Central Town grants exactly 100 XP to its killer only', () => {
+    it('a custom-XP npc grants exactly one flat level to its killer only', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const spirit = session.findNpc('sage_spirit')!;
+        session.team.addCharacter(buildHero());
+        session.team.addCharacter(buildEmber());
         const hero = session.team.getCharacter('hero')!;
         const ember = session.team.getCharacter('ember')!;
-        hero.experience.level = 10; // high level: 100 XP does not level up
-        const heroXpBefore = hero.experience.currentXp;
+        hero.experience.level = 10;
+        const emberLevelBefore = ember.experience.level;
         const emberXpBefore = ember.experience.currentXp;
 
+        const spirit = fixtureNpc('sage_spirit', { customXp: 100, xpReward: 0, goldReward: 0 });
         session.finishCombat('won', {
             npc: spirit,
             placeId: 'central_town',
             kills: [{ enemyId: 'sage_spirit', killerId: 'hero' }],
         });
 
-        expect(hero.experience.currentXp).toBe(heroXpBefore + 100);
+        // 100 xp = exactly one level with the flat FFTA2 curve.
+        expect(hero.experience.level).toBe(11);
+        expect(hero.experience.currentXp).toBe(0);
+        expect(ember.experience.level).toBe(emberLevelBefore);
         expect(ember.experience.currentXp).toBe(emberXpBefore);
     });
 
     it('a normal kill grants killer XP plus assists through the session', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const goblin = session.findNpc('goblin')!;
+        session.team.addCharacter(buildHero());
+        session.team.addCharacter(buildEmber());
         const hero = session.team.getCharacter('hero')!;
         const ember = session.team.getCharacter('ember')!;
         const heroXpBefore = hero.experience.currentXp;
         const emberXpBefore = ember.experience.currentXp;
 
+        const goblin = fixtureNpc('goblin');
         session.finishCombat('won', {
             npc: goblin,
-            placeId: 'forest',
+            placeId: 'central_town',
             kills: [{ enemyId: 'goblin', killerId: 'hero' }],
         });
 

@@ -244,6 +244,7 @@ export function IntervalCombatScreen() {
                         {result.turns.slice(logStart, shown).map((turn, index) => (
                             <div key={logStart + index} className={`entry ${turn.damageApplied > 0 ? 'damage' : 'info'}`}>
                                 [tick {turn.tick}] {nameOf(turn.actorId)} → {nameOf(turn.targetId)} for {Math.round(turn.damageApplied)}
+                                {turn.note ? ` (${turn.note})` : ''}
                                 {' '}({nameOf(turn.targetId)} HP {Math.round(turn.targetHpAfter)}/{Math.round(maxHpOf(turn.targetId))})
                                 {!turn.targetAlive ? ' 💀' : ''}
                             </div>

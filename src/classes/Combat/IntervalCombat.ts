@@ -16,6 +16,8 @@ export type IntervalCombatTurn = {
     damageApplied: number;
     targetHpAfter: number;
     targetAlive: boolean;
+    // Optional flavour from the damage resolver, e.g. 'crit ×2'.
+    note?: string;
 };
 
 export type IntervalCombatResult = {
@@ -31,9 +33,31 @@ export type IntervalCombatOptions = {
     randomTarget?: boolean;
     // Injectable random source for deterministic tests.
     random?: () => number;
+    // Delegates the damage math of every hit. When provided it replaces
+    // the default flat `attack - defence` formula; it receives the
+    // engine's random source so crits (or any variance) stay
+    // deterministic under injected randomness.
+    damageResolver?: IntervalDamageResolver;
 };
 
-const DEFAULT_OPTIONS: Required<IntervalCombatOptions> = {
+// The outcome of resolving one hit through a damage resolver.
+export type IntervalDamage = {
+    // Final damage applied to the target.
+    damage: number;
+    // Optional flavour shown in logs, e.g. 'crit ×2' or 'fire'.
+    note?: string;
+};
+
+export type IntervalDamageResolver = (
+    attacker: Character,
+    defender: Character,
+    random: () => number,
+) => IntervalDamage;
+
+type IntervalBaseOptions = Omit<IntervalCombatOptions, 'damageResolver'>;
+type ResolvedOptions = Required<IntervalBaseOptions> & { damageResolver?: IntervalDamageResolver };
+
+const DEFAULT_OPTIONS: Required<IntervalBaseOptions> = {
     maxTicks: 1000,
     randomTarget: true,
     random: Math.random,
@@ -46,7 +70,7 @@ const DEFAULT_OPTIONS: Required<IntervalCombatOptions> = {
  * the other team, attacks, and waits until its next scheduled tick.
  */
 export class IntervalCombat {
-    private options: Required<IntervalCombatOptions>;
+    private options: ResolvedOptions;
 
     constructor(options: IntervalCombatOptions = {}) {
         this.options = { ...DEFAULT_OPTIONS, ...options };
@@ -57,7 +81,7 @@ export class IntervalCombat {
         right: IntervalCombatant[],
         options: IntervalCombatOptions = {},
     ): IntervalCombatResult {
-        const config = { ...this.options, ...options };
+        const config: ResolvedOptions = { ...this.options, ...options };
 
         for (const combatant of [...left, ...right]) {
             if (!Number.isFinite(combatant.interval) || combatant.interval < 1) {
@@ -98,15 +122,16 @@ export class IntervalCombat {
                 if (defenders.length === 0) break;
 
                 const target = this.pickTarget(defenders, config);
-                const damage = this.resolveAttack(actor.character, target.character);
+                const resolved = this.resolveHit(actor.character, target.character, config);
 
                 turns.push({
                     tick,
                     actorId: actor.character.id,
                     targetId: target.character.id,
-                    damageApplied: damage,
+                    damageApplied: resolved.damage,
                     targetHpAfter: target.character.stats.hp,
                     targetAlive: target.character.stats.hp > 0,
+                    note: resolved.note,
                 });
             }
 
@@ -124,16 +149,32 @@ export class IntervalCombat {
         return { winner, ticks: tick, turns, leftSurvivors, rightSurvivors };
     }
 
-    private resolveAttack(attacker: Character, defender: Character): number {
-        const damage = Math.max(0, attacker.getStat('attack') - defender.getStat('defence'));
-        defender.stats.hp = Math.max(0, defender.stats.hp - damage);
+    /**
+     * Resolves one hit through the injected damage resolver (when given)
+     * or the default flat formula, and applies the result to the
+     * defender.
+     */
+    private resolveHit(
+        attacker: Character,
+        defender: Character,
+        config: ResolvedOptions,
+    ): IntervalDamage {
+        const resolved = config.damageResolver ?
+            config.damageResolver(attacker, defender, config.random) :
+            { damage: this.resolveAttack(attacker, defender) };
+
+        defender.stats.hp = Math.max(0, defender.stats.hp - resolved.damage);
         defender.stats.isAlive = defender.stats.hp > 0 ? 1 : 0;
-        return damage;
+        return resolved;
+    }
+
+    private resolveAttack(attacker: Character, defender: Character): number {
+        return Math.max(0, attacker.getStat('attack') - defender.getStat('defence'));
     }
 
     private pickTarget(
         defenders: IntervalCombatant[],
-        config: Required<IntervalCombatOptions>,
+        config: ResolvedOptions,
     ): IntervalCombatant {
         if (!config.randomTarget || defenders.length === 1) {
             return defenders[0];

@@ -36,6 +36,9 @@ export type SaveData = {
     team: SavedCharacter[];
     inventory: SavedSlot[];
     npcs: SavedNpc[];
+    // World npc ids permanently removed (defeated recruits...). Optional
+    // so saves made before this field existed still load.
+    removedNpcs?: string[];
     encounters: { placeId: string; victories: number }[];
     spawnedSpecials: string[];
     skillTrees: { characterId: string; learned: string[] }[];

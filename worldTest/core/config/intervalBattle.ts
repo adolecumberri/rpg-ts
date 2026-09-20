@@ -2,6 +2,8 @@ import { Character, IntervalCombat, Stats } from '../../../src';
 import type { IntervalCombatant, IntervalCombatOptions, IntervalCombatResult } from '../../../src';
 import { grantCombatXp } from '../xp/xpSystem';
 import type { WorldSession } from '../session';
+import { generalAttackResolver } from '../damage/general';
+import { intervalFromSpeed } from './speed';
 
 export type { IntervalCombatant, IntervalCombatOptions, IntervalCombatResult } from '../../../src';
 
@@ -12,16 +14,18 @@ export interface IntervalBattleEntry extends IntervalCombatant {
     image: string;
 }
 
-// Fixed values for the interval-based demo battle.
+// Fixed values for the interval-based demo battle. Fighters carry a
+// SPEED and their attack interval is derived from it (intervalFromSpeed),
+// so there is a single stat driving how often everyone acts.
 export const INTERVAL_BATTLE = {
     allies: [
-        { id: 'hero', interval: 3, icon: '🦸', image: '' },
-        { id: 'companion', interval: 4, icon: '🏹', image: '' },
-        { id: 'ember', interval: 5, icon: '🐉', image: '' },
+        { id: 'hero', speed: 8, icon: '🦸', image: '' },
+        { id: 'companion', speed: 6, icon: '🏹', image: '' },
+        { id: 'ember', speed: 5, icon: '🐉', image: '' },
     ],
     enemies: [
-        { id: 'goblin', name: 'Goblin', interval: 4, hp: 30, totalHp: 30, attack: 6, defence: 0, icon: '👺', image: '' },
-        { id: 'troll', name: 'Troll', interval: 6, hp: 50, totalHp: 50, attack: 9, defence: 1, icon: '👹', image: '' },
+        { id: 'goblin', name: 'Goblin', speed: 6, hp: 30, totalHp: 30, attack: 6, defence: 0, magicDefence: 0, icon: '👺', image: '' },
+        { id: 'troll', name: 'Troll', speed: 4, hp: 50, totalHp: 50, attack: 9, defence: 1, magicDefence: 2, icon: '👹', image: '' },
     ],
 } as const;
 
@@ -42,11 +46,15 @@ export function buildIntervalCombatants(
             stats: new Stats({
                 attack: real.getStat('attack'),
                 defence: real.getStat('defence'),
+                magicDefence: real.getStat('magicDefence'),
+                critChance: real.getStat('critChance'),
+                critMultiplier: real.getStat('critMultiplier'),
+                speed: real.getStat('speed'),
                 hp: real.getStat('hp'),
                 totalHp: real.getStat('totalHp'),
             }),
         });
-        left.push({ character: clone, interval: entry.interval, icon: entry.icon, image: entry.image });
+        left.push({ character: clone, interval: intervalFromSpeed(entry.speed), icon: entry.icon, image: entry.image });
     }
 
     const right: IntervalBattleEntry[] = INTERVAL_BATTLE.enemies.map((entry) => ({
@@ -56,11 +64,13 @@ export function buildIntervalCombatants(
             stats: new Stats({
                 attack: entry.attack,
                 defence: entry.defence,
+                magicDefence: entry.magicDefence,
+                speed: entry.speed,
                 hp: entry.hp,
                 totalHp: entry.totalHp,
             }),
         }),
-        interval: entry.interval,
+        interval: intervalFromSpeed(entry.speed),
         icon: entry.icon,
         image: entry.image,
     }));
@@ -73,7 +83,7 @@ export function resolveIntervalDemo(
     options: IntervalCombatOptions = {},
 ): IntervalCombatResult {
     const { left, right } = buildIntervalCombatants(session);
-    return new IntervalCombat().resolve(left, right, options);
+    return new IntervalCombat().resolve(left, right, { ...options, damageResolver: generalAttackResolver });
 }
 
 /**

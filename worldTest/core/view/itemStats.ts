@@ -1,5 +1,6 @@
 import type { Item } from '../../../src';
 import { DEFAULT_ELEMENTS } from '../damage/elements';
+import { kindOfElement } from '../config/damage';
 
 export type ItemStatLine = {
     icon: string;
@@ -9,13 +10,23 @@ export type ItemStatLine = {
 const STAT_ICONS: Record<string, string> = {
     attack: '⚔️',
     defence: '🛡️',
+    magicDefence: '🔮',
+    critChance: '🎯',
+    critMultiplier: '💥',
     hp: '❤️',
     totalHp: '❤️',
 };
 
+const KIND_SUFFIX: Record<string, string> = {
+    physical: '',
+    magical: ' (magical)',
+    true: ' (true)',
+};
+
 /**
  * Human-readable stat lines for an item: stat effects plus elemental
- * attack/resistance values. Used by the shop and inventory views.
+ * attack/resistance values, with the damage kind of each elemental
+ * attack. Used by the shop and inventory views.
  */
 export function itemStatsSummary(item: Item): ItemStatLine[] {
     const lines: ItemStatLine[] = [];
@@ -37,7 +48,11 @@ export function itemStatsSummary(item: Item): ItemStatLine[] {
                 text: `converts attack to ${element.element}${element.attackValue ? ` (+${element.attackValue})` : ''}`,
             });
         } else if (element.attackValue) {
-            lines.push({ icon, text: `+${element.attackValue} ${element.element} attack` });
+            const kind = kindOfElement(element.element);
+            const text = element.element === 'true'
+                ? `deals ${element.attackValue} true damage`
+                : `+${element.attackValue} ${element.element} attack${KIND_SUFFIX[kind] ?? ''}`;
+            lines.push({ icon, text });
         }
         if (element.resistanceValue) {
             lines.push({ icon, text: `resist ${element.resistanceValue} ${element.element}` });
@@ -51,4 +66,14 @@ export function itemStatsText(item: Item): string {
     return itemStatsSummary(item)
         .map((line) => `${line.icon} ${line.text}`)
         .join(' · ');
+}
+
+/**
+ * Full item description for detail views: the written flavour first,
+ * then the generated stat lines.
+ */
+export function itemDescriptionText(item: Item): string {
+    const stats = itemStatsText(item);
+    const flavour = item.description ?? '';
+    return [flavour, stats].filter(Boolean).join('\n');
 }

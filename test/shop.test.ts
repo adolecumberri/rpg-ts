@@ -1,12 +1,30 @@
 import { Character, Team } from '../src';
-import { SHOP_STOCK, buyItem, sellItem } from '../worldTest/core/shop';
+import { Item } from '../src/classes/items/Item';
+import { buyItem, sellItem } from '../worldTest/core/shop';
 import { equipToCharacter, unequipFromCharacter } from '../worldTest/core/inventory';
+import type { ShopEntry } from '../worldTest/core/types';
+
+function swordEntry(): ShopEntry {
+    return {
+        item: new Item({
+            id: 'rusty_sword',
+            name: 'Rusty Sword',
+            category: 'weapon',
+            slot: 'weapon',
+            buyValue: 50,
+            sellValue: 25,
+            effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 2 }],
+        }),
+        buyPrice: 50,
+        sellPrice: 25,
+    };
+}
 
 describe('shop flow', () => {
     it('buying an item adds a copy to the inventory and charges gold', () => {
         const team = new Team();
         team.gold = 100;
-        const entry = SHOP_STOCK.find((e) => e.item.id === 'rusty_sword')!;
+        const entry = swordEntry();
 
         expect(buyItem(team, entry)).toBe('ok');
         expect(team.inventory.getItemSlotByItemId('rusty_sword')?.totalQuantity).toBe(1);
@@ -16,7 +34,7 @@ describe('shop flow', () => {
     it('buying the same item twice stacks the copies', () => {
         const team = new Team();
         team.gold = 500;
-        const entry = SHOP_STOCK.find((e) => e.item.id === 'rusty_sword')!;
+        const entry = swordEntry();
 
         buyItem(team, entry);
         buyItem(team, entry);
@@ -31,7 +49,7 @@ describe('shop flow', () => {
         const hero = new Character({ id: 'hero' });
         team.addCharacter(hero);
         team.gold = 500;
-        const entry = SHOP_STOCK.find((e) => e.item.id === 'rusty_sword')!;
+        const entry = swordEntry();
 
         buyItem(team, entry);
         expect(equipToCharacter(team.inventory, hero, 'rusty_sword')).toBe(true);
@@ -49,7 +67,7 @@ describe('shop flow', () => {
         const hero = new Character({ id: 'hero' });
         team.addCharacter(hero);
         team.gold = 500;
-        const entry = SHOP_STOCK.find((e) => e.item.id === 'rusty_sword')!;
+        const entry = swordEntry();
 
         buyItem(team, entry);
         buyItem(team, entry);
@@ -65,7 +83,7 @@ describe('shop flow', () => {
     it('the slot disappears when everything is sold', () => {
         const team = new Team();
         team.gold = 500;
-        const entry = SHOP_STOCK.find((e) => e.item.id === 'rusty_sword')!;
+        const entry = swordEntry();
 
         buyItem(team, entry);
         const slot = team.inventory.getItemSlotByItemId('rusty_sword')!;
@@ -78,7 +96,7 @@ describe('shop flow', () => {
         const hero = new Character({ id: 'hero' });
         team.addCharacter(hero);
         team.gold = 500;
-        const entry = SHOP_STOCK.find((e) => e.item.id === 'rusty_sword')!;
+        const entry = swordEntry();
 
         buyItem(team, entry);
         equipToCharacter(team.inventory, hero, 'rusty_sword');

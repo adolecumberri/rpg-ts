@@ -7,4 +7,6 @@ export const XP = {
     // XP when the killer is this many levels (or more) above the creature.
     overlevelGap: 5,
     overlevelKill: 1,
+    // Every level needs the same flat amount of XP (FFTA2 style).
+    perLevel: 100,
 } as const;
