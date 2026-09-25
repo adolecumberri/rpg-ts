@@ -271,6 +271,7 @@ export function IntervalCombatScreen() {
                             ↺ Run again
                         </button>
                     ) : null}
+                    <button className="btn" onClick={() => api.back()}>Back</button>
                 </>
             )}
         </div>

@@ -1,5 +1,6 @@
 import { Character } from './Character';
 import { Inventory } from './Inventory';
+import { TeamPosition } from '../constants/team.constants';
 
 
 type TeamConstructor = {
@@ -51,6 +52,26 @@ class Team {
      */
     getCharacter(id: string): Character | undefined {
         return this.members.get(id);
+    }
+
+    /**
+     * Moves a member to another formation row: front (taunt ×3),
+     * center (×2) or back (×1).
+     */
+    setPosition(id: string, position: TeamPosition): void {
+        const character = this.members.get(id);
+        if (!character) {
+            throw new Error(`Character with id ${id} does not exist in team.`);
+        }
+        character.position = position;
+    }
+
+    /**
+     * Returns the formation row of a member, or undefined when the
+     * character is not in the team.
+     */
+    getPosition(id: string): TeamPosition | undefined {
+        return this.members.get(id)?.position;
     }
 
     /**

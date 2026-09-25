@@ -4,7 +4,8 @@ import { isEquippableCategory, Item } from './Item';
 export type EquipmentSlot =
     | 'weapon'
     | 'armor'
-    | 'accessory';
+    | 'accessory'
+    | 'bag';
 
 export class EquipmentManager {
     private slots: Partial<Record<EquipmentSlot, Item>> = {};

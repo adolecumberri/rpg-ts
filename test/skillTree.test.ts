@@ -3,6 +3,7 @@ import { WorldSession } from '../worldTest/core/session';
 import { SkillTree } from '../worldTest/core/skillTree/skillTree';
 import { LevelCondition } from '../worldTest/core/skillTree/conditions';
 import { buildCompanion, buildHero } from '../worldTest/core/config/characters';
+import { defaultSkillIds } from '../worldTest/core/skills';
 
 function sessionWithHero(): WorldSession {
     const session = new WorldSession({ random: () => 0.5 });
@@ -106,6 +107,6 @@ describe('skill trees', () => {
         companion.experience.gain(200); // reaches level 3
         expect(session.unlockNode('companion', 'fireball').ok).toBe(true);
         expect(session.availableSkillIds(companion)).toContain('fireball');
-        expect(session.availableSkillIds(hero)).toEqual(['fireball', 'regenerate']); // hero kit unchanged
+        expect(session.availableSkillIds(hero)).toEqual(defaultSkillIds()); // only the default kit, no base skills
     });
 });

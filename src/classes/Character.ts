@@ -8,6 +8,7 @@ import { StatusManager } from './StatusManager';
 import { EquipmentManager } from './items/EquipmentManager';
 import { Skill } from './Skills';
 import { CombatTrigger } from './Combat/Combat.interfaces';
+import { TeamPosition } from '../constants/team.constants';
 
 type CharacterConstructor = {
     id?: string;
@@ -20,6 +21,10 @@ type CharacterConstructor = {
     statusManager?: StatusManager;
     equipment?: EquipmentManager;
     skills?: Skill[];
+    // Formation row inside its team: front (taunt ×3), center (×2) or
+    // back (×1). Defaults to front, so untouched teams keep behaving
+    // exactly like before (everyone in the same row cancels out).
+    position?: TeamPosition;
 };
 
 export class Character {
@@ -34,6 +39,9 @@ export class Character {
     statusManager: StatusManager;
     combatTriggers: CombatTrigger[] = [];
     skills: Skill[] = [];
+    // Formation row inside the team: multiplies the taunt weight used
+    // when enemies pick random targets.
+    position: TeamPosition;
 
     constructor(params: Partial<CharacterConstructor> = {}) {
         this.id = params.id || uniqueID();
@@ -49,6 +57,7 @@ export class Character {
 
         this.statusManager = params.statusManager || new StatusManager(this);
         this.skills = params.skills ?? [];
+        this.position = params.position ?? 'front';
     }
 
     getStat(stat: keyof Statistics): number {

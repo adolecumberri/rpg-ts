@@ -4,6 +4,12 @@ const DEFAULT_STATS = {
     isAlive: 1,
     hp: 1,
     totalHp: 1,
+    // Everyone is equally willing to be hit unless content says otherwise.
+    taunt: 1,
+    // Battle weariness starts at zero and grows with every attack.
+    fatigue: 0,
+    // Every attack lands unless fatigue lowers the accuracy.
+    accuracy: 100,
 };
 
 type ModificationTypes = 'BUFF_FIXED' | 'BUFF_PERCENTAGE' | 'DEBUFF_FIXED' | 'DEBUFF_PERCENTAGE';

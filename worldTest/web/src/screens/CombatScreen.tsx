@@ -1,28 +1,32 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { Team } from '@rpg';
 import type { Character } from '@rpg';
-import { StatusInstance } from '@rpg/classes/StatusInstance';
 import type { EventMoment } from '@rpg/types/generalEvents.types';
 import {
-    DamageComposer,
     DEFAULT_ELEMENTS,
+    FATIGUE,
+    FIGHTS,
     affinitiesOf,
     attackComponentsOf,
+    battleSkillSpecs,
     compareBySpeed,
-    defenceLayersOf,
+    gainFatigue,
     intervalFromSpeed,
-    kindMultiplierFor,
     kindOfElement,
-    makeGroupTeam,
+    pickWeightedTarget,
+    rampGatePower,
     resolveGeneralAttack,
+    resolveSkillEffect,
+    consumeFaintTurn,
     specOf,
+    statusTooltip,
 } from '@core';
 import type { CombatEndResult, DamageResult, SkillSpec } from '@core';
 import { useGame } from '../game/GameContext';
 import { StatBar } from '../components/StatBar';
 import { TOAST_MS } from '../constants/toast';
 
-type Phase = 'action' | 'pick-target' | 'pick-targets' | 'resolve' | 'won' | 'lost';
+type Phase = 'action' | 'pick-target' | 'pick-targets' | 'resolve' | 'won' | 'lost' | 'fled';
 type LogEntry = { text: string; kind: 'info' | 'damage' | 'heal' };
 type Pending =
     | { kind: 'attack' }
@@ -36,18 +40,27 @@ type PickedAction =
     | { actor: Character; kind: 'wait' };
 
 function StatusChips({ character }: { character: Character }) {
+    const api = useGame();
     const statuses = Array.from(character.statusManager.statuses.values());
     if (statuses.length === 0) return null;
     return (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
-            {statuses.map((status) => (
-                <span key={status.id} className="tag">
-                    {status.definition.name}
-                    {status.definition.duration.type === 'TEMPORAL'
-                        ? ` ${status.definition.duration.value ?? 0}t`
-                        : ''}
-                </span>
-            ))}
+            {statuses.map((status) => {
+                const hint = statusTooltip(status.definition);
+                return (
+                    <span
+                        key={status.id}
+                        className="tag"
+                        title={hint}
+                        onClick={() => api.showToast(hint, TOAST_MS.help)}
+                    >
+                        {status.definition.name}
+                        {status.definition.duration.type === 'TEMPORAL'
+                            ? ` ${status.definition.duration.value ?? 0}t`
+                            : ''}
+                    </span>
+                );
+            })}
         </div>
     );
 }
@@ -99,23 +112,34 @@ function ElementalChips({ character }: { character: Character }) {
 export function CombatScreen({
     npcId,
     placeId,
-    group,
-    groupId,
+    fightId,
+    missionId,
 }: {
     npcId?: string;
     placeId: string;
-    group?: boolean;
-    groupId?: string;
+    fightId?: string;
+    missionId?: string;
 }) {
     const api = useGame();
     const npc = npcId ? api.findNpc(npcId) : undefined;
+    const fight = fightId ? FIGHTS[fightId] : undefined;
 
     const [enemyTeam] = useState<Team>(() => {
-        if (group) return makeGroupTeam(groupId);
+        if (fight) {
+            return new Team({ id: fight.id, members: fight.enemies() });
+        }
         return new Team({ id: 'enemy', members: npc ? [npc.character] : [] });
     });
 
-    const allies = api.team;
+    const [allyTeam] = useState<Team>(() => {
+        if (fight) {
+            // The player's party plus the fight's extra allies.
+            return new Team({ id: 'party', members: [...api.team.getAll(), ...(fight.allies?.() ?? [])] });
+        }
+        return api.team;
+    });
+
+    const allies = allyTeam;
 
     const [phase, setPhase] = useState<Phase>('action');
     const [round, setRound] = useState(1);
@@ -160,6 +184,20 @@ export function CombatScreen({
             'damage',
         );
         if (showBreakdown && outcome.breakdown) pushBreakdown({ total: outcome.damage, breakdown: outcome.breakdown });
+
+        // Reactive skills reflect damage back at the attacker.
+        if (outcome.reflect && outcome.reflect > 0) {
+            attacker.stats.hp = Math.max(0, attacker.stats.hp - outcome.reflect);
+            attacker.stats.isAlive = attacker.stats.hp > 0 ? 1 : 0;
+            push(`${attacker.name} takes ${Math.round(outcome.reflect)} reflected damage!`, 'damage');
+        }
+
+        // Every basic attack tires the attacker, and ramps statuses
+        // that grow with attacks (the Gate).
+        if (gainFatigue(attacker, FATIGUE.gainPerAttack)) {
+            push(`${attacker.name} collapses from exhaustion!`, 'damage');
+        }
+        rampGatePower(attacker);
     };
 
     const triggerAll = (moment: EventMoment) => {
@@ -236,7 +274,8 @@ export function CombatScreen({
     const startResolve = (finalPicked: PickedAction[]) => {
         const enemyPicks: PickedAction[] = enemyTeam.getAlive().map((enemy) => {
             const targets = allies.getAlive();
-            const target = targets[Math.floor(Math.random() * targets.length)];
+            // Weighted by taunt: chance taunt / (total of the alive team).
+            const target = pickWeightedTarget(targets, Math.random) ?? targets[0];
             return { actor: enemy, kind: 'attack' as const, targets: [target] };
         });
         setOrder([...finalPicked, ...enemyPicks].sort(sortOrder));
@@ -250,6 +289,11 @@ export function CombatScreen({
 
         if (actor.stats.hp <= 0) {
             push(`${actor.name} is down and cannot act.`);
+            return;
+        }
+        // Fainted fighters lose their turn (the faint counts down).
+        if (consumeFaintTurn(actor)) {
+            push(`${actor.name} is unconscious and cannot act.`);
             return;
         }
 
@@ -266,41 +310,23 @@ export function CombatScreen({
             const spec = action.spec;
             const targets = action.targets.filter((target) => target.stats.hp > 0);
 
-            if (spec.damage) {
-                for (const target of targets) {
-                    const components = spec.damage.map((component) => ({
-                        ...component,
-                        kind: component.kind ?? kindOfElement(component.element),
-                    }));
-                    const result = DamageComposer.resolveKinds(
-                        components,
-                        defenceLayersOf(target),
-                        kindMultiplierFor(target),
-                        { breakdown: showBreakdown },
-                    );
-                    target.stats.hp = Math.max(0, target.stats.hp - result.total);
-                    target.stats.isAlive = target.stats.hp > 0 ? 1 : 0;
+            // The shared skill resolver: same damage math the auto
+            // battle engines use, so both flows always agree.
+            const result = resolveSkillEffect(spec, actor, targets, { breakdown: showBreakdown });
+
+            for (const effect of result.effects) {
+                const target = allies.getCharacter(effect.targetId) ?? enemyTeam.getCharacter(effect.targetId);
+                if (!target) continue;
+                if (effect.damage > 0) {
                     lastHitBy.current.set(target.id, actor.id);
-                    push(`${actor.name} used ${spec.name} on ${target.name}: ${Math.round(result.total)} damage.`, 'damage');
-                    if (showBreakdown) pushBreakdown(result);
+                    push(`${actor.name} used ${spec.name} on ${target.name}: ${Math.round(effect.damage)} damage.`, 'damage');
+                    if (showBreakdown && effect.breakdown) {
+                        pushBreakdown({ total: effect.damage, breakdown: effect.breakdown });
+                    }
                 }
             }
-
             if (spec.heal) {
-                for (const target of targets) {
-                    if (target.stats.hp <= 0) continue;
-                    target.stats.hp = Math.min(target.stats.totalHp, target.stats.hp + spec.heal);
-                }
                 push(`${actor.name} used ${spec.name}: healed ${spec.heal} HP each.`, 'heal');
-            }
-
-            if (spec.statusOnTargets) {
-                for (const target of targets) {
-                    target.statusManager.addStatusInstance(new StatusInstance({ definition: spec.statusOnTargets }));
-                }
-            }
-            if (spec.statusOnSelf) {
-                actor.statusManager.addStatusInstance(new StatusInstance({ definition: spec.statusOnSelf }));
             }
         }
 
@@ -351,7 +377,7 @@ export function CombatScreen({
 
     // Settle the battle exactly once: grants XP/gold/loot and clears statuses.
     useEffect(() => {
-        if ((phase === 'won' || phase === 'lost') && !settled.current) {
+        if ((phase === 'won' || phase === 'lost' || phase === 'fled') && !settled.current) {
             settled.current = true;
             for (const character of [...allies.getAll(), ...enemyTeam.getAll()]) {
                 character.statusManager.removeAllStatuses();
@@ -359,7 +385,7 @@ export function CombatScreen({
             const kills = enemyTeam.getAll()
                 .filter((enemy) => enemy.stats.hp <= 0)
                 .map((enemy) => ({ enemyId: enemy.id, killerId: lastHitBy.current.get(enemy.id) ?? '' }));
-            const result = api.session.finishCombat(phase, { npc, placeId, kills });
+            const result = api.session.finishCombat(phase, { npc, placeId, kills, fightId, missionId });
             setOutcome(result);
             api.refresh();
         }
@@ -508,6 +534,27 @@ export function CombatScreen({
         );
     }
 
+    if (phase === 'fled') {
+        return (
+            <div className="screen">
+                <div className="card" style={{ textAlign: 'center', padding: 30 }}>
+                    <div style={{ fontSize: 52 }}>🏃</div>
+                    <h2 style={{ margin: '8px 0' }}>You fled</h2>
+                    <p className="empty" style={{ padding: 0 }}>{outcome?.message ?? 'You ran from the battle.'}</p>
+                </div>
+                <button
+                    className="btn btn--primary"
+                    onClick={() => {
+                        if (outcome) api.showToast(outcome.message);
+                        api.back();
+                    }}
+                >
+                    Continue
+                </button>
+            </div>
+        );
+    }
+
     if (phase === 'pick-target' && pending) {
         const header = pending.kind === 'skill' ? pending.spec.name : 'Attack';
         return (
@@ -578,10 +625,15 @@ export function CombatScreen({
     }
 
     const pickedIds = new Set(picked.map((action) => action.actor.id));
+    // Base kit plus skills granted by live statuses (Open Gate unlocks
+    // Fire Breath); activation skills hide once their status is active.
     const skillSpecs: SkillSpec[] = active
-        ? (api.session.availableSkillIds(active)
-            .map((id) => specOf(id))
-            .filter((spec): spec is SkillSpec => Boolean(spec)))
+        ? battleSkillSpecs(
+            active,
+            api.session.availableSkillIds(active)
+                .map((id) => specOf(id))
+                .filter((spec): spec is SkillSpec => Boolean(spec)),
+        )
         : [];
 
     const specHint = (spec: SkillSpec): string => {
@@ -626,6 +678,11 @@ export function CombatScreen({
                             {enemy.name}
                             <ElementalChips character={enemy} />
                             {speedTag(enemy)}
+                            {FATIGUE.enabled ? (
+                                <span className="tag" style={{ marginLeft: 6 }} title="Fatigue: every attack adds 5; penalties at 5/10/15, faint at 100.">
+                                    😵 {Math.round(enemy.getStat('fatigue'))}
+                                </span>
+                            ) : null}
                         </div>
                         <StatBar label="HP" value={enemy.getStat('hp')} max={enemy.getStat('totalHp')} suffix={`/ ${Math.round(enemy.getStat('totalHp'))}`} />
                         <StatusChips character={enemy} />
@@ -644,6 +701,11 @@ export function CombatScreen({
                         {ally.name}
                         <ElementalChips character={ally} />
                         {speedTag(ally)}
+                        {FATIGUE.enabled ? (
+                            <span className="tag" style={{ marginLeft: 6 }} title="Fatigue: every attack adds 5; penalties at 5/10/15, faint at 100.">
+                                😵 {Math.round(ally.getStat('fatigue'))}
+                            </span>
+                        ) : null}
                         {pickedIds.has(ally.id) ? <span className="tag" style={{ marginLeft: 6 }}>✓ picked</span> : null}
                     </div>
                     <StatBar label="HP" value={ally.getStat('hp')} max={ally.getStat('totalHp')} suffix={`/ ${Math.round(ally.getStat('totalHp'))}`} />
@@ -688,6 +750,7 @@ export function CombatScreen({
                         </button>
                     ))}
                     <button className="btn" onClick={() => commitPick({ actor: active, kind: 'wait' })}>⏳ Wait</button>
+                    <button className="btn btn--danger" onClick={() => setPhase('fled')}>🏃 Run</button>
                 </div>
             ) : null}
         </div>

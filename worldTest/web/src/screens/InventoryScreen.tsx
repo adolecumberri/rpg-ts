@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import type { InventorySlot } from '@rpg';
 import { isEquippableCategory } from '@rpg/classes/items/Item';
-import { CATEGORY_ICONS, groupItemsBySection, itemDescriptionText } from '@core';
+import {
+    CATEGORY_ICONS,
+    groupItemsBySection,
+    inventoryCapacity,
+    inventorySlotCount,
+    itemDescriptionText,
+    missionPlaceNames,
+} from '@core';
 import { useGame } from '../game/GameContext';
 import { Menu, MenuSection } from '../components/Menu';
 
@@ -38,6 +45,12 @@ export function InventoryScreen() {
 
     return (
         <div className="screen">
+            <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 10 }}>
+                <span className="section-title" style={{ margin: 0 }}>Inventory</span>
+                <span className="tag">
+                    🎒 {inventorySlotCount(api.team.inventory)}/{inventoryCapacity(api.team)} slots
+                </span>
+            </div>
             {slots.length === 0 ? (
                 <div className="empty">Inventory is empty.</div>
             ) : (
@@ -66,6 +79,23 @@ export function InventoryScreen() {
                     />
                 ))
             )}
+
+            <MenuSection
+                title="Missions"
+                icon="📜"
+                options={api.session.missions.activeMissions().map((runner) => {
+                    const mission = api.session.missions.mission(runner.missionId());
+                    const places = mission ? missionPlaceNames(mission) : [];
+                    return {
+                        icon: '❗',
+                        label: runner.title(),
+                        description: places.length > 0 ? `📍 ${places.join(' · ')}` : undefined,
+                        sub: 'Open',
+                        onClick: () => api.navigate({ name: 'mission', missionId: runner.missionId() }),
+                    };
+                })}
+            />
+            <button className="btn" onClick={() => api.back()}>Back</button>
         </div>
     );
 }

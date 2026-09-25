@@ -1,7 +1,8 @@
 import { Item } from '../../src';
-import type { Character, Inventory, InventorySlot } from '../../src';
+import type { Character, Inventory, InventorySlot, Team } from '../../src';
 import type { EquipmentSlot } from '../../src/classes/items/EquipmentManager';
 import { isEquippableCategory } from '../../src/classes/items/Item';
+import { INVENTORY } from './config/inventory';
 
 /**
  * Equips a copy of the item to the character, keeping the stack in the
@@ -42,4 +43,51 @@ export function unequipFromCharacter(inventory: Inventory, character: Character,
 
 export function useItemOn(inventory: Inventory, slot: InventorySlot, character: Character): boolean {
     return inventory.useItem(slot.id, character);
+}
+
+// ---------------------------------------------------------------------------
+// Inventory capacity: the shared inventory holds a limited number of
+// distinct item stacks (base slots + the bonuses of every equipped bag).
+// Equipped items are shown but never count.
+// ---------------------------------------------------------------------------
+
+/**
+ * Distinct item stacks currently in the inventory.
+ */
+export function inventorySlotCount(inventory: Inventory): number {
+    return inventory.getAllItems().length;
+}
+
+/**
+ * Party-wide capacity: base slots plus every equipped bag's bonus.
+ * The bagSlots field is accessed through a cast so this module never
+ * depends on the augmentation being loaded in every program.
+ */
+export function inventoryCapacity(team: Team): number {
+    let capacity = INVENTORY.baseSlots;
+    for (const character of team.getAll()) {
+        const bag = character.equipment.get('bag');
+        const definition = bag?.definition as (Item['definition'] & { bagSlots?: number }) | undefined;
+        capacity += definition?.bagSlots ?? 0;
+    }
+    return capacity;
+}
+
+/**
+ * True when adding the item would fit: copies of an item already held
+ * stack into its existing slot; a new item needs a free slot.
+ */
+export function canAddItem(team: Team, item: Item): boolean {
+    if (team.inventory.getItemSlotByItemId(item.id)) return true;
+    return inventorySlotCount(team.inventory) < inventoryCapacity(team);
+}
+
+/**
+ * Adds an item when capacity allows; returns false when the inventory
+ * is full.
+ */
+export function addItemCapped(team: Team, item: Item, quantity = 1): boolean {
+    if (!canAddItem(team, item)) return false;
+    team.inventory.addItem(item, quantity);
+    return true;
 }

@@ -31,6 +31,10 @@ const KIND_SUFFIX: Record<string, string> = {
 export function itemStatsSummary(item: Item): ItemStatLine[] {
     const lines: ItemStatLine[] = [];
 
+    if (item.definition.bagSlots) {
+        lines.push({ icon: '🎒', text: `+${item.definition.bagSlots} inventory slots` });
+    }
+
     for (const effect of item.definition.effects ?? []) {
         const isDebuff = effect.typeOfModification.includes('DEBUFF');
         const isPercentage = effect.typeOfModification.includes('PERCENTAGE');

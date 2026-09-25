@@ -1,18 +1,78 @@
 import { WorldSession } from '../worldTest/core/session';
-import { buildTravelGraph } from '../worldTest/core/view/travelGraph';
+import { buildTravelGraph, reachableTravelGraph } from '../worldTest/core/view/travelGraph';
 import { buildSkillTreeView } from '../worldTest/core/view/skillTreeView';
 import { dropTableRows, dropTableSummaries } from '../worldTest/core/view/dropTableView';
+import { missionPlaceNames } from '../worldTest/core/view/missionView';
 import { PLACES } from '../worldTest/core/world';
 import { DropTable } from '../worldTest/core/loot/dropTable';
 import { buildHero } from '../worldTest/core/config/characters';
 
 describe('travel graph', () => {
-    it('builds one node for the blank world and no edges', () => {
+    it('builds nodes for the act places and their connections', () => {
         const graph = buildTravelGraph(PLACES, new Set());
 
-        expect(graph.nodes).toHaveLength(1);
-        expect(graph.nodes[0].id).toBe('central_town');
-        expect(graph.edges).toEqual([]);
+        expect(graph.nodes).toHaveLength(2);
+        expect(graph.edges).toHaveLength(1);
+
+        const farmHay = graph.edges.filter(
+            (edge) =>
+                (edge.from === 'farm' && edge.to === 'hay_field') ||
+                (edge.from === 'hay_field' && edge.to === 'farm'),
+        );
+        expect(farmHay).toHaveLength(1);
+    });
+
+    it('carries the content-defined map positions through the nodes', () => {
+        const graph = buildTravelGraph(PLACES, new Set());
+
+        expect(graph.nodes.find((node) => node.id === 'farm')?.position).toEqual({ x: 300, y: 260 });
+        expect(graph.nodes.find((node) => node.id === 'hay_field')?.position).toEqual({ x: 600, y: 260 });
+    });
+
+    it('hides places behind mission-locked routes until they open', () => {
+        const locked = buildTravelGraph(PLACES, new Set(), () => false);
+
+        // from the farm, the locked hay field is disabled (hidden)
+        const hidden = reachableTravelGraph(locked, 'farm');
+        expect(hidden.nodes.map((node) => node.id)).toEqual(['farm']);
+        expect(hidden.edges).toEqual([]);
+
+        // once the sickles mission is accepted the route opens
+        const open = buildTravelGraph(PLACES, new Set(), (missionId) => missionId === 'sickles_to_hay');
+        const reachable = reachableTravelGraph(open, 'farm');
+        expect(reachable.nodes.map((node) => node.id)).toEqual(['farm', 'hay_field']);
+        expect(reachable.edges).toHaveLength(1);
+    });
+
+    it('keeps the way home open even when the road out is locked', () => {
+        const locked = buildTravelGraph(PLACES, new Set(), () => false);
+
+        // from the hay field the farm is reachable: only the farm ->
+        // hay direction requires the mission.
+        const fromHay = reachableTravelGraph(locked, 'hay_field');
+        expect(fromHay.nodes.map((node) => node.id)).toEqual(['farm', 'hay_field']);
+        expect(fromHay.edges).toHaveLength(1);
+
+        const edge = locked.edges[0];
+        expect(edge.lockedFrom).toBe(true); // farm -> hay gated
+        expect(edge.lockedTo).toBe(false); // hay -> farm free
+    });
+});
+
+describe('mission view', () => {
+    it('names the places a mission happens in from its steps', () => {
+        const session = new WorldSession({ random: () => 0.5 });
+        const sickles = session.missions.mission('sickles_to_hay')!;
+        expect(missionPlaceNames(sickles)).toEqual(['Hay Field']);
+
+        const wood = session.missions.mission('chop_wood')!;
+        expect(missionPlaceNames(wood)).toEqual(["The Lord's Farm"]);
+    });
+
+    it('ignores places that do not exist in the world', () => {
+        const cow = new WorldSession({ random: () => 0.5 }).missions.mission('cow_hunt')!;
+        // The forest is not built yet; only the farm marker shows.
+        expect(missionPlaceNames(cow)).toEqual([]);
     });
 });
 

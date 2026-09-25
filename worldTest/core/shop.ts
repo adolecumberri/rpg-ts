@@ -1,13 +1,13 @@
 import type { InventorySlot, Team } from '../../src';
 import type { ShopEntry } from './types';
+import { canAddItem } from './inventory';
 
-// The shop stock is empty for the rebuild: the buy/sell flow is the
-// structure, the stock itself is content.
-export const SHOP_STOCK: ShopEntry[] = [];
-
-export function buyItem(team: Team, entry: ShopEntry): 'ok' | 'no_gold' {
+export function buyItem(team: Team, entry: ShopEntry): 'ok' | 'no_gold' | 'inventory_full' {
     if (team.gold < entry.buyPrice) {
         return 'no_gold';
+    }
+    if (!canAddItem(team, entry.item)) {
+        return 'inventory_full';
     }
 
     team.gold -= entry.buyPrice;

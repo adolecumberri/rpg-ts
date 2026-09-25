@@ -38,6 +38,7 @@ export function LootScreen() {
                     )}
                 </div>
             ))}
+            <button className="btn" onClick={() => api.back()}>Back</button>
         </div>
     );
 }

@@ -2,7 +2,7 @@ import { Item } from '../../../src';
 import type { Character } from '../../../src';
 import type { ItemCategory, ItemEffect, ItemElement } from '../../../src/classes/items/Item';
 import type { EquipmentSlot } from '../../../src/classes/items/EquipmentManager';
-import type { ItemAttackContext } from '../damage/general';
+import type { ItemAttackContext, ItemHitContext } from '../damage/general';
 import type { DamageComponent } from '../damage/composer';
 
 /**
@@ -22,8 +22,13 @@ export type ItemTableEntry = {
     // may add/scale/duplicate damage components using both combatants'
     // stats and per-item state.
     onAttack?: (context: ItemAttackContext) => DamageComponent[];
+    // On-hit hook: runs after an attack that landed with damage > 0
+    // (reactions already resolved), e.g. applying Bleeding.
+    onHit?: (context: ItemHitContext) => void;
     onEquip?: (self: Item, target: Character) => void;
     onUnEquip?: (self: Item, target: Character) => void;
+    // Bags add inventory slots to the party capacity.
+    bagSlots?: number;
     buyValue?: number;
     sellValue?: number;
     onUse?: (self: Item, target: Character) => boolean;

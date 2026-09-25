@@ -21,8 +21,13 @@ export function buildCharacterFromSave(saved: SavedCharacter): Character {
     character.stats.hp = saved.hp;
     character.stats.totalHp = saved.totalHp;
     character.stats.isAlive = saved.isAlive;
+    character.stats.fatigue = saved.fatigue ?? 0;
     character.experience.level = saved.level;
     character.experience.currentXp = saved.currentXp;
+    // Formation row: saves made before positions existed load at front.
+    if (saved.position === 'front' || saved.position === 'center' || saved.position === 'back') {
+        character.position = saved.position;
+    }
 
     return character;
 }

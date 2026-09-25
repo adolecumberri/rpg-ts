@@ -8,4 +8,5 @@ export * from './classes/Stats';
 export * from './classes/StatsModifier';
 export * from './classes/Team';
 export * from './classes/items/Item';
+export * from './constants/team.constants';
 export * from './world';

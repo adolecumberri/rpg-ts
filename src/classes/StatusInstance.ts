@@ -1,4 +1,4 @@
-import { ModificationTypes } from '../constants/stats.constants';
+import { MODIFICATION_TYPES, ModificationTypes } from '../constants/stats.constants';
 import { ACTION_HANDLER, STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../constants/status.constants';
 import { uniqueID } from '../helpers/common.helpers';
 import { EventMoment } from '../types/generalEvents.types';
@@ -51,6 +51,8 @@ export interface AffectedStatDescriptor {
 
 export interface StatusDefinition {
     name: string;
+    // Human explanation shown in tooltips (what the status actually does).
+    description?: string;
     applyOn: EventMoment;
     duration: StatusDuration;
     usageFrequency: StatusUsageFrequency;
@@ -60,6 +62,13 @@ export interface StatusDefinition {
     onAdd?: (character: Character) => void;
     onRemove?: (character: Character) => void;
     onTrigger?: (character: Character) => void;
+    // Additive extension: a signed variation applied to the FINAL
+    // damage of every hit the bearer receives (after defence, affinities
+    // and reactions). -70 = takes 70% less damage; positive values make
+    // the bearer take more (vulnerability). True damage skips it.
+    finalDamageVariation?: {
+        percent: number;
+    };
 }
 
 
@@ -125,11 +134,17 @@ export class StatusInstance {
             // is fixed, no a percentage anymore.
 
 
-            // Aplica el cambio en la fuente propia del status
+            // Aplica el cambio en la fuente propia del status.
+            // Percentages keep their raw value: the stat calculation
+            // already scales by /100, so storing the pre-converted
+            // variation here would apply the percentage twice.
+            const isPercentage =
+                statAffectedDescriptor.typeOfModification === MODIFICATION_TYPES.BUFF_PERCENTAGE ||
+                statAffectedDescriptor.typeOfModification === MODIFICATION_TYPES.DEBUFF_PERCENTAGE;
             stats.getModifierSource(this.getModifierSourceId()).setModifier(
                 statAffectedDescriptor.to,
                 statAffectedDescriptor.typeOfModification,
-                Math.abs(result.variation),
+                isPercentage ? Math.abs(statAffectedDescriptor.value) : Math.abs(result.variation),
             );
         }
 

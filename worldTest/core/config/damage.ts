@@ -1,6 +1,7 @@
 import { DEFAULT_STATS } from '../../../src/constants/stats.constants';
-import type { ItemAttackContext } from '../damage/general';
+import type { ItemAttackContext, ItemHitContext } from '../damage/general';
 import type { DamageComponent } from '../damage/composer';
+import type { ReactionHandler } from '../damage/reactions';
 
 // ---------------------------------------------------------------------------
 // Interface enhancement (type level only).
@@ -30,6 +31,24 @@ declare module '@rpg' {
         // and the defender's stats and return the (possibly modified)
         // damage component list.
         onAttack?: (context: ItemAttackContext) => DamageComponent[];
+        // worldTest extension: hook run by the general attack resolver
+        // after a hit lands with damage > 0. Perfect blocks/parries set
+        // the damage to 0 and skip it entirely, so effects like Bleeding
+        // only apply on real hits.
+        onHit?: (context: ItemHitContext) => void;
+        // Bags add inventory slots to the party capacity.
+        bagSlots?: number;
+    }
+
+    interface Character {
+        // worldTest extension: reactive pieces that fire when the
+        // character is attacked (Parry, Spike Shield...). Attached by
+        // the systems that own them; the damage resolver only invokes.
+        reactions?: ReactionHandler[];
+        // worldTest extension: the species preset a generated character
+        // was built from (set by the character generator). Content and
+        // dev tools use it to reference the generic characters.
+        speciesId?: string;
     }
 }
 
@@ -43,6 +62,22 @@ Object.assign(DEFAULT_STATS, {
     critMultiplier: 2,
     speed: 5,
 });
+
+// ---------------------------------------------------------------------------
+// Status enhancement (type level only): a status may grant skills while
+// it is active. The skill lists of the battles derive the granted
+// skills from the bearer's live statuses, so the moment the status is
+// removed (battle-end cleanup) the skills disappear too.
+// ---------------------------------------------------------------------------
+declare module '@rpg/classes/StatusInstance' {
+    interface StatusDefinition {
+        // Skill ids the bearer knows while this status is active.
+        grantsSkills?: string[];
+        // The status's internal counter (used by ramping statuses like
+        // the Gate: each attack raises it and re-applies the modifiers).
+        stacks?: number;
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Fixed values of the damage system.

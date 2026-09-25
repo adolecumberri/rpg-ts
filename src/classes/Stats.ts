@@ -9,6 +9,17 @@ export interface Statistics {
     isAlive: number;
     totalHp: number;
     hp: number;
+    // Weight of being randomly targeted in auto battles: a defender is
+    // picked with probability taunt / (sum of the alive team's taunt).
+    // Defaults to 1, so everyone at 1 behaves like a uniform random
+    // pick. Optional for backward compatibility with Stats literals.
+    taunt?: number;
+    // Battle weariness: every basic attack adds fatigue; penalties kick
+    // in at thresholds and 100 knocks the character out. Defaults to 0.
+    fatigue?: number;
+    // Percent chance (0-100) an attack lands. Below 100 the attack
+    // rolls to hit; at 100 (default) every attack lands.
+    accuracy?: number;
 }
 
 // just an string taht represent an stat in the Stat object.
@@ -21,7 +32,9 @@ export class Stats<T extends Statistics = Statistics> implements Statistics {
     declare isAlive: number;
     declare totalHp: number;
     declare hp: number;
-
+    declare taunt: number;
+    declare fatigue: number;
+    declare accuracy: number;
     private modifierSources: Map<string, StatsModifier> = new Map();
 
     get statsModifier(): StatsModifier {

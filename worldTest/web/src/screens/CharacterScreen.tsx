@@ -18,6 +18,7 @@ const SLOTS: { slot: EquipmentSlot; label: string }[] = [
     { slot: 'weapon', label: 'Weapon' },
     { slot: 'armor', label: 'Armor' },
     { slot: 'accessory', label: 'Accessory' },
+    { slot: 'bag', label: 'Bag' },
 ];
 
 const STAT_HINTS: Record<string, string> = {

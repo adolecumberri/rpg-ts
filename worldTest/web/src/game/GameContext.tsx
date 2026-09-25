@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
-import type { InventorySlot, Team } from '@rpg';
+import type { InventorySlot, Team, TeamPosition } from '@rpg';
 import { WorldSession } from '@core';
 import type { NPC, Place, SaveData, ShopEntry } from '@core';
 import { TOAST_MS } from '../constants/toast';
@@ -20,12 +20,18 @@ export type Route =
     | { name: 'team' }
     | { name: 'character'; characterId: string }
     | { name: 'inventory' }
-    | { name: 'shop' }
-    | { name: 'combat'; npcId?: string; placeId: string; group?: boolean; groupId?: string }
+    | { name: 'shop'; shopId?: string }
+    | { name: 'settings' }
+    | { name: 'combat'; npcId?: string; placeId: string; fightId?: string; missionId?: string }
+    | { name: 'hybrid'; placeId: string; fightId?: string; missionId?: string }
     | { name: 'npc'; npcId: string; placeId: string }
     | { name: 'skilltree'; characterId: string }
+    | { name: 'skills' }
+    | { name: 'board' }
+    | { name: 'mission'; missionId: string }
     | { name: 'map' }
     | { name: 'loot' }
+    | { name: 'dev' }
     | { name: 'interval' };
 
 type GameApi = {
@@ -39,16 +45,19 @@ type GameApi = {
     toast: string | null;
     navigate: (route: Route) => void;
     back: () => void;
+    // Resets navigation to the current place screen (used after travel).
+    openPlace: () => void;
     showToast: (message: string, durationMs?: number) => void;
     save: () => void;
-    travel: (to: string) => void;
     rest: () => void;
-    buy: (entry: ShopEntry) => void;
+    buy: (shopId: string | undefined, entry: ShopEntry) => void;
     sell: (slot: InventorySlot) => void;
     equipTo: (itemId: string, characterId: string) => void;
     useOn: (slot: InventorySlot, characterId: string) => void;
+    setPosition: (characterId: string, position: TeamPosition) => void;
     findNpc: (npcId: string) => NPC | undefined;
     refresh: () => void;
+    load: () => void;
 };
 
 const GameContext = createContext<GameApi | null>(null);
@@ -91,6 +100,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const navigate = (route: Route) => setRoutes((rs) => [...rs, route]);
     const back = () => setRoutes((rs) => (rs.length > 1 ? rs.slice(0, -1) : rs));
+    const openPlace = () => setRoutes([{ name: 'place' }]);
 
     const save = () => {
         try {
@@ -101,10 +111,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const travel = (to: string) => {
-        const result = session.travel(to);
-        if (!result.ok && result.message) showToast(result.message);
-        bump();
+    const load = () => {
+        try {
+            const saved = loadSave();
+            if (!saved) {
+                showToast('No save found.');
+                return;
+            }
+            sessionRef.current = WorldSession.fromSave(saved);
+            setRoutes([{ name: 'place' }]);
+            bump();
+            showToast('Game loaded.');
+        } catch {
+            showToast('Save could not be loaded.');
+        }
     };
 
     const rest = () => {
@@ -113,10 +133,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
         showToast('Your party is fully rested.');
     };
 
-    const buy = (entry: ShopEntry) => {
-        const result = session.buy(entry);
+    const buy = (shopId: string | undefined, entry: ShopEntry) => {
+        const result = session.buy(shopId ?? '', entry);
         bump();
-        showToast(result === 'ok' ? `Purchased ${entry.item.name}.` : 'Not enough gold.');
+        if (result === 'ok') showToast(`Purchased ${entry.item.name}.`);
+        else if (result === 'sold_out') showToast('That item is sold out.');
+        else if (result === 'inventory_full') showToast('Inventory is full.');
+        else showToast('Not enough gold.');
     };
 
     const sell = (slot: InventorySlot) => {
@@ -140,6 +163,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
         showToast(ok && character ? `${character.name} used ${slot.item.name}.` : 'Could not use that item.');
     };
 
+    const setPosition = (characterId: string, position: TeamPosition) => {
+        const character = session.team.getCharacter(characterId);
+        const ok = session.setPosition(characterId, position);
+        bump();
+        showToast(ok && character ? `${character.name} moved to the ${position} row.` : 'Could not change position.');
+    };
+
     const api = useMemo<GameApi>(
         () => ({
             session,
@@ -152,16 +182,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
             toast,
             navigate,
             back,
+            openPlace,
             showToast,
             save,
-            travel,
             rest,
             buy,
             sell,
             equipTo,
             useOn,
+            setPosition,
             findNpc: session.findNpc.bind(session),
             refresh: bump,
+            load,
         }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [version, currentPlace, npcsAtCurrent, routes, current, toast],

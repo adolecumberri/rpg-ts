@@ -9,6 +9,8 @@
     ],
     "module": "commonjs",
     "removeComments": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
     "sourceMap": true,
     "target": "es6",
     "outDir": "./dist",

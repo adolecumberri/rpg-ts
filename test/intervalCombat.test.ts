@@ -99,6 +99,50 @@ describe('interval combat', () => {
 
         expect(() => new IntervalCombat().resolve([hero], [goblin])).toThrow();
     });
+
+    it('a multi-hit combatant hits several distinct targets per action', () => {
+        const ent = combatant('ent', 2, 100, 5);
+        ent.hits = 3;
+        const farmers = [combatant('f1', 100, 100, 0), combatant('f2', 100, 100, 0),
+            combatant('f3', 100, 100, 0), combatant('f4', 100, 100, 0)];
+
+        const result = new IntervalCombat({ maxTicks: 2, randomTarget: false })
+            .resolve([ent], farmers);
+
+        const tick2 = result.turns.filter((turn) => turn.tick === 2);
+        expect(tick2.map((turn) => turn.targetId)).toEqual(['f1', 'f2', 'f3']);
+        expect(farmers[0].character.stats.hp).toBe(95);
+        expect(farmers[3].character.stats.hp).toBe(100); // untouched
+    });
+
+    it('multi-hit samples distinct random targets without replacement', () => {
+        const ent = combatant('ent', 2, 100, 5);
+        ent.hits = 3;
+        const farmers = [combatant('f1', 100, 100, 0), combatant('f2', 100, 100, 0),
+            combatant('f3', 100, 100, 0), combatant('f4', 100, 100, 0)];
+
+        // random picks: floor(0 * 4)=0 -> f1; floor(0.99 * 3)=2 -> f4; floor(0.99 * 2)=1 -> f3
+        const rolls = [0, 0.99, 0.99];
+        let index = 0;
+        const result = new IntervalCombat({ maxTicks: 2, randomTarget: true, random: () => rolls[index++] })
+            .resolve([ent], farmers);
+
+        const tick2 = result.turns.filter((turn) => turn.tick === 2);
+        expect(tick2.map((turn) => turn.targetId)).toEqual(['f1', 'f4', 'f3']);
+        expect(new Set(tick2.map((turn) => turn.targetId)).size).toBe(3);
+    });
+
+    it('multi-hit never exceeds the alive defenders', () => {
+        const ent = combatant('ent', 2, 100, 5);
+        ent.hits = 3;
+        const solo = combatant('solo', 100, 100, 0);
+
+        const result = new IntervalCombat({ maxTicks: 2, randomTarget: false })
+            .resolve([ent], [solo]);
+
+        const tick2 = result.turns.filter((turn) => turn.tick === 2);
+        expect(tick2).toHaveLength(1);
+    });
 });
 
 describe('interval battle xp', () => {

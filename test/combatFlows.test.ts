@@ -44,7 +44,7 @@ describe('combat flows', () => {
 
         expect(goblin.character.stats.hp).toBe(goblin.character.stats.totalHp);
         expect(goblin.character.stats.isAlive).toBe(1);
-        expect(session.currentPlaceId).toBe('central_town');
+        expect(session.currentPlaceId).toBe('farm');
     });
 
     it('defeated grunt npcs respawn at full hp for the next fight', () => {
@@ -60,5 +60,25 @@ describe('combat flows', () => {
         });
 
         expect(goblin.character.stats.hp).toBe(goblin.character.stats.totalHp);
+    });
+
+    it('fleeing heals the npc, grants nothing and stays in place', () => {
+        const session = new WorldSession({ random: () => 0.5 });
+        session.team.addCharacter(buildHero());
+        const goblin = fixtureNpc('goblin');
+        goblin.character.stats.hp = 4;
+        const goldBefore = session.team.gold;
+        const xpBefore = session.team.getCharacter('hero')!.experience.currentXp;
+
+        const result = session.finishCombat('fled', { npc: goblin, placeId: 'forest' });
+
+        expect(goblin.character.stats.hp).toBe(goblin.character.stats.totalHp);
+        expect(goblin.character.stats.isAlive).toBe(1);
+        expect(result.drops).toEqual([]);
+        expect(result.leveled).toBe(false);
+        expect(session.team.gold).toBe(goldBefore);
+        expect(session.team.getCharacter('hero')!.experience.currentXp).toBe(xpBefore);
+        expect(session.currentPlaceId).toBe('farm');
+        expect(result.message).toBe('You fled the battle.');
     });
 });
