@@ -177,6 +177,7 @@ export class MissionManager {
     availableMissions(placeId?: string): Mission[] {
         const available: Mission[] = [];
         for (const mission of this.missions.values()) {
+            if (mission.hidden) continue; // parked content
             if (this.completed.indexOf(mission.id) !== -1) continue;
             if (this.runners.has(mission.id)) continue; // accepted: in progress
             const requires = mission.requires ?? [];

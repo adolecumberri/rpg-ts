@@ -11,4 +11,8 @@ export const FLAGS = {
     WOOD_CHOPPED: 'wood_chopped',
     // The Runaway Cow: the cow was saved from the forest.
     COW_SAVED: 'cow_saved',
+    // The renegade farmers league was driven off the lord's lands.
+    RENEGADES_SCATTERED: 'renegades_scattered',
+    // The Farmer King and his eight men were defeated.
+    FARMERS_BROKEN: 'farmers_broken',
 } as const;

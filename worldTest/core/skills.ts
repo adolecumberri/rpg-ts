@@ -6,14 +6,19 @@ import {
     defendingStatus,
     gateOpenedStatus,
     berserkStatus,
+    fastDrawStatus,
+    weakPointAttackStatus,
+    weakPointDefenceStatus,
+    impetuStatus,
 } from './statuses';
 import { FATIGUE } from './combat/fatigue';
+import { heldJobOf } from './constants/jobs';
 import type { DamageComponent } from './damage/composer';
 import type { ConditionInput } from './combat/conditions';
 import { addReaction, removeReaction } from './damage/reactions';
 import type { ReactionHandler } from './damage/reactions';
 
-export type SkillTargeting = 'ENEMY' | 'ALL_ENEMIES' | 'ALL_ALLIES' | 'SELF';
+export type SkillTargeting = 'ENEMY' | 'ALLY' | 'ALL_ENEMIES' | 'ALL_ALLIES' | 'SELF' | 'ANY';
 
 // A reactive skill: it fires when the bearer is attacked instead of
 // being chosen as an action.
@@ -29,6 +34,12 @@ export type ReactionSpec = {
     trueDamage?: boolean;
 };
 
+// Who the planner prefers when a support skill needs targets.
+export type AutoTargetPreference =
+    | 'lowest_hp'
+    | 'most_negative_statuses'
+    | 'highest_attack';
+
 /**
  * Automatic use policy for the auto battles (interval/hybrid engines).
  * Eligible skills roll independently in catalog order: the first one
@@ -39,13 +50,28 @@ export type ReactionSpec = {
 export type AutoUsePolicy = {
     // Percent chance (0-100) per eligible action. Default 100.
     chancePercent?: number;
+    // Patience: the chance grows by this many points per action the
+    // conditions held while the roll failed, so sustained problems are
+    // eventually answered without early spam. Resets when the
+    // conditions stop holding or the skill fires.
+    chanceRampPerAction?: number;
+    // Ceiling of the ramped chance (default 100).
+    maxChance?: number;
     // How many of the fighter's subsequent actions the skill stays
     // locked after a use. Default 0 (usable every action).
     cooldownActions?: number;
+    // The lock is shared across the fighter's whole side: only one
+    // member may cast this skill per window (decays once per side
+    // action). Two healers never both Dispel the same turn.
+    sharedCooldown?: boolean;
     // Eligibility conditions. Default: no conditions (always eligible).
     conditions?: ConditionInput[];
     // 'all': every condition must hold (default). 'any': one is enough.
     conditionMatch?: 'all' | 'any';
+    // Who the planner prefers when the skill needs targets (Dispel ->
+    // most debuffed ally, Cure -> lowest hp, Weak Point -> strongest
+    // enemy). Without it the historic taunt-weighted pick applies.
+    target?: { side: 'ally' | 'enemy'; prefer: AutoTargetPreference };
 };
 
 /**
@@ -61,6 +87,8 @@ export type SkillSpec = {
     // Priority tier (0 = normal): actions resolve by priority first and
     // speed second. No skill defines one yet, the field is ready for it.
     priority?: number;
+    // Attack reach of the skill. Spells default to 'all' (every row).
+    rangeOf?: 'short' | 'long' | 'all';
     // Damage components resolved with the compound damage composer.
     damage?: DamageComponent[];
     // Dynamic damage: computed from the actor at resolution time
@@ -68,8 +96,24 @@ export type SkillSpec = {
     damageFor?: (actor: Character) => DamageComponent[];
     // Flat heal applied to every target.
     heal?: number;
+    // Dynamic heal: computed per target at resolution time (Cure:
+    // 60% of the target's hp, capped). Replaces `heal` when present.
+    healFor?: (actor: Character, target: Character) => number;
     statusOnTargets?: StatusDefinition;
+    // Several statuses on the targets at once (Weak Point applies two
+    // debuffs with different durations).
+    statusesOnTargets?: StatusDefinition[];
     statusOnSelf?: StatusDefinition;
+    // Status removal, resolved by the target's side: Dispel removes
+    // positive statuses from enemies and negative ones from allies.
+    dispel?: {
+        onEnemy?: 'positive' | 'negative' | 'all';
+        onAlly?: 'positive' | 'negative' | 'all';
+    };
+    // Cover: the target ally is protected by the caster — the given
+    // share of the next non-status hit it receives is redirected to
+    // the caster. Targets a single ally.
+    cover?: { percent: number };
     // Fatigue change applied to the caster on use (negative restores,
     // e.g. Rest: -20, Defend: -10).
     fatigueDelta?: number;
@@ -168,6 +212,91 @@ export const SKILLS: Record<string, SkillSpec> = {
         statusOnSelf: berserkStatus(),
         auto: { chancePercent: 100, cooldownActions: 5 },
     },
+    fastDraw: {
+        id: 'fast_draw',
+        name: 'Fast Draw',
+        description: 'Speed +8 for 3 turns.',
+        targeting: 'SELF',
+        statusOnSelf: fastDrawStatus(),
+    },
+    weakPoint: {
+        id: 'weak_point',
+        name: 'Weak Point',
+        description: 'The enemy\'s attack -40% for 2 turns and defence -40% for 1 turn.',
+        targeting: 'ENEMY',
+        statusesOnTargets: [weakPointAttackStatus(), weakPointDefenceStatus()],
+        // The archer exploits enemies that are still at full strength:
+        // not a single enemy carries a debuff yet (any + negate).
+        auto: {
+            conditions: [{
+                subject: 'enemy',
+                match: 'any',
+                negate: true,
+                hasStatus: { polarity: 'negative' },
+            }],
+            chancePercent: 45,
+            chanceRampPerAction: 10,
+            maxChance: 90,
+            cooldownActions: 3,
+            target: { side: 'enemy', prefer: 'highest_attack' },
+        },
+    },
+    dispel: {
+        id: 'dispel',
+        name: 'Dispel',
+        description: 'Removes positive statuses from enemies and negative statuses from allies. Pick 1 or 2 targets.',
+        targeting: 'ANY',
+        numberOfTargets: 2,
+        dispel: { onEnemy: 'positive', onAlly: 'negative' },
+        // The healer answers trouble: any ally carrying a debuff makes
+        // Dispel eligible, with growing insistence while it lingers.
+        auto: {
+            conditions: [{
+                subject: 'ally',
+                match: 'any',
+                hasStatus: { polarity: 'negative' },
+            }],
+            chancePercent: 60,
+            chanceRampPerAction: 15,
+            maxChance: 100,
+            cooldownActions: 2,
+            sharedCooldown: true,
+            target: { side: 'ally', prefer: 'most_negative_statuses' },
+        },
+    },
+    cure: {
+        id: 'cure',
+        name: 'Cure',
+        description: 'Heals 60% of the target\'s hp, capped at 40 hp.',
+        targeting: 'ANY',
+        numberOfTargets: 1,
+        healFor: (actor, target) =>
+            Math.min(40, Math.round(target.getStat('totalHp') * 0.6 * 100) / 100),
+    },
+    impetu: {
+        id: 'impetu',
+        name: 'Impetu',
+        description: 'Attack +10 and +20%, speed +10 for 1 turn.',
+        targeting: 'SELF',
+        statusOnSelf: impetuStatus(),
+    },
+    firstAid: {
+        id: 'first_aid',
+        name: 'First Aid',
+        description: 'Heals a target for 40% of the user\'s attack.',
+        targeting: 'ANY',
+        numberOfTargets: 1,
+        healFor: (actor) => Math.round(actor.getStat('attack') * 0.4 * 100) / 100,
+    },
+    cover: {
+        id: 'cover',
+        name: 'Cover',
+        description:
+            'Protects an ally: the caster intercepts 60% of the next hit the ally receives, through the caster\'s own defence.',
+        targeting: 'ALLY',
+        numberOfTargets: 1,
+        cover: { percent: 60 },
+    },
 };
 
 // Skills every character knows by default (the fatigue management kit).
@@ -181,7 +310,8 @@ export function defaultSkillIds(): string[] {
     return FATIGUE.enabled ? DEFAULT_SKILLS : ['defend'];
 }
 
-// Base skill ids available per character id (skill tree nodes add more).
+// Base skill ids available per character id: the job of the character
+// provides the recruit kits; extra entries live here.
 export const CHARACTER_SKILLS: Record<string, string[]> = {
     // The lord's son awakens his Gate affinity first: Fire Breath comes
     // from the awakened status, not from the base kit.
@@ -190,8 +320,8 @@ export const CHARACTER_SKILLS: Record<string, string[]> = {
     hay_boss_goblin: ['boss_regen', 'boss_berserk'],
 };
 
-export function skillIdsOf(characterId: string): string[] {
-    return CHARACTER_SKILLS[characterId] ?? [];
+export function skillIdsOf(character: Character): string[] {
+    return CHARACTER_SKILLS[character.id] ?? heldJobOf(character)?.skillIds ?? [];
 }
 
 /** Whether the character carries a status with the given name. */

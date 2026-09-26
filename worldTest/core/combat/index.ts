@@ -5,3 +5,6 @@ export * from './autoSkills';
 export * from './skillEffects';
 export * from './fatigue';
 export * from './ramp';
+export * from './range';
+export * from './cover';
+export * from './aura';

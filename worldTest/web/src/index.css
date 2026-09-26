@@ -700,6 +700,99 @@ body {
     flex: none;
 }
 
+/* Centered modal card (the squad character menu). */
+.modal-card {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(380px, calc(100vw - 32px));
+    background: rgba(20, 23, 34, 0.98);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+    z-index: 95;
+    animation: overlay-fade 0.15s ease;
+}
+
+.modal-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.modal-close:hover {
+    color: var(--text);
+}
+
+.modal-portrait {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #12141d;
+    object-fit: cover;
+    image-rendering: pixelated;
+    flex: none;
+}
+
+/* Camp roster cards (3-column grid). */
+.roster-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    color: var(--text);
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
+}
+
+.roster-card--active {
+    border-color: var(--accent);
+}
+
+.roster-card-portrait {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #12141d;
+    object-fit: cover;
+    image-rendering: pixelated;
+}
+
+.roster-card-name {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.roster-card-class {
+    font-size: 12px;
+    color: var(--accent);
+}
+
+.roster-card-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--muted);
+}
+
 .dev-tabs {
     display: flex;
     gap: 6px;
@@ -789,6 +882,41 @@ body {
     text-align: center;
     padding: 18px;
     font-size: 14px;
+}
+
+/* The character screen: 50% stats column + 50% equipment column. */
+.equipment-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+.equipment-slot-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.equipment-slot-row:hover,
+.equipment-slot-row:focus,
+.equipment-slot-row--focused {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.07);
+    outline: none;
+}
+
+.equipment-slot-chevron {
+    color: var(--muted);
+    font-size: 15px;
+    flex: none;
 }
 
 .pill {

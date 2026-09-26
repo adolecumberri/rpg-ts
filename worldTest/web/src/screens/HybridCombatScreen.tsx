@@ -4,6 +4,7 @@ import {
     FATIGUE,
     FIGHTS,
     buildHybridCombat,
+    clearStatuses,
     columnsFor,
     intervalFromSpeed,
     specOf,
@@ -169,7 +170,7 @@ export function HybridCombatScreen({
         if ((phase === 'won' || phase === 'lost' || phase === 'fled') && !settled.current && setup) {
             settled.current = true;
             for (const character of [...setup.allies, ...setup.enemies]) {
-                character.statusManager.removeAllStatuses();
+                clearStatuses(character, { keepPersistent: true });
             }
             const kills = setup.enemies
                 .filter((enemy) => enemy.stats.hp <= 0)
@@ -189,7 +190,7 @@ export function HybridCombatScreen({
         return () => {
             if (!settled.current && setup) {
                 for (const character of [...setup.allies, ...setup.enemies]) {
-                    character.statusManager.removeAllStatuses();
+                    clearStatuses(character, { keepPersistent: true });
                 }
             }
         };

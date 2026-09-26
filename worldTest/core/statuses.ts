@@ -1,8 +1,10 @@
+import type { Character } from '../../src';
 import type { StatusDefinition } from '../../src/classes/StatusInstance';
 
 export function burnStatus(): StatusDefinition {
     return {
         name: 'Burn',
+        polarity: 'negative',
         applyOn: 'after_turn',
         duration: { type: 'TEMPORAL', value: 3 },
         usageFrequency: 'PER_ACTION',
@@ -17,6 +19,7 @@ export function burnStatus(): StatusDefinition {
 export function poisonStatus(): StatusDefinition {
     return {
         name: 'Poison',
+        polarity: 'negative',
         applyOn: 'after_turn',
         duration: { type: 'TEMPORAL', value: 3 },
         usageFrequency: 'PER_ACTION',
@@ -31,6 +34,7 @@ export function poisonStatus(): StatusDefinition {
 export function regenStatus(): StatusDefinition {
     return {
         name: 'Regeneration',
+        polarity: 'positive',
         applyOn: 'turn_end',
         duration: { type: 'TEMPORAL', value: 3 },
         usageFrequency: 'PER_ACTION',
@@ -51,6 +55,7 @@ export function regenStatus(): StatusDefinition {
 export function bleedingStatus(): StatusDefinition {
     return {
         name: 'Bleeding',
+        polarity: 'negative',
         description: 'Loses 1 hp at the end of each turn, for 3 turns.',
         applyOn: 'after_turn',
         duration: { type: 'TEMPORAL', value: 3 },
@@ -67,6 +72,7 @@ export function bleedingStatus(): StatusDefinition {
 export function attackUpStatus(): StatusDefinition {
     return {
         name: 'Attack Up',
+        polarity: 'positive',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
         usageFrequency: 'PER_ACTION',
@@ -78,6 +84,7 @@ export function attackUpStatus(): StatusDefinition {
 export function defenceUpStatus(): StatusDefinition {
     return {
         name: 'Defence Up',
+        polarity: 'positive',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
         usageFrequency: 'PER_ACTION',
@@ -89,6 +96,7 @@ export function defenceUpStatus(): StatusDefinition {
 export function weakenStatus(): StatusDefinition {
     return {
         name: 'Weaken',
+        polarity: 'negative',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
         usageFrequency: 'PER_ACTION',
@@ -100,6 +108,7 @@ export function weakenStatus(): StatusDefinition {
 export function hasteStatus(): StatusDefinition {
     return {
         name: 'Haste',
+        polarity: 'positive',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
         usageFrequency: 'PER_ACTION',
@@ -111,6 +120,7 @@ export function hasteStatus(): StatusDefinition {
 export function rageStatus(): StatusDefinition {
     return {
         name: 'Rage',
+        polarity: 'positive',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
         usageFrequency: 'PER_ACTION',
@@ -130,6 +140,7 @@ export function rageStatus(): StatusDefinition {
 export function faintStatus(): StatusDefinition {
     return {
         name: 'Faint',
+        polarity: 'negative',
         description: 'Unconscious from exhaustion: loses 2 of their own turns.',
         applyOn: 'on_turn',
         duration: { type: 'TEMPORAL', value: 2 },
@@ -144,6 +155,7 @@ export function faintStatus(): StatusDefinition {
 export function defendingStatus(): StatusDefinition {
     return {
         name: 'Defending',
+        polarity: 'positive',
         description: 'Braced for the blow: takes 70% less damage for 1 turn.',
         applyOn: 'after_turn',
         duration: { type: 'TEMPORAL', value: 1 },
@@ -176,6 +188,7 @@ export function gateOpenedStatus(stacks = 0): StatusDefinition {
     ];
     return {
         name: 'Gate Opened',
+        polarity: 'positive',
         description:
             'The Gate is open: Fire Breath unlocked, defence +10, and every attack raises attack +8 and speed +2 (up to +40/+10).',
         applyOn: 'after_turn',
@@ -196,6 +209,7 @@ export function gateOpenedStatus(stacks = 0): StatusDefinition {
 export function berserkStatus(): StatusDefinition {
     return {
         name: 'Berserk',
+        polarity: 'positive',
         description: 'Attack +30%, defence -20% and speed +2 for 3 of its own actions.',
         applyOn: 'on_turn',
         duration: { type: 'TEMPORAL', value: 3 },
@@ -207,6 +221,182 @@ export function berserkStatus(): StatusDefinition {
             { from: 'speed', to: 'speed', value: 2, typeOfModification: 'BUFF_FIXED' },
         ],
     };
+}
+
+// ---------------------------------------------------------------------------
+// The Order Army skills. "N turns" statuses use the on_turn moment with
+// duration N+1: they tick once per own action (before acting), so the
+// bearer is affected for exactly N of its own actions in BOTH combat
+// flows (turn-based and tick).
+// ---------------------------------------------------------------------------
+
+/**
+ * Fast Draw (archers): speed +8 for 3 turns.
+ */
+export function fastDrawStatus(): StatusDefinition {
+    return {
+        name: 'Fast Draw',
+        polarity: 'positive',
+        description: 'Speed +8 for 3 turns.',
+        applyOn: 'on_turn',
+        duration: { type: 'TEMPORAL', value: 4 },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [{ from: 'speed', to: 'speed', value: 8, typeOfModification: 'BUFF_FIXED' }],
+    };
+}
+
+/**
+ * Weak Point (archers): the enemy's attack -40% for 2 turns...
+ */
+export function weakPointAttackStatus(): StatusDefinition {
+    return {
+        name: 'Weak Point: Attack',
+        polarity: 'negative',
+        description: 'Attack -40% for 2 turns.',
+        applyOn: 'on_turn',
+        duration: { type: 'TEMPORAL', value: 3 },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [{ from: 'attack', to: 'attack', value: 40, typeOfModification: 'DEBUFF_PERCENTAGE' }],
+    };
+}
+
+/**
+ * ... and its defence -40% for 1 turn (the second status of the skill).
+ */
+export function weakPointDefenceStatus(): StatusDefinition {
+    return {
+        name: 'Weak Point: Defence',
+        polarity: 'negative',
+        description: 'Defence -40% for 1 turn.',
+        applyOn: 'on_turn',
+        duration: { type: 'TEMPORAL', value: 2 },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [{ from: 'defence', to: 'defence', value: 40, typeOfModification: 'DEBUFF_PERCENTAGE' }],
+    };
+}
+
+/**
+ * Impetu (soldiers): +10 fixed attack, +20% attack and +10 speed for 1
+ * turn (the caster's next attack).
+ */
+export function impetuStatus(): StatusDefinition {
+    return {
+        name: 'Impetu',
+        polarity: 'positive',
+        description: 'Attack +10 and +20%, speed +10 for 1 turn.',
+        applyOn: 'on_turn',
+        duration: { type: 'TEMPORAL', value: 2 },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [
+            { from: 'attack', to: 'attack', value: 10, typeOfModification: 'BUFF_FIXED' },
+            { from: 'attack', to: 'attack', value: 20, typeOfModification: 'BUFF_PERCENTAGE' },
+            { from: 'speed', to: 'speed', value: 10, typeOfModification: 'BUFF_FIXED' },
+        ],
+    };
+}
+
+/**
+ * Covered (the Cover skill): while the ally holds this status, the
+ * given share of the next non-status hit it receives is redirected to
+ * the coverer (through the coverer's own mitigation) and the status is
+ * consumed. Re-covering the same ally replaces the instance, so only
+ * the last Cover counts. Permanent: it lives until a hit consumes it or
+ * the battle-end cleanup removes it.
+ */
+export function coveredStatus(coverer: Character, percent: number): StatusDefinition {
+    return {
+        name: 'Covered',
+        polarity: 'positive',
+        description: `${coverer.name} intercepts ${percent}% of the next hit taken.`,
+        applyOn: 'after_turn',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        statsAffected: [],
+        cover: { coverer, percent },
+    };
+}
+
+/**
+ * Corpse Carrying: the character hauls a fainted comrade to a place
+ * that can revive them. Persistent: it survives the battle-end cleanup
+ * (and Dispel ignores it) until the corpse is laid down at the
+ * fountain. Heavy work: attack -50%, speed -60%, defence -40%.
+ */
+export function corpseCarryingStatus(): StatusDefinition {
+    return {
+        name: 'Corpse Carrying',
+        polarity: 'negative',
+        description: 'Carrying a fallen comrade: attack -50%, speed -60%, defence -40%.',
+        applyOn: 'on_turn',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [
+            { from: 'attack', to: 'attack', value: 50, typeOfModification: 'DEBUFF_PERCENTAGE' },
+            { from: 'speed', to: 'speed', value: 60, typeOfModification: 'DEBUFF_PERCENTAGE' },
+            { from: 'defence', to: 'defence', value: 40, typeOfModification: 'DEBUFF_PERCENTAGE' },
+        ],
+        persistent: true,
+    };
+}
+
+/**
+ * The battle-end cleanup, in one function: removes every status, or —
+ * with `keepPersistent` — only the battle-time ones (Corpse Carrying
+ * travels with the character between fights). Replaces the raw
+ * removeAllStatuses calls in the battle screens.
+ */
+export function clearStatuses(
+    character: Character,
+    options: { keepPersistent?: boolean } = {},
+): void {
+    for (const [id, status] of character.statusManager.statuses) {
+        if (options.keepPersistent && status.definition.persistent) continue;
+        character.statusManager.removeStatusInstance(id);
+    }
+}
+
+/**
+ * The farmer boss's Revolutionary Aura: while he lives, his whole team
+ * (himself included) fights with +10 attack and +3 speed. The aura is
+ * the status the boss carries; the combat engines sync its effect onto
+ * every living teammate and drop it the moment he falls.
+ */
+export function revolutionaryAuraStatus(): StatusDefinition {
+    return {
+        name: 'Revolutionary Aura',
+        polarity: 'positive',
+        description: 'Team aura: +10 attack and +3 speed while the boss lives.',
+        applyOn: 'after_turn',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        statsAffected: [],
+        aura: { attack: 10, speed: 3 },
+    };
+}
+
+/**
+ * Removes every status of the given polarity from the character
+ * (Dispel: positive from enemies, negative from allies). Persistent
+ * statuses (Corpse Carrying) are not battle magic: Dispel skips them.
+ */
+export function removeStatusesByPolarity(
+    character: import('../../src').Character,
+    polarity: 'positive' | 'negative',
+): string[] {
+    const removed: string[] = [];
+    for (const [id, status] of character.statusManager.statuses) {
+        if (status.definition.persistent) continue;
+        if (status.definition.polarity === polarity) {
+            character.statusManager.removeStatusInstance(id);
+            removed.push(status.definition.name);
+        }
+    }
+    return removed;
 }
 
 /**
@@ -237,6 +427,9 @@ export function statusTooltip(definition: StatusDefinition): string {
     }
     if (definition.grantsSkills && definition.grantsSkills.length > 0) {
         parts.push(`unlocks ${definition.grantsSkills.join(', ')}`);
+    }
+    if (definition.cover) {
+        parts.push(`${definition.cover.coverer.name} covers ${definition.cover.percent}%`);
     }
 
     return parts.join(' · ');

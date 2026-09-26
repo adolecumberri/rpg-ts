@@ -7,7 +7,6 @@ import {
     inventoryCapacity,
     inventorySlotCount,
     itemDescriptionText,
-    missionPlaceNames,
 } from '@core';
 import { useGame } from '../game/GameContext';
 import { Menu, MenuSection } from '../components/Menu';
@@ -80,21 +79,6 @@ export function InventoryScreen() {
                 ))
             )}
 
-            <MenuSection
-                title="Missions"
-                icon="📜"
-                options={api.session.missions.activeMissions().map((runner) => {
-                    const mission = api.session.missions.mission(runner.missionId());
-                    const places = mission ? missionPlaceNames(mission) : [];
-                    return {
-                        icon: '❗',
-                        label: runner.title(),
-                        description: places.length > 0 ? `📍 ${places.join(' · ')}` : undefined,
-                        sub: 'Open',
-                        onClick: () => api.navigate({ name: 'mission', missionId: runner.missionId() }),
-                    };
-                })}
-            />
             <button className="btn" onClick={() => api.back()}>Back</button>
         </div>
     );

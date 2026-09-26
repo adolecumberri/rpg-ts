@@ -35,6 +35,13 @@ describe('skill catalog', () => {
             'open_gate',
             'boss_regen',
             'boss_berserk',
+            'fast_draw',
+            'weak_point',
+            'dispel',
+            'cure',
+            'impetu',
+            'first_aid',
+            'cover',
         ]);
         expect(specOf('fireball')).toBeUndefined();
         expect(specOf('warcry')).toBeUndefined();

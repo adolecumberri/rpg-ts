@@ -40,7 +40,12 @@ describe('the fatigue system switched off (default)', () => {
 
     it('Rest is hidden from the default kit while the system is off', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        expect(session.availableSkillIds(session.team.getCharacter('player')!)).toEqual(['defend']);
+        // Defend stays, Rest is hidden — plus the player's soldier kit.
+        expect(session.availableSkillIds(session.team.getCharacter('player')!)).toEqual([
+            'defend',
+            'impetu',
+            'first_aid',
+        ]);
     });
 });
 
@@ -183,7 +188,13 @@ describe('accuracy', () => {
 describe('defend and rest skills', () => {
     it('every character knows them by default', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        expect(session.availableSkillIds(session.team.getCharacter('player')!)).toEqual(DEFAULT_SKILLS);
+        // The defaults come first, then the character's own kit (the
+        // player enlisted as a soldier).
+        expect(session.availableSkillIds(session.team.getCharacter('player')!)).toEqual([
+            ...DEFAULT_SKILLS,
+            'impetu',
+            'first_aid',
+        ]);
         expect(DEFAULT_SKILLS).toEqual(['defend', 'rest']);
     });
 

@@ -100,6 +100,7 @@ export function refreshFatigueStatus(character: Character): void {
     }
     const definition: StatusDefinition = {
         name: 'Fatigue',
+        polarity: 'negative',
         // No static description: the tooltip derives the CURRENT
         // debuffs from statsAffected, so it always shows exactly what
         // the fighter is suffering right now.

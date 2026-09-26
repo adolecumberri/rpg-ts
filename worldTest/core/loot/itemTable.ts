@@ -25,6 +25,11 @@ export type ItemTableEntry = {
     // On-hit hook: runs after an attack that landed with damage > 0
     // (reactions already resolved), e.g. applying Bleeding.
     onHit?: (context: ItemHitContext) => void;
+    // The attack reach the weapon grants its bearer (swords short,
+    // bows long, spells default to all).
+    rangeOf?: 'short' | 'long' | 'all';
+    // The weapon type a Job must allow to wield this (sword/bow/staff).
+    weaponType?: 'sword' | 'bow' | 'staff';
     onEquip?: (self: Item, target: Character) => void;
     onUnEquip?: (self: Item, target: Character) => void;
     // Bags add inventory slots to the party capacity.

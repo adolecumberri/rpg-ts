@@ -59,14 +59,16 @@ export class Roster {
 
     /**
      * Replaces the active party with the given ids, keeping the given
-     * order (unknown ids are dropped, extras beyond the max are trimmed).
+     * order (unknown ids are dropped, extras beyond the max are
+     * trimmed). An explicit max overrides the global party size (the
+     * camp's six-person mission squads).
      */
-    setActive(ids: string[]): void {
+    setActive(ids: string[], max: number = ROSTER.maxActiveParty): void {
         const valid: string[] = [];
         for (const id of ids) {
             if (this.has(id) && valid.indexOf(id) === -1) valid.push(id);
         }
-        this.active = valid.slice(0, ROSTER.maxActiveParty);
+        this.active = valid.slice(0, max);
     }
 
     remove(id: string): void {
@@ -75,11 +77,13 @@ export class Roster {
     }
 
     /**
-     * Restores a saved roster (used by the save system).
+     * Restores a saved roster (used by the save system). The saved
+     * party order is preserved exactly — including squad missions with
+     * more members than the default max.
      */
     load(characters: Character[], activeIds: string[]): void {
         this.pool = [...characters];
-        this.setActive(activeIds);
+        this.active = [...activeIds];
     }
 
     /**

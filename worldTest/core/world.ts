@@ -6,11 +6,15 @@ import {
     buildPlayerFarmer,
     chopWoodMission,
     cowMission,
+    farmerBossMission,
     hayFieldArrival,
+    renegadeArrival,
+    renegadeLeagueMission,
     sicklesMission,
 } from './config/act1';
 import { DEFAULT_ITEM_TABLE } from './items';
 import { farmerNameFor } from './names';
+import { applyJobBonuses, jobOfCharacter } from './constants/jobs';
 
 // ---------------------------------------------------------------------------
 // Act 1 world content: El Fergel, the lord's farm and the hay field.
@@ -30,32 +34,95 @@ const HOUSEHOLD_NPCS: NPCDefinition[] = ACT1.household.map((member) => ({
     respawns: true,
 }));
 
-const FARMER_NPCS: NPCDefinition[] = [
+// The Order Army recruits: the twelve farmers were recruited and now
+// serve as 4 archers, 2 healers (Arturo among them) and 6 soldiers.
+// They live in the camp and are the player's roster. Each class wears
+// its weapon.
+const RECRUIT_NPCS: NPCDefinition[] = [
     {
         id: ACT1.farmers.arturoId,
         name: ACT1.farmers.arturoName,
-        talk: '"Hey! The lord said to pair up for the chores."',
-        stats: ACT1.farmers.stats,
-        group: 'The Farmers',
+        talk: '"The Order needs steady hands."',
+        stats: ACT1.recruits.healer,
+        group: 'The Order',
         inRoster: true,
-        equipment: ['sickle'],
+        equipment: ['staff'],
     },
-    ...Array.from({ length: ACT1.farmers.count }, (_, index) => {
-        const gender: 'male' | 'female' = index % 2 === 0 ? 'male' : 'female';
-        const id = `farmer_${index}`;
+    ...Array.from({ length: 4 }, (_, index) => {
+        const id = `archer_${index}`;
         return {
             id,
-            name: farmerNameFor(id, gender),
-            talk: ACT1.farmers.talk,
-            stats: ACT1.farmers.stats,
-            group: 'The Farmers',
+            name: farmerNameFor(id, index % 2 === 0 ? 'male' : 'female'),
+            talk: '"My bow is ready."',
+            stats: ACT1.recruits.archer,
+            group: 'The Order',
             inRoster: true,
-            equipment: ['sickle'],
+            equipment: ['bow'],
+        };
+    }),
+    {
+        id: 'healer_0',
+        name: farmerNameFor('healer_0', 'female'),
+        talk: '"Hold still, I will patch you up."',
+        stats: ACT1.recruits.healer,
+        group: 'The Order',
+        inRoster: true,
+        equipment: ['staff'],
+    },
+    ...Array.from({ length: 6 }, (_, index) => {
+        const id = `soldier_${index}`;
+        return {
+            id,
+            name: farmerNameFor(id, index % 2 === 0 ? 'male' : 'female'),
+            talk: '"For the Order!"',
+            stats: ACT1.recruits.soldier,
+            group: 'The Order',
+            inRoster: true,
+            equipment: ['sword'],
         };
     }),
 ];
 
+// The camp's commanding officer: gives the missions and forms the squad.
+const GENERAL_NPC: NPCDefinition = {
+    id: 'general',
+    name: 'General Roderick',
+    talk: '"The renegade league blames the lord for their lost lands. Deal with them."',
+    stats: { hp: 60, totalHp: 60, attack: 10, defence: 4, speed: 6 },
+    group: 'The Command',
+    respawns: true,
+};
+
+// The renegade farmers league: four farmers still loyal to their old
+// lands, armed with sickles and holding the lord's farm.
+const RENEGADE_NPCS: NPCDefinition[] = Array.from({ length: 4 }, (_, index) => {
+    const id = `renegade_${index}`;
+    return {
+        id,
+        name: farmerNameFor(id, index % 2 === 0 ? 'male' : 'female'),
+        talk: '"These lands are ours!"',
+        stats: ACT1.farmers.stats,
+        group: 'The Renegade League',
+        equipment: ['sickle'],
+    };
+});
+
 export const PLACES: Place[] = [
+    {
+        id: 'camp',
+        name: 'Order Camp',
+        emoji: '🏕️',
+        description: 'The Order Army camp: you were recruited here with eleven other farmers.',
+        position: { x: 120, y: 260 },
+        actions: [
+            { id: 'squad', label: 'Form the Squad', kind: 'team', icon: '🛡️' },
+            { id: 'camp_board', label: "The General's Orders", kind: 'mission_board', icon: '📋' },
+            { id: 'camp_fountain', label: 'Fountain', kind: 'fountain', icon: '⛲' },
+            { id: 'camp_look', label: 'Look around', kind: 'look_around', icon: '🔍' },
+        ],
+        connections: [{ label: "The Lord's Farm", to: ACT1.startPlaceId, icon: '🏰' }],
+        npcs: [GENERAL_NPC, ...RECRUIT_NPCS],
+    },
     {
         id: ACT1.startPlaceId,
         name: "The Lord's Farm",
@@ -65,6 +132,7 @@ export const PLACES: Place[] = [
         actions: [
             { id: 'mission_board', label: 'Mission Board (The Hall)', kind: 'mission_board', icon: '📋' },
             { id: 'farm_shop', label: 'Farm Shop', kind: 'shop', shopId: 'farm_shop', icon: '🛒' },
+            { id: 'farm_look', label: 'Look around', kind: 'look_around', icon: '🔍' },
             ...ACT1.tasks.map((task) => ({
                 id: task.id,
                 label: task.label,
@@ -76,8 +144,12 @@ export const PLACES: Place[] = [
         ],
         connections: [
             { label: 'Hay Field', to: 'hay_field', icon: '🌾', requiredMissionId: 'sickles_to_hay' },
+            { label: 'Order Camp', to: 'camp', icon: '🏕️' },
         ],
-        npcs: [...HOUSEHOLD_NPCS, ...FARMER_NPCS],
+        npcs: [...HOUSEHOLD_NPCS, ...RENEGADE_NPCS],
+        // Arriving while the renegade mission waits for the battle
+        // plays the ambush chat and starts the fight.
+        arrival: renegadeArrival(),
     },
     {
         id: 'hay_field',
@@ -85,7 +157,7 @@ export const PLACES: Place[] = [
         emoji: '🌾',
         description: 'Golden fields where the hay grows. Arturo works here.',
         position: { x: 600, y: 260 },
-        actions: [],
+        actions: [{ id: 'hay_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
         connections: [{ label: "The Lord's Farm", to: ACT1.startPlaceId, icon: '🏰' }],
         npcs: [],
         // No menu here: arriving plays the sickles story (thanks, then
@@ -120,6 +192,13 @@ export function buildNpcsFromPlaces(places: Place[]): {
                 name: def.name,
                 stats: new Stats(def.stats),
             });
+            // The default job: its stat bonuses are applied straight to
+            // the stats (plain numbers, no statuses).
+            const defaultJob = jobOfCharacter(def.id);
+            if (defaultJob) {
+                character.jobId = defaultJob.id;
+                applyJobBonuses(character, defaultJob);
+            }
             // Starting equipment (the farmers wear their sickles).
             for (const itemId of def.equipment ?? []) {
                 if (!DEFAULT_ITEM_TABLE.has(itemId)) continue;
@@ -147,8 +226,8 @@ export function buildNpcsFromPlaces(places: Place[]): {
 }
 
 /**
- * A fresh Act 1 world: the bought farmer as the player (with sack and
- * outfit), the farm people, and the hall missions.
+ * A fresh Act 1 world: the player as an Order soldier (job bonuses,
+ * sword, sack and outfit), the farm people, and the missions.
  */
 export function createInitialWorld(): {
     team: Team;
@@ -158,8 +237,15 @@ export function createInitialWorld(): {
     const team = new Team();
     const player = buildPlayerFarmer();
     team.addCharacter(player);
+    // The player enlisted as a soldier: the job and its stat bonuses.
+    const defaultJob = jobOfCharacter(player.id);
+    if (defaultJob) {
+        player.jobId = defaultJob.id;
+        applyJobBonuses(player, defaultJob);
+    }
     player.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sack'), player);
     player.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('farmer_outfit'), player);
+    player.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sword'), player);
     team.gold = 10;
 
     const { npcs, rosterCharacters } = buildNpcsFromPlaces(PLACES);
@@ -167,10 +253,10 @@ export function createInitialWorld(): {
 }
 
 /**
- * The missions of the current world: the hall board offers them in
- * order (chopping wood unlocks after the sickles are delivered, the
- * cow after the wood is chopped). All three live on the farm's board.
+ * The missions of the current world: the camp board offers the renegade
+ * league orders; the hall board keeps its parked chain (sickles, wood,
+ * cow).
  */
 export function createInitialMissions(): Mission[] {
-    return [sicklesMission(), chopWoodMission(), cowMission()];
+    return [sicklesMission(), chopWoodMission(), cowMission(), renegadeLeagueMission(), farmerBossMission()];
 }

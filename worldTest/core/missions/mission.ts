@@ -87,6 +87,9 @@ export type Mission = {
     // The places whose board offers this mission. Undefined = offered
     // everywhere (a board in another city does not show farm missions).
     availableAt?: string[];
+    // Hidden missions are registered (playable via direct start) but
+    // never offered on any board: parked story content.
+    hidden?: boolean;
     // People that travel with the mission: when accepted the npcs move
     // to the target place (and move back when the mission is cancelled).
     npcMoves?: { npcId: string; fromPlaceId: string; toPlaceId: string }[];

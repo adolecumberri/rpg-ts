@@ -29,10 +29,13 @@ export type Route =
     | { name: 'skills' }
     | { name: 'board' }
     | { name: 'mission'; missionId: string }
+    | { name: 'missions' }
     | { name: 'map' }
     | { name: 'loot' }
     | { name: 'dev' }
-    | { name: 'interval' };
+    | { name: 'interval' }
+    | { name: 'lookaround' }
+    | { name: 'fountain' };
 
 type GameApi = {
     session: WorldSession;

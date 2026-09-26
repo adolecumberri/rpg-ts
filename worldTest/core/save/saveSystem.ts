@@ -24,6 +24,17 @@ export function buildCharacterFromSave(saved: SavedCharacter): Character {
     character.stats.fatigue = saved.fatigue ?? 0;
     character.experience.level = saved.level;
     character.experience.currentXp = saved.currentXp;
+    // The worldTest stats the historic fields don't cover (speed,
+    // magic...): saves made before them load at the seeded defaults.
+    // Typed directly through the enhanced Statistics.
+    const extra = saved.extraStats;
+    if (extra) {
+        if (extra.speed !== undefined) character.stats.speed = extra.speed;
+        if (extra.magic !== undefined) character.stats.magic = extra.magic;
+        if (extra.magicDefence !== undefined) character.stats.magicDefence = extra.magicDefence;
+        if (extra.critChance !== undefined) character.stats.critChance = extra.critChance;
+        if (extra.critMultiplier !== undefined) character.stats.critMultiplier = extra.critMultiplier;
+    }
     // Formation row: saves made before positions existed load at front.
     if (saved.position === 'front' || saved.position === 'center' || saved.position === 'back') {
         character.position = saved.position;

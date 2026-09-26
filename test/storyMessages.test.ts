@@ -69,12 +69,12 @@ describe('fights as constants', () => {
         expect(first.enemies().map((character) => character.id)).toEqual([
             'hay_goblin_a', 'hay_goblin_b', 'hay_goblin_c',
         ]);
-        // Two farmers fight the first skirmish automatically.
-        expect(first.allyIds).toEqual(['arturo', 'farmer_0']);
+        // The recruits fight the first skirmish automatically.
+        expect(first.allyIds).toEqual(['arturo', 'soldier_0']);
 
         const second = FIGHTS.hay_goblins_2;
         expect(second.enemies()).toHaveLength(9);
-        expect(second.allyIds).toEqual(['arturo', 'farmer_0', 'farmer_1', 'farmer_2', 'farmer_3']);
+        expect(second.allyIds).toEqual(['arturo', 'archer_0', 'archer_1', 'soldier_0', 'soldier_1']);
 
         const boss = FIGHTS.hay_boss;
         expect(boss.manualId).toBe('lord_son');
@@ -161,24 +161,25 @@ describe('arrival events', () => {
         expect(session.pendingBattle()).toBeNull();
     });
 
-    it('moves the lord son, Arturo and four farmers to the hay field when accepted, and back on cancel', () => {
+    it('moves the lord son and Arturo to the hay field when accepted, and back on cancel', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
         expect(session.npcsAt('hay_field')).toEqual([]);
 
         giveSickle(session);
         session.startMission('sickles_to_hay');
+        // The lord's son travels by name; Arturo (a camp recruit) joins
+        // too. The farmers group no longer exists, so no group moves.
         const atHay = session.npcsAt('hay_field').map((npc) => npc.id);
-        expect(atHay).toEqual(['lord_son', 'arturo', 'farmer_0', 'farmer_1', 'farmer_2', 'farmer_3']);
+        expect(atHay).toEqual(['lord_son', 'arturo']);
         expect(session.findNpc('lord_son')).toBeDefined();
 
         session.cancelMission('sickles_to_hay');
         expect(session.npcsAt('hay_field')).toEqual([]);
-        // Declining (cancelling) sends EVERYONE back to the farm: the
-        // lord's son and the five farmers that travelled as a group.
-        for (const id of ['lord_son', 'arturo', 'farmer_0', 'farmer_1', 'farmer_2', 'farmer_3']) {
-            expect(session.npcsAt('farm').map((npc) => npc.id)).toContain(id);
-        }
+        // Declining (cancelling) sends everyone home: the lord's son to
+        // the farm, Arturo back to the Order camp.
+        expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('lord_son');
+        expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
         expect(session.pendingBattle()).toBeNull();
     });
 
@@ -189,7 +190,7 @@ describe('arrival events', () => {
 
         const restored = WorldSession.fromSave(session.exportSave());
         const atHay = restored.npcsAt('hay_field').map((npc) => npc.id);
-        expect(atHay).toEqual(['lord_son', 'arturo', 'farmer_0', 'farmer_1', 'farmer_2', 'farmer_3']);
+        expect(atHay).toEqual(['lord_son', 'arturo']);
         expect(restored.missionIsActive('sickles_to_hay')).toBe(true);
     });
 
@@ -204,12 +205,11 @@ describe('arrival events', () => {
         expect(end.message).toContain('Mission failed: Sickles to the Hay Field');
         expect(session.npcsAt('hay_field')).toEqual([]);
         expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('lord_son');
+        expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
 
-        // A failed mission returns to the available board: there is no
-        // failed status to keep around.
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([
-            'sickles_to_hay',
-        ]);
+        // A failed mission returns to being startable: there is no
+        // failed status to keep around (it stays hidden on the board).
+        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([]);
         expect(session.missionIsActive('sickles_to_hay')).toBe(false);
         expect(session.startMission('sickles_to_hay')).toBe(true);
         expect(session.missions.activeMissions().map((runner) => runner.missionId())).toEqual([
@@ -217,7 +217,7 @@ describe('arrival events', () => {
         ]);
     });
 
-    it('goblins carry their sticks and the farmhands wear their sickles', () => {
+    it('goblins carry their sticks and the recruits carry their class kits', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
         const goblin = characterGenerator('goblin', 1, { id: 'goblin_gear' });
@@ -225,16 +225,23 @@ describe('arrival events', () => {
         expect(goblin.stats.attack).toBe(2); // raw preset unchanged
         expect(goblin.getStat('attack')).toBe(3); // +1 from the stick
 
-        const arturo = session.roster.character('arturo')!;
-        expect(arturo.equipment.get('weapon')?.id).toBe('sickle');
-        expect(arturo.getStat('attack')).toBe(8); // 4 base + sickle
+        // The Order Army classes: archers harass, healers support,
+        // soldiers lead. Their kits come from their character ids.
+        expect(session.availableSkillIds(session.roster.character('archer_0')!)).toEqual([
+            'defend', 'fast_draw', 'weak_point',
+        ]);
+        expect(session.availableSkillIds(session.roster.character('arturo')!)).toEqual([
+            'defend', 'dispel', 'cure',
+        ]);
+        expect(session.availableSkillIds(session.roster.character('soldier_0')!)).toEqual([
+            'defend', 'impetu', 'first_aid',
+        ]);
 
-        const farmhand = session.roster.character('farmer_3')!;
-        expect(farmhand.equipment.get('weapon')?.id).toBe('sickle');
-        expect(farmhand.getStat('attack')).toBe(8);
-
-        // The player starts with sack + outfit, no weapon.
-        expect(session.team.getCharacter('player')!.equipment.get('weapon')).toBeUndefined();
+        // The player enlisted as a soldier: sword plus sack and outfit.
+        const player = session.team.getCharacter('player')!;
+        expect(player.equipment.get('weapon')?.id).toBe('sword');
+        expect(player.equipment.get('bag')?.id).toBe('sack');
+        expect(player.equipment.get('armor')?.id).toBe('farmer_outfit');
     });
 });
 

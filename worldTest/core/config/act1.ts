@@ -31,6 +31,13 @@ export const ACT1 = {
         talk: '"The hay won\'t carry itself."',
         stats: { hp: 14, totalHp: 14, attack: 4, defence: 1, speed: 6 },
     },
+    // The Order Army recruits (the twelve farmers, re-trained): 4
+    // archers, 2 healers (Arturo among them) and 6 soldiers.
+    recruits: {
+        archer: { hp: 12, totalHp: 12, attack: 5, defence: 0, speed: 8 },
+        healer: { hp: 12, totalHp: 12, attack: 2, defence: 0, speed: 6 },
+        soldier: { hp: 20, totalHp: 20, attack: 6, defence: 3, speed: 5 },
+    },
     tasks: [
         { id: 'chop_wood', label: 'Chop wood', icon: '🪵', itemId: 'wood', quantity: 1 },
         { id: 'collect_hay', label: 'Collect hay', icon: '🌾', itemId: 'hay', quantity: 1 },
@@ -64,17 +71,17 @@ export function sicklesMission(): Mission {
         id: 'sickles_to_hay',
         title: 'Sickles to the Hay Field',
         description: 'Lord Alvaro needs the sickles delivered to the hay field, where Arturo is waiting. Take the road east of the farm.',
+        // Parked during the story shift to the Order camp: still
+        // registered (tests and direct starts work), never offered.
+        hidden: true,
         // Offered on the farm's board only, with no requirements.
         availableAt: [ACT1.startPlaceId],
         requirements: { items: [{ itemId: 'sickle', quantity: 1 }] },
         npcMoves: [
             { npcId: 'lord_son', fromPlaceId: ACT1.startPlaceId, toPlaceId: 'hay_field' },
-        ],
-        // The farmhands travel as a group: the first five farmers of the
-        // farm head to the hay field with the mission (and return home
-        // when it ends).
-        unitMoves: [
-            { count: 5, group: 'The Farmers', fromPlaceId: ACT1.startPlaceId, toPlaceId: 'hay_field' },
+            // Arturo lives in the Order camp now: he travels from there
+            // and returns there.
+            { npcId: 'arturo', fromPlaceId: 'camp', toPlaceId: 'hay_field' },
         ],
         steps: [
             { id: 'go_hay', kind: 'travel', placeId: 'hay_field' },
@@ -128,6 +135,18 @@ export function hayFieldArrival(): ArrivalEvent {
         missionId: 'sickles_to_hay',
         chatId: 'hay_thanks',
         fightId: 'hay_goblins',
+    };
+}
+
+/**
+ * The story that plays when the squad arrives at the farm during the
+ * renegade mission: the general spots the league, then the battle.
+ */
+export function renegadeArrival(): ArrivalEvent {
+    return {
+        missionId: 'renegade_league',
+        chatId: 'renegades_spot',
+        fightId: 'renegades_fight',
     };
 }
 
@@ -199,6 +218,97 @@ export function cowMission(): Mission {
                 flags: [FLAGS.COW_SAVED],
                 markerPlaceId: ACT1.startPlaceId,
                 lines: [{ speaker: 'Arturo', text: 'We made it back... but something is coming.' }],
+            },
+        ],
+    };
+}
+
+/**
+ * The Order Army's first mission: the renegade farmers league blames
+ * the lord for taking their lands and has armed itself at the farm.
+ * The general orders the player to form a six-person squad and drive
+ * them off.
+ */
+export function renegadeLeagueMission(): Mission {
+    return {
+        id: 'renegade_league',
+        title: 'The Renegade League',
+        description: 'The general orders you to form a six-person squad and drive the renegade farmers off the lord\'s farm.',
+        availableAt: ['camp'],
+        steps: [
+            {
+                id: 'orders',
+                kind: 'dialogue',
+                lines: [
+                    { speaker: 'General Roderick', text: 'The renegade league blames the lord for their lost lands.' },
+                    { speaker: 'General Roderick', text: 'They have armed themselves at the farm. Form a squad of six and drive them off.' },
+                ],
+                // No battle here: the fight starts when the squad
+                // arrives at the farm.
+            },
+            {
+                id: 'farm_fight',
+                kind: 'wait_battle',
+                completeOn: ['won'],
+                battle: { fightId: 'renegades_fight', placeId: ACT1.startPlaceId },
+            },
+            {
+                id: 'struck_back',
+                kind: 'dialogue',
+                lines: [
+                    { speaker: 'General Roderick', text: 'Some of them slipped away... and now they are at our gates!' },
+                    { speaker: 'General Roderick', text: 'Defend the camp!' },
+                ],
+                battle: { fightId: 'renegades_fight_2', placeId: 'camp' },
+            },
+            {
+                id: 'camp_fight',
+                kind: 'wait_battle',
+                completeOn: ['won'],
+                battle: { fightId: 'renegades_fight_2', placeId: 'camp' },
+            },
+            {
+                id: 'reward',
+                kind: 'reward',
+                flags: [FLAGS.RENEGADES_SCATTERED],
+                lines: [{ speaker: 'General Roderick', text: 'Well fought. The Order thanks you.' }],
+            },
+        ],
+    };
+}
+
+/**
+ * The Order Army's second mission: the man behind the renegade league,
+ * the Farmer King, holds the farm with eight men. Offered on the camp
+ * board only once the renegade league mission is completed.
+ */
+export function farmerBossMission(): Mission {
+    return {
+        id: 'farmer_boss',
+        title: 'The Farmer King',
+        description: 'The man behind the renegade league holds the farm with eight men. Bring him down.',
+        requires: ['renegade_league'],
+        availableAt: ['camp'],
+        steps: [
+            {
+                id: 'orders',
+                kind: 'dialogue',
+                lines: [
+                    { speaker: 'General Roderick', text: 'The league had a leader: they call him the Farmer King.' },
+                    { speaker: 'General Roderick', text: 'He holds the farm with eight men. End this.' },
+                ],
+            },
+            {
+                id: 'boss_fight',
+                kind: 'wait_battle',
+                completeOn: ['won'],
+                battle: { fightId: 'farmers_boss', placeId: ACT1.startPlaceId },
+            },
+            {
+                id: 'reward',
+                kind: 'reward',
+                flags: [FLAGS.FARMERS_BROKEN],
+                lines: [{ speaker: 'General Roderick', text: 'The league is broken. The farm is ours.' }],
             },
         ],
     };

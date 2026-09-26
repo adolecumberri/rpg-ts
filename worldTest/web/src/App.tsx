@@ -17,6 +17,9 @@ import { LootScreen } from './screens/LootScreen';
 import { DevScreen } from './screens/DevScreen';
 import { IntervalCombatScreen } from './screens/IntervalCombatScreen';
 import { HybridCombatScreen } from './screens/HybridCombatScreen';
+import { MissionsScreen } from './screens/MissionsScreen';
+import { LookAroundScreen } from './screens/LookAroundScreen';
+import { FountainScreen } from './screens/FountainScreen';
 
 function Header() {
     const api = useGame();
@@ -31,15 +34,20 @@ function Header() {
     else if (route.name === 'combat') title = 'Combat';
     else if (route.name === 'hybrid') title = 'Battle';
     else if (route.name === 'npc') title = api.findNpc(route.npcId)?.character.name ?? 'Character';
-    else if (route.name === 'character') title = api.team.getCharacter(route.characterId)?.name ?? 'Character';
+    else if (route.name === 'character') title =
+        (api.team.getCharacter(route.characterId) ?? api.session.roster.character(route.characterId))?.name
+        ?? 'Character';
     else if (route.name === 'skilltree') title = 'Skill Tree';
     else if (route.name === 'skills') title = 'Skill Catalog';
     else if (route.name === 'board') title = 'The Hall';
     else if (route.name === 'mission') title = 'Mission';
+    else if (route.name === 'missions') title = 'Missions';
     else if (route.name === 'map') title = 'World Map';
     else if (route.name === 'loot') title = 'Loot Tables';
     else if (route.name === 'dev') title = 'Dev';
     else if (route.name === 'interval') title = 'Interval Battle';
+    else if (route.name === 'lookaround') title = 'Look Around';
+    else if (route.name === 'fountain') title = 'Fountain';
 
     return (
         <div className="header">
@@ -57,6 +65,13 @@ function Header() {
                     onClick={() => api.navigate({ name: 'map' })}
                 >
                     🗺️
+                </button>
+                <button
+                    className="back"
+                    aria-label="Missions"
+                    onClick={() => api.navigate({ name: 'missions' })}
+                >
+                    📜
                 </button>
                 <div className="header-title">{title}</div>
                 <button
@@ -132,6 +147,8 @@ function Router() {
             return <MissionBoardScreen />;
         case 'mission':
             return <MissionScreen missionId={api.current.missionId} />;
+        case 'missions':
+            return <MissionsScreen />;
         case 'map':
             return <MapScreen />;
         case 'loot':
@@ -140,6 +157,10 @@ function Router() {
             return <DevScreen />;
         case 'interval':
             return <IntervalCombatScreen />;
+        case 'lookaround':
+            return <LookAroundScreen />;
+        case 'fountain':
+            return <FountainScreen />;
         default:
             return <PlaceScreen />;
     }

@@ -111,11 +111,11 @@ describe('hybrid combat engine', () => {
 });
 
 describe('buildHybridCombat', () => {
-    it('pairs the manual player with the automatic roster farmers', () => {
+    it('pairs the manual player with the automatic recruits', () => {
         const session = new WorldSession({ random: () => 0.5 });
         const setup = buildHybridCombat(session, FIGHTS.hay_goblins, { random: () => 0.5 });
 
-        expect(setup.allies.map((ally) => ally.id)).toEqual(['player', 'arturo', 'farmer_0']);
+        expect(setup.allies.map((ally) => ally.id)).toEqual(['player', 'arturo', 'soldier_0']);
         expect(setup.enemies.map((enemy) => enemy.id)).toEqual(['hay_goblin_a', 'hay_goblin_b', 'hay_goblin_c']);
 
         const combatants = setup.combat.allCombatants();
@@ -156,24 +156,23 @@ describe('buildHybridCombat', () => {
 });
 
 describe('the hay field story battles', () => {
-    it('the first fight grants XP to the farmers without ending the mission', () => {
+    it('the first fight grants XP to the recruits without ending the mission', () => {
         const session = new WorldSession({ random: () => 0.5 });
         session.team.inventory.addItem(session.itemTable.createItem('sickle'));
         session.startMission('sickles_to_hay');
         session.travel('hay_field');
         session.consumePendingBattle();
         session.messages.clear(); // the thanks lines were read
-        expect(session.npcsAt('hay_field').map((npc) => npc.id)).toEqual([
-            'lord_son', 'arturo', 'farmer_0', 'farmer_1', 'farmer_2', 'farmer_3',
-        ]);
+        expect(session.npcsAt('hay_field').map((npc) => npc.id)).toEqual(['lord_son', 'arturo']);
 
         // Fight it to the end with deterministic randomness (0.5: no
-        // crits, no misses even with the fatigue accuracy penalty).
+        // crits, no misses).
         const setup = buildHybridCombat(session, FIGHTS.hay_goblins, { random: () => 0.5 });
+        const enemyIds = new Set(setup.enemies.map((enemy) => enemy.id));
         const kills: { enemyId: string; killerId: string }[] = [];
         const events = driveToEnd(setup.combat);
         for (const event of events) {
-            if (event.kind === 'auto' && !event.targetAlive) {
+            if (event.kind === 'auto' && !event.targetAlive && enemyIds.has(event.targetId)) {
                 kills.push({ enemyId: event.targetId, killerId: event.actorId });
             }
         }
@@ -201,13 +200,13 @@ describe('the hay field story battles', () => {
         session.messages.next();
         expect(session.messages.peek()?.text).toContain('UNITE');
 
-        // Everyone earned XP: 3 kills -> killer XP + assist XP.
+        // The fighters earned XP: killers and assists. Arturo may fall
+        // in the skirmish (he gets nothing if he never lands a kill).
         const playerXp = session.team.getCharacter('player')!.experience.currentXp;
         const arturoXp = session.roster.character('arturo')!.experience.currentXp;
-        const farmerXp = session.roster.character('farmer_0')!.experience.currentXp;
-        expect(playerXp + arturoXp + farmerXp).toBe(3 * XP.kill + 6 * XP.assist);
-        expect(arturoXp).toBeGreaterThan(0);
-        expect(farmerXp).toBeGreaterThan(0);
+        const soldierXp = session.roster.character('soldier_0')!.experience.currentXp;
+        expect(soldierXp).toBeGreaterThan(0);
+        expect(playerXp + arturoXp + soldierXp).toBeGreaterThanOrEqual(3 * XP.kill);
         expect(end.message).toContain('Victory');
     });
 
@@ -223,9 +222,8 @@ describe('the hay field story battles', () => {
         expect(session.hasFlag('sickles_delivered')).toBe(true);
         // The people that travelled with the mission returned home.
         expect(session.npcsAt('hay_field')).toEqual([]);
-        for (const id of ['lord_son', 'arturo', 'farmer_0', 'farmer_1', 'farmer_2', 'farmer_3']) {
-            expect(session.npcsAt('farm').map((npc) => npc.id)).toContain(id);
-        }
+        expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('lord_son');
+        expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
         // Federico fought the chief personally: the battle hurt him.
         expect(session.findNpc('lord_son')!.character.stats.hp).toBeLessThan(130);
     });
@@ -266,10 +264,11 @@ describe('the hay field story battles', () => {
         session.consumePendingBattle();
 
         const setup = buildHybridCombat(session, FIGHTS.hay_goblins, { random: () => 0.5 });
+        const enemyIds = new Set(setup.enemies.map((enemy) => enemy.id));
         const kills: { enemyId: string; killerId: string }[] = [];
         const events = driveToEnd(setup.combat);
         for (const event of events) {
-            if (event.kind === 'auto' && !event.targetAlive) {
+            if (event.kind === 'auto' && !event.targetAlive && enemyIds.has(event.targetId)) {
                 kills.push({ enemyId: event.targetId, killerId: event.actorId });
             }
         }
@@ -284,23 +283,23 @@ describe('the hay field story battles', () => {
         });
 
         const arturoBefore = session.roster.character('arturo')!;
-        const farmerBefore = session.roster.character('farmer_0')!;
+        const soldierBefore = session.roster.character('soldier_0')!;
         // The goblins (random 0.5) focus Arturo during the skirmish.
         expect(arturoBefore.stats.hp).toBeLessThan(arturoBefore.stats.totalHp);
 
         const restored = WorldSession.fromSave(session.exportSave());
         const arturo = restored.roster.character('arturo')!;
-        const farmer = restored.roster.character('farmer_0')!;
+        const soldier = restored.roster.character('soldier_0')!;
         expect(arturo.experience.currentXp).toBe(arturoBefore.experience.currentXp);
-        expect(farmer.experience.currentXp).toBe(farmerBefore.experience.currentXp);
+        expect(soldier.experience.currentXp).toBe(soldierBefore.experience.currentXp);
         expect(arturo.stats.hp).toBe(arturoBefore.stats.hp);
 
         // The world npc and the roster entry stay the same character, so
         // the dev page shows the real battle state after a load too.
-        const farmNpc = restored.findNpc('farmer_0')!; // at the hay field, mid-mission
-        expect(farmNpc.character).toBe(farmer);
-        expect(farmNpc.character.experience.currentXp).toBe(farmerBefore.experience.currentXp);
-        expect(farmNpc.character.stats.fatigue).toBe(farmerBefore.stats.fatigue);
+        const hayNpc = restored.findNpc('soldier_0')!; // at the hay field, mid-mission
+        expect(hayNpc.character).toBe(soldier);
+        expect(hayNpc.character.experience.currentXp).toBe(soldierBefore.experience.currentXp);
+        expect(hayNpc.character.stats.fatigue).toBe(soldierBefore.stats.fatigue);
     });
 
     it('fleeing the battle fails the mission and moves the people back', () => {

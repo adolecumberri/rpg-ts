@@ -118,3 +118,37 @@ DEFAULT_ITEM_TABLE.register({
     description: "A goblin's club. +1 attack.",
     effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 1 }],
 });
+
+DEFAULT_ITEM_TABLE.register({
+    id: 'sword',
+    name: 'Sword',
+    category: 'weapon',
+    slot: 'weapon',
+    description: "An Order soldier's blade. +4 attack. Short reach.",
+    effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 4 }],
+    rangeOf: 'short',
+    weaponType: 'sword',
+});
+
+DEFAULT_ITEM_TABLE.register({
+    id: 'bow',
+    name: 'Bow',
+    category: 'weapon',
+    slot: 'weapon',
+    description: "An archer's bow. +3 attack. Long reach: every row.",
+    effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 3 }],
+    rangeOf: 'all',
+    weaponType: 'bow',
+});
+
+DEFAULT_ITEM_TABLE.register({
+    id: 'staff',
+    name: 'Mage Staff',
+    category: 'weapon',
+    slot: 'weapon',
+    description: "A healer's focus. +1 attack and +5 magic damage. Long reach.",
+    effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 1 }],
+    elements: [{ element: 'arcane', attackValue: 5 }],
+    rangeOf: 'long',
+    weaponType: 'staff',
+});

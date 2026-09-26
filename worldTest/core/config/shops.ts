@@ -17,6 +17,8 @@ export const SHOPS: Record<string, ShopDefinition> = {
     farm_shop: {
         id: 'farm_shop',
         name: 'Farm Shop',
-        stock: [{ itemId: 'sickle', buyPrice: 5 }],
+        // Emptied during the story shift to the Order camp: the shop
+        // stays but has nothing to sell (rebuilt with new content).
+        stock: [],
     },
 };

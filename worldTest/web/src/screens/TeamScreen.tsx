@@ -1,65 +1,100 @@
-import type { TeamPosition } from '@rpg';
-import { TEAM_POSITIONS } from '@rpg';
+import { useState } from 'react';
+import type { RowPosition } from '@core';
 import { useGame } from '../game/GameContext';
-import { CharacterCard } from '../components/CharacterCard';
+import { RosterCard } from '../components/roster/RosterCard';
+import { CharacterMenu } from '../components/roster/CharacterMenu';
 
-const POSITION_LABELS: Record<TeamPosition, string> = {
-    front: '🛡️ Front ×3',
-    center: '⚔️ Center ×2',
-    back: '🏹 Back ×1',
-};
-
+/**
+ * The camp squad page: the player is always in the squad; the camp
+ * roster is a 3-column grid of the recruits (portrait, class, stats).
+ * Tapping anyone (roster or squad) opens the single character menu:
+ * add/remove from the team, formation row and equipment.
+ */
 export function TeamScreen() {
     const api = useGame();
-    const members = api.team.getAll();
-    const activeMissions = api.session.missions.activeMissions();
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+
+    const limit = api.session.squadLimit();
+    const activeIds = api.session.roster.activeIds();
+    // The camp roster never includes the player.
+    const roster = api.session.roster.all().filter((character) => character.id !== 'player');
+    const selected = selectedId ? api.session.roster.character(selectedId) : undefined;
+
+    const extras = Math.max(0, activeIds.length - 1); // the player excluded
+    const maxExtras = limit - 1;
+
+    const applyOrder = (ids: string[]) => {
+        const result = api.session.setActiveParty(ids);
+        api.refresh();
+        api.showToast(result.message);
+    };
+
+    const toggle = (id: string) => {
+        if (id === 'player') return;
+        if (api.session.isFainted(id)) {
+            api.showToast('The fainted cannot join the squad. Carry them to the camp fountain.');
+            return;
+        }
+        applyOrder(activeIds.includes(id)
+            ? activeIds.filter((entry) => entry !== id)
+            : [...activeIds, id]);
+    };
+
+    const position = (id: string, row: RowPosition) => {
+        api.setPosition(id, row);
+        api.refresh();
+    };
 
     return (
         <div className="screen">
-            {activeMissions.length > 0 ? (
-                <div className="card">
-                    <div className="section-title">📜 Accepted missions</div>
-                    {activeMissions.map((runner) => {
-                        const owner = api.session.roster.character(runner.acceptedBy());
-                        return (
-                            <div key={runner.missionId()} className="stat-row">
-                                <span className="label">{owner?.name ?? runner.acceptedBy()}</span>
-                                <span style={{ flex: 1 }}>{runner.title()}</span>
-                                <button
-                                    className="btn"
-                                    style={{ padding: '4px 10px', fontSize: 12, minWidth: 0, flex: 'none' }}
-                                    onClick={() => api.navigate({ name: 'mission', missionId: runner.missionId() })}
-                                >
-                                    Open
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
-            ) : null}
-            {members.length === 0 ? (
-                <div className="empty">No party members.</div>
-            ) : (
-                members.map((member) => (
-                    <div key={member.id} className="team-member">
-                        <CharacterCard
-                            character={member}
-                            onClick={() => api.navigate({ name: 'character', characterId: member.id })}
+            <div className="card place-hero">
+                <div className="emoji">🛡️</div>
+                <h1>The Squad</h1>
+                <p>You plus {maxExtras} more. Tap anyone to open their menu (team, formation, equipment).</p>
+            </div>
+
+            <div className="section-title">In the squad ({extras}/{maxExtras} recruits)</div>
+            <div className="battle-grid cols-3">
+                {activeIds.map((id) => {
+                    const character = api.session.roster.character(id);
+                    if (!character) return null;
+                    return (
+                        <RosterCard
+                            key={id}
+                            character={character}
+                            active
+                            onClick={() => setSelectedId(id)}
                         />
-                        <div className="btn-row position-row">
-                            {TEAM_POSITIONS.map((position) => (
-                                <button
-                                    key={position}
-                                    className={`btn position-btn${member.position === position ? ' btn--selected' : ''}`}
-                                    onClick={() => api.setPosition(member.id, position)}
-                                >
-                                    {POSITION_LABELS[position]}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                ))
-            )}
+                    );
+                })}
+            </div>
+
+            <div className="section-title">Camp roster</div>
+            <div className="battle-grid cols-3">
+                {roster.map((character) => (
+                    <RosterCard
+                        key={character.id}
+                        character={character}
+                        active={activeIds.includes(character.id)}
+                        tag={api.session.isFainted(character.id) ? '⚰️ Fainted' : undefined}
+                        onClick={() => setSelectedId(character.id)}
+                    />
+                ))}
+            </div>
+
+            {selected ? (
+                <CharacterMenu
+                    character={selected}
+                    inSquad={activeIds.includes(selected.id)}
+                    fainted={api.session.isFainted(selected.id)}
+                    extras={extras}
+                    maxExtras={maxExtras}
+                    onToggle={() => toggle(selected.id)}
+                    onPosition={(row) => position(selected.id, row)}
+                    onClose={() => setSelectedId(null)}
+                />
+            ) : null}
+
             <button className="btn" onClick={() => api.back()}>Back</button>
         </div>
     );

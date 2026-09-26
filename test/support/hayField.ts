@@ -42,15 +42,18 @@ export function winHayFight(
 ): ReturnType<WorldSession['finishCombat']> {
     const setup = buildHybridCombat(session, FIGHTS[fightId], { random: () => 0.5 });
     const events = driveHybridToEnd(setup.combat, preferSkills);
+    const enemyIds = new Set(setup.enemies.map((enemy) => enemy.id));
 
     const kills: { enemyId: string; killerId: string }[] = [];
     for (const event of events) {
         if (event.kind !== 'auto') continue;
         if (event.kills && event.kills.length > 0) {
             for (const kill of event.kills) {
-                kills.push({ enemyId: kill.targetId, killerId: kill.killerId });
+                if (enemyIds.has(kill.targetId)) {
+                    kills.push({ enemyId: kill.targetId, killerId: kill.killerId });
+                }
             }
-        } else if (!event.targetAlive) {
+        } else if (!event.targetAlive && enemyIds.has(event.targetId)) {
             kills.push({ enemyId: event.targetId, killerId: event.actorId });
         }
     }

@@ -2,7 +2,8 @@ import type { Character, IntervalDamageResolver } from '../../../src';
 import { generalAttackResolver } from '../damage/general';
 import { intervalFromSpeed } from '../config/speed';
 import { planAutoAction } from './autoSkills';
-import type { AutoSkillCooldowns } from './autoSkills';
+import type { AutoSkillCooldowns, AutoSkillMeters } from './autoSkills';
+import { syncAuras } from './aura';
 import { pickSkillTargets } from './autoSkills';
 import { resolveSkillEffect } from './skillEffects';
 import { consumeFaintTurn } from './fatigue';
@@ -91,6 +92,11 @@ export class HybridCombat {
     private pendingManual: HybridCombatant | null = null;
     // Per fighter: skillId -> actions the skill stays locked.
     private cooldowns = new Map<string, AutoSkillCooldowns>();
+    // Per fighter: skillId -> the current ramped chance (patience).
+    private meters = new Map<string, AutoSkillMeters>();
+    // Per side: skillId -> actions a sharedCooldown skill stays locked
+    // for the whole side.
+    private sharedCooldowns = new Map<HybridSide, AutoSkillCooldowns>();
 
     constructor(combatants: HybridCombatant[], options: HybridCombatOptions = {}) {
         for (const combatant of combatants) {
@@ -102,6 +108,14 @@ export class HybridCombat {
         this.maxTicks = options.maxTicks ?? 1000;
         this.random = options.random ?? Math.random;
         this.damageResolver = options.damageResolver ?? generalAttackResolver;
+        // Team auras apply from the first action on.
+        this.syncAllAuras();
+    }
+
+    /** Applies/removes aura effects on both sides (cheap, idempotent). */
+    private syncAllAuras(): void {
+        syncAuras(this.combatants.filter((entry) => entry.side === 'left').map((entry) => entry.character));
+        syncAuras(this.combatants.filter((entry) => entry.side === 'right').map((entry) => entry.character));
     }
 
     allCombatants(): HybridCombatant[] {
@@ -136,6 +150,24 @@ export class HybridCombat {
         if (!map) {
             map = new Map();
             this.cooldowns.set(id, map);
+        }
+        return map;
+    }
+
+    private metersOf(id: string): AutoSkillMeters {
+        let map = this.meters.get(id);
+        if (!map) {
+            map = new Map();
+            this.meters.set(id, map);
+        }
+        return map;
+    }
+
+    private sharedCooldownsOf(side: HybridSide): AutoSkillCooldowns {
+        let map = this.sharedCooldowns.get(side);
+        if (!map) {
+            map = new Map();
+            this.sharedCooldowns.set(side, map);
         }
         return map;
     }
@@ -214,6 +246,8 @@ export class HybridCombat {
             enemies: this.enemiesOf(actor).map((entry) => entry.character),
             skills: this.skillsOf(actor),
             cooldowns: this.cooldownsOf(actor.character.id),
+            meters: this.metersOf(actor.character.id),
+            sharedCooldowns: this.sharedCooldownsOf(actor.side),
             random: this.random,
         });
 
@@ -282,6 +316,8 @@ export class HybridCombat {
             character.statusManager.trigger('after_attack');
             character.statusManager.trigger('after_turn');
         }
+        // Someone may have fallen: aura effects follow.
+        this.syncAllAuras();
 
         return {
             kind: 'auto',
@@ -307,7 +343,10 @@ export class HybridCombat {
             .filter((entry): entry is HybridCombatant => Boolean(entry))
             .map((entry) => entry.character);
 
-        const result = resolveSkillEffect(spec, actor.character, targets);
+        const enemyIds = new Set(this.enemiesOf(actor).map((entry) => entry.character.id));
+        const result = resolveSkillEffect(spec, actor.character, targets, {
+            isEnemy: (character) => enemyIds.has(character.id),
+        });
 
         const kills: { targetId: string; killerId: string }[] = [];
         for (const effect of result.effects) {
@@ -327,6 +366,7 @@ export class HybridCombat {
             character.statusManager.trigger('after_attack');
             character.statusManager.trigger('after_turn');
         }
+        this.syncAllAuras();
 
         const primary = targets[0];
         return {

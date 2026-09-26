@@ -15,6 +15,7 @@ import { resolveGeneralAttack } from './general';
  */
 export function attackComponentsOf(character: Character): DamageComponent[] {
     const baseAttack = character.getStat('attack');
+    const magic = character.getStat('magic') ?? 0;
     const equipped = character.equipment.getEquippedItems();
 
     const components: DamageComponent[] = [
@@ -24,10 +25,12 @@ export function attackComponentsOf(character: Character): DamageComponent[] {
     for (const item of equipped) {
         for (const element of item.definition.elements ?? []) {
             if (!element.attackValue) continue;
+            const kind = kindOfElement(element.element);
             components.push({
-                kind: kindOfElement(element.element),
+                kind,
                 element: element.element as ElementId,
-                amount: element.attackValue,
+                // Spell power raises every magical component.
+                amount: kind === 'magical' ? element.attackValue + magic : element.attackValue,
                 label: item.name,
             });
         }

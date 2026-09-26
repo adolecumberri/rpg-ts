@@ -282,9 +282,9 @@ describe('unit moves and spawns', () => {
         return {
             id: 'reinforcements',
             title: 'Reinforcements',
-            availableAt: ['farm'],
+            availableAt: ['camp'],
             unitMoves: [
-                { count: 2, group: 'The Farmers', fromPlaceId: 'farm', toPlaceId: 'hay_field' },
+                { count: 2, group: 'The Order', fromPlaceId: 'camp', toPlaceId: 'hay_field' },
             ],
             unitSpawns: [
                 {
@@ -312,7 +312,7 @@ describe('unit moves and spawns', () => {
         const atHay = session.npcsAt('hay_field').map((npc) => npc.id).sort();
         expect(atHay).toEqual([
             'arturo',
-            'farmer_0',
+            'archer_0',
             'reinforcements_unit_0',
             'reinforcements_unit_1',
             'reinforcements_unit_2',
@@ -331,8 +331,8 @@ describe('unit moves and spawns', () => {
         session.cancelMission('reinforcements');
 
         expect(session.npcsAt('hay_field')).toEqual([]);
-        expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('arturo');
-        expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('farmer_0');
+        expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
+        expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('archer_0');
         expect(session.findNpc('reinforcements_unit_0')).toBeUndefined();
     });
 
@@ -350,6 +350,6 @@ describe('unit moves and spawns', () => {
         restored.ensureMissionUnits();
 
         expect(restored.findNpc('reinforcements_unit_2')).toBeDefined();
-        expect(restored.npcsAt('hay_field')).toHaveLength(5); // 2 farmers + 3 militia
+        expect(restored.npcsAt('hay_field')).toHaveLength(5); // 2 recruits + 3 militia
     });
 });

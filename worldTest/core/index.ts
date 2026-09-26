@@ -23,3 +23,5 @@ export * from './generators';
 export * from './combat';
 export * from './calendar';
 export * from './flags';
+export * from './jobs';
+export * from './fainting';

@@ -6,6 +6,7 @@ import { reactionsOf } from './reactions';
 import { DAMAGE_TYPES, MITIGATION } from '../config/damage';
 import { FATIGUE, gainFatigue } from '../combat/fatigue';
 import { rampGatePower } from '../combat/ramp';
+import { consumeCover, coverOf, takeCoveredHit } from '../combat/cover';
 
 export type GeneralAttackOutcome = {
     damage: number;
@@ -89,8 +90,7 @@ export function mergeComponents(components: DamageComponent[]): DamageComponent[
  * Rolls crits for every physical component of the attack. Magical and
  * true components never crit. The roll uses the injected random source
  * so tests stay deterministic.
- */
-export function rollCrits(
+ */export function rollCrits(
     attacker: Character,
     components: DamageComponent[],
     random: () => number,
@@ -118,15 +118,55 @@ export function rollCrits(
 }
 
 /**
+ * The Cover redirect: when the defender is protected by a Cover, the
+ * given share of the hit goes to the coverer instead, resolved with the
+ * COVERER's own defence layers and kind mitigation (so the paladin's
+ * armour matters). The share is applied to the coverer's hp and the
+ * cover is consumed (single use). Returns the damage the defender
+ * actually suffers.
+ */
+export function applyCoverRedirect(
+    defender: Character,
+    components: DamageComponent[],
+    defenderDamage: number,
+    options: ResolveOptions = {},
+): { damage: number; coverNote?: string } {
+    const cover = coverOf(defender);
+    if (!cover || defenderDamage <= 0 || cover.coverer.stats.hp <= 0) {
+        return { damage: defenderDamage };
+    }
+
+    const covererResult = DamageComposer.resolveKinds(
+        components,
+        defenceLayersOf(cover.coverer),
+        kindMultiplierFor(cover.coverer),
+        options,
+    );
+
+    const share = cover.percent / 100;
+    const covererDamage = Math.round(covererResult.total * share * 100) / 100;
+    const defenderShare = Math.round(defenderDamage * (1 - share) * 100) / 100;
+
+    takeCoveredHit(cover.coverer, covererDamage);
+    consumeCover(defender);
+
+    return {
+        damage: defenderShare,
+        coverNote: `${cover.coverer.name} covers ${defender.name} (-${covererDamage})`,
+    };
+}
+
+/**
  * The general attack resolution: base components, then every equipped
  * item's onAttack hook (so weapons can add, scale or duplicate damage
  * using the bearer's and target's stats), then merge, crits and
  * resolution. Physical components are reduced by defence, magical by
  * magicDefence, true by nothing; elemental affinities and resistances
- * apply on top. The damage math is pure: it never mutates the
- * defender's stats. Only the onHit hooks (fired after reactions, and
- * only when the final damage is above 0) may apply side effects such
- * as statuses — a Parry that zeroes the damage skips them entirely.
+ * apply on top. The damage math never mutates the defender's stats.
+ * Only the onHit hooks (fired after reactions, and only when the final
+ * damage is above 0) may apply side effects such as statuses — a Parry
+ * that zeroes the damage skips them entirely. A Cover on the defender
+ * redirects its share to the coverer (whose hp is the one mutation).
  */
 export function resolveGeneralAttack(
     attacker: Character,
@@ -188,6 +228,14 @@ export function resolveGeneralAttack(
             }
         }
     }
+
+    // A Cover on the defender redirects its share to the coverer
+    // (consumed by this hit); the defender only suffers the rest. This
+    // is the one place the resolution mutates anything, and it touches
+    // the coverer, never the defender's stats.
+    const redirect = applyCoverRedirect(defender, rolled.components, damage, options);
+    damage = redirect.damage;
+    if (redirect.coverNote) notes.push(redirect.coverNote);
 
     return {
         damage,

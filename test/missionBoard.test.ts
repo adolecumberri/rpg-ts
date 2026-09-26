@@ -30,12 +30,12 @@ function lockedRouteMission(): Mission {
 }
 
 describe('mission board', () => {
-    it('offers the sickles mission first and unlocks chopping wood after it', () => {
+    it('offers nothing first: the sickles mission is parked and chop wood waits for it', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([
-            'sickles_to_hay',
-        ]);
+        // The sickles mission is hidden (parked during the Order camp
+        // shift), so the board starts empty.
+        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([]);
         expect(session.hasFlag('sickles_delivered')).toBe(false);
         expect(session.missionIsComplete('sickles_to_hay')).toBe(false);
     });
@@ -59,9 +59,9 @@ describe('mission board', () => {
 
         expect(session.cancelMission('sickles_to_hay')).toBe(true);
         expect(session.missions.activeMissions()).toEqual([]);
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([
-            'sickles_to_hay',
-        ]);
+        // The mission is parked (hidden), so it never reappears on the
+        // board — but it is startable again.
+        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([]);
         expect(session.travel('hay_field').ok).toBe(false); // route closed again
 
         expect(session.cancelMission('sickles_to_hay')).toBe(false); // not accepted anymore
@@ -142,7 +142,9 @@ describe('mission board', () => {
         expect(end.message).toContain('Mission complete: Sickles to the Hay Field');
         expect(runner.isComplete()).toBe(true);
         expect(session.hasFlag('sickles_delivered')).toBe(true);
-        expect(session.missions.availableMissions().map((mission) => mission.id)).toEqual(['chop_wood']);
+        expect(session.missions.availableMissions().map((mission) => mission.id)).toEqual([
+            'chop_wood', 'renegade_league',
+        ]);
     });
 
     it('locks the hay field until the sickles mission is accepted', () => {
@@ -180,7 +182,9 @@ describe('mission board', () => {
         session.missions.start('sickles_to_hay');
         session.travel('hay_field');
         winHayFieldBattles(session);
-        expect(session.missions.availableMissions().map((mission) => mission.id)).toEqual(['chop_wood']);
+        expect(session.missions.availableMissions().map((mission) => mission.id)).toEqual([
+            'chop_wood', 'renegade_league',
+        ]);
 
         const runner = session.missions.start('chop_wood')!;
         expect(runner.current()?.kind).toBe('task');

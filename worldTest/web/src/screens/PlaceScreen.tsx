@@ -89,6 +89,26 @@ export function PlaceScreen() {
                 label: action.label,
                 onClick: () => api.navigate({ name: 'board' }),
             });
+        } else if (action.kind === 'team') {
+            services.push({
+                icon: action.icon ?? '🛡️',
+                label: action.label,
+                onClick: () => api.navigate({ name: 'team' }),
+            });
+        } else if (action.kind === 'look_around') {
+            services.push({
+                icon: action.icon ?? '🔍',
+                label: action.label,
+                sub: api.session.corpsesAt(place.id).length > 0 ? '⚰️ corpses here' : undefined,
+                onClick: () => api.navigate({ name: 'lookaround' }),
+            });
+        } else if (action.kind === 'fountain') {
+            services.push({
+                icon: action.icon ?? '⛲',
+                label: action.label,
+                sub: api.session.fountainCandidates().length > 0 ? 'someone can be revived' : undefined,
+                onClick: () => api.navigate({ name: 'fountain' }),
+            });
         }
     }
 
@@ -99,7 +119,9 @@ export function PlaceScreen() {
     const activeHere = api.session.activeMissionsAt(place.id);
 
     if (place.menu === false) {
-        // Story-only place (the hay field): nothing to do here.
+        // Story-only place (the hay field): nothing to do here — unless
+        // a battle left corpses behind, which still need to be picked up.
+        const corpsesHere = api.session.corpsesAt(place.id).length;
         return (
             <div className="screen">
                 <div className="card place-hero">
@@ -107,7 +129,16 @@ export function PlaceScreen() {
                     <h1>{place.name}</h1>
                     <p>{place.description}</p>
                 </div>
-                <div className="empty">There is nothing to do here.</div>
+                {corpsesHere > 0 ? (
+                    <button
+                        className="btn btn--primary"
+                        onClick={() => api.navigate({ name: 'lookaround' })}
+                    >
+                        🔍 Look around ({corpsesHere} corpse{corpsesHere === 1 ? '' : 's'})
+                    </button>
+                ) : (
+                    <div className="empty">There is nothing to do here.</div>
+                )}
                 <button className="btn btn--primary" onClick={() => api.navigate({ name: 'map' })}>
                     🗺️ World Map
                 </button>

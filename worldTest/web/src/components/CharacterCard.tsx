@@ -48,7 +48,9 @@ export function CharacterCard({
             <div className="name">
                 {character.name}
                 {dead ? <span className="tag dead">KO</span> : null}
-                <span className="tag">Lv {character.experience.level}</span>
+                <span className="tag">
+                    Lv {character.experience.level} · {character.experience.currentXp}/{character.experience.getXpToNextLevel()} XP
+                </span>
             </div>
             <StatBar label="HP" value={hp} max={totalHp} variant="hp" suffix={`/ ${Math.round(totalHp)}`} />
             <StatBar

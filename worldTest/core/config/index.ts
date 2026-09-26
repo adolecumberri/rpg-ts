@@ -15,3 +15,4 @@ export * from './flags';
 export * from './conditions';
 export * from './shops';
 export * from './act1';
+export * from '../constants/jobs';

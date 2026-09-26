@@ -11,8 +11,8 @@ describe('travel graph', () => {
     it('builds nodes for the act places and their connections', () => {
         const graph = buildTravelGraph(PLACES, new Set());
 
-        expect(graph.nodes).toHaveLength(2);
-        expect(graph.edges).toHaveLength(1);
+        expect(graph.nodes).toHaveLength(3); // camp, farm, hay field
+        expect(graph.edges).toHaveLength(2);
 
         const farmHay = graph.edges.filter(
             (edge) =>
@@ -20,11 +20,18 @@ describe('travel graph', () => {
                 (edge.from === 'hay_field' && edge.to === 'farm'),
         );
         expect(farmHay).toHaveLength(1);
+        const farmCamp = graph.edges.filter(
+            (edge) =>
+                (edge.from === 'farm' && edge.to === 'camp') ||
+                (edge.from === 'camp' && edge.to === 'farm'),
+        );
+        expect(farmCamp).toHaveLength(1);
     });
 
     it('carries the content-defined map positions through the nodes', () => {
         const graph = buildTravelGraph(PLACES, new Set());
 
+        expect(graph.nodes.find((node) => node.id === 'camp')?.position).toEqual({ x: 120, y: 260 });
         expect(graph.nodes.find((node) => node.id === 'farm')?.position).toEqual({ x: 300, y: 260 });
         expect(graph.nodes.find((node) => node.id === 'hay_field')?.position).toEqual({ x: 600, y: 260 });
     });
@@ -32,16 +39,17 @@ describe('travel graph', () => {
     it('hides places behind mission-locked routes until they open', () => {
         const locked = buildTravelGraph(PLACES, new Set(), () => false);
 
-        // from the farm, the locked hay field is disabled (hidden)
+        // from the farm, the locked hay field is disabled (hidden); the
+        // camp stays open (its road has no mission gate).
         const hidden = reachableTravelGraph(locked, 'farm');
-        expect(hidden.nodes.map((node) => node.id)).toEqual(['farm']);
-        expect(hidden.edges).toEqual([]);
+        expect(hidden.nodes.map((node) => node.id).sort()).toEqual(['camp', 'farm']);
+        expect(hidden.edges).toHaveLength(1);
 
         // once the sickles mission is accepted the route opens
         const open = buildTravelGraph(PLACES, new Set(), (missionId) => missionId === 'sickles_to_hay');
         const reachable = reachableTravelGraph(open, 'farm');
-        expect(reachable.nodes.map((node) => node.id)).toEqual(['farm', 'hay_field']);
-        expect(reachable.edges).toHaveLength(1);
+        expect(reachable.nodes.map((node) => node.id).sort()).toEqual(['camp', 'farm', 'hay_field']);
+        expect(reachable.edges).toHaveLength(2);
     });
 
     it('keeps the way home open even when the road out is locked', () => {
@@ -50,12 +58,16 @@ describe('travel graph', () => {
         // from the hay field the farm is reachable: only the farm ->
         // hay direction requires the mission.
         const fromHay = reachableTravelGraph(locked, 'hay_field');
-        expect(fromHay.nodes.map((node) => node.id)).toEqual(['farm', 'hay_field']);
-        expect(fromHay.edges).toHaveLength(1);
+        expect(fromHay.nodes.map((node) => node.id).sort()).toEqual(['camp', 'farm', 'hay_field']);
+        expect(fromHay.edges).toHaveLength(2);
 
-        const edge = locked.edges[0];
-        expect(edge.lockedFrom).toBe(true); // farm -> hay gated
-        expect(edge.lockedTo).toBe(false); // hay -> farm free
+        const hayEdge = locked.edges.find(
+            (edge) =>
+                (edge.from === 'farm' && edge.to === 'hay_field') ||
+                (edge.from === 'hay_field' && edge.to === 'farm'),
+        )!;
+        expect(hayEdge.lockedFrom).toBe(true); // farm -> hay gated
+        expect(hayEdge.lockedTo).toBe(false); // hay -> farm free
     });
 });
 

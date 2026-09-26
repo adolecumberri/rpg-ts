@@ -23,18 +23,25 @@ describe('act 1 world', () => {
 
     it('stores its people as data inside the place', () => {
         const farm = PLACES.find((place) => place.id === 'farm')!;
-        expect(farm.npcs).toHaveLength(18);
+        expect(farm.npcs).toHaveLength(10); // the household + 4 renegades
         expect(farm.npcs.find((npc) => npc.id === 'lord')?.name).toBe('Lord Alvaro');
-        expect(farm.npcs.find((npc) => npc.id === 'arturo')?.inRoster).toBe(true);
-        expect(farm.npcs.filter((npc) => npc.inRoster)).toHaveLength(12); // arturo + 11 farmers
+        expect(farm.npcs.filter((npc) => npc.group === 'The Renegade League')).toHaveLength(4);
+
+        // The twelve farmers were recruited by the Order: they live in
+        // the camp as 4 archers, 2 healers and 6 soldiers.
+        const camp = PLACES.find((place) => place.id === 'camp')!;
+        expect(camp.npcs).toHaveLength(13); // the general + 12 recruits
+        expect(camp.npcs.find((npc) => npc.id === 'general')?.name).toBe('General Roderick');
+        expect(camp.npcs.find((npc) => npc.id === 'arturo')?.inRoster).toBe(true);
+        expect(camp.npcs.filter((npc) => npc.inRoster)).toHaveLength(12);
         expect(PLACES.find((place) => place.id === 'hay_field')!.npcs).toEqual([]);
     });
 
-    it('tracks the lord, his son, his 4 familiars and 12 farmers', () => {
+    it('tracks the household and the twelve Order recruits', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
         const farmNpcs = session.npcsAt('farm');
-        expect(farmNpcs).toHaveLength(18); // 6 household + arturo + 11 farmers
+        expect(farmNpcs).toHaveLength(10); // the household + 4 renegades
 
         expect(session.findNpc('lord')).toBeDefined();
         expect(session.findNpc('lord_son')).toBeDefined();
@@ -42,20 +49,28 @@ describe('act 1 world', () => {
             expect(session.findNpc(`familiar_${index}`)).toBeDefined();
         }
 
-        // the roster owns the player + 12 farmers, only the player is active
+        // the camp holds the general and the recruits: archers, healers
+        // and soldiers
+        expect(session.npcsAt('camp')).toHaveLength(13);
+        expect(session.findNpc('general')).toBeDefined();
+        expect(session.findNpc('archer_3')).toBeDefined();
+        expect(session.findNpc('healer_0')).toBeDefined();
+        expect(session.findNpc('soldier_5')).toBeDefined();
+
+        // the roster owns the player + the 12 recruits, only the player is active
         expect(session.roster.all()).toHaveLength(13);
         expect(session.roster.activeIds()).toEqual(['player']);
         expect(session.roster.has('arturo')).toBe(true);
     });
 
-    it('gives the random farmers stable names seeded from their ids', () => {
+    it('gives the recruits stable names seeded from their ids', () => {
         const session = new WorldSession({ random: () => 0.5 });
         const names = new Set(session.roster.all().map((character) => character.name));
 
         expect(names.size).toBe(session.roster.all().length); // all unique
-        const farmer0 = session.roster.character('farmer_0')!;
-        expect(farmer0.name).toBe(farmerNameFor('farmer_0', 'male'));
-        expect(farmer0.name).not.toBe(farmer0.id);
+        const archer = session.roster.character('archer_0')!;
+        expect(archer.name).toBe(farmerNameFor('archer_0', 'male'));
+        expect(archer.name).not.toBe(archer.id);
     });
 
     it('offers the farm tasks and respects the inventory capacity', () => {
@@ -98,7 +113,7 @@ describe('act 1 world', () => {
         expect(session.missions.mission('cow_hunt')).toBeDefined();
 
         const placeIds = PLACES.map((place) => place.id);
-        expect(placeIds).toEqual(['farm', 'hay_field']);
+        expect(placeIds).toEqual(['camp', 'farm', 'hay_field']);
         expect(ACT1.startPlaceId).toBe('farm');
     });
 });

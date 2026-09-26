@@ -21,7 +21,14 @@ export type PlaceAction =
     | { id: string; label: string; kind: 'train'; levels: number; icon?: string }
     | { id: string; label: string; kind: 'task'; itemId: string; quantity: number; icon?: string }
     | { id: string; label: string; kind: 'mission'; missionId: string; icon?: string }
-    | { id: string; label: string; kind: 'mission_board'; icon?: string };
+    | { id: string; label: string; kind: 'team'; icon?: string }
+    | { id: string; label: string; kind: 'mission_board'; icon?: string }
+    // Opens the place's look-around submenu (fainted corpses and other
+    // things left behind in the place).
+    | { id: string; label: string; kind: 'look_around'; icon?: string }
+    // The camp fountain: revives fainted characters whose corpse is at
+    // the place (carried in or left there).
+    | { id: string; label: string; kind: 'fountain'; icon?: string };
 
 export type PlaceConnection = {
     label: string;

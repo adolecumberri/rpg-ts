@@ -15,4 +15,10 @@ export const CHATS: Record<string, ChatDefinition> = {
             { speaker: ACT1.farmers.arturoName, text: 'My lord! We have goblins here!!' },
         ],
     },
+    renegades_spot: {
+        id: 'renegades_spot',
+        lines: [
+            { speaker: 'General Roderick', text: 'There they are! Sickles raised, holding the lord\'s fields.' },
+        ],
+    },
 };

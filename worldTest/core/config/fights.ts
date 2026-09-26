@@ -2,8 +2,11 @@
 // with the character generator, plus outcome hooks that receive the
 // mission that triggered them (on_flee -> mission.fail()).
 import type { Character } from '../../../src';
+import { StatusInstance } from '../../../src/classes/StatusInstance';
 import type { MissionRunner } from '../missions';
 import { characterGenerator } from '../generators/characterGenerator';
+import { DEFAULT_ITEM_TABLE } from '../items';
+import { revolutionaryAuraStatus } from '../statuses';
 
 export type FightDefinition = {
     id: string;
@@ -47,8 +50,9 @@ export const FIGHTS: Record<string, FightDefinition> = {
             characterGenerator('goblin', 1, { id: 'hay_goblin_b' }),
             characterGenerator('goblin', 1, { id: 'hay_goblin_c' }),
         ],
-        // Arturo and one more farmhand fight automatically.
-        allyIds: ['arturo', 'farmer_0'],
+        // The recruits fight the skirmish automatically (the hay field
+        // story is parked; these ids keep the fights playable).
+        allyIds: ['arturo', 'soldier_0'],
         onFlee: (mission) => mission?.fail(),
         onLose: (mission) => mission?.fail(),
     },
@@ -62,7 +66,7 @@ export const FIGHTS: Record<string, FightDefinition> = {
             Array.from({ length: 9 }, (_, index) =>
                 characterGenerator('goblin', 1, { id: `hay_wave_goblin_${index}` }),
             ),
-        allyIds: ['arturo', 'farmer_0', 'farmer_1', 'farmer_2', 'farmer_3'],
+        allyIds: ['arturo', 'archer_0', 'archer_1', 'soldier_0', 'soldier_1'],
         onFlee: (mission) => mission?.fail(),
         onLose: (mission) => mission?.fail(),
     },
@@ -96,5 +100,67 @@ export const FIGHTS: Record<string, FightDefinition> = {
         enemies: () => [
             characterGenerator('dummy', 1, { id: 'training_dummy' }),
         ],
+    },
+    // The renegade farmers league: four sickle farmers holding the
+    // lord's farm. The player's six-person squad fights them. Two hold
+    // the front row, one the center and one the back (so reach matters).
+    renegades_fight: {
+        id: 'renegades_fight',
+        mode: 'turn',
+        placeId: 'farm',
+        enemies: () =>
+            Array.from({ length: 4 }, (_, index) => {
+                const enemy = characterGenerator('farmer', 1, { id: `renegade_foe_${index}` });
+                enemy.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sickle'), enemy);
+                enemy.position = (['front', 'front', 'center', 'back'] as const)[index];
+                return enemy;
+            }),
+        onFlee: (mission) => mission?.fail(),
+        onLose: (mission) => mission?.fail(),
+    },
+    // The renegade league's second battle: the survivors strike back at
+    // the Order camp while the squad returns.
+    renegades_fight_2: {
+        id: 'renegades_fight_2',
+        mode: 'turn',
+        placeId: 'camp',
+        enemies: () =>
+            Array.from({ length: 4 }, (_, index) => {
+                const enemy = characterGenerator('farmer', 1, { id: `renegade_strike_${index}` });
+                enemy.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sickle'), enemy);
+                enemy.position = (['front', 'front', 'center', 'back'] as const)[index];
+                return enemy;
+            }),
+        onFlee: (mission) => mission?.fail(),
+        onLose: (mission) => mission?.fail(),
+    },
+    // The Farmer King: an enhanced farmer leading eight more, sickle in
+    // hand, his Revolutionary Aura pumping the whole team while he lives.
+    farmers_boss: {
+        id: 'farmers_boss',
+        mode: 'turn',
+        placeId: 'farm',
+        enemies: () => {
+            const boss = characterGenerator('farmer', 1, {
+                id: 'farmer_boss',
+                name: 'The Farmer King',
+                stats: { hp: 150, attack: 14, defence: 6, speed: 6 },
+            });
+            boss.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sickle'), boss);
+            boss.position = 'back';
+            boss.statusManager.addStatusInstance(
+                new StatusInstance({ definition: revolutionaryAuraStatus() }),
+            );
+
+            const adds = Array.from({ length: 8 }, (_, index) => {
+                const farmer = characterGenerator('farmer', 1, { id: `farmer_boss_add_${index}` });
+                farmer.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sickle'), farmer);
+                farmer.position = (['front', 'front', 'front', 'center', 'center', 'center', 'front', 'center'] as const)[index];
+                return farmer;
+            });
+            return [boss, ...adds];
+        },
+        onFlee: (mission) => mission?.fail(),
+        onLose: (mission) => mission?.fail(),
     },
 };

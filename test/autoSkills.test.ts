@@ -1,19 +1,23 @@
 import { Character, IntervalCombat, Stats } from '../src';
 import type { IntervalCombatant } from '../src';
+import { StatusInstance } from '../src/classes/StatusInstance';
 import { HybridCombat } from '../worldTest/core/combat/hybridCombat';
 import { evaluateCondition, validateCondition } from '../worldTest/core/combat/conditions';
 import type { AutoCondition, ConditionContext } from '../worldTest/core/combat/conditions';
 import { AUTO_CONDITIONS, resolveCondition, describeConditionInput } from '../worldTest/core/config/conditions';
 import { planAutoAction, pickSkillTargets, conditionsMet } from '../worldTest/core/combat/autoSkills';
 import { resolveSkillEffect } from '../worldTest/core/combat/skillEffects';
+import { specOf } from '../worldTest/core/skills';
 import type { SkillSpec } from '../worldTest/core/skills';
+import { bleedingStatus, weakenStatus } from '../worldTest/core/statuses';
+import type { StatusDefinition } from '../src/classes/StatusInstance';
 
 function character(id: string, stats: Partial<import('../src').Statistics>): Character {
     return new Character({ id, name: id, stats: new Stats(stats) });
 }
 
 function condition(overrides: Partial<AutoCondition>): AutoCondition {
-    return {
+    const merged: AutoCondition = {
         subject: 'self',
         stat: 'hp',
         compare: 'below',
@@ -21,6 +25,14 @@ function condition(overrides: Partial<AutoCondition>): AutoCondition {
         valueType: 'fixed',
         ...overrides,
     };
+    // A status condition must not keep the stat defaults.
+    if (overrides.hasStatus) {
+        delete merged.stat;
+        delete merged.compare;
+        delete merged.value;
+        delete merged.valueType;
+    }
+    return merged;
 }
 
 function spec(overrides: Partial<SkillSpec>): SkillSpec {
@@ -352,5 +364,175 @@ describe('the library interval action plug-in', () => {
 
         expect(hero.character.stats.hp).toBeGreaterThanOrEqual(12); // 10 + 5 - reflected nothing
         expect(result.turns.filter((turn) => turn.tick === 1)).toHaveLength(2); // two targets
+    });
+});
+
+describe('status conditions', () => {
+    function withStatus(character: Character, definition: StatusDefinition): void {
+        character.statusManager.addStatusInstance(new StatusInstance({ definition }));
+    }
+
+    it('matches allies carrying a status by polarity and by name', () => {
+        const ally = character('ally', { hp: 50, totalHp: 50 });
+        withStatus(ally, bleedingStatus());
+        const context: ConditionContext = { actor: actor(), allies: [ally], enemies: [] };
+
+        expect(evaluateCondition(condition({ subject: 'ally', hasStatus: { polarity: 'negative' } }), context)).toBe(true);
+        expect(evaluateCondition(condition({ subject: 'ally', hasStatus: { name: 'Bleeding' } }), context)).toBe(true);
+        expect(evaluateCondition(condition({ subject: 'ally', hasStatus: { polarity: 'positive' } }), context)).toBe(false);
+        expect(evaluateCondition(condition({ subject: 'enemy', hasStatus: { polarity: 'negative' } }), context)).toBe(false);
+    });
+
+    it('negates: no enemy carries a debuff', () => {
+        const clean = character('clean', { hp: 50, totalHp: 50, attack: 5 });
+        const debuffed = character('debuffed', { hp: 50, totalHp: 50, attack: 5 });
+        withStatus(debuffed, weakenStatus());
+
+        // 'any' + negate = not a single member carries one.
+        const none = condition({ subject: 'enemy', match: 'any', negate: true, hasStatus: { polarity: 'negative' } });
+        expect(evaluateCondition(none, { actor: actor(), allies: [], enemies: [clean] })).toBe(true);
+        expect(evaluateCondition(none, { actor: actor(), allies: [], enemies: [clean, debuffed] })).toBe(false);
+        expect(evaluateCondition(none, { actor: actor(), allies: [], enemies: [debuffed] })).toBe(false);
+
+        // 'all' + negate = not everyone carries one.
+        const notAll = condition({ subject: 'enemy', match: 'all', negate: true, hasStatus: { polarity: 'negative' } });
+        expect(evaluateCondition(notAll, { actor: actor(), allies: [], enemies: [clean, debuffed] })).toBe(true);
+        expect(evaluateCondition(notAll, { actor: actor(), allies: [], enemies: [debuffed] })).toBe(false);
+    });
+
+    it('rejects malformed conditions', () => {
+        const bothFamilies = { ...condition({}), hasStatus: { polarity: 'negative' as const } };
+        expect(validateCondition(bothFamilies)).toContain('exactly one');
+        expect(validateCondition({ subject: 'self' } as AutoCondition)).toContain('exactly one');
+        expect(validateCondition(condition({ hasStatus: { polarity: 'weird' as 'negative' } }))).toContain('polarity');
+        expect(validateCondition(condition({ subject: 'ally', match: 'lowest', hasStatus: { polarity: 'negative' } }))).toContain("'any' and 'all'");
+    });
+
+    it('describes status conditions for the dev tools', () => {
+        expect(describeConditionInput({
+            subject: 'ally', match: 'any', hasStatus: { polarity: 'negative' },
+        })).toBe('any ally with negative statuses');
+        expect(describeConditionInput({
+            subject: 'enemy', match: 'all', negate: true, hasStatus: { polarity: 'negative' },
+        })).toBe('all enemy without negative statuses');
+    });
+});
+
+describe('patience ramp and shared cooldowns', () => {
+    it('grows the chance while the conditions hold and the roll fails', () => {
+        const heal = spec({
+            id: 'heal_self',
+            heal: 5,
+            targeting: 'SELF',
+            auto: { chancePercent: 40, chanceRampPerAction: 15, maxChance: 100, conditions: [condition({ valueType: 'percent', value: 50 })] },
+        });
+        const enemy = character('enemy', { hp: 100, totalHp: 100 });
+        const meters = new Map<string, number>();
+        const params = {
+            actor: actor(), allies: [], enemies: [enemy], skills: [heal], cooldowns: new Map(), meters, random: () => 0.99,
+        };
+
+        // 99 >= 40/55/70/85: four failures, then 99 < 100 fires.
+        expect(planAutoAction(params).kind).toBe('attack');
+        expect(meters.get('heal_self')).toBe(55);
+        expect(planAutoAction(params).kind).toBe('attack');
+        expect(meters.get('heal_self')).toBe(70);
+        expect(planAutoAction(params).kind).toBe('attack');
+        expect(planAutoAction(params).kind).toBe('attack');
+        expect(meters.get('heal_self')).toBe(100); // capped
+        expect(planAutoAction(params).kind).toBe('skill');
+        expect(meters.get('heal_self')).toBeUndefined(); // reset on use
+    });
+
+    it('resets the meter when the conditions stop holding', () => {
+        const heal = spec({
+            id: 'heal_self',
+            heal: 5,
+            targeting: 'SELF',
+            auto: { chancePercent: 40, chanceRampPerAction: 15, conditions: [condition({ valueType: 'percent', value: 50 })] },
+        });
+        const enemy = character('enemy', { hp: 100, totalHp: 100 });
+        const meters = new Map<string, number>();
+        const params = { actor: actor(), allies: [], enemies: [enemy], skills: [heal], cooldowns: new Map(), meters, random: () => 0.99 };
+
+        planAutoAction(params); // fail: meter 55
+        expect(meters.get('heal_self')).toBe(55);
+
+        // The actor heals above 50% elsewhere: conditions fail -> reset.
+        params.actor.stats.hp = 80;
+        expect(planAutoAction(params).kind).toBe('attack');
+        expect(meters.get('heal_self')).toBeUndefined();
+    });
+
+    it('a shared cooldown locks the skill for the whole side', () => {
+        const heal = spec({
+            id: 'heal_self',
+            heal: 5,
+            targeting: 'SELF',
+            auto: { chancePercent: 100, cooldownActions: 2, sharedCooldown: true },
+        });
+        const enemy = character('enemy', { hp: 100, totalHp: 100 });
+        const shared = new Map<string, number>();
+        const healerA = character('healerA', { hp: 100, totalHp: 100 });
+        const healerB = character('healerB', { hp: 100, totalHp: 100 });
+
+        const planFor = (healer: Character) => planAutoAction({
+            actor: healer, allies: [healerA, healerB], enemies: [enemy],
+            skills: [heal], cooldowns: new Map(), sharedCooldowns: shared, random: () => 0.1,
+        });
+
+        expect(planFor(healerA).kind).toBe('skill'); // A casts
+        expect(planFor(healerB).kind).toBe('attack'); // B is locked out
+        expect(planFor(healerA).kind).toBe('attack'); // A locked too (one step gone)
+        expect(planFor(healerA).kind).toBe('skill'); // window over
+    });
+});
+
+describe('auto target preferences', () => {
+    function withStatus(character: Character, definition: StatusDefinition): void {
+        character.statusManager.addStatusInstance(new StatusInstance({ definition }));
+    }
+
+    it('Dispel picks the most debuffed ally', () => {
+        const light = character('light', { hp: 80, totalHp: 100, attack: 5 });
+        const heavy = character('heavy', { hp: 80, totalHp: 100, attack: 5 });
+        withStatus(heavy, bleedingStatus());
+        withStatus(heavy, weakenStatus());
+        withStatus(light, bleedingStatus());
+        const clean = character('clean', { hp: 80, totalHp: 100, attack: 5 });
+        const healer = character('healer', { hp: 100, totalHp: 100 });
+
+        const targets = pickSkillTargets(specOf('dispel')!, healer, [light, heavy, clean], [], () => 0.5);
+        expect(targets).toEqual(['heavy', 'light']); // 2 targets, most debuffed first
+    });
+
+    it('Weak Point prefers the strongest enemy', () => {
+        const weak = character('weak', { hp: 100, totalHp: 100, attack: 3 });
+        const strong = character('strong', { hp: 100, totalHp: 100, attack: 12 });
+        const archer = character('archer', { hp: 100, totalHp: 100 });
+
+        const targets = pickSkillTargets(specOf('weak_point')!, archer, [], [weak, strong], () => 0.5);
+        expect(targets).toEqual(['strong']);
+    });
+
+    it('the healer casts Dispel on its own when an ally is debuffed', () => {
+        const arturo = character('arturo', { hp: 100, totalHp: 100 });
+        const ally = character('ally', { hp: 100, totalHp: 100 });
+        withStatus(ally, bleedingStatus());
+        const enemy = character('enemy', { hp: 100, totalHp: 100 });
+
+        const plan = planAutoAction({
+            actor: arturo,
+            allies: [arturo, ally],
+            enemies: [enemy],
+            skills: [specOf('dispel')!],
+            cooldowns: new Map(),
+            random: () => 0.1, // 10 < 60: the roll passes
+        });
+
+        expect(plan.kind).toBe('skill');
+        if (plan.kind !== 'skill') return;
+        expect(plan.spec.id).toBe('dispel');
+        expect(plan.targetIds).toEqual(['ally', 'arturo']); // debuffed first, then the caster (2 targets)
     });
 });

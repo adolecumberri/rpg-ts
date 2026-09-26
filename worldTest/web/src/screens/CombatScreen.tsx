@@ -9,17 +9,22 @@ import {
     affinitiesOf,
     attackComponentsOf,
     battleSkillSpecs,
+    clearStatuses,
     compareBySpeed,
+    consumeFaintTurn,
+    effectiveRangeOf,
     gainFatigue,
     intervalFromSpeed,
     kindOfElement,
     pickWeightedTarget,
     rampGatePower,
+    reachableTargets,
     resolveGeneralAttack,
     resolveSkillEffect,
-    consumeFaintTurn,
+    rowEntriesOf,
     specOf,
     statusTooltip,
+    syncAuras,
 } from '@core';
 import type { CombatEndResult, DamageResult, SkillSpec } from '@core';
 import { useGame } from '../game/GameContext';
@@ -141,6 +146,13 @@ export function CombatScreen({
 
     const allies = allyTeam;
 
+    // Each fighter's own chosen row forms the battlefield rows.
+    const enemyRowEntries = rowEntriesOf(enemyTeam.getAll());
+    const allyRowEntries = rowEntriesOf(allies.getAll());
+    // The enemy characters a given reach can hit.
+    const enemiesInReach = (range: 'short' | 'long' | 'all'): Character[] =>
+        reachableTargets(range, enemyRowEntries);
+
     const [phase, setPhase] = useState<Phase>('action');
     const [round, setRound] = useState(1);
     const [allyQueue, setAllyQueue] = useState<string[]>([]);
@@ -242,6 +254,9 @@ export function CombatScreen({
     };
 
     const beginRound = () => {
+        // Team auras apply before the first action of every round.
+        syncAuras(allies.getAll());
+        syncAuras(enemyTeam.getAll());
         triggerAll('before_turn');
         setAllyQueue(allies.getAlive().map((ally) => ally.id));
         setPicked([]);
@@ -254,6 +269,7 @@ export function CombatScreen({
             case 'SELF':
                 return active ? [active] : [];
             case 'ENEMY':
+            case 'ALLY':
                 return explicit ?? [];
             case 'ALL_ENEMIES':
                 return aliveEnemies;
@@ -273,10 +289,11 @@ export function CombatScreen({
 
     const startResolve = (finalPicked: PickedAction[]) => {
         const enemyPicks: PickedAction[] = enemyTeam.getAlive().map((enemy) => {
-            const targets = allies.getAlive();
-            // Weighted by taunt: chance taunt / (total of the alive team).
-            const target = pickWeightedTarget(targets, Math.random) ?? targets[0];
-            return { actor: enemy, kind: 'attack' as const, targets: [target] };
+            // The enemy's reach decides which of your rows it can hit.
+            const reachable = reachableTargets(effectiveRangeOf(enemy), allyRowEntries)
+                .filter((character) => character.stats.hp > 0);
+            const target = pickWeightedTarget(reachable, Math.random) ?? reachable[0];
+            return { actor: enemy, kind: 'attack' as const, targets: target ? [target] : [] };
         });
         setOrder([...finalPicked, ...enemyPicks].sort(sortOrder));
         setResolveIndex(0);
@@ -311,8 +328,12 @@ export function CombatScreen({
             const targets = action.targets.filter((target) => target.stats.hp > 0);
 
             // The shared skill resolver: same damage math the auto
-            // battle engines use, so both flows always agree.
-            const result = resolveSkillEffect(spec, actor, targets, { breakdown: showBreakdown });
+            // battle engines use, so both flows always agree. Dispel
+            // resolves by the target's side.
+            const result = resolveSkillEffect(spec, actor, targets, {
+                breakdown: showBreakdown,
+                isEnemy: (character) => Boolean(enemyTeam.getCharacter(character.id)),
+            });
 
             for (const effect of result.effects) {
                 const target = allies.getCharacter(effect.targetId) ?? enemyTeam.getCharacter(effect.targetId);
@@ -324,13 +345,20 @@ export function CombatScreen({
                         pushBreakdown({ total: effect.damage, breakdown: effect.breakdown });
                     }
                 }
-            }
-            if (spec.heal) {
-                push(`${actor.name} used ${spec.name}: healed ${spec.heal} HP each.`, 'heal');
+                if (effect.heal > 0) {
+                    push(`${actor.name} used ${spec.name} on ${target.name}: healed ${Math.round(effect.heal)} HP.`, 'heal');
+                }
+                if (effect.dispelled && effect.dispelled.length > 0) {
+                    push(`${actor.name} dispelled ${effect.dispelled.join(', ')} from ${target.name}.`, 'info');
+                }
             }
         }
 
         triggerTurnEnd(actor);
+
+        // Someone may have fallen: team aura effects follow.
+        syncAuras(allies.getAll());
+        syncAuras(enemyTeam.getAll());
     };
 
     // Resolve the locked actions one by one, in speed order. The battle
@@ -380,7 +408,7 @@ export function CombatScreen({
         if ((phase === 'won' || phase === 'lost' || phase === 'fled') && !settled.current) {
             settled.current = true;
             for (const character of [...allies.getAll(), ...enemyTeam.getAll()]) {
-                character.statusManager.removeAllStatuses();
+                clearStatuses(character, { keepPersistent: true });
             }
             const kills = enemyTeam.getAll()
                 .filter((enemy) => enemy.stats.hp <= 0)
@@ -398,7 +426,7 @@ export function CombatScreen({
         return () => {
             if (!settled.current) {
                 for (const character of [...allies.getAll(), ...enemyTeam.getAll()]) {
-                    character.statusManager.removeAllStatuses();
+                    clearStatuses(character, { keepPersistent: true });
                 }
                 for (const enemy of enemyTeam.getAll()) {
                     enemy.stats.hp = enemy.stats.totalHp;
@@ -437,7 +465,10 @@ export function CombatScreen({
 
     const startSkill = (spec: SkillSpec) => {
         if (!active) return;
-        if (spec.targeting === 'ENEMY') {
+        if (spec.targeting === 'ENEMY' || spec.targeting === 'ALLY' || spec.targeting === 'ANY') {
+            // ENEMY skills pick from the enemy team, ALLY skills (Cover)
+            // from the allies, and ANY skills (Cure, First Aid, Dispel)
+            // from both sides.
             const max = spec.numberOfTargets ?? 1;
             setPending({ kind: 'skill', spec, maxTargets: max });
             if (max > 1) {
@@ -454,7 +485,11 @@ export function CombatScreen({
 
     const executePending = (ids: string[]) => {
         if (!pending || !active) return;
-        const targets = aliveEnemies.filter((enemy) => ids.includes(enemy.id));
+        // ALLY skills pick from the allies; ANY skills from both teams.
+        const pool = pending.kind === 'skill' && pending.spec.targeting === 'ALLY'
+            ? [...aliveAllies]
+            : [...aliveAllies, ...aliveEnemies];
+        const targets = pool.filter((character) => ids.includes(character.id));
         if (targets.length === 0) return;
 
         if (pending.kind === 'attack') {
@@ -557,18 +592,43 @@ export function CombatScreen({
 
     if (phase === 'pick-target' && pending) {
         const header = pending.kind === 'skill' ? pending.spec.name : 'Attack';
+        const anyTarget = pending.kind === 'skill' && pending.spec.targeting === 'ANY';
+        const allyOnly = pending.kind === 'skill' && pending.spec.targeting === 'ALLY';
+        // Reach: skills use their own rangeOf (spells default to 'all');
+        // basic attacks use the weapon's reach.
+        const range = pending.kind === 'skill'
+            ? pending.spec.rangeOf ?? 'all'
+            : effectiveRangeOf(active ?? aliveAllies[0]);
+        const reachableIds = new Set(enemiesInReach(range).map((character) => character.id));
         return (
             <div className="screen">
                 <div className="section-title">{header} · choose a target</div>
-                {aliveEnemies.map((enemy) => (
-                    <button key={enemy.id} className="menu-item" onClick={() => executePending([enemy.id])}>
-                        <span className="menu-icon">🎯</span>
-                        <span className="menu-label">{enemy.name}</span>
-                        <span className="menu-sub">
-                            HP {Math.round(enemy.getStat('hp'))}/{Math.round(enemy.getStat('totalHp'))}
-                        </span>
-                    </button>
-                ))}
+                {anyTarget || allyOnly ? <div className="section-title" style={{ fontSize: 13 }}>Allies</div> : null}
+                {anyTarget || allyOnly
+                    ? aliveAllies.map((ally) => (
+                        <button key={ally.id} className="menu-item" onClick={() => executePending([ally.id])}>
+                            <span className="menu-icon">💚</span>
+                            <span className="menu-label">{ally.name}</span>
+                            <span className="menu-sub">
+                                HP {Math.round(ally.getStat('hp'))}/{Math.round(ally.getStat('totalHp'))}
+                            </span>
+                        </button>
+                    ))
+                    : null}
+                {anyTarget ? <div className="section-title" style={{ fontSize: 13 }}>Enemies</div> : null}
+                {anyTarget
+                    ? aliveEnemies
+                        .filter((enemy) => reachableIds.has(enemy.id))
+                        .map((enemy) => (
+                            <button key={enemy.id} className="menu-item" onClick={() => executePending([enemy.id])}>
+                                <span className="menu-icon">🎯</span>
+                                <span className="menu-label">{enemy.name}</span>
+                                <span className="menu-sub">
+                                    {enemy.position} · HP {Math.round(enemy.getStat('hp'))}/{Math.round(enemy.getStat('totalHp'))}
+                                </span>
+                            </button>
+                        ))
+                    : null}
                 <button
                     className="btn"
                     onClick={() => {
@@ -584,23 +644,45 @@ export function CombatScreen({
 
     if (phase === 'pick-targets' && pending && pending.kind === 'skill') {
         const max = pending.maxTargets;
+        const anyTarget = pending.spec.targeting === 'ANY';
+        const reachableIds = anyTarget
+            ? null
+            : new Set(enemiesInReach(pending.spec.rangeOf ?? 'all').map((character) => character.id));
         return (
             <div className="screen">
                 <div className="section-title">
                     {pending.spec.name} · select up to {max} targets ({selectedIds.length} selected)
                 </div>
-                {aliveEnemies.map((enemy) => {
-                    const selected = selectedIds.includes(enemy.id);
-                    return (
-                        <button key={enemy.id} className="menu-item" onClick={() => toggleTarget(enemy.id, max)}>
-                            <span className="menu-icon">{selected ? '✅' : '🎯'}</span>
-                            <span className="menu-label">{enemy.name}</span>
-                            <span className="menu-sub">
-                                HP {Math.round(enemy.getStat('hp'))}/{Math.round(enemy.getStat('totalHp'))}
-                            </span>
-                        </button>
-                    );
-                })}
+                {anyTarget ? <div className="section-title" style={{ fontSize: 13 }}>Allies</div> : null}
+                {anyTarget
+                    ? aliveAllies.map((ally) => {
+                        const selected = selectedIds.includes(ally.id);
+                        return (
+                            <button key={ally.id} className="menu-item" onClick={() => toggleTarget(ally.id, max)}>
+                                <span className="menu-icon">{selected ? '✅' : '💚'}</span>
+                                <span className="menu-label">{ally.name}</span>
+                                <span className="menu-sub">
+                                    HP {Math.round(ally.getStat('hp'))}/{Math.round(ally.getStat('totalHp'))}
+                                </span>
+                            </button>
+                        );
+                    })
+                    : null}
+                {anyTarget ? <div className="section-title" style={{ fontSize: 13 }}>Enemies</div> : null}
+                {aliveEnemies
+                    .filter((enemy) => !reachableIds || reachableIds.has(enemy.id))
+                    .map((enemy) => {
+                        const selected = selectedIds.includes(enemy.id);
+                        return (
+                            <button key={enemy.id} className="menu-item" onClick={() => toggleTarget(enemy.id, max)}>
+                                <span className="menu-icon">{selected ? '✅' : '🎯'}</span>
+                                <span className="menu-label">{enemy.name}</span>
+                                <span className="menu-sub">
+                                    {enemy.position} · HP {Math.round(enemy.getStat('hp'))}/{Math.round(enemy.getStat('totalHp'))}
+                                </span>
+                            </button>
+                        );
+                    })}
                 <div className="btn-row">
                     <button
                         className="btn btn--primary"
@@ -676,6 +758,8 @@ export function CombatScreen({
                     <div key={enemy.id} className="card" style={{ padding: 10 }}>
                         <div style={{ fontWeight: 600, marginBottom: 4 }}>
                             {enemy.name}
+                            <span className="tag" style={{ marginLeft: 6 }}>{enemy.position}</span>
+                            <span className="tag" style={{ marginLeft: 6 }} title="Attack reach">🎯 {effectiveRangeOf(enemy)}</span>
                             <ElementalChips character={enemy} />
                             {speedTag(enemy)}
                             {FATIGUE.enabled ? (
@@ -699,6 +783,8 @@ export function CombatScreen({
                 >
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>
                         {ally.name}
+                        <span className="tag" style={{ marginLeft: 6 }}>{ally.position}</span>
+                        <span className="tag" style={{ marginLeft: 6 }} title="Attack reach">🎯 {effectiveRangeOf(ally)}</span>
                         <ElementalChips character={ally} />
                         {speedTag(ally)}
                         {FATIGUE.enabled ? (

@@ -1,5 +1,5 @@
-import { Character, Stats, Team } from '../../src';
-import type { InventorySlot, Item, TeamPosition } from '../../src';
+import { Character, Item, Stats, Team } from '../../src';
+import type { InventorySlot, TeamPosition } from '../../src';
 import type { EquipmentSlot } from '../../src/classes/items/EquipmentManager';
 import { PLACES, PLACES_BY_ID, buildNpcsFromPlaces, createInitialMissions, createInitialWorld } from './world';
 import { buyItem, sellItem } from './shop';
@@ -15,10 +15,20 @@ import type { DropTable } from './loot/dropTable';
 import { EncounterTracker } from './encounters/encounterTracker';
 import { SPECIAL_ENCOUNTERS, buildSpecialNpc } from './encounters/specialEncounter';
 import { defaultSkillIds, skillIdsOf } from './skills';
+import {
+    applyJobBonuses,
+    heldJobOf,
+    jobById,
+    jobOfCharacter,
+    removeJobBonuses,
+} from './constants/jobs';
+import { FaintRegistry, applyCarryStatus, clearCarryStatus } from './fainting';
+import { syncPositionToWeapon } from './combat/range';
 import { SkillTree } from './skillTree/skillTree';
 import { createCompanionTree, createHeroTree } from './skillTree/trees';
 import { GROWTH, applyGrowthAtLevel, jobIdOf, wireGrowth } from './config/growth';
 import { Roster } from './roster';
+import { ROSTER } from './config/roster';
 import { addItemCapped, canAddItem } from './inventory';
 import { MissionManager } from './missions';
 import type { Mission, MissionStep } from './missions';
@@ -83,6 +93,9 @@ export class WorldSession {
     // write here when their reward steps complete; world events can
     // write here too. Persisted with the save.
     readonly flags = new FlagRegistry();
+    // Fallen characters: where their corpse lies, since when, and who
+    // carries it. Persisted with the save.
+    readonly faints = new FaintRegistry();
     // Remaining stock per shop (bought entries are removed; an emptied
     // shop closes). Initialized from the SHOPS content.
     private shopStock = new Map<string, string[]>();
@@ -165,6 +178,8 @@ export class WorldSession {
         this.currentPlaceId = to;
         // Travel to another place takes a day.
         this.calendar.advance();
+        // A day passed: corpses left behind for a week are lost.
+        const deathNews = this.expireCorpses();
         const justCompleted = this.missions.reportArrival(to);
         const titles = justCompleted
             .map((missionId) => this.missions.mission(missionId)?.title)
@@ -192,7 +207,7 @@ export class WorldSession {
 
         return {
             ok: true,
-            message: titles.length > 0 ? `Mission complete: ${titles.join(', ')}` : undefined,
+            message: [...(titles.length > 0 ? [`Mission complete: ${titles.join(', ')}`] : []), ...deathNews].join(' ') || undefined,
             arrival,
         };
     }
@@ -226,6 +241,28 @@ export class WorldSession {
             }
             this.applyUnitMoves(mission);
             this.applyUnitSpawns(mission);
+
+            // A mission whose first step is a dialogue plays its lines
+            // right away (the commander's orders: form your team). When
+            // the dialogue also declares a battle it is queued once the
+            // lines are read; otherwise the battle waits for the story
+            // (the farm fight starts on arrival).
+            const first = runner.current();
+            if (first && first.kind === 'dialogue') {
+                if (first.lines && first.lines.length > 0) {
+                    this.messages.push(first.lines);
+                }
+                while (runner.current() === first && runner.dialogueLine()) {
+                    runner.advanceDialogue();
+                }
+                if (first.battle) {
+                    this.pendingBattleRef = {
+                        fightId: first.battle.fightId,
+                        placeId: first.battle.placeId,
+                        missionId,
+                    };
+                }
+            }
         }
         return Boolean(runner);
     }
@@ -415,13 +452,48 @@ export class WorldSession {
     }
 
     /**
-     * Replaces the active party with the given roster ids.
+     * Replaces the active party with the given roster ids. The camp's
+     * squad missions raise the limit: while the renegade league mission
+     * is active the player may pick 5 more characters (6 total).
      */
     setActiveParty(ids: string[]): { ok: boolean; message: string } {
-        this.roster.setActive(ids);
+        const before = new Set(this.roster.activeIds());
+        // Fainted characters are corpses: they cannot join the squad
+        // until the fountain brings them back.
+        this.roster.setActive(ids.filter((id) => !this.faints.has(id)), this.squadLimit());
         this.roster.rebuildTeam(this.team);
+        // A character joining the team brings the objects it wears into
+        // the shared inventory (owned, marked as equipped).
+        for (const id of ids) {
+            if (before.has(id)) continue;
+            const character = this.roster.character(id);
+            if (!character) continue;
+            for (const worn of character.equipment.getEquippedItems()) {
+                const slot = this.team.inventory.getItemSlotByItemId(worn.id);
+                if (!slot) {
+                    if (!canAddItem(this.team, worn)) continue;
+                    this.team.inventory.addItem(new Item(worn.definition), 1);
+                    this.team.inventory.consumeAvailable(worn.id, 1);
+                } else if (slot.quantity > 0) {
+                    // Already owned: one available copy becomes equipped.
+                    this.team.inventory.consumeAvailable(worn.id, 1);
+                }
+            }
+            // Adding to the team places the character in the row its
+            // reach belongs to: 'all' back, 'long' center, 'short' front.
+            syncPositionToWeapon(character);
+        }
         const names = this.team.getAll().map((character) => character.name).join(', ');
         return { ok: this.team.count() > 0, message: names ? `Active party: ${names}` : 'Active party is empty.' };
+    }
+
+    /**
+     * How many characters the party may hold right now: the squad
+     * missions (the renegade league) let the player take 5 extra
+     * characters; everywhere else the regular limit applies.
+     */
+    squadLimit(): number {
+        return this.missionIsActive('renegade_league') ? 6 : ROSTER.maxActiveParty;
     }
 
     /**
@@ -433,6 +505,197 @@ export class WorldSession {
         if (!character) return false;
         character.position = position;
         return true;
+    }
+
+    // -----------------------------------------------------------------------
+    // Fainting: fallen teammates become corpses at the battle place.
+    // -----------------------------------------------------------------------
+
+    /** Whether the character lies fainted somewhere (waiting for help). */
+    isFainted(characterId: string): boolean {
+        return this.faints.has(characterId);
+    }
+
+    /** Corpses lying at a place (carried ones travel with the party). */
+    corpsesAt(placeId: string): { character: Character; daysLeft: number }[] {
+        this.expireCorpses();
+        return this.faints
+            .at(placeId)
+            .map((entry) => this.roster.character(entry.characterId))
+            .filter((character): character is Character => Boolean(character))
+            .map((character) => ({
+                character,
+                daysLeft: this.faints.daysLeft(character.id, this.calendar.totalDays()),
+            }));
+    }
+
+    /**
+     * A party member picks up a corpse lying at the current place. Each
+     * character carries at most one, with the persistent penalties.
+     */
+    pickUpCorpse(characterId: string, carrierId: string): { ok: boolean; message: string } {
+        this.expireCorpses();
+        const entry = this.faints.get(characterId);
+        if (!entry || entry.carriedBy || entry.placeId !== this.currentPlaceId) {
+            return { ok: false, message: 'That corpse is not here.' };
+        }
+        const carrier = this.team.getCharacter(carrierId) ?? this.roster.character(carrierId);
+        const fallen = this.roster.character(characterId);
+        if (!carrier || !fallen) {
+            return { ok: false, message: 'Unknown character.' };
+        }
+        if (carrier.id === characterId) {
+            return { ok: false, message: 'A character cannot carry themselves.' };
+        }
+        if (carrier.stats.hp <= 0) {
+            return { ok: false, message: `${carrier.name} is in no shape to carry anyone.` };
+        }
+        if (this.faints.carriedBy(carrierId)) {
+            return { ok: false, message: `${carrier.name} already carries a corpse.` };
+        }
+
+        this.faints.carry(characterId, carrierId);
+        applyCarryStatus(carrier);
+        return { ok: true, message: `${carrier.name} picked up ${fallen.name}.` };
+    }
+
+    /**
+     * The fainted characters the camp fountain can revive right now:
+     * corpses lying at the camp plus the ones hauled in by the party.
+     */
+    fountainCandidates(): { character: Character; daysLeft: number }[] {
+        this.expireCorpses();
+        const candidates: Character[] = [];
+        const seen = new Set<string>();
+
+        if (this.currentPlaceId === 'camp') {
+            for (const member of this.team.getAll()) {
+                const carried = this.faints.carriedBy(member.id);
+                if (!carried) continue;
+                const fallen = this.roster.character(carried.characterId);
+                if (fallen && !seen.has(fallen.id)) {
+                    seen.add(fallen.id);
+                    candidates.push(fallen);
+                }
+            }
+        }
+        for (const entry of this.faints.at('camp')) {
+            const fallen = this.roster.character(entry.characterId);
+            if (fallen && !seen.has(fallen.id)) {
+                seen.add(fallen.id);
+                candidates.push(fallen);
+            }
+        }
+
+        return candidates.map((character) => ({
+            character,
+            daysLeft: this.faints.daysLeft(character.id, this.calendar.totalDays()),
+        }));
+    }
+
+    /**
+     * The fountain revives a fainted character whose corpse is at the
+     * camp (hauled in by a party member or left there): full hp, back
+     * in the roster, and the carrier drops the burden.
+     */
+    reviveAtFountain(characterId: string): { ok: boolean; message: string } {
+        this.expireCorpses();
+        const entry = this.faints.get(characterId);
+        if (!entry) {
+            return { ok: false, message: 'Nobody by that name lies here.' };
+        }
+        const carriedIn = entry.carriedBy && this.currentPlaceId === 'camp';
+        const lyingHere = !entry.carriedBy && entry.placeId === 'camp';
+        if (!carriedIn && !lyingHere) {
+            return { ok: false, message: 'The corpse is not at the fountain.' };
+        }
+        const fallen = this.roster.character(characterId);
+        if (!fallen) {
+            return { ok: false, message: 'Unknown character.' };
+        }
+
+        fallen.stats.hp = fallen.stats.totalHp;
+        fallen.stats.isAlive = 1;
+        if (entry.carriedBy) {
+            const carrier = this.team.getCharacter(entry.carriedBy) ?? this.roster.character(entry.carriedBy);
+            if (carrier) clearCarryStatus(carrier);
+        }
+        this.faints.revive(characterId);
+        return { ok: true, message: `${fallen.name} is back on their feet!` };
+    }
+
+    /**
+     * The week ran out for some corpses: their owners die for good —
+     * their equipment returns to the shared inventory, their camp
+     * presence disappears and any carrier drops the burden. Returns one
+     * news line per death.
+     */
+    private expireCorpses(): string[] {
+        const carriedBefore = new Map(
+            this.faints.all().map((entry) => [entry.characterId, entry.carriedBy]),
+        );
+        const expired = this.faints.expire(this.calendar.totalDays());
+        const news: string[] = [];
+        for (const id of expired) {
+            const character = this.roster.character(id);
+            const name = character?.name ?? id;
+            if (character) {
+                for (const item of character.equipment.getEquippedItems()) {
+                    if (this.team.inventory.getItemSlotByItemId(item.id)) {
+                        this.team.inventory.returnAvailable(item.id, 1);
+                    } else if (canAddItem(this.team, item)) {
+                        this.team.inventory.addItem(new Item(item.definition), 1);
+                    }
+                }
+                this.roster.remove(id);
+                this.roster.rebuildTeam(this.team);
+                for (const [placeId, list] of this.npcs) {
+                    if (list.some((npc) => npc.id === id)) {
+                        this.removeNpcFromPlace(placeId, id);
+                    }
+                }
+            }
+            const carrierId = carriedBefore.get(id);
+            if (carrierId) {
+                const carrier = this.team.getCharacter(carrierId) ?? this.roster.character(carrierId);
+                if (carrier) clearCarryStatus(carrier);
+            }
+            news.push(`${name} was left behind too long and died.`);
+        }
+        return news;
+    }
+
+    /**
+     * After a battle, the teammates that fell stay behind as corpses at
+     * the battle place (the player always drags themselves back). They
+     * leave the active party until someone carries them to a fountain.
+     * Returns the names of the fallen.
+     */
+    private faintFallen(placeId: string, battleCrew: Character[]): string[] {
+        const fallen: Character[] = [];
+        const seen = new Set<string>();
+        for (const character of battleCrew) {
+            if (seen.has(character.id)) continue;
+            seen.add(character.id);
+            if (character.id === 'player') continue;
+            if (character.stats.hp > 0) continue;
+            fallen.push(character);
+        }
+        for (const character of fallen) {
+            // A fallen carrier drops the corpse they hauled: it stays
+            // with them at the battle place.
+            const carried = this.faints.carriedBy(character.id);
+            if (carried) {
+                this.faints.drop(carried.characterId, placeId);
+                clearCarryStatus(character);
+            }
+            this.faints.faint(character.id, placeId, this.calendar.totalDays());
+            this.roster.deactivate(character.id);
+        }
+        if (fallen.length > 0) {
+            this.roster.rebuildTeam(this.team);
+        }
+        return fallen.map((character) => character.name);
     }
 
     removeRosterCharacter(id: string): void {
@@ -523,15 +786,54 @@ export class WorldSession {
     }
 
     equipTo(itemId: string, characterId: string): boolean {
-        const character = this.team.getCharacter(characterId);
+        // Team members and camp-roster characters can both be dressed.
+        const character = this.team.getCharacter(characterId) ?? this.roster.character(characterId);
         if (!character) return false;
         return equipToCharacter(this.team.inventory, character, itemId);
     }
 
     unequipFrom(characterId: string, slot: EquipmentSlot): boolean {
-        const character = this.team.getCharacter(characterId);
+        const character = this.team.getCharacter(characterId) ?? this.roster.character(characterId);
         if (!character) return false;
         return unequipFromCharacter(this.team.inventory, character, slot);
+    }
+
+    /**
+     * Swaps the character's job: the old job's stat bonuses are removed,
+     * the new job's are applied straight to the stats, and every item
+     * the new job cannot wield is unequipped back into the inventory.
+     * Skills follow the job automatically (they derive from jobOf).
+     */
+    setJob(characterId: string, jobId: string): { ok: boolean; message: string } {
+        const character = this.team.getCharacter(characterId) ?? this.roster.character(characterId);
+        const job = jobById(jobId);
+        if (!character || !job) {
+            return { ok: false, message: 'Unknown character or job.' };
+        }
+
+        const previous = heldJobOf(character);
+        const jobLabel = job.id === 'adventurer' ? 'an Adventurer' : `a ${job.title}`;
+        if (previous?.id === job.id) {
+            return { ok: true, message: `${character.name} is already ${jobLabel}.` };
+        }
+
+        if (previous) removeJobBonuses(character, previous);
+        character.jobId = job.id;
+        applyJobBonuses(character, job);
+
+        // The new job may not wield everything the old one could: those
+        // items go back to the shared inventory.
+        const removed: string[] = [];
+        for (const item of character.equipment.getEquippedItems()) {
+            if (item.definition.slot !== 'weapon') continue;
+            if (job.allowsWeapon(item.definition.weaponType)) continue;
+            if (unequipFromCharacter(this.team.inventory, character, 'weapon')) {
+                removed.push(item.name);
+            }
+        }
+
+        const removedNote = removed.length > 0 ? ` Unequipped: ${removed.join(', ')}.` : '';
+        return { ok: true, message: `${character.name} is now ${jobLabel}.${removedNote}` };
     }
 
     useOn(slot: InventorySlot, characterId: string): boolean {
@@ -547,7 +849,7 @@ export class WorldSession {
     // Default skills plus the base ones of the character plus the skills
     // granted by learned tree nodes.
     availableSkillIds(character: Character): string[] {
-        const base = skillIdsOf(character.id);
+        const base = skillIdsOf(character);
         const tree = this.skillTreeOf(character.id);
         const learned = tree ? tree.learnedSkillIds() : [];
         return [...defaultSkillIds(), ...base, ...learned];
@@ -652,11 +954,20 @@ export class WorldSession {
                 context.npc.character.stats.hp = context.npc.character.stats.totalHp;
                 context.npc.character.stats.isAlive = 1;
             }
+            // Whoever fell during the escape stays behind as a corpse.
+            const fledCrew = [
+                ...(context.participants ?? this.team.getAll()),
+                ...(context.fighters ?? []),
+            ];
+            const fallen = this.faintFallen(context.placeId, fledCrew);
+            const leftBehind = fallen.length > 0
+                ? ` ${fallen.join(', ')} ${fallen.length === 1 ? 'was' : 'were'} left behind.`
+                : '';
             this.missions.reportBattle('fled');
             return {
                 message: failedMissionTitles.length > 0
-                    ? `You fled the battle. Mission failed: ${failedMissionTitles.join(', ')}`
-                    : 'You fled the battle.',
+                    ? `You fled the battle. Mission failed: ${failedMissionTitles.join(', ')}${leftBehind}`
+                    : `You fled the battle.${leftBehind}`,
                 leveled: false,
                 unlockedEast: false,
                 drops: [],
@@ -766,6 +1077,8 @@ export class WorldSession {
                 npc.character.stats.hp = 1;
                 npc.character.stats.isAlive = 1;
                 this.team.addCharacter(npc.character);
+                // Added to the team: take the row its reach belongs to.
+                syncPositionToWeapon(npc.character);
                 this.removeNpcFromPlace(placeId, npc.id);
             } else if (npc.respawns) {
                 npc.character.stats.hp = npc.character.stats.totalHp;
@@ -833,6 +1146,13 @@ export class WorldSession {
             }
         }
 
+        // The teammates that fell stay behind as corpses at the battle
+        // place (the player always drags themselves back).
+        const fallen = this.faintFallen(placeId, [...participants, ...fighters]);
+        if (fallen.length > 0) {
+            message = `${message} ${fallen.join(', ')} ${fallen.length === 1 ? 'was' : 'were'} left behind.`;
+        }
+
         return { message, leveled, unlockedEast, drops, specialSpawn };
     }
 
@@ -845,6 +1165,20 @@ export class WorldSession {
                     placeId,
                     hp: npc.character.stats.hp,
                     isAlive: npc.character.stats.isAlive,
+                    // What the npc became between fights: level, xp and
+                    // its evolved stats, so a rematch faces the same
+                    // opponent instead of a content-fresh copy.
+                    level: npc.character.experience.level,
+                    currentXp: npc.character.experience.currentXp,
+                    stats: {
+                        attack: npc.character.stats.attack,
+                        defence: npc.character.stats.defence,
+                        magicDefence: npc.character.stats.magicDefence,
+                        speed: npc.character.stats.speed,
+                        magic: npc.character.stats.magic,
+                        critChance: npc.character.stats.critChance,
+                        critMultiplier: npc.character.stats.critMultiplier,
+                    },
                 });
             }
         }
@@ -893,6 +1227,8 @@ export class WorldSession {
             calendarDay: this.calendar.totalDays(),
             flags: this.flags.all(),
             shops: Array.from(this.shopStock).map(([shopId, remaining]) => ({ shopId, remaining })),
+            fainted: this.faints.snapshot(),
+            deceased: this.faints.deceasedIds(),
         };
     }
 
@@ -909,6 +1245,16 @@ export class WorldSession {
             position: character.position,
             level: character.experience.level,
             currentXp: character.experience.currentXp,
+            jobId: character.jobId,
+            // The worldTest stats are part of the enhanced Statistics:
+            // read them straight from the stats object.
+            extraStats: {
+                speed: character.stats.speed,
+                magic: character.stats.magic,
+                magicDefence: character.stats.magicDefence,
+                critChance: character.stats.critChance,
+                critMultiplier: character.stats.critMultiplier,
+            },
             equipment: Object.entries(character.equipment.getAllSlots())
                 .filter(([, item]) => Boolean(item))
                 .map(([slot, item]) => ({ slot, itemId: (item as Item).id })),
@@ -929,10 +1275,21 @@ export class WorldSession {
 
         const restoreCharacter = (saved: SavedCharacter): Character => {
             const character = buildCharacterFromSave(saved);
-            // Normalize stats to the deterministic growth curve for the
-            // saved level (hp is preserved) and reattach the growth.
-            applyGrowthAtLevel(character, jobIdOf(character.id), character.experience.level, false);
+            // The saved stats are authoritative (content-defined
+            // characters keep their numbers): only the growth is
+            // reattached for future level-ups.
             wireGrowth(character, jobIdOf(character.id));
+            // The held job: new saves carry it and the saved stats
+            // already include its bonuses. Old saves self-heal by
+            // adopting the default job and applying its bonuses once.
+            const savedJob = saved.jobId ? jobById(saved.jobId) : undefined;
+            const defaultJob = jobOfCharacter(character.id);
+            if (savedJob) {
+                character.jobId = savedJob.id;
+            } else if (defaultJob) {
+                character.jobId = defaultJob.id;
+                applyJobBonuses(character, defaultJob);
+            }
             for (const equipment of saved.equipment) {
                 if (!session.itemTable.has(equipment.itemId)) continue;
                 const item = session.itemTable.createItem(equipment.itemId);
@@ -1012,22 +1369,60 @@ export class WorldSession {
         }
         session.npcs = worldNpcs;
 
+        // Applies the saved npc state: battle damage plus what the npc
+        // became between fights (level, xp, evolved stats), so a rematch
+        // faces the same opponent.
+        const applySavedNpc = (npc: NPC, saved: SavedNpc): void => {
+            npc.character.stats.hp = saved.hp;
+            npc.character.stats.isAlive = saved.isAlive;
+            if (saved.level !== undefined) npc.character.experience.level = saved.level;
+            if (saved.currentXp !== undefined) npc.character.experience.currentXp = saved.currentXp;
+            if (saved.stats) {
+                const stats = saved.stats;
+                if (stats.attack !== undefined) npc.character.stats.attack = stats.attack;
+                if (stats.defence !== undefined) npc.character.stats.defence = stats.defence;
+                if (stats.magicDefence !== undefined) npc.character.stats.magicDefence = stats.magicDefence;
+                if (stats.speed !== undefined) npc.character.stats.speed = stats.speed;
+                if (stats.magic !== undefined) npc.character.stats.magic = stats.magic;
+                if (stats.critChance !== undefined) npc.character.stats.critChance = stats.critChance;
+                if (stats.critMultiplier !== undefined) npc.character.stats.critMultiplier = stats.critMultiplier;
+            }
+        };
+
         for (const npc of session.allNpcs()) {
             const saved = savedById.get(npc.id);
-            if (saved) {
-                npc.character.stats.hp = saved.hp;
-                npc.character.stats.isAlive = saved.isAlive;
-            }
+            if (saved) applySavedNpc(npc, saved);
         }
 
         // In-roster people share their character with the roster entry,
         // so the world (and the dev page) shows exactly the owned
         // character's state: battle damage, XP and fatigue stay in sync
-        // everywhere instead of diverging after a save/load.
+        // everywhere instead of diverging after a save/load. Old saves
+        // self-heal: when the restored character has nothing equipped,
+        // the content equipment of the world npc is re-applied.
         for (const [, list] of session.npcs) {
             for (const npc of list) {
                 const rosterCharacter = session.roster.character(npc.id);
-                if (rosterCharacter) npc.character = rosterCharacter;
+                if (rosterCharacter) {
+                    if (rosterCharacter.equipment.getEquippedItems().length === 0) {
+                        // Old saves self-heal by re-applying the content
+                        // equipment — except weapons the character's held
+                        // job cannot wield (a job swap stripped them on
+                        // purpose and the save recorded it).
+                        const heldJob = heldJobOf(rosterCharacter);
+                        for (const item of npc.character.equipment.getEquippedItems()) {
+                            if (
+                                item.definition.slot === 'weapon'
+                                && heldJob
+                                && !heldJob.allowsWeapon(item.definition.weaponType)
+                            ) {
+                                continue;
+                            }
+                            rosterCharacter.equipment.equipOrReplace(item, rosterCharacter);
+                        }
+                    }
+                    npc.character = rosterCharacter;
+                }
             }
         }
 
@@ -1047,8 +1442,7 @@ export class WorldSession {
             const special = session.specials.find((entry) => entry.id === saved.id);
             if (special) {
                 const npc = buildSpecialNpc(special);
-                npc.character.stats.hp = saved.hp;
-                npc.character.stats.isAlive = saved.isAlive;
+                applySavedNpc(npc, saved);
                 const list = session.npcs.get(saved.placeId) ?? [];
                 list.push(npc);
                 session.npcs.set(saved.placeId, list);
@@ -1071,6 +1465,23 @@ export class WorldSession {
 
         session.missions.load(data.missions ?? []);
         session.calendar.restore(data.calendarDay ?? 0);
+
+        // Fainting: restore the fallen records, keep them out of the
+        // active party, re-apply the carry penalties to the carriers
+        // (statuses are not serialized), and let the week expire anyone
+        // whose corpse waited through the save's absence.
+        session.faints.restore(data.fainted ?? [], data.deceased ?? []);
+        for (const entry of session.faints.all()) {
+            if (!session.roster.character(entry.characterId)) continue;
+            session.roster.deactivate(entry.characterId);
+            if (entry.carriedBy) {
+                const carrier = session.team.getCharacter(entry.carriedBy)
+                    ?? session.roster.character(entry.carriedBy);
+                if (carrier) applyCarryStatus(carrier);
+            }
+        }
+        session.roster.rebuildTeam(team);
+        session.expireCorpses();
 
         // A mid-mission story beat (dialogue + queued battle) survives a
         // load: replay the lines and re-queue the battle that follows.

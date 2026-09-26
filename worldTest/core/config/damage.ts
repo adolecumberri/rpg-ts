@@ -1,4 +1,5 @@
 import { DEFAULT_STATS } from '../../../src/constants/stats.constants';
+import type { Character } from '../../../src';
 import type { ItemAttackContext, ItemHitContext } from '../damage/general';
 import type { DamageComponent } from '../damage/composer';
 import type { ReactionHandler } from '../damage/reactions';
@@ -23,6 +24,26 @@ declare module '@rpg' {
         // Turn order in turn-based combat and, through intervalFromSpeed,
         // attack frequency in the interval battle. Higher acts first.
         speed?: number;
+        // Spell power: added to every magical damage component of the
+        // bearer's basic attacks (the mage job raises it).
+        magic?: number;
+        // Attack reach. 'short' hits only the closest filled enemy row,
+        // 'long' that row plus the next, 'all' every row.
+        rangeOf?: 'short' | 'long' | 'all';
+    }
+
+    // The Stats class only declares the library fields; this merge makes
+    // the worldTest stats visible on `character.stats` directly too, so
+    // consumers use the enhanced Statistics instead of casting. The
+    // runtime values always exist: DEFAULT_STATS is seeded below and the
+    // Stats constructor copies them onto every instance.
+    interface Stats<T extends Statistics = Statistics> {
+        magicDefence?: number;
+        critChance?: number;
+        critMultiplier?: number;
+        speed?: number;
+        magic?: number;
+        rangeOf?: 'short' | 'long' | 'all';
     }
 
     interface ItemDefinition {
@@ -36,6 +57,12 @@ declare module '@rpg' {
         // the damage to 0 and skip it entirely, so effects like Bleeding
         // only apply on real hits.
         onHit?: (context: ItemHitContext) => void;
+        // The attack reach the weapon grants its bearer (overrides the
+        // character's own rangeOf).
+        rangeOf?: 'short' | 'long' | 'all';
+        // The weapon triangle type (sword/bow/staff): jobs declare which
+        // types they may wield.
+        weaponType?: 'sword' | 'bow' | 'staff';
         // Bags add inventory slots to the party capacity.
         bagSlots?: number;
     }
@@ -49,6 +76,10 @@ declare module '@rpg' {
         // was built from (set by the character generator). Content and
         // dev tools use it to reference the generic characters.
         speciesId?: string;
+        // worldTest extension: the Job the character currently holds
+        // (its stat bonuses and skill kit). Undefined = the default job
+        // derived from the character id.
+        jobId?: string;
     }
 }
 
@@ -61,6 +92,8 @@ Object.assign(DEFAULT_STATS, {
     critChance: 10,
     critMultiplier: 2,
     speed: 5,
+    magic: 0,
+    rangeOf: 'short',
 });
 
 // ---------------------------------------------------------------------------
@@ -76,6 +109,25 @@ declare module '@rpg/classes/StatusInstance' {
         // The status's internal counter (used by ramping statuses like
         // the Gate: each attack raises it and re-applies the modifiers).
         stacks?: number;
+        // Good or bad: drives removal effects like the healer's Dispel
+        // (positive = a buff, negative = a debuff/ailment).
+        polarity?: 'positive' | 'negative';
+        // The Cover skill: while the bearer holds this status, the
+        // given share of the next non-status hit it receives is
+        // redirected to the coverer. Consumed after one hit; the same
+        // name guarantees only the last Cover is in effect.
+        cover?: { coverer: Character; percent: number };
+        // Persistent statuses survive the battle-end cleanup (Corpse
+        // Carrying travels with the character between battles). Dispel
+        // and the cleanup skip them.
+        persistent?: boolean;
+        // Team aura: while the holder lives, every member of its team
+        // (the holder included) receives these fixed bonuses. The
+        // holder's death ends the aura.
+        aura?: { attack?: number; defence?: number; speed?: number; magic?: number };
+        // Set on the internal effect statuses synced from an aura: the
+        // aura's name, used to remove them when the holder dies.
+        auraSource?: string;
     }
 }
 

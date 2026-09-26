@@ -14,7 +14,7 @@ describe('roster', () => {
         roster.add(farmer('a'));
         roster.add(farmer('b'));
 
-        expect(roster.activeIds()).toEqual(['a', 'b']);
+        expect(roster.activeIds()).toEqual(['a']); // the single slot is taken
         expect(roster.all()).toHaveLength(2);
     });
 
@@ -44,9 +44,10 @@ describe('roster', () => {
         roster.add(farmer('c'));
         const team = new Team();
         roster.rebuildTeam(team);
-        expect(team.getAll().map((character) => character.id)).toEqual(['a', 'b', 'c']);
+        expect(team.getAll().map((character) => character.id)).toEqual(['a']);
 
-        roster.setActive(['c', 'a']);
+        // Squad missions pass an explicit max.
+        roster.setActive(['c', 'a'], 3);
         roster.rebuildTeam(team);
 
         expect(team.getAll().map((character) => character.id)).toEqual(['c', 'a']);
@@ -59,12 +60,12 @@ describe('roster', () => {
         roster.add(farmer('b'));
 
         roster.deactivate('a');
-        expect(roster.activeIds()).toEqual(['b']);
+        expect(roster.activeIds()).toEqual([]); // b waits in the pool
         expect(roster.has('a')).toBe(true);
 
         roster.remove('a');
         expect(roster.has('a')).toBe(false);
-        expect(roster.activeIds()).toEqual(['b']);
+        expect(roster.all().map((character) => character.id)).toEqual(['b']);
     });
 
     it('round-trips the roster through the save system with active flags', () => {
@@ -75,11 +76,13 @@ describe('roster', () => {
         session.addRosterCharacter(farmer('f2'));
         session.addRosterCharacter(farmer('f3'));
 
-        // Act 1 owns 13 characters (player + 12 farmers); hero, f1 and f2
-        // fill the remaining active slots, f3 waits in the pool.
+        // Only the player travels by default: everyone else waits in
+        // the roster until a squad mission picks them.
         expect(session.roster.all()).toHaveLength(17);
-        expect(session.roster.activeIds()).toEqual(['player', 'hero', 'f1', 'f2']);
+        expect(session.roster.activeIds()).toEqual(['player']);
 
+        // A squad mission (the renegade league) raises the party to 6.
+        session.missions.start('renegade_league');
         session.setActiveParty(['hero', 'arturo', 'f3']);
         const restored = WorldSession.fromSave(session.exportSave());
 
@@ -90,7 +93,8 @@ describe('roster', () => {
 
     it('loads legacy saves (no roster field) with everything active', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.addRosterCharacter(buildHero());
+        // Legacy saves only carried the team, so the hero must be in it.
+        session.team.addCharacter(buildHero());
 
         const data = session.exportSave();
         delete (data as { roster?: unknown }).roster;

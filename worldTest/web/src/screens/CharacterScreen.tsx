@@ -1,17 +1,24 @@
+import { useState } from 'react';
+import type { Item } from '@rpg';
 import type { EquipmentSlot } from '@rpg/classes/items/EquipmentManager';
 import {
+    ALL_JOBS,
     GROWTH_STAT_LABELS,
+    JOB_ICONS,
     characterElementsSummary,
     DEFAULT_ELEMENTS,
     growthRowsOf,
-    itemStatsText,
+    itemStatsSummary,
+    jobBonusText,
     jobIdOf,
     jobNameOf,
+    heldJobOf,
     specOf,
 } from '@core';
 import type { SkillSpec } from '@core';
 import { useGame } from '../game/GameContext';
 import { CharacterCard } from '../components/CharacterCard';
+import { EquipmentModal } from '../components/equipment/EquipmentModal';
 import { TOAST_MS } from '../constants/toast';
 
 const SLOTS: { slot: EquipmentSlot; label: string }[] = [
@@ -26,13 +33,22 @@ const STAT_HINTS: Record<string, string> = {
     Defence: 'Defence: mitigates physical damage with 50/(50+defence).',
     'Magic Def': 'Magic Defence: mitigates magical damage with 50/(50+magicDefence).',
     Speed: 'Speed: acts earlier in the round, and more often in the interval battle.',
+    Magic: 'Magic: added to every magical damage component of your attacks.',
     'Crit Chance': 'Crit Chance: percent chance that a physical hit becomes a crit.',
     'Crit Multiplier': 'Crit Multiplier: how much a crit multiplies the damage (×2).',
 };
 
 export function CharacterScreen({ characterId }: { characterId: string }) {
     const api = useGame();
-    const character = api.team.getCharacter(characterId);
+    // Roster-only characters (camp recruits outside the party) are
+    // viewable too.
+    const character =
+        api.team.getCharacter(characterId) ?? api.session.roster.character(characterId);
+
+    // Which slot's item previews its stats in the left column (hover/focus),
+    // and which slot opened the equipment picker modal.
+    const [previewSlot, setPreviewSlot] = useState<EquipmentSlot | null>(null);
+    const [modalSlot, setModalSlot] = useState<EquipmentSlot | null>(null);
 
     if (!character) {
         return (
@@ -54,32 +70,133 @@ export function CharacterScreen({ characterId }: { characterId: string }) {
         { icon: '🛡️', label: 'Defence', value: `${Math.round(character.getStat('defence'))}` },
         { icon: '🔮', label: 'Magic Def', value: `${Math.round(character.getStat('magicDefence'))}` },
         { icon: '⚡', label: 'Speed', value: `${Math.round(character.getStat('speed'))}` },
+        { icon: '✨', label: 'Magic', value: `${Math.round(character.getStat('magic'))}` },
         { icon: '🎯', label: 'Crit Chance', value: `${Math.round(character.getStat('critChance'))}%` },
         { icon: '💥', label: 'Crit Multiplier', value: `×${character.getStat('critMultiplier')}` },
     ];
 
+    const heldJob = heldJobOf(character);
+
     const jobId = jobIdOf(characterId);
     const growthRows = growthRowsOf(jobId);
+
+    const previewItem: Item | undefined =
+        previewSlot !== null ? character.equipment.get(previewSlot) : undefined;
 
     return (
         <div className="screen">
             <CharacterCard character={character} />
 
             <div className="card">
-                <div className="section-title">Stats</div>
-                <div className="stat-grid">
-                    {stats.map((stat) => (
-                        <div
-                            key={stat.label}
-                            className="stat-cell"
-                            title={STAT_HINTS[stat.label] ?? stat.label}
-                            onClick={() => api.showToast(STAT_HINTS[stat.label] ?? stat.label, TOAST_MS.help)}
-                        >
-                            <span className="stat-cell-icon">{stat.icon}</span>
-                            <span className="stat-cell-value">{stat.value}</span>
-                            <span className="stat-cell-label">{stat.label}</span>
+                <div className="equipment-split">
+                    <div>
+                        <div className="section-title">
+                            {previewSlot !== null
+                                ? (previewItem ? previewItem.name : `${previewSlot} · Empty`)
+                                : 'Stats'}
                         </div>
-                    ))}
+                        {previewSlot === null ? (
+                            <div className="stat-grid">
+                                {stats.map((stat) => (
+                                    <div
+                                        key={stat.label}
+                                        className="stat-cell"
+                                        title={STAT_HINTS[stat.label] ?? stat.label}
+                                        onClick={() => api.showToast(STAT_HINTS[stat.label] ?? stat.label, TOAST_MS.help)}
+                                    >
+                                        <span className="stat-cell-icon">{stat.icon}</span>
+                                        <span className="stat-cell-value">{stat.value}</span>
+                                        <span className="stat-cell-label">{stat.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : previewItem ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {itemStatsSummary(previewItem).length === 0 ? (
+                                    <div className="empty" style={{ padding: 10 }}>No stat bonuses.</div>
+                                ) : (
+                                    itemStatsSummary(previewItem).map((line, index) => (
+                                        <div key={index} className="stat-row">
+                                            <span className="label">{line.icon}</span>
+                                            <span style={{ flex: 1 }}>{line.text}</span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        ) : (
+                            <div className="empty" style={{ padding: 10 }}>
+                                Nothing equipped here. Tap the slot to choose an item.
+                            </div>
+                        )}
+                    </div>
+
+                    <div>
+                        <div className="section-title">Equipment</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {SLOTS.map(({ slot, label }) => {
+                                const item = character.equipment.get(slot);
+                                return (
+                                    <div
+                                        key={slot}
+                                        role="button"
+                                        tabIndex={0}
+                                        className={`equipment-slot-row${previewSlot === slot ? ' equipment-slot-row--focused' : ''}`}
+                                        onMouseEnter={() => setPreviewSlot(slot)}
+                                        onMouseLeave={() => setPreviewSlot(null)}
+                                        onFocus={() => setPreviewSlot(slot)}
+                                        onBlur={() => setPreviewSlot(null)}
+                                        onClick={() => setModalSlot(slot)}
+                                    >
+                                        <span className="label">{label}</span>
+                                        <span
+                                            style={{
+                                                flex: 1,
+                                                color: item ? 'var(--text)' : 'var(--muted)',
+                                                fontStyle: item ? 'normal' : 'italic',
+                                            }}
+                                        >
+                                            {item ? item.name : 'Empty'}
+                                        </span>
+                                        <span className="equipment-slot-chevron">›</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div style={{ color: 'var(--muted)', fontSize: 11, marginTop: 6 }}>
+                            Hover an item to preview its stats · tap to change
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="card">
+                <div className="section-title">Job</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {ALL_JOBS.map((job) => {
+                        const held = heldJob?.id === job.id;
+                        return (
+                            <div
+                                key={job.id}
+                                role="button"
+                                tabIndex={0}
+                                className={`equipment-slot-row${held ? ' equipment-slot-row--focused' : ''}`}
+                                onClick={() => {
+                                    const result = api.session.setJob(characterId, job.id);
+                                    api.refresh();
+                                    api.showToast(result.message);
+                                }}
+                            >
+                                <span className="label">{JOB_ICONS[job.id] ?? '👤'} {job.title}</span>
+                                <span style={{ flex: 1, color: 'var(--muted)', fontSize: 12 }}>
+                                    {jobBonusText(job)} · {job.weaponTypes.join(' / ') || 'any weapon'}
+                                </span>
+                                {held ? <span className="tag">Current</span> : null}
+                            </div>
+                        );
+                    })}
+                </div>
+                <div style={{ color: 'var(--muted)', fontSize: 11, marginTop: 6 }}>
+                    Swapping jobs updates the stat bonuses and unequips weapons the new job cannot wield.
                 </div>
             </div>
 
@@ -94,41 +211,6 @@ export function CharacterScreen({ characterId }: { characterId: string }) {
                         <span className="tag">{row.ratioPercent}% of cap {row.cap}</span>
                     </div>
                 ))}
-            </div>
-
-            <div className="card">
-                <div className="section-title">Equipment</div>
-                {SLOTS.map(({ slot, label }) => {
-                    const item = character.equipment.get(slot);
-                    return (
-                        <div key={slot} className="stat-row" style={{ alignItems: 'flex-start' }}>
-                            <span className="label" style={{ marginTop: 2 }}>{label}</span>
-                            <span style={{ flex: 1, minWidth: 0 }}>
-                                <span style={{ color: item ? 'var(--text)' : 'var(--muted)' }}>
-                                    {item ? item.name : 'Empty'}
-                                </span>
-                                {item ? (
-                                    <span style={{ display: 'block', color: 'var(--muted)', fontSize: 11, marginTop: 2 }}>
-                                        {itemStatsText(item)}
-                                    </span>
-                                ) : null}
-                            </span>
-                            {item ? (
-                                <button
-                                    className="btn"
-                                    style={{ padding: '4px 10px', fontSize: 12, minWidth: 0, flex: 'none' }}
-                                    onClick={() => {
-                                        const ok = api.session.unequipFrom(characterId, slot);
-                                        api.refresh();
-                                        api.showToast(ok ? `Unequipped ${item.name}.` : 'Nothing to unequip.');
-                                    }}
-                                >
-                                    Unequip
-                                </button>
-                            ) : null}
-                        </div>
-                    );
-                })}
             </div>
 
             {elements.attack.length > 0 || elements.defence.length > 0 ? (
@@ -203,6 +285,14 @@ export function CharacterScreen({ characterId }: { characterId: string }) {
                 <button className="btn" onClick={() => api.navigate({ name: 'skilltree', characterId })}>🌳 Skill Tree</button>
                 <button className="btn" onClick={() => api.back()}>Back</button>
             </div>
+
+            {modalSlot !== null ? (
+                <EquipmentModal
+                    character={character}
+                    slot={modalSlot}
+                    onClose={() => setModalSlot(null)}
+                />
+            ) : null}
         </div>
     );
 }
