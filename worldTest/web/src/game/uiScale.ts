@@ -12,13 +12,10 @@ export const UI_CANVAS = { width: 320, height: 640 } as const;
 export const UI_MAX_SCALE = 4;
 
 /**
- * The canvas multiplier for the current window.
- *
- * On screens big enough for a whole multiplier (PC/laptop), snap down
- * to the whole number so pixel art stays crisp. On phones, where the
- * next whole step would overflow, fill the width with the fractional
- * fit instead of wasting it on letterbox — the browser's high device
- * pixel ratio (2-3 physical px per CSS px) keeps it looking sharp.
+ * The canvas multiplier for the current window: always a whole number
+ * (floored, never rounded up) so pixels scale crisply — capped at
+ * UI_MAX_SCALE. Screens that cannot fit the next whole step letterbox
+ * instead of stretching.
  */
 export function computeUiScale(windowWidth: number, windowHeight: number): number {
     if (windowWidth <= 0 || windowHeight <= 0) return 1;
@@ -26,9 +23,7 @@ export function computeUiScale(windowWidth: number, windowHeight: number): numbe
         windowWidth / UI_CANVAS.width,
         windowHeight / UI_CANVAS.height,
     );
-    const whole = Math.floor(fit);
-    const scale = whole >= 2 ? whole : fit;
-    return Math.max(1, Math.min(UI_MAX_SCALE, Math.round(scale * 100) / 100));
+    return Math.max(1, Math.min(UI_MAX_SCALE, Math.floor(fit)));
 }
 
 /** The live canvas scale, re-computed on resize/orientation change. */

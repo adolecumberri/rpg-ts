@@ -1,45 +1,81 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { ActionButton } from './ActionButton';
+import type { ActionIcon } from './ActionButton';
 
 /**
- * One button of the action bar. The bar only renders; the screen owns
- * which actions exist right now (skills, enemies, menu...).
+ * One cell the bar renders. The bar is a pure chrome engine: it knows
+ * nothing about skills, targets or selection semantics — it lays out
+ * whatever cells it receives, paginates them and pins the controls.
  */
-export type ActionButton = {
+export type ActionBarCell = {
     id: string;
     label: string;
-    icon?: string;
-    // Small hint under the label: cost, range, target hp, "out of
-    // reach"... Also used as the disabled reason when provided.
-    sub?: string;
+    icon?: ActionIcon;
+    tone?: 'default' | 'primary' | 'danger';
     disabled?: boolean;
     disabledReason?: string;
-    tone?: 'default' | 'primary' | 'danger';
-    // Optional: screens define the data, the wiring attaches handlers.
+    selected?: boolean;
+    // The badge on a picked cell ('✓' or '✓×2' for stacked hits).
+    mark?: string;
     onClick?: () => void;
 };
 
-// How the bar arranges the actions for the current page size.
+// The three size modes: button height and page capacity.
+// sm: 8u buttons x 5 rows (10 per page) · md: 10u x 4 rows (8) ·
+// lg: 12u x 3 rows (6). All three total the same 44u of height.
+const MODES = {
+    sm: { capacity: 10 },
+    md: { capacity: 8 },
+    lg: { capacity: 6 },
+} as const;
+
+export type ActionBarSize = keyof typeof MODES;
+
 function layoutFor(count: number): 'rows' | 'grid' {
+    // 1-3 stack as rows, except 2 which fits a clean 50/50 grid.
+    if (count === 2) return 'grid';
     return count <= 3 ? 'rows' : 'grid';
 }
 
-const PAGE_SIZE = 5; // 2x2 + one full-width row
-
 /**
- * The bottom action bar: appears only while there are actions to take,
- * and lays them out by count — 1-3 stacked rows, 4 a 2x2 grid, 5 a 2x2
- * plus a last full-width row, 6+ paginated (5 per page). The component
- * owns the pagination cursor and resets it whenever the action list
- * changes; disabled taps surface the reason inline for a moment.
+ * The shared action-bar engine: the grid layout matrix, the pagination
+ * with its page controls inside the grid, the pinned cancel slot, the
+ * floating accept and the inline hint. Specialized bars (OptionsBar,
+ * TargetBar) build the cells; the screen owns the state.
+ *
+ *   first page  = cancel (when picking) in slot 5 + More in slot 6
+ *   middle pages = Back (page) in slot 5 + More in slot 6
+ *   last page   = Back (page) in slot 5, slot 6 empty
  */
-export function ActionBar({ actions }: { actions: ActionButton[] }) {
+export function ActionBar({
+    cells,
+    size = 'lg',
+    back,
+    accept,
+}: {
+    cells: ActionBarCell[];
+    size?: ActionBarSize;
+    // The cancel option (slot 5 on the first page): shown while the
+    // current pick is undoable.
+    back?: { label?: string; onClick: () => void };
+    // The floating accept: shown when the caller passes it, over the
+    // panel's top edge, MD size.
+    accept?: { label?: string; onClick: () => void };
+}) {
     const [page, setPage] = useState(0);
     const [hint, setHint] = useState<string | null>(null);
 
-    // A fresh action list starts over at the first page.
+    const mode = MODES[size];
+    // The cancel occupies a slot on the first page only.
+    const special = back ? 1 : 0;
+    const firstPage = mode.capacity - 1 - special;
+    const middlePage = mode.capacity - 2;
+
+    // A fresh cell list starts over at the first page.
     useEffect(() => {
         setPage(0);
-    }, [actions]);
+    }, [cells, size]);
 
     useEffect(() => {
         if (!hint) return;
@@ -47,73 +83,101 @@ export function ActionBar({ actions }: { actions: ActionButton[] }) {
         return () => window.clearTimeout(timer);
     }, [hint]);
 
-    if (actions.length === 0) return null;
+    if (cells.length === 0 && !back && !accept) return null;
 
-    const pages = Math.ceil(actions.length / PAGE_SIZE);
-    const start = page * PAGE_SIZE;
-    const visible = actions.slice(start, start + PAGE_SIZE);
-    const layout = layoutFor(visible.length);
+    const capacity = mode.capacity - special;
+    const pages = cells.length <= capacity
+        ? 1
+        : 1 + Math.ceil((cells.length - firstPage) / middlePage);
 
-    const press = (action: ActionButton) => {
-        if (action.disabled) {
-            setHint(action.disabledReason ?? action.sub ?? `${action.label} is unavailable.`);
+    const start = page === 0 ? 0 : firstPage + (page - 1) * middlePage;
+    const count = page === 0
+        ? Math.min(firstPage, cells.length)
+        : Math.min(middlePage, cells.length - start);
+    const visible = cells.slice(start, start + count);
+    const layout = layoutFor(pages === 1 ? visible.length + special : mode.capacity);
+
+    const press = (cell: ActionBarCell) => {
+        if (cell.disabled) {
+            setHint(cell.disabledReason ?? `${cell.label} is unavailable.`);
             return;
         }
-        action.onClick?.();
+        cell.onClick?.();
     };
 
+    const rendered: ReactNode[] = visible.map((cell) => (
+        <ActionButton
+            key={cell.id}
+            label={cell.label}
+            icon={cell.icon}
+            size={size}
+            tone={cell.tone}
+            disabled={cell.disabled}
+            selected={cell.selected}
+            mark={cell.mark}
+            onClick={() => press(cell)}
+        />
+    ));
+
+    // Slot 6 (the last): More on every page but the last.
+    const nextSlot = pages > 1 && page < pages - 1 ? mode.capacity : undefined;
+    if (nextSlot !== undefined) {
+        rendered.push(
+            <ActionButton
+                key="nav-next"
+                label="More"
+                icon="›"
+                size={size}
+                variant="nav"
+                slot={nextSlot}
+                onClick={() => setPage((p) => p + 1)}
+            />,
+        );
+    }
+
+    // Slot 5: Cancel on the first page (while picking), Back (page) on
+    // the later ones.
+    if (page === 0 && back) {
+        rendered.push(
+            <ActionButton
+                key="cancel"
+                label={back.label ?? 'Cancel'}
+                icon="✕"
+                size={size}
+                variant="nav"
+                slot={mode.capacity - 1}
+                onClick={back.onClick}
+            />,
+        );
+    } else if (page > 0) {
+        rendered.push(
+            <ActionButton
+                key="nav-back"
+                label="Back"
+                icon="‹"
+                size={size}
+                variant="nav"
+                slot={mode.capacity - 1}
+                onClick={() => setPage((p) => p - 1)}
+            />,
+        );
+    }
+
     return (
-        <div className="action-bar">
-            {hint ? <div className="action-bar-hint">{hint}</div> : null}
-            <div className={`action-bar-grid action-bar-grid--${layout}`}>
-                {visible.map((action) => {
-                    const tone = action.tone === 'primary'
-                        ? 'pixel-btn--primary'
-                        : action.tone === 'danger' ? 'pixel-btn--danger' : '';
-                    return (
-                        <button
-                            key={action.id}
-                            type="button"
-                            className={`action-btn pixel-btn ${tone}`}
-                            disabled={action.disabled}
-                            onClick={() => press(action)}
-                        >
-                            <span className="action-btn-label">
-                                {action.icon ? <span className="action-btn-icon">{action.icon}</span> : null}
-                                {action.label}
-                            </span>
-                            {action.sub ? (
-                                <span className="action-btn-sub">
-                                    {action.disabled && action.disabledReason
-                                        ? action.disabledReason
-                                        : action.sub}
-                                </span>
-                            ) : null}
-                        </button>
-                    );
-                })}
-            </div>
-            {pages > 1 ? (
-                <div className="action-bar-pages">
-                    <button
-                        type="button"
-                        className="pixel-btn"
-                        disabled={page === 0}
-                        onClick={() => setPage((p) => p - 1)}
-                    >
-                        ‹
-                    </button>
-                    <span className="action-bar-page-label">{page + 1}/{pages}</span>
-                    <button
-                        type="button"
-                        className="pixel-btn"
-                        disabled={page >= pages - 1}
-                        onClick={() => setPage((p) => p + 1)}
-                    >
-                        ›
-                    </button>
+        <div className={`action-bar action-bar--${size}`}>
+            {accept ? (
+                <div className="action-bar-accept">
+                    <ActionButton
+                        label={accept.label ?? 'Accept'}
+                        icon="✓"
+                        size="md"
+                        tone="primary"
+                        onClick={accept.onClick}
+                    />
                 </div>
             ) : null}
+            {hint ? <div className="action-bar-hint">{hint}</div> : null}
+            <div className={`action-bar-grid action-bar-grid--${layout}`}>{rendered}</div>
         </div>
     );
 }

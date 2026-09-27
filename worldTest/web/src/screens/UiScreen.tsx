@@ -22,9 +22,8 @@ export function UiScreen() {
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>
                     Global tokens: <span style={{ color: 'var(--text)' }}>--u: 4px</span> (1 unit) ·{' '}
-                    <span style={{ color: 'var(--text)' }}>--ui-scale: {scale}</span>. The canvas
-                    transform multiplies everything by the scale, so 8px of margin is 16 device
-                    px at ×2.
+                    <span style={{ color: 'var(--text)' }}>--ui-scale: {scale}</span>. Whole
+                    multipliers only, floored — never rounded up; smaller screens letterbox.
                 </div>
             </div>
 
