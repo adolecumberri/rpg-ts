@@ -1,0 +1,505 @@
+/* ---------------------------------------------------------------------------
+   pixelUI.css — the pixel-art design system.
+   Everything here is designed against the fixed 320x640 canvas and sized
+   in UI units: 1 unit (--u) = 4 canvas pixels, and the whole canvas is
+   multiplied by the live --ui-scale. Imported AFTER index.css so it
+   overrides the legacy layout.
+--------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   The design grid: sizes only come from this ladder
+   4, 8, 12, 16, 20, 24, 32, 40, 48, 64.
+--------------------------------------------------------------------------- */
+:root {
+    /* The live canvas multiplier, written by the scale hook on boot and
+       resize (see game/uiScale.ts). */
+    --ui-scale: 1;
+    /* 1 UI unit = 4 canvas pixels. */
+    --u: 4px;
+    /* 4  border, smallest detail */
+    --s1: calc(var(--u) * 1);
+    /* 8  gap, padding */
+    --s2: calc(var(--u) * 2);
+    /* 12 */
+    --s3: calc(var(--u) * 3);
+    /* 16 sprite */
+    --s4: calc(var(--u) * 4);
+    /* 20 */
+    --s5: calc(var(--u) * 5);
+    /* 24 */
+    --s6: calc(var(--u) * 6);
+    /* 32 icon */
+    --s8: calc(var(--u) * 8);
+    /* 40 */
+    --s10: calc(var(--u) * 10);
+    /* 48 button height, button icon */
+    --s12: calc(var(--u) * 12);
+
+    /* 64 large ability icon */
+    --s16: calc(var(--u) * 16);
+
+    --bg: #0f1117;
+    --bg-soft: #171a24;
+    --card: #1e2230;
+    --card-2: #262b3d;
+    --border: #32384c;
+    --text: #e8eaf2;
+    --muted: #9aa1b5;
+    --accent: #f5b942;
+    --accent-2: #7f8cff;
+    --danger: #ef5350;
+    --heal: #66bb6a;
+    --hp: #ef5350;
+    --xp: #7f8cff;
+    --gold: #f5b942;
+    --radius: 14px;
+    --shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+
+}
+
+/* ---------------------------------------------------------------------------
+   The canvas. The whole app renders inside the fixed 320x640 logical
+   canvas, centered on the page and scaled by --ui-scale (the boot code
+   sets the transform). Everything outside it is the letterbox.
+--------------------------------------------------------------------------- */
+.app-stage {
+    position: fixed;
+    inset: 0;
+    background: #05060a;
+    overflow: hidden;
+}
+
+.game-canvas {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 320px;
+    height: 640px;
+    transform-origin: center;
+    background: var(--bg);
+    overflow: hidden;
+    box-shadow: 0 0 0 3px #000, 0 0 60px rgba(0, 0, 0, 0.9);
+    image-rendering: pixelated;
+}
+
+.game-canvas .app-shell {
+    max-width: none;
+    margin: 0;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.game-canvas .screen {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+   The pixel-art UI kit (prototyped on the UI page; the rest of the game
+   adopts these classes as the design lands). Every size comes from the
+   unit ladder above.
+--------------------------------------------------------------------------- */
+.pixel-font {
+    font-family: var(--font-pixel, ui-monospace, 'Cascadia Mono', 'Courier New', monospace);
+    letter-spacing: 0.4px;
+}
+
+.pixel-panel {
+    background: var(--card-2);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s1) var(--s1) 0 rgba(0, 0, 0, 0.55);
+    padding: var(--s2);
+}
+
+.pixel-panel .pixel-title {
+    font-size: calc(var(--u) * 2.5);
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border-bottom: var(--s1) solid var(--border);
+    padding-bottom: var(--s1);
+    margin-bottom: var(--s2);
+}
+
+.pixel-btn {
+    font-family: inherit;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: var(--s3);
+    height: var(--s12);
+    padding: 0 var(--s2);
+    background: var(--card);
+    color: var(--text);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 var(--s1) var(--border);
+    cursor: pointer;
+}
+
+.pixel-btn:active:not(:disabled) {
+    transform: translate(calc(var(--s1) / 2), calc(var(--s1) / 2));
+    box-shadow: none;
+}
+
+.pixel-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.pixel-btn--primary {
+    background: var(--accent);
+    color: #201703;
+}
+
+.pixel-btn--danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.pixel-bar {
+    height: var(--s4);
+    border: var(--s1) solid #000;
+    background: #0b0d13;
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
+    overflow: hidden;
+}
+
+.pixel-bar-fill {
+    height: 100%;
+}
+
+.pixel-bar--hp .pixel-bar-fill {
+    background: repeating-linear-gradient(90deg, #e2544f 0 var(--s2), #c84440 var(--s2) calc(var(--u) * 2.5));
+}
+
+.pixel-bar--xp .pixel-bar-fill {
+    background: repeating-linear-gradient(90deg, #7f8cff 0 var(--s2), #6a77ea var(--s2) calc(var(--u) * 2.5));
+}
+
+.pixel-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+    font-size: var(--s3);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: calc(var(--s1) / 2) var(--s2);
+    background: var(--card);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
+    color: var(--text);
+}
+
+.pixel-chip--good {
+    background: #23452c;
+    color: #a5e8b0;
+}
+
+.pixel-chip--bad {
+    background: #4a2224;
+    color: #ffb3b1;
+}
+
+.pixel-dialog {
+    background: #10121b;
+}
+
+.pixel-cell {
+    width: var(--s12);
+    height: var(--s12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--s8);
+    background: var(--card);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
+    margin-top: var(--s1);
+}
+
+/* Sprite size samples: 16, 32, 48, 64 on the unit ladder. */
+.sprite-sample {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
+    image-rendering: pixelated;
+}
+
+.sprite-sample--16 {
+    width: var(--s4);
+    height: var(--s4);
+    font-size: var(--s3);
+}
+
+.sprite-sample--32 {
+    width: var(--s8);
+    height: var(--s8);
+    font-size: var(--s6);
+}
+
+.sprite-sample--48 {
+    width: var(--s12);
+    height: var(--s12);
+    font-size: var(--s8);
+}
+
+.sprite-sample--64 {
+    width: var(--s16);
+    height: var(--s16);
+    font-size: calc(var(--u) * 11);
+}
+
+/* Formation row headers in the battle view and target pickers. */
+.row-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.row-banner::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+/* ---------------------------------------------------------------------------
+   The new-UI router shell (?ui=1): the clean-room chrome for the design,
+   independent from the legacy header/screens.
+--------------------------------------------------------------------------- */
+.newui-shell {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    overflow: hidden;
+}
+
+.newui-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s2);
+    padding: var(--s3);
+    background: var(--bg-soft);
+    border-bottom: var(--s1) solid #000;
+    box-shadow: inset 0 calc(-1 * var(--s1)) 0 var(--border);
+    flex: none;
+    box-sizing: border-box;
+    height: var(--s16);
+    /* es --s16 porque incluye el padding y el border */
+}
+
+.newui-header-title {
+    font-size: var(--s3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.newui-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* The page container of the new UI (replaces the legacy .screen). */
+.newui-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
+}
+
+/* Test-screen tabs (like the dev page sections). */
+.newui-nav {
+    display: flex;
+    gap: var(--s2);
+    padding: var(--s2);
+    background: var(--bg);
+    border-bottom: var(--s1) solid #000;
+    flex: none;
+}
+
+/* ---------------------------------------------------------------------------
+   The pixel modal: overlay + centered panel anchored to the canvas. Each
+   modal opened over another shifts down-right by one unit step
+   (--modal-layer), so stacked modals stay distinguishable.
+--------------------------------------------------------------------------- */
+.pixel-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+}
+
+.pixel-modal {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) translate(calc(var(--modal-layer, 0) * var(--s3)),
+            calc(var(--modal-layer, 0) * var(--s3)));
+    width: min(280px, calc(100% - var(--s4)));
+    background: var(--card-2);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s2) var(--s2) 0 rgba(0, 0, 0, 0.7);
+    z-index: calc(40 + var(--modal-layer, 0));
+}
+
+.pixel-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s2);
+    padding: var(--s1) var(--s2);
+    background: var(--bg-soft);
+    border-bottom: var(--s1) solid #000;
+}
+
+.pixel-modal-title {
+    font-size: var(--s3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.pixel-modal-close {
+    width: var(--s8);
+    height: var(--s8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-size: var(--s3);
+    background: var(--card);
+    color: var(--text);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
+    cursor: pointer;
+}
+
+.pixel-modal-close:active {
+    transform: translate(calc(var(--s1) / 2), calc(var(--s1) / 2));
+    box-shadow: none;
+}
+
+.pixel-modal-body {
+    padding: var(--s2);
+}
+
+/* ---------------------------------------------------------------------------
+   The bottom action bar: appears only when there are actions, and lays
+   them out by count (rows / 2x2 / 2x2+1 / paginated pages of 5).
+--------------------------------------------------------------------------- */
+.action-bar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
+    background: var(--bg-soft);
+    border-top: var(--s1) solid #000;
+    box-shadow: inset 0 var(--s1) 0 var(--border);
+    flex: none;
+}
+
+.action-bar-hint {
+    font-size: var(--s3);
+    color: var(--accent);
+    text-align: center;
+    padding: var(--s1);
+    background: var(--card);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
+}
+
+.action-bar-grid {
+    display: grid;
+    gap: var(--s2);
+}
+
+.action-bar-grid--rows {
+    grid-template-columns: 1fr;
+}
+
+.action-bar-grid--grid {
+    grid-template-columns: 1fr 1fr;
+}
+
+.action-btn {
+    height: auto;
+    min-height: var(--s12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--s1) / 2);
+    padding: var(--s1) var(--s2);
+}
+
+.action-btn-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+}
+
+.action-btn-icon {
+    font-size: var(--s4);
+    line-height: 1;
+}
+
+.action-btn-sub {
+    font-size: calc(var(--u) * 2.5);
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    text-transform: none;
+    color: var(--muted);
+}
+
+.action-bar-pages {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s2);
+}
+
+.action-bar-pages .pixel-btn {
+    width: var(--s8);
+    height: var(--s8);
+    padding: 0;
+}
+
+.action-bar-page-label {
+    font-size: var(--s3);
+    letter-spacing: 1px;
+    color: var(--muted);
+    min-width: var(--s8);
+    text-align: center;
+}
+
+/* Test-screen scaffold: content scrolls, the bar is pinned to the
+   bottom of the visible canvas. */
+.action-bar-demo {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.action-bar-demo-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
+}

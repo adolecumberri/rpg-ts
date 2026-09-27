@@ -14,8 +14,16 @@ export function SettingsScreen() {
         { icon: '📖', label: 'Skill Catalog', onClick: () => api.navigate({ name: 'skills' }) },
         { icon: '🎲', label: 'Loot Tables', onClick: () => api.navigate({ name: 'loot' }) },
         { icon: '🛠️', label: 'Dev', onClick: () => api.navigate({ name: 'dev' }) },
+        {
+            icon: '🖼️',
+            label: 'New UI (test)',
+            onClick: () => {
+                window.location.search = '?ui=1';
+            },
+        },
         { icon: '💾', label: 'Save game', onClick: () => api.save() },
         { icon: '📂', label: 'Load game', onClick: () => api.load() },
+        { icon: '🗄️', label: 'Save file', onClick: () => api.navigate({ name: 'savedata' }) },
     ];
 
     return (

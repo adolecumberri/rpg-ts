@@ -1,4 +1,5 @@
 import { GameProvider, useGame } from './game/GameContext';
+import { useUiScale } from './game/uiScale';
 import { MessageBox } from './components/MessageBox';
 import { PlaceScreen } from './screens/PlaceScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -20,6 +21,15 @@ import { HybridCombatScreen } from './screens/HybridCombatScreen';
 import { MissionsScreen } from './screens/MissionsScreen';
 import { LookAroundScreen } from './screens/LookAroundScreen';
 import { FountainScreen } from './screens/FountainScreen';
+import { SaveScreen } from './screens/SaveScreen';
+import { UiScreen } from './screens/UiScreen';
+import { NewUiRouter } from './screens/NewUiRouter';
+import type { ReactNode } from 'react';
+
+/** True when the URL carries ?ui=1: the new-UI router takes over. */
+function useUiTestMode(): boolean {
+    return new URLSearchParams(window.location.search).get('ui') === '1';
+}
 
 function Header() {
     const api = useGame();
@@ -48,6 +58,8 @@ function Header() {
     else if (route.name === 'interval') title = 'Interval Battle';
     else if (route.name === 'lookaround') title = 'Look Around';
     else if (route.name === 'fountain') title = 'Fountain';
+    else if (route.name === 'savedata') title = 'Save File';
+    else if (route.name === 'ui') title = 'UI Kit';
 
     return (
         <div className="header">
@@ -161,6 +173,10 @@ function Router() {
             return <LookAroundScreen />;
         case 'fountain':
             return <FountainScreen />;
+        case 'savedata':
+            return <SaveScreen />;
+        case 'ui':
+            return <UiScreen />;
         default:
             return <PlaceScreen />;
     }
@@ -173,14 +189,39 @@ function Toast() {
 }
 
 export default function App() {
+    const uiTest = useUiTestMode();
     return (
         <GameProvider>
-            <div className="app-shell">
-                <Header />
-                <Router />
-                <MessageBox />
-                <Toast />
-            </div>
+            <GameCanvas>
+                {uiTest ? (
+                    <NewUiRouter />
+                ) : (
+                    <div className="app-shell">
+                        <Header />
+                        <Router />
+                        <MessageBox />
+                        <Toast />
+                    </div>
+                )}
+            </GameCanvas>
         </GameProvider>
+    );
+}
+
+/**
+ * The fixed 320x640 pixel-art canvas, centered on the page and scaled
+ * by the largest whole multiplier that fits the device (max ×4).
+ */
+function GameCanvas({ children }: { children: ReactNode }) {
+    const scale = useUiScale();
+    return (
+        <div className="app-stage">
+            <div
+                className="game-canvas"
+                style={{ transform: `translate(-50%, -50%) scale(${scale})` }}
+            >
+                {children}
+            </div>
+        </div>
     );
 }

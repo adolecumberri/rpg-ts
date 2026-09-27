@@ -35,7 +35,9 @@ export type Route =
     | { name: 'dev' }
     | { name: 'interval' }
     | { name: 'lookaround' }
-    | { name: 'fountain' };
+    | { name: 'fountain' }
+    | { name: 'savedata' }
+    | { name: 'ui' };
 
 type GameApi = {
     session: WorldSession;
@@ -52,6 +54,8 @@ type GameApi = {
     openPlace: () => void;
     showToast: (message: string, durationMs?: number) => void;
     save: () => void;
+    load: () => void;
+    reset: () => void;
     rest: () => void;
     buy: (shopId: string | undefined, entry: ShopEntry) => void;
     sell: (slot: InventorySlot) => void;
@@ -60,7 +64,6 @@ type GameApi = {
     setPosition: (characterId: string, position: TeamPosition) => void;
     findNpc: (npcId: string) => NPC | undefined;
     refresh: () => void;
-    load: () => void;
 };
 
 const GameContext = createContext<GameApi | null>(null);
@@ -130,6 +133,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Wipes the stored save and starts a fresh world (testing reset).
+    const reset = () => {
+        try {
+            window.localStorage.removeItem(SAVE_KEY);
+        } catch {
+            // storage unavailable: nothing to wipe
+        }
+        sessionRef.current = new WorldSession();
+        setRoutes([{ name: 'place' }]);
+        bump();
+        showToast('New game started.');
+    };
+
     const rest = () => {
         session.rest();
         bump();
@@ -197,6 +213,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             findNpc: session.findNpc.bind(session),
             refresh: bump,
             load,
+            reset,
         }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [version, currentPlace, npcsAtCurrent, routes, current, toast],

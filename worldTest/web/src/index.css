@@ -919,6 +919,22 @@ body {
     flex: none;
 }
 
+/* The raw save file on the save screen. */
+.save-json {
+    max-height: 45vh;
+    overflow: auto;
+    margin: 8px 0 0;
+    padding: 10px;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 .pill {
     display: inline-flex;
     align-items: center;

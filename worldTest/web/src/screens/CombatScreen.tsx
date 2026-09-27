@@ -10,6 +10,7 @@ import {
     attackComponentsOf,
     battleSkillSpecs,
     clearStatuses,
+    columnsFor,
     compareBySpeed,
     consumeFaintTurn,
     effectiveRangeOf,
@@ -21,14 +22,14 @@ import {
     reachableTargets,
     resolveGeneralAttack,
     resolveSkillEffect,
+    ROWS,
     rowEntriesOf,
     specOf,
     statusTooltip,
     syncAuras,
 } from '@core';
-import type { CombatEndResult, DamageResult, SkillSpec } from '@core';
+import type { CombatEndResult, DamageResult, RowEntry, RowPosition, SkillSpec } from '@core';
 import { useGame } from '../game/GameContext';
-import { StatBar } from '../components/StatBar';
 import { TOAST_MS } from '../constants/toast';
 
 type Phase = 'action' | 'pick-target' | 'pick-targets' | 'resolve' | 'won' | 'lost' | 'fled';
@@ -43,6 +44,63 @@ type PickedAction =
     | { actor: Character; kind: 'attack'; targets: Character[] }
     | { actor: Character; kind: 'skill'; spec: SkillSpec; targets: Character[] }
     | { actor: Character; kind: 'wait' };
+
+const ROW_LABELS: Record<RowPosition, string> = {
+    front: '🛡️ Front',
+    center: '⚔️ Center',
+    back: '🏹 Back',
+};
+
+function iconOf(character: Character): string {
+    if (character.id === 'player') return '🧑‍🌾';
+    if (character.id.indexOf('goblin') !== -1 || character.name === 'Goblin') return '👺';
+    return '🌾';
+}
+
+/**
+ * A compact fighter cell (like the hybrid battle squares): portrait,
+ * name, reach/speed, hp bar and statuses. Several fit per row.
+ */
+function CombatantSquare({
+    character,
+    active,
+    picked,
+    outOfReach,
+    onClick,
+}: {
+    character: Character;
+    active?: boolean;
+    picked?: boolean;
+    outOfReach?: boolean;
+    onClick?: () => void;
+}) {
+    const classes = ['combatant-square'];
+    if (active) classes.push('active');
+    if (outOfReach) classes.push('dead');
+    const hp = character.getStat('hp');
+    const maxHp = character.getStat('totalHp');
+    const pct = maxHp > 0 ? Math.max(0, Math.min(100, (hp / maxHp) * 100)) : 0;
+    return (
+        <div
+            className={classes.join(' ')}
+            style={onClick && !outOfReach ? { cursor: 'pointer' } : undefined}
+            onClick={onClick}
+        >
+            <div className="portrait"><span>{iconOf(character)}</span></div>
+            <div className="name">{character.name}{picked ? ' ✓' : ''}</div>
+            <div className="stats">
+                🎯 {effectiveRangeOf(character)} · ⚡ {Math.round(character.getStat('speed'))}
+            </div>
+            <div className="hp-row">
+                <div className="bar">
+                    <div className="bar-fill hp" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="hp-text">{Math.round(hp)}/{Math.round(maxHp)}</span>
+            </div>
+            <StatusChips character={character} />
+        </div>
+    );
+}
 
 function StatusChips({ character }: { character: Character }) {
     const api = useGame();
@@ -67,50 +125,6 @@ function StatusChips({ character }: { character: Character }) {
                 );
             })}
         </div>
-    );
-}
-
-function ElementalChips({ character }: { character: Character }) {
-    const api = useGame();
-    const parts: { key: string; icon: string; text: string; hint: string }[] = [];
-
-    const attack = new Map<string, number>();
-    for (const component of attackComponentsOf(character)) {
-        if (component.element === 'physical') continue;
-        attack.set(component.element, (attack.get(component.element) ?? 0) + component.amount);
-    }
-    for (const [element, amount] of attack) {
-        const name = DEFAULT_ELEMENTS.get(element)?.name ?? element;
-        const kind = kindOfElement(element);
-        const hintText = kind === 'true'
-            ? `${name} +${Math.round(amount)}: true damage, ignores defence, resistances and affinities.`
-            : `${name} +${Math.round(amount)}: ${kind} bonus damage.`;
-        parts.push({ key: `atk-${element}`, icon: DEFAULT_ELEMENTS.get(element)?.icon ?? '✨', text: `+${Math.round(amount)}`, hint: hintText });
-    }
-
-    for (const [element, multiplier] of Object.entries(affinitiesOf(character.id))) {
-        const name = DEFAULT_ELEMENTS.get(element)?.name ?? element;
-        const hint = multiplier > 1
-            ? `${name} affinity ×${multiplier}: takes ${multiplier}× ${name.toLowerCase()} damage (weak).`
-            : `${name} affinity ×${multiplier}: takes ${multiplier}× ${name.toLowerCase()} damage (resistant).`;
-        parts.push({ key: `aff-${element}`, icon: DEFAULT_ELEMENTS.get(element)?.icon ?? '✨', text: `×${multiplier}`, hint });
-    }
-
-    if (parts.length === 0) return null;
-    return (
-        <span style={{ marginLeft: 6, display: 'inline-flex', gap: 4 }}>
-            {parts.map((part) => (
-                <span
-                    key={part.key}
-                    className="tag"
-                    style={{ fontSize: 10, padding: '1px 6px' }}
-                    title={part.hint}
-                    onClick={() => api.showToast(part.hint, TOAST_MS.help)}
-                >
-                    {part.icon} {part.text}
-                </span>
-            ))}
-        </span>
     );
 }
 
@@ -152,6 +166,14 @@ export function CombatScreen({
     // The enemy characters a given reach can hit.
     const enemiesInReach = (range: 'short' | 'long' | 'all'): Character[] =>
         reachableTargets(range, enemyRowEntries);
+    // The alive members of each row, front to back.
+    const groupedByRow = (entries: RowEntry[]) =>
+        ROWS.map((row) => ({
+            row,
+            members: entries
+                .filter((entry) => entry.row === row && entry.character.stats.hp > 0)
+                .map((entry) => entry.character),
+        }));
 
     const [phase, setPhase] = useState<Phase>('action');
     const [round, setRound] = useState(1);
@@ -605,29 +627,37 @@ export function CombatScreen({
                 <div className="section-title">{header} · choose a target</div>
                 {anyTarget || allyOnly ? <div className="section-title" style={{ fontSize: 13 }}>Allies</div> : null}
                 {anyTarget || allyOnly
-                    ? aliveAllies.map((ally) => (
-                        <button key={ally.id} className="menu-item" onClick={() => executePending([ally.id])}>
-                            <span className="menu-icon">💚</span>
-                            <span className="menu-label">{ally.name}</span>
-                            <span className="menu-sub">
-                                HP {Math.round(ally.getStat('hp'))}/{Math.round(ally.getStat('totalHp'))}
-                            </span>
-                        </button>
-                    ))
+                    ? (
+                        <div className="battle-grid cols-3">
+                            {aliveAllies.map((ally) => (
+                                <CombatantSquare
+                                    key={ally.id}
+                                    character={ally}
+                                    onClick={() => executePending([ally.id])}
+                                />
+                            ))}
+                        </div>
+                    )
                     : null}
-                {anyTarget ? <div className="section-title" style={{ fontSize: 13 }}>Enemies</div> : null}
-                {anyTarget
-                    ? aliveEnemies
-                        .filter((enemy) => reachableIds.has(enemy.id))
-                        .map((enemy) => (
-                            <button key={enemy.id} className="menu-item" onClick={() => executePending([enemy.id])}>
-                                <span className="menu-icon">🎯</span>
-                                <span className="menu-label">{enemy.name}</span>
-                                <span className="menu-sub">
-                                    {enemy.position} · HP {Math.round(enemy.getStat('hp'))}/{Math.round(enemy.getStat('totalHp'))}
-                                </span>
-                            </button>
-                        ))
+                {!allyOnly ? <div className="section-title" style={{ fontSize: 13 }}>Enemies</div> : null}
+                {!allyOnly
+                    ? groupedByRow(enemyRowEntries).map(({ row, members }) => (
+                        members.length === 0 ? null : (
+                            <div key={row}>
+                                <div className="row-banner">{ROW_LABELS[row]}</div>
+                                <div className="battle-grid cols-3">
+                                    {members.map((enemy) => (
+                                        <CombatantSquare
+                                            key={enemy.id}
+                                            character={enemy}
+                                            outOfReach={!reachableIds.has(enemy.id)}
+                                            onClick={() => executePending([enemy.id])}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )
+                    ))
                     : null}
                 <button
                     className="btn"
@@ -732,71 +762,43 @@ export function CombatScreen({
 
     const headerTitle = phase === 'resolve' ? 'Resolving round…' : active ? `${active.name}'s pick` : 'Battle';
 
-    const speedHint = (character: Character): string => {
-        const speed = Math.round(character.getStat('speed'));
-        return `Speed ${speed}: acts earlier in the round; in the interval battle, acts every ${intervalFromSpeed(speed)} ticks.`;
-    };
-
-    const speedTag = (character: Character) => (
-        <span
-            className="tag"
-            style={{ marginLeft: 6 }}
-            title={speedHint(character)}
-            onClick={() => api.showToast(speedHint(character), TOAST_MS.help)}
-        >
-            ⚡ {Math.round(character.getStat('speed'))}
-        </span>
-    );
-
     return (
         <div className="screen">
             <div className="section-title">Round {round} · Enemies</div>
             {aliveEnemies.length === 0 ? (
                 <div className="empty">No enemies remain.</div>
             ) : (
-                aliveEnemies.map((enemy) => (
-                    <div key={enemy.id} className="card" style={{ padding: 10 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                            {enemy.name}
-                            <span className="tag" style={{ marginLeft: 6 }}>{enemy.position}</span>
-                            <span className="tag" style={{ marginLeft: 6 }} title="Attack reach">🎯 {effectiveRangeOf(enemy)}</span>
-                            <ElementalChips character={enemy} />
-                            {speedTag(enemy)}
-                            {FATIGUE.enabled ? (
-                                <span className="tag" style={{ marginLeft: 6 }} title="Fatigue: every attack adds 5; penalties at 5/10/15, faint at 100.">
-                                    😵 {Math.round(enemy.getStat('fatigue'))}
-                                </span>
-                            ) : null}
+                groupedByRow(enemyRowEntries).map(({ row, members }) => (
+                    members.length === 0 ? null : (
+                        <div key={row}>
+                            <div className="row-banner">{ROW_LABELS[row]}</div>
+                            <div className={`battle-grid cols-${columnsFor(members.length)}`}>
+                                {members.map((enemy) => (
+                                    <CombatantSquare key={enemy.id} character={enemy} />
+                                ))}
+                            </div>
                         </div>
-                        <StatBar label="HP" value={enemy.getStat('hp')} max={enemy.getStat('totalHp')} suffix={`/ ${Math.round(enemy.getStat('totalHp'))}`} />
-                        <StatusChips character={enemy} />
-                    </div>
+                    )
                 ))
             )}
 
             <div className="section-title">Your party</div>
-            {aliveAllies.map((ally) => (
-                <div
-                    key={ally.id}
-                    className="card"
-                    style={{ padding: 10, borderColor: ally.id === active?.id ? 'var(--accent)' : undefined }}
-                >
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                        {ally.name}
-                        <span className="tag" style={{ marginLeft: 6 }}>{ally.position}</span>
-                        <span className="tag" style={{ marginLeft: 6 }} title="Attack reach">🎯 {effectiveRangeOf(ally)}</span>
-                        <ElementalChips character={ally} />
-                        {speedTag(ally)}
-                        {FATIGUE.enabled ? (
-                            <span className="tag" style={{ marginLeft: 6 }} title="Fatigue: every attack adds 5; penalties at 5/10/15, faint at 100.">
-                                😵 {Math.round(ally.getStat('fatigue'))}
-                            </span>
-                        ) : null}
-                        {pickedIds.has(ally.id) ? <span className="tag" style={{ marginLeft: 6 }}>✓ picked</span> : null}
+            {groupedByRow(allyRowEntries).map(({ row, members }) => (
+                members.length === 0 ? null : (
+                    <div key={row}>
+                        <div className="row-banner">{ROW_LABELS[row]}</div>
+                        <div className={`battle-grid cols-${columnsFor(members.length)}`}>
+                            {members.map((ally) => (
+                                <CombatantSquare
+                                    key={ally.id}
+                                    character={ally}
+                                    active={ally.id === active?.id}
+                                    picked={pickedIds.has(ally.id)}
+                                />
+                            ))}
+                        </div>
                     </div>
-                    <StatBar label="HP" value={ally.getStat('hp')} max={ally.getStat('totalHp')} suffix={`/ ${Math.round(ally.getStat('totalHp'))}`} />
-                    <StatusChips character={ally} />
-                </div>
+                )
             ))}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
