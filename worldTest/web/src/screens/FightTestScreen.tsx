@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { ROWS, reachableRows } from '@core';
+import { reachableIdsIn } from '../components/UI/Battlefield';
+import { Battlefield } from '../components/UI/Battlefield';
 import { OptionsBar } from '../components/UI/OptionsBar';
 import { TargetBar } from '../components/UI/TargetBar';
 import { selectionRulesOf } from '../game/targeting';
+import { SPRITES } from '../assets/sprites';
 
 type Role = 'warrior' | 'archer' | 'mage';
 type Row = 'front' | 'center' | 'back';
@@ -31,12 +33,6 @@ const ENEMY_START: Fighter[] = [
     { id: 'e_archer', name: 'Archer', icon: '🏹', role: 'archer', row: 'back', hp: 22, maxHp: 22, power: 6, reach: 'all' },
 ];
 
-const ROW_TITLES: Record<Row, string> = {
-    front: '🛡️ Front',
-    center: '⚔️ Center',
-    back: '🏹 Back',
-};
-
 type Phase = 'pick' | 'targets';
 
 /**
@@ -60,14 +56,7 @@ export function FightTestScreen() {
     const aliveEnemies = enemies.filter((f) => f.hp > 0);
     const active = aliveAllies[turn % Math.max(1, aliveAllies.length)];
 
-    const reachableIds = active
-        ? new Set(
-            aliveEnemies
-                .filter((enemy) => reachableRows(active.reach, ROWS.filter((row) =>
-                    aliveEnemies.some((entry) => entry.row === row))).indexOf(enemy.row) !== -1)
-                .map((enemy) => enemy.id),
-        )
-        : new Set<string>();
+    const reachableIds = active ? reachableIdsIn(aliveEnemies, active.reach) : new Set<string>();
 
     const attackRules = selectionRulesOf({
         targeting: 'ENEMY',
@@ -127,42 +116,6 @@ export function FightTestScreen() {
         setLog([]);
     };
 
-    const teamPanel = (team: Fighter[], title: string) => (
-        <div className="pixel-panel">
-            <div className="pixel-title">{title}</div>
-            {(['front', 'center', 'back'] as Row[]).map((row) => {
-                const members = team.filter((f) => f.row === row);
-                return members.length === 0 ? null : (
-                    <div key={row}>
-                        <div className="row-banner">{ROW_TITLES[row]}</div>
-                        <div className="battle-grid cols-3" style={{ marginBottom: 6 }}>
-                            {members.map((fighter) => (
-                                <div
-                                    key={fighter.id}
-                                    className="pixel-cell"
-                                    style={{
-                                        width: 'auto',
-                                        height: 'auto',
-                                        padding: 6,
-                                        flexDirection: 'column',
-                                        gap: 2,
-                                        opacity: fighter.hp > 0 ? 1 : 0.45,
-                                    }}
-                                >
-                                    <span style={{ fontSize: 16 }}>{fighter.hp > 0 ? fighter.icon : '💀'}</span>
-                                    <span style={{ fontSize: 9 }}>{fighter.name}</span>
-                                    <span style={{ fontSize: 9, color: 'var(--muted)' }}>
-                                        {fighter.hp}/{fighter.maxHp} · 🎯 {fighter.reach}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-
     if (winner !== 'none') {
         return (
             <div className="newui-page pixel-font">
@@ -185,8 +138,16 @@ export function FightTestScreen() {
                         {phase === 'pick' && active ? `${active.name}'s turn — basic attack` : 'Pick a target'}
                     </div>
                 </div>
-                {teamPanel(enemies, 'Enemies')}
-                {teamPanel(allies, 'Your team')}
+                <Battlefield
+                    title="Enemies"
+                    units={enemies.map((f) => ({ ...f, sub: `🎯 ${f.reach}`, sprite: SPRITES[f.role] }))}
+                    selectedIds={new Set(selected)}
+                />
+                <Battlefield
+                    title="Your team"
+                    units={allies.map((f) => ({ ...f, sub: `🎯 ${f.reach}`, sprite: SPRITES[f.role] }))}
+                    activeId={active?.id}
+                />
                 {log.length > 0 ? (
                     <div className="pixel-panel">
                         <div className="pixel-title">Log</div>

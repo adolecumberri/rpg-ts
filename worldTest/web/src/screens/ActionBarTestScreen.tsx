@@ -4,6 +4,7 @@ import { OptionsBar } from '../components/UI/OptionsBar';
 import type { OptionSpec } from '../components/UI/OptionsBar';
 import { TargetBar } from '../components/UI/TargetBar';
 import type { TargetSpec } from '../components/UI/TargetBar';
+import { Battlefield } from '../components/UI/Battlefield';
 import type { ActionBarSize } from '../components/UI/ActionBar';
 import { selectionRulesOf, toggleTarget } from '../game/targeting';
 
@@ -70,12 +71,6 @@ const MANY_OPTIONS: OptionSpec[] = Array.from({ length: 12 }, (_, index) => ({
 type FlowPhase =
     | { kind: 'skills' }
     | { kind: 'targets'; skill: TestSkill; selected: string[] };
-
-const ROW_TITLES: Record<Dummy['row'], string> = {
-    front: '🛡️ Front',
-    center: '⚔️ Center',
-    back: '🏹 Back',
-};
 
 // The pickable pool for a targeting type.
 function poolFor(targeting: TargetSide): Dummy[] {
@@ -258,23 +253,20 @@ export function ActionBarTestScreen() {
                         <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 6 }}>
                             Spells (Cover, Cure, Fire Breath, Rally, Defend) default to reach 'all'.
                         </div>
-                        {(['front', 'center', 'back'] as Dummy['row'][]).map((row) => {
-                            const members = ENEMY_TEAM.filter((member) => member.row === row);
-                            return (
-                                <div key={row}>
-                                    <div className="row-banner">{ROW_TITLES[row]}</div>
-                                    <div className="battle-grid cols-3" style={{ marginBottom: 6 }}>
-                                        {members.map((member) => (
-                                            <div key={member.id} className="pixel-cell" style={{ width: 'auto', height: 'auto', padding: 6, fontSize: 14, flexDirection: 'column', gap: 2 }}>
-                                                <span style={{ fontSize: 16 }}>{member.icon}</span>
-                                                <span style={{ fontSize: 9 }}>{member.name}</span>
-                                                <span style={{ fontSize: 9, color: 'var(--muted)' }}>{member.hp}/20</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        <Battlefield
+                            title="Enemies"
+                            units={ENEMY_TEAM.map((member) => ({
+                                id: member.id,
+                                name: member.name,
+                                icon: member.icon,
+                                row: member.row,
+                                hp: member.hp,
+                                maxHp: 20,
+                            }))}
+                            selectedIds={
+                                phase.kind === 'targets' ? new Set(phase.selected) : new Set()
+                            }
+                        />
                     </div>
                 ) : null}
 

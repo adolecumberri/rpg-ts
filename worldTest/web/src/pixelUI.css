@@ -226,6 +226,81 @@
     margin-top: var(--s1);
 }
 
+/* A picked target: the panel cell mirrors the bar selection. */
+.pixel-cell--selected {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--accent), 0 0 0 var(--s1) rgba(245, 185, 66, 0.35);
+}
+
+/* The acting character: highlighted while it is their turn. */
+.pixel-cell--active {
+    border-color: var(--accent-2);
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--accent-2), 0 0 0 var(--s1) rgba(127, 140, 255, 0.35);
+}
+
+/* ---------------------------------------------------------------------------
+   The battle ficha (BattleCard): the isolated character card on the
+   battlefield, with an animated idle sprite when the unit has art.
+--------------------------------------------------------------------------- */
+.battle-card {
+    width: 100%;
+    height: auto;
+    padding: var(--s2) var(--s1);
+    flex-direction: column;
+    gap: calc(var(--s1) / 2);
+    font-size: var(--s3);
+}
+
+.battle-card--dead {
+    opacity: 0.45;
+}
+
+.battle-card-icon {
+    font-size: var(--s4);
+    line-height: 1;
+}
+
+.battle-card-name {
+    font-size: calc(var(--u) * 2.25);
+    line-height: 1.1;
+}
+
+.battle-card-sub {
+    font-size: calc(var(--u) * 2.25);
+    color: var(--muted);
+    line-height: 1.1;
+}
+
+/* The 64x16 idle sheet (4 frames of 16x16, side by side), rendered at
+   32x32 per frame with a stepped horizontal slide: 0, -32, -64, -96.
+   Fixed pixels in the keyframes (no var/calc): interpolating values
+   that depend on CSS variables can silently drop the steps() easing
+   and tween the slide instead of jumping between frames. */
+.battle-card-sprite {
+    width: 32px;
+    height: 32px;
+    background-size: calc(var(--s8) * 4) var(--s8);
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    image-rendering: pixelated;
+    animation: sprite-idle 0.8s steps(4) infinite;
+}
+
+.battle-card--dead .battle-card-sprite {
+    animation: none;
+    filter: grayscale(1);
+}
+
+@keyframes sprite-idle {
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        background-position: calc(var(--s8) * -4) 0;
+    }
+}
+
 /* Sprite size samples: 16, 32, 48, 64 on the unit ladder. */
 .sprite-sample {
     display: inline-flex;
