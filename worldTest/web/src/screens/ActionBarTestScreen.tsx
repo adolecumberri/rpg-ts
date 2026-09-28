@@ -38,27 +38,27 @@ const TEST_SKILLS: TestSkill[] = [
 ];
 
 // The acting character: its own page for SELF skills.
-const ACTOR: Dummy = { id: 'player', name: 'Player', icon: '🧑‍🌾', row: 'front', hp: 25 };
+const ACTOR: Dummy = { id: 'player', name: 'Player', icon: '🧑‍🌾', row: 'front', hp: 25, level: 1 };
 
-type Dummy = { id: string; name: string; icon: string; row: 'front' | 'center' | 'back'; hp: number };
+type Dummy = { id: string; name: string; icon: string; row: 'front' | 'center' | 'back'; hp: number; level: number };
 
 // The enemy team: nine dummies, three per row.
 const ENEMY_TEAM: Dummy[] = [
-    { id: 'd_f0', name: 'Front 1', icon: '👺', row: 'front', hp: 20 },
-    { id: 'd_f1', name: 'Front 2', icon: '👺', row: 'front', hp: 14 },
-    { id: 'd_f2', name: 'Front 3', icon: '👺', row: 'front', hp: 20 },
-    { id: 'd_c0', name: 'Center 1', icon: '👺', row: 'center', hp: 20 },
-    { id: 'd_c1', name: 'Center 2', icon: '👺', row: 'center', hp: 9 },
-    { id: 'd_c2', name: 'Center 3', icon: '👺', row: 'center', hp: 20 },
-    { id: 'd_b0', name: 'Back 1', icon: '👺', row: 'back', hp: 20 },
-    { id: 'd_b1', name: 'Back 2', icon: '👺', row: 'back', hp: 20 },
-    { id: 'd_b2', name: 'Back 3', icon: '👺', row: 'back', hp: 17 },
+    { id: 'd_f0', name: 'Front 1', icon: '👺', row: 'front', hp: 20, level: 1 },
+    { id: 'd_f1', name: 'Front 2', icon: '👺', row: 'front', hp: 14, level: 1 },
+    { id: 'd_f2', name: 'Front 3', icon: '👺', row: 'front', hp: 20, level: 1 },
+    { id: 'd_c0', name: 'Center 1', icon: '👺', row: 'center', hp: 20, level: 2 },
+    { id: 'd_c1', name: 'Center 2', icon: '👺', row: 'center', hp: 9, level: 2 },
+    { id: 'd_c2', name: 'Center 3', icon: '👺', row: 'center', hp: 20, level: 2 },
+    { id: 'd_b0', name: 'Back 1', icon: '👺', row: 'back', hp: 20, level: 3 },
+    { id: 'd_b1', name: 'Back 2', icon: '👺', row: 'back', hp: 20, level: 3 },
+    { id: 'd_b2', name: 'Back 3', icon: '👺', row: 'back', hp: 17, level: 3 },
 ];
 
 // Three allies; only the Player acts and carries the test skills.
 const ALLY_POOL: Dummy[] = [
-    { id: 'arturo', name: 'Arturo', icon: '✨', row: 'center', hp: 12 },
-    { id: 'archer_0', name: 'Archer 0', icon: '🏹', row: 'back', hp: 12 },
+    { id: 'arturo', name: 'Arturo', icon: '✨', row: 'center', hp: 12, level: 1 },
+    { id: 'archer_0', name: 'Archer 0', icon: '🏹', row: 'back', hp: 12, level: 1 },
 ];
 
 const MANY_OPTIONS: OptionSpec[] = Array.from({ length: 12 }, (_, index) => ({
@@ -262,6 +262,7 @@ export function ActionBarTestScreen() {
                                 row: member.row,
                                 hp: member.hp,
                                 maxHp: 20,
+                                level: member.level,
                             }))}
                             selectedIds={
                                 phase.kind === 'targets' ? new Set(phase.selected) : new Set()

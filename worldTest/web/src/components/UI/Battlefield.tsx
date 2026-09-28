@@ -13,6 +13,7 @@ export type BattleUnit = {
     row: 'front' | 'center' | 'back';
     hp: number;
     maxHp: number;
+    level?: number;
     // Extra line under the hp (reach, statuses...).
     sub?: string;
 };
@@ -40,29 +41,27 @@ export function Battlefield({
     activeId?: string;
 }) {
     return (
-        <div className="pixel-panel">
-            <div className="pixel-title">{title}</div>
+        <div className="battle-panel">
+            {/* <div className="pixel-title">{title}</div> */}
             {ROWS.map((row) => {
                 const members = units.filter((unit) => unit.row === row);
                 return members.length === 0 ? null : (
-                    <div key={row}>
-                        <div className="row-banner">{ROW_TITLES[row]}</div>
-                        <div className="battle-grid cols-3" style={{ marginBottom: 6 }}>
-                            {members.map((unit) => (
-                                <BattleCard
-                                    key={unit.id}
-                                    name={unit.name}
-                                    hp={unit.hp}
-                                    maxHp={unit.maxHp}
-                                    sub={unit.sub}
-                                    icon={unit.icon}
-                                    sprite={unit.sprite}
-                                    selected={selectedIds?.has(unit.id) ?? false}
-                                    active={unit.id === activeId}
-                                    dead={unit.hp <= 0}
-                                />
-                            ))}
-                        </div>
+                    <div className="battle-grid cols-3" style={{ marginBottom: 6 }}>
+                        {members.map((unit) => (
+                            <BattleCard
+                                key={unit.id}
+                                name={unit.name}
+                                hp={unit.hp}
+                                maxHp={unit.maxHp}
+                                sub={unit.sub}
+                                icon={unit.icon}
+                                sprite={unit.sprite}
+                                level={unit.level}
+                                selected={selectedIds?.has(unit.id) ?? false}
+                                active={unit.id === activeId}
+                                dead={unit.hp <= 0}
+                            />
+                        ))}
                     </div>
                 );
             })}

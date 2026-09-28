@@ -17,20 +17,21 @@ type Fighter = {
     row: Row;
     hp: number;
     maxHp: number;
+    level: number;
     power: number;
     reach: 'short' | 'long' | 'all';
 };
 
 const ALLY_START: Fighter[] = [
-    { id: 'a_warrior', name: 'Warrior', icon: '⚔️', role: 'warrior', row: 'front', hp: 30, maxHp: 30, power: 8, reach: 'short' },
-    { id: 'a_mage', name: 'Mage', icon: '✨', role: 'mage', row: 'center', hp: 20, maxHp: 20, power: 5, reach: 'long' },
-    { id: 'a_archer', name: 'Archer', icon: '🏹', role: 'archer', row: 'back', hp:22, maxHp: 22, power: 6, reach: 'all' },
+    { id: 'a_warrior', name: 'Warrior', icon: '⚔️', role: 'warrior', row: 'front', hp: 30, maxHp: 30, level: 1, power: 8, reach: 'short' },
+    { id: 'a_mage', name: 'Mage', icon: '✨', role: 'mage', row: 'center', hp: 20, maxHp: 20, level: 1, power: 5, reach: 'long' },
+    { id: 'a_archer', name: 'Archer', icon: '🏹', role: 'archer', row: 'back', hp: 22, maxHp: 22, level: 1, power: 6, reach: 'all' },
 ];
 
 const ENEMY_START: Fighter[] = [
-    { id: 'e_warrior', name: 'Warrior', icon: '⚔️', role: 'warrior', row: 'front', hp: 30, maxHp: 30, power: 8, reach: 'short' },
-    { id: 'e_mage', name: 'Mage', icon: '✨', role: 'mage', row: 'center', hp: 20, maxHp: 20, power: 5, reach: 'long' },
-    { id: 'e_archer', name: 'Archer', icon: '🏹', role: 'archer', row: 'back', hp: 22, maxHp: 22, power: 6, reach: 'all' },
+    { id: 'e_warrior', name: 'Warrior', icon: '⚔️', role: 'warrior', row: 'front', hp: 30, maxHp: 30, level: 2, power: 8, reach: 'short' },
+    { id: 'e_mage', name: 'Mage', icon: '✨', role: 'mage', row: 'center', hp: 20, maxHp: 20, level: 2, power: 5, reach: 'long' },
+    { id: 'e_archer', name: 'Archer', icon: '🏹', role: 'archer', row: 'back', hp: 22, maxHp: 22, level: 2, power: 6, reach: 'all' },
 ];
 
 type Phase = 'pick' | 'targets';
@@ -133,31 +134,22 @@ export function FightTestScreen() {
     return (
         <div className="action-bar-demo pixel-font">
             <div className="action-bar-demo-content">
-                <div className="pixel-panel">
+                {/* <div className="pixel-panel">
                     <div className="pixel-title">
                         {phase === 'pick' && active ? `${active.name}'s turn — basic attack` : 'Pick a target'}
                     </div>
-                </div>
+                </div> */}
                 <Battlefield
                     title="Enemies"
-                    units={enemies.map((f) => ({ ...f, sub: `🎯 ${f.reach}`, sprite: SPRITES[f.role] }))}
+                    units={enemies.map((f) => ({ ...f, sub: `🎯 ${f.reach}`, sprite: SPRITES[f.role], level: f.level }))}
                     selectedIds={new Set(selected)}
                 />
                 <Battlefield
                     title="Your team"
-                    units={allies.map((f) => ({ ...f, sub: `🎯 ${f.reach}`, sprite: SPRITES[f.role] }))}
+                    units={allies.map((f) => ({ ...f, sub: `🎯 ${f.reach}`, sprite: SPRITES[f.role], level: f.level }))}
                     activeId={active?.id}
                 />
-                {log.length > 0 ? (
-                    <div className="pixel-panel">
-                        <div className="pixel-title">Log</div>
-                        {log.map((line, index) => (
-                            <div key={index} style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
-                                {line}
-                            </div>
-                        ))}
-                    </div>
-                ) : null}
+
             </div>
 
             {phase === 'targets' && active ? (

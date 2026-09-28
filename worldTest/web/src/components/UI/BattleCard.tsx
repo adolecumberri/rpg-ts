@@ -12,6 +12,7 @@ export function BattleCard({
     sub,
     icon,
     sprite,
+    level,
     selected,
     active,
     dead,
@@ -23,6 +24,7 @@ export function BattleCard({
     icon?: string;
     // Sprite sheet URL (4 idle frames side by side, 16x16 each).
     sprite?: string;
+    level?: number;
     selected?: boolean;
     active?: boolean;
     dead?: boolean;
@@ -32,24 +34,26 @@ export function BattleCard({
             className={[
                 'pixel-cell battle-card',
                 selected ? 'pixel-cell--selected' : '',
-                active ? 'pixel-cell--active' : '',
                 dead ? 'battle-card--dead' : '',
             ].join(' ')}
         >
+            <span className="battle-card-sub">
+                {level !== undefined ? `Lv ${level}` : ''}
+            </span>
             {dead ? (
                 <span className="battle-card-icon">💀</span>
             ) : sprite ? (
                 <div
-                    className="battle-card-sprite"
+                    className={["battle-card-sprite",
+                        active ? 'battle-card-sprite--active' : '',].join(' ')}
                     style={{ backgroundImage: `url(${sprite})` }}
                 />
             ) : (
                 <span className="battle-card-icon">{icon ?? '❔'}</span>
             )}
-            <span className="battle-card-name">{name}</span>
+            {/* <span className="battle-card-name">{name}</span> */}
             <span className="battle-card-sub">
                 {hp}/{maxHp}
-                {sub ? ` · ${sub}` : ''}
             </span>
         </div>
     );
