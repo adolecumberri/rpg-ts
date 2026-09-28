@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { reachableIdsIn } from '../components/UI/Battlefield';
 import { Battlefield } from '../components/UI/Battlefield';
+import { FloatingDamageLayer } from '../components/UI/FloatingDamage';
+import type { DamageKind, FloatingHit } from '../components/UI/FloatingDamage';
 import { OptionsBar } from '../components/UI/OptionsBar';
 import { TargetBar } from '../components/UI/TargetBar';
 import { selectionRulesOf } from '../game/targeting';
@@ -40,7 +42,9 @@ type Phase = 'pick' | 'targets';
  * The rebuilt fight section (UI prototype): a 3 vs 3 with one warrior,
  * one mage and one archer per team, basic attacks only. The active
  * ally picks a target through the shared bars (reach respected); then
- * a random enemy strikes back and the turn passes.
+ * a random enemy strikes back and the turn passes. Floating damage
+ * numbers rise over the hit cards, and the victory/defeat screen waits
+ * for the last number before swapping.
  */
 export function FightTestScreen() {
     const [allies, setAllies] = useState<Fighter[]>(() => ALLY_START.map((f) => ({ ...f })));
@@ -50,8 +54,48 @@ export function FightTestScreen() {
     const [selected, setSelected] = useState<string[]>([]);
     const [winner, setWinner] = useState<'none' | 'player' | 'enemy'>('none');
     const [log, setLog] = useState<string[]>([]);
+    const [hits, setHits] = useState<FloatingHit[]>([]);
+
+    const pageRef = useRef<HTMLDivElement | null>(null);
+    const hitIdRef = useRef(0);
+    // While a victory/defeat is queued, the battle is frozen so the
+    // final floating number finishes its animation before the swap.
+    const winTimerRef = useRef<number | null>(null);
 
     const logLine = (text: string) => setLog((lines) => [text, ...lines].slice(0, 6));
+
+    const removeHit = (id: number) => setHits((prev) => prev.filter((hit) => hit.id !== id));
+
+    // A rising number over one card, positioned relative to the page
+    // (the FloatingDamageLayer's box) — same pattern as the stress fight.
+    const spawnHit = (targetId: string, amount: number, kind: DamageKind) => {
+        const page = pageRef.current;
+        if (!page) return;
+        const cell = document.querySelector(`[data-unit-id="${targetId}"]`);
+        if (!cell) return;
+        const pageRect = page.getBoundingClientRect();
+        const rect = cell.getBoundingClientRect();
+        setHits((prev) => [
+            ...prev,
+            {
+                id: ++hitIdRef.current,
+                amount: Math.round(amount),
+                kind,
+                x: rect.left - pageRect.left + rect.width / 2,
+                y: rect.top - pageRect.top + 8,
+            },
+        ].slice(-40));
+    };
+
+    // The winner screen waits ~one float animation (0.8s) so the last
+    // damage number is visible before the tree swaps.
+    const declareWinner = (side: 'player' | 'enemy') => {
+        if (winTimerRef.current !== null) window.clearTimeout(winTimerRef.current);
+        winTimerRef.current = window.setTimeout(() => {
+            winTimerRef.current = null;
+            setWinner(side);
+        }, 900);
+    };
 
     const aliveAllies = allies.filter((f) => f.hp > 0);
     const aliveEnemies = enemies.filter((f) => f.hp > 0);
@@ -66,7 +110,7 @@ export function FightTestScreen() {
     });
 
     const commit = (enemyId: string) => {
-        if (!active) return;
+        if (!active || winTimerRef.current !== null) return;
         const enemy = enemies.find((entry) => entry.id === enemyId);
         if (!enemy) return;
 
@@ -74,12 +118,13 @@ export function FightTestScreen() {
             entry.id === enemyId ? { ...entry, hp: Math.max(0, entry.hp - active.power) } : entry,
         ));
         logLine(`${active.name} hits ${enemy.name} for ${active.power}`);
+        spawnHit(enemyId, active.power, 'physical');
 
         const remaining = enemies.filter((entry) =>
             entry.id === enemyId ? enemy.hp - active.power > 0 : entry.hp > 0,
         );
         if (remaining.length === 0) {
-            setWinner('player');
+            declareWinner('player');
             setPhase('pick');
             return;
         }
@@ -92,12 +137,13 @@ export function FightTestScreen() {
             entry.id === victim.id ? { ...entry, hp: Math.max(0, entry.hp - striker.power) } : entry,
         ));
         logLine(`${striker.name} hits ${victim.name} for ${striker.power}`);
+        spawnHit(victim.id, striker.power, 'physical');
 
         const survivors = allies.filter((entry) =>
             entry.id === victim.id ? victim.hp - striker.power > 0 : entry.hp > 0,
         );
         if (survivors.length === 0) {
-            setWinner('enemy');
+            declareWinner('enemy');
             setPhase('pick');
             return;
         }
@@ -108,6 +154,8 @@ export function FightTestScreen() {
     };
 
     const rematch = () => {
+        if (winTimerRef.current !== null) window.clearTimeout(winTimerRef.current);
+        winTimerRef.current = null;
         setAllies(ALLY_START.map((f) => ({ ...f })));
         setEnemies(ENEMY_START.map((f) => ({ ...f })));
         setTurn(0);
@@ -115,6 +163,7 @@ export function FightTestScreen() {
         setSelected([]);
         setWinner('none');
         setLog([]);
+        setHits([]);
     };
 
     if (winner !== 'none') {
@@ -132,7 +181,8 @@ export function FightTestScreen() {
     }
 
     return (
-        <div className="action-bar-demo pixel-font">
+        <div className="action-bar-demo pixel-font" ref={pageRef} style={{ position: 'relative' }}>
+            <FloatingDamageLayer hits={hits} onDone={removeHit} />
             <div className="action-bar-demo-content">
                 {/* <div className="pixel-panel">
                     <div className="pixel-title">

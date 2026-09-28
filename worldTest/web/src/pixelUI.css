@@ -42,6 +42,9 @@
 
     --s36: calc(var(--u) * 36);
 
+    /* los battlefield. */
+    --s40: calc(var(--u) * 40);
+
     --s48: calc(var(--u) * 48);
 
     /* for the main container. */
@@ -140,6 +143,20 @@
     padding: var(--s2);
     display: flex;
     flex-direction: row;
+    width: var(--s40);
+}
+
+.battle-panel-right {
+    padding-right: 0px;
+
+    flex-direction: row-reverse;
+    transform: scale(-1, 1);
+
+}
+
+.battle-panel-left {
+    padding-left: 0px;
+    flex-direction: row-reverse;
 }
 
 .pixel-btn {
@@ -237,6 +254,12 @@
     margin-top: var(--s1);
 }
 
+.battle-card--shrink {
+    height: var(--s8);
+    width: var(--s8);
+    margin-top: calc(var(--s1) * -1);
+}
+
 /* A picked target: the panel cell mirrors the bar selection. */
 .pixel-cell--selected {
     border-color: var(--accent);
@@ -295,8 +318,8 @@
 }
 
 .battle-card-sprite--active {
-    filter:
-        drop-shadow(0 0 4px #bcdfdf) drop-shadow(0 0 12px #f6ff00) drop-shadow(0 0 25px #e5ff00);
+    filter: drop-shadow(0 0 2px #bcdfdf);
+    /* drop-shadow(0 0 4px #bcdfdf) drop-shadow(0 0 12px #f6ff00) drop-shadow(0 0 25px #e5ff00); */
 }
 
 @keyframes sprite-idle {
@@ -307,6 +330,13 @@
     100% {
         background-position: calc(var(--s8) * -4) 0;
     }
+}
+
+.battle-grid-pixel {
+    display: grid;
+    align-content: start;
+    justify-items: center;
+    grid-template-columns: repeat(2, var(--s6));
 }
 
 /* Sprite size samples: 16, 32, 48, 64 on the unit ladder. */
@@ -400,7 +430,7 @@
 
 .newui-body {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: hidden;
     overflow-x: hidden;
 }
 
@@ -409,7 +439,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--s2);
-    padding: var(--s2);
+    /* padding: var(--s2); */
 }
 
 /* ---------------------------------------------------------------------------
@@ -655,4 +685,150 @@
     overflow-y: auto;
     display: flex;
     min-height: var(--s100);
+}
+
+/* ---------------------------------------------------------------------------
+   Floating damage: absolute objects that rise and fade over the target.
+--------------------------------------------------------------------------- */
+.floating-damage-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 8;
+}
+
+.floating-damage {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-size: var(--s3);
+    font-weight: 700;
+    text-shadow: calc(var(--s1) / 2) calc(var(--s1) / 2) 0 #000;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: float-damage 0.8s ease-out forwards;
+}
+
+/* Colors per damage kind (refined when the damage-type pass lands). */
+.floating-damage--physical {
+    color: #ffffff;
+}
+
+.floating-damage--magical {
+    color: #7f8cff;
+}
+
+.floating-damage--true {
+    color: #f5b942;
+}
+
+.floating-damage--heal {
+    color: #66bb6a;
+}
+
+@keyframes float-damage {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% - var(--s6)));
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Fight gen (the generic Fight + ArmySetup): the fight page fills the
+   whole body; in actions mode the arena is the fixed area between the
+   top and the pinned action menu (the header lives outside, in the
+   router). The winner overlay covers the battle while staying under
+   the modals. Pixel-styled number inputs for the army form.
+--------------------------------------------------------------------------- */
+.fight-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.fight-arena {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Actions fights: the arena splits in two fixed half-page panels (one
+   team each) with the full-size fichas laid out in adaptive rows. */
+.fight-arena--actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    overflow: hidden;
+}
+
+.actions-panel {
+    flex: 1 1 50%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    overflow-y: auto;
+    background: var(--card-2);
+    box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s1) var(--s1) 0 rgba(0, 0, 0, 0.55);
+    padding: var(--s2);
+}
+
+.actions-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 var(--s2);
+    flex: none;
+}
+
+.fight-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 10;
+}
+
+.pixel-input {
+    font-family: inherit;
+    font-size: var(--s3);
+    height: var(--s10);
+    background: var(--card);
+    color: var(--text);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 var(--s1) var(--border);
+    padding: 0 var(--s2);
+    width: var(--s14);
+    box-sizing: border-box;
+}
+
+.pixel-input:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 var(--s1) var(--accent);
+}
+
+.army-line {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    margin-bottom: var(--s2);
+    padding: var(--s1) var(--s2);
+    background: var(--card);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
+    font-size: var(--s3);
+}
+
+.army-line-text {
+    flex: 1;
+}
+
+.army-line-row {
+    color: var(--muted);
 }

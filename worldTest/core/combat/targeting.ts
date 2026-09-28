@@ -1,5 +1,5 @@
 import type { Character } from '../../../src';
-import { positionTauntMultiplier } from '../../../src/constants/team.constants';
+import { positionTauntVariation } from '../../../src/constants/team.constants';
 
 // ---------------------------------------------------------------------------
 // Weighted target picking for auto battles. The library's IntervalCombat
@@ -18,7 +18,7 @@ import { positionTauntMultiplier } from '../../../src/constants/team.constants';
 export function tauntOf(character: Character): number {
     const value = character.getStat('taunt');
     const base = Number.isFinite(value) && value > 0 ? value : 1;
-    return base * positionTauntMultiplier(character.position);
+    return base * positionTauntVariation(character.position);
 }
 
 /**

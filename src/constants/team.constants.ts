@@ -21,6 +21,6 @@ export const POSITION_TAUNT_MULTIPLIERS: Record<TeamPosition, number> = {
  * so legacy data (or content typos) behave like the back row instead of
  * breaking the targeting math.
  */
-export function positionTauntMultiplier(position: TeamPosition): number {
+export function positionTauntVariation(position: TeamPosition): number {
     return POSITION_TAUNT_MULTIPLIERS[position] ?? 1;
 }

@@ -1,5 +1,5 @@
 import { Character } from '../Character';
-import { positionTauntMultiplier } from '../../constants/team.constants';
+import { positionTauntVariation } from '../../constants/team.constants';
 
 export type IntervalCombatSide = 'left' | 'right';
 
@@ -291,7 +291,7 @@ export class IntervalCombat {
     private tauntOf(character: Character): number {
         const value = character.getStat('taunt');
         const base = Number.isFinite(value) && value > 0 ? value : 1;
-        return base * positionTauntMultiplier(character.position);
+        return base + positionTauntVariation(character.position);
     }
 
     /**

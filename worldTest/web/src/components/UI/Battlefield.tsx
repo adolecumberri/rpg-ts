@@ -8,12 +8,15 @@ export type BattleUnit = {
     id: string;
     name: string;
     icon?: string;
-    // Sprite sheet URL (4 idle frames) when the unit has art.
-    sprite?: string;
+    // A single idle sheet URL, or the unit's own animation set (idle +
+    // attack). The unit owns its references.
+    sprite?: string | { idle: string; attack?: string };
     row: 'front' | 'center' | 'back';
     hp: number;
     maxHp: number;
     level?: number;
+    // While true the ficha plays the one-shot attack animation.
+    attacking?: boolean;
     // Extra line under the hp (reach, statuses...).
     sub?: string;
 };
@@ -34,19 +37,23 @@ export function Battlefield({
     units,
     selectedIds,
     activeId,
+    shrink = false,
+    side,
 }: {
     title: string;
     units: BattleUnit[];
     selectedIds?: Set<string>;
     activeId?: string;
+    shrink?: boolean;
+    side?: 'left' | 'right';
 }) {
     return (
-        <div className="battle-panel">
+        <div className={`battle-panel battle-panel-${side}`} >
             {/* <div className="pixel-title">{title}</div> */}
             {ROWS.map((row) => {
                 const members = units.filter((unit) => unit.row === row);
                 return members.length === 0 ? null : (
-                    <div className="battle-grid cols-3" style={{ marginBottom: 6 }}>
+                    <div className="battle-grid-pixel" style={{ marginBottom: 6 }}>
                         {members.map((unit) => (
                             <BattleCard
                                 key={unit.id}
@@ -60,6 +67,9 @@ export function Battlefield({
                                 selected={selectedIds?.has(unit.id) ?? false}
                                 active={unit.id === activeId}
                                 dead={unit.hp <= 0}
+                                shrink={shrink}
+                                attacking={unit.attacking}
+                                dataId={unit.id}
                             />
                         ))}
                     </div>
