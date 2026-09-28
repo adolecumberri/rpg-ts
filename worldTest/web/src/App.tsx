@@ -22,7 +22,6 @@ import { MissionsScreen } from './screens/MissionsScreen';
 import { LookAroundScreen } from './screens/LookAroundScreen';
 import { FountainScreen } from './screens/FountainScreen';
 import { SaveScreen } from './screens/SaveScreen';
-import { UiScreen } from './screens/UiScreen';
 import { NewUiRouter } from './screens/NewUiRouter';
 import type { ReactNode } from 'react';
 
@@ -59,7 +58,6 @@ function Header() {
     else if (route.name === 'lookaround') title = 'Look Around';
     else if (route.name === 'fountain') title = 'Fountain';
     else if (route.name === 'savedata') title = 'Save File';
-    else if (route.name === 'ui') title = 'UI Kit';
 
     return (
         <div className="header">
@@ -175,8 +173,6 @@ function Router() {
             return <FountainScreen />;
         case 'savedata':
             return <SaveScreen />;
-        case 'ui':
-            return <UiScreen />;
         default:
             return <PlaceScreen />;
     }

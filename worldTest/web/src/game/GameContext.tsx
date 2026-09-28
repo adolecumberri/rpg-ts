@@ -36,8 +36,7 @@ export type Route =
     | { name: 'interval' }
     | { name: 'lookaround' }
     | { name: 'fountain' }
-    | { name: 'savedata' }
-    | { name: 'ui' };
+    | { name: 'savedata' };
 
 type GameApi = {
     session: WorldSession;

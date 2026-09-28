@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import { UiScreen } from './UiScreen';
-import { ModalTestScreen } from './ModalTestScreen';
 import { ActionBarTestScreen } from './ActionBarTestScreen';
-import { FightTestScreen } from './FightTestScreen';
 import { StressFightScreen } from './StressFightScreen';
 import { FightGenScreen } from './FightGenScreen';
 import { Modal } from '../components/UI/Modal';
@@ -15,10 +12,7 @@ import { Modal } from '../components/UI/Modal';
  * opens a modal that lists the test screens as rows.
  */
 const PAGES = [
-    { id: 'kit', label: 'Kit' },
-    { id: 'modal', label: 'Modal' },
     { id: 'actions', label: 'Actions' },
-    { id: 'fight', label: 'Fight' },
     { id: 'stress', label: 'Stress 80v80' },
     { id: 'fightgen', label: 'Fight Gen' },
 ] as const;
@@ -26,7 +20,7 @@ const PAGES = [
 type PageId = typeof PAGES[number]['id'];
 
 export function NewUiRouter() {
-    const [page, setPage] = useState<PageId>('kit');
+    const [page, setPage] = useState<PageId>('fightgen');
     const [menuOpen, setMenuOpen] = useState(false);
 
     const exitToGame = () => {
@@ -53,10 +47,7 @@ export function NewUiRouter() {
             </div>
 
             <div className="newui-body">
-                {page === 'kit' ? <UiScreen /> : null}
-                {page === 'modal' ? <ModalTestScreen /> : null}
                 {page === 'actions' ? <ActionBarTestScreen /> : null}
-                {page === 'fight' ? <FightTestScreen /> : null}
                 {page === 'stress' ? <StressFightScreen /> : null}
                 {page === 'fightgen' ? <FightGenScreen /> : null}
             </div>
