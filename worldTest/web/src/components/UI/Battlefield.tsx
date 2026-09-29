@@ -47,6 +47,10 @@ export function Battlefield({
     shrink?: boolean;
     side?: 'left' | 'right';
 }) {
+
+    if (side) {
+
+    }
     return (
         <div className={`battle-panel battle-panel-${side}`} >
             {/* <div className="pixel-title">{title}</div> */}

@@ -15,7 +15,8 @@ describe('act 1 world', () => {
         const player = session.team.getCharacter('player')!;
         expect(player.name).toBe('Player');
         expect(player.equipment.get('bag')?.id).toBe('sack');
-        expect(player.equipment.get('armor')?.id).toBe('farmer_outfit');
+        // The outfit lives in the loadout's clothes slot.
+        expect(player.loadout?.clothes?.id).toBe('farmer_outfit');
 
         // 5 base slots + the sack's 5 = 10.
         expect(inventoryCapacity(session.team)).toBe(INVENTORY.baseSlots + 5);
@@ -80,16 +81,11 @@ describe('act 1 world', () => {
         expect(session.doTask({ itemId: 'hay', quantity: 1 }).ok).toBe(true);
         expect(session.team.inventory.getItemSlotByItemId('wood')?.totalQuantity).toBe(1);
 
-        // 10 slots: fill the remaining 8 with distinct items, then a new
-        // type must be refused.
-        for (let index = 0; index < 8; index++) {
-            expect(session.doTask({ itemId: `filler_${index}`, quantity: 1 }).ok).toBe(false); // unknown item
-        }
-        // register distinct items instead
-        for (let index = 0; index < 8; index++) {
-            session.itemTable.register({ id: `filler_${index}`, name: `Filler ${index}`, category: 'utility' });
-            expect(session.doTask({ itemId: `filler_${index}`, quantity: 1 }).ok).toBe(true);
-        }
+        // 10 slots: the seeded test bag takes 7 (sword, bow, staff,
+        // outfit, helmet, necklace, shield) plus wood and hay — one free
+        // slot left; a second new item type is refused.
+        session.itemTable.register({ id: 'filler_0', name: 'Filler 0', category: 'utility' });
+        expect(session.doTask({ itemId: 'filler_0', quantity: 1 }).ok).toBe(true);
 
         const full = session.doTask({ itemId: 'wood', quantity: 1 });
         expect(full.ok).toBe(true); // wood stacks into its existing slot

@@ -7,6 +7,7 @@ import { DAMAGE_TYPES, MITIGATION } from '../config/damage';
 import { FATIGUE, gainFatigue } from '../combat/fatigue';
 import { rampGatePower } from '../combat/ramp';
 import { consumeCover, coverOf, takeCoveredHit } from '../combat/cover';
+import { equippedItemsOf } from '../equipment/loadout';
 
 export type GeneralAttackOutcome = {
     damage: number;
@@ -176,7 +177,7 @@ export function resolveGeneralAttack(
 ): GeneralAttackOutcome {
     let components = attackComponentsOf(attacker);
 
-    for (const item of attacker.equipment.getEquippedItems()) {
+    for (const item of equippedItemsOf(attacker)) {
         const hook = item.definition.onAttack;
         if (hook) {
             components = hook({ attacker, defender, item, components });
@@ -221,7 +222,7 @@ export function resolveGeneralAttack(
     // real damage: reactions that block it (Parry sets damage to 0)
     // prevent them from ever running.
     if (damage > 0) {
-        for (const item of attacker.equipment.getEquippedItems()) {
+        for (const item of equippedItemsOf(attacker)) {
             const hook = item.definition.onHit;
             if (hook) {
                 hook({ attacker, defender, item, damage });

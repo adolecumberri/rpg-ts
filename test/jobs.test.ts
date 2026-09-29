@@ -142,9 +142,11 @@ describe('job assignment', () => {
         expect(result.message).toContain('Unequipped: Sword');
         expect(session.roster.character('soldier_0')!.equipment.get('weapon')).toBeUndefined();
 
-        // The sword is back in the shared inventory as available.
+        // The sword is back in the shared inventory as available (the
+        // test bag seeds two swords: one worn by the player's loadout,
+        // the returned copy available again).
         const slot = session.team.inventory.getItemSlotByItemId('sword');
-        expect(slot?.totalQuantity).toBe(1);
+        expect(slot?.totalQuantity).toBe(2);
         expect(slot?.quantity).toBe(1);
 
         // Non-weapon slots stay untouched.

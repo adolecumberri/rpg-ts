@@ -18,11 +18,14 @@ export function Modal({
     open,
     onClose,
     children,
+    size = 'default',
 }: {
     title: string;
     open: boolean;
     onClose: () => void;
     children: ReactNode;
+    // 'lg' fills almost the whole canvas (tall lists like the inventory).
+    size?: 'default' | 'lg';
 }) {
     const [layer, setLayer] = useState(0);
 
@@ -42,7 +45,12 @@ export function Modal({
     return (
         <>
             <div className="pixel-modal-overlay" style={style} onClick={onClose} />
-            <div className="pixel-modal" style={style} role="dialog" aria-label={title}>
+            <div
+                className={`pixel-modal${size === 'lg' ? ' pixel-modal--lg' : ''}`}
+                style={style}
+                role="dialog"
+                aria-label={title}
+            >
                 <div className="pixel-modal-header">
                     <span className="pixel-modal-title">{title}</span>
                     <button

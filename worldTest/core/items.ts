@@ -71,6 +71,7 @@ DEFAULT_ITEM_TABLE.register({
     name: 'Farmer Outfit',
     category: 'armor',
     slot: 'armor',
+    loadoutSlot: 'clothes',
     description: 'Simple clothes that keep the sun off.',
     effects: [{ stat: 'defence', typeOfModification: 'BUFF_FIXED', value: 1 }],
     buyValue: 10,
@@ -124,6 +125,8 @@ DEFAULT_ITEM_TABLE.register({
     name: 'Sword',
     category: 'weapon',
     slot: 'weapon',
+    loadoutSlot: 'weapon',
+    arms: 1,
     description: "An Order soldier's blade. +4 attack. Short reach.",
     effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 4 }],
     rangeOf: 'short',
@@ -135,6 +138,8 @@ DEFAULT_ITEM_TABLE.register({
     name: 'Bow',
     category: 'weapon',
     slot: 'weapon',
+    loadoutSlot: 'weapon',
+    arms: 2,
     description: "An archer's bow. +3 attack. Long reach: every row.",
     effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 3 }],
     rangeOf: 'all',
@@ -146,9 +151,47 @@ DEFAULT_ITEM_TABLE.register({
     name: 'Mage Staff',
     category: 'weapon',
     slot: 'weapon',
+    loadoutSlot: 'weapon',
+    arms: 1,
     description: "A healer's focus. +1 attack and +5 magic damage. Long reach.",
     effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 1 }],
     elements: [{ element: 'arcane', attackValue: 5 }],
     rangeOf: 'long',
     weaponType: 'staff',
+});
+
+DEFAULT_ITEM_TABLE.register({
+    id: 'helmet',
+    name: 'Helmet',
+    category: 'armor',
+    slot: 'armor',
+    loadoutSlot: 'helmet',
+    description: 'A simple iron cap. +1 defence.',
+    effects: [{ stat: 'defence', typeOfModification: 'BUFF_FIXED', value: 1 }],
+    buyValue: 20,
+    sellValue: 10,
+});
+
+DEFAULT_ITEM_TABLE.register({
+    id: 'shield',
+    name: 'Shield',
+    category: 'armor',
+    slot: 'armor',
+    loadoutSlot: 'offhand',
+    description: 'A wooden round shield. +3 defence. Needs a one-handed weapon.',
+    effects: [{ stat: 'defence', typeOfModification: 'BUFF_FIXED', value: 3 }],
+    buyValue: 25,
+    sellValue: 12,
+});
+
+DEFAULT_ITEM_TABLE.register({
+    id: 'necklace',
+    name: 'Necklace',
+    category: 'equipment',
+    slot: 'accessory',
+    loadoutSlot: 'accessory',
+    description: 'A lucky charm. +1 defence.',
+    effects: [{ stat: 'defence', typeOfModification: 'BUFF_FIXED', value: 1 }],
+    buyValue: 15,
+    sellValue: 7,
 });

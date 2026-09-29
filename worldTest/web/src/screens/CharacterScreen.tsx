@@ -29,13 +29,13 @@ const SLOTS: { slot: EquipmentSlot; label: string }[] = [
 ];
 
 const STAT_HINTS: Record<string, string> = {
-    Attack: 'Attack: the base physical damage of your hits.',
-    Defence: 'Defence: mitigates physical damage with 50/(50+defence).',
-    'Magic Def': 'Magic Defence: mitigates magical damage with 50/(50+magicDefence).',
-    Speed: 'Speed: acts earlier in the round, and more often in the interval battle.',
-    Magic: 'Magic: added to every magical damage component of your attacks.',
-    'Crit Chance': 'Crit Chance: percent chance that a physical hit becomes a crit.',
-    'Crit Multiplier': 'Crit Multiplier: how much a crit multiplies the damage (×2).',
+    'Atq. físico': 'Atq. físico: the base physical damage of your hits.',
+    'Def. física': 'Def. física: mitigates physical damage with 50/(50+defence).',
+    'Def. mágica': 'Def. mágica: mitigates magical damage with 50/(50+magicDefence).',
+    'Rapidez': 'Rapidez: acts earlier in the round, and more often in the interval battle.',
+    'Poder mágico': 'Poder mágico: added to every magical damage component of your attacks.',
+    'Crit.': 'Crit.: percent chance that a physical hit becomes a crit.',
+    'Crit. Mult.': 'Crit. Mult.: how much a crit multiplies the damage (×2).',
 };
 
 export function CharacterScreen({ characterId }: { characterId: string }) {
@@ -66,13 +66,13 @@ export function CharacterScreen({ characterId }: { characterId: string }) {
         .filter((spec): spec is SkillSpec => Boolean(spec));
 
     const stats = [
-        { icon: '⚔️', label: 'Attack', value: `${Math.round(character.getStat('attack'))}` },
-        { icon: '🛡️', label: 'Defence', value: `${Math.round(character.getStat('defence'))}` },
-        { icon: '🔮', label: 'Magic Def', value: `${Math.round(character.getStat('magicDefence'))}` },
-        { icon: '⚡', label: 'Speed', value: `${Math.round(character.getStat('speed'))}` },
-        { icon: '✨', label: 'Magic', value: `${Math.round(character.getStat('magic'))}` },
-        { icon: '🎯', label: 'Crit Chance', value: `${Math.round(character.getStat('critChance'))}%` },
-        { icon: '💥', label: 'Crit Multiplier', value: `×${character.getStat('critMultiplier')}` },
+        { icon: '⚔️', label: 'Atq. físico', value: `${Math.round(character.getStat('attack'))}` },
+        { icon: '🛡️', label: 'Def. física', value: `${Math.round(character.getStat('defence'))}` },
+        { icon: '🔮', label: 'Def. mágica', value: `${Math.round(character.getStat('magicDefence'))}` },
+        { icon: '⚡', label: 'Rapidez', value: `${Math.round(character.getStat('speed'))}` },
+        { icon: '✨', label: 'Poder mágico', value: `${Math.round(character.getStat('magic'))}` },
+        { icon: '🎯', label: 'Crit.', value: `${Math.round(character.getStat('critChance'))}%` },
+        { icon: '💥', label: 'Crit. Mult.', value: `×${character.getStat('critMultiplier')}` },
     ];
 
     const heldJob = heldJobOf(character);

@@ -20,3 +20,16 @@ export const SPRITES: Record<'archer' | 'mage' | 'warrior', SpriteSet> = {
 };
 
 export type SpriteRole = keyof typeof SPRITES;
+
+// A job renders with its class sprite (roster/team screens show the
+// idle loop): soldier → warrior, healer → mage, etc.
+export const JOB_SPRITE_ROLES: Record<string, SpriteRole> = {
+    soldier: 'warrior',
+    archer: 'archer',
+    healer: 'mage',
+    adventurer: 'warrior',
+};
+
+export function spriteRoleOfJob(jobId?: string): SpriteRole | undefined {
+    return jobId ? JOB_SPRITE_ROLES[jobId] : undefined;
+}

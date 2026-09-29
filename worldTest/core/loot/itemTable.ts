@@ -30,6 +30,11 @@ export type ItemTableEntry = {
     rangeOf?: 'short' | 'long' | 'all';
     // The weapon type a Job must allow to wield this (sword/bow/staff).
     weaponType?: 'sword' | 'bow' | 'staff';
+    // The loadout slot the item occupies (weapon/offhand/helmet/
+    // clothes/accessory).
+    loadoutSlot?: 'weapon' | 'offhand' | 'helmet' | 'clothes' | 'accessory';
+    // How many arms a weapon occupies: 1 = one-handed, 2 = two-handed.
+    arms?: 1 | 2;
     onEquip?: (self: Item, target: Character) => void;
     onUnEquip?: (self: Item, target: Character) => void;
     // Bags add inventory slots to the party capacity.

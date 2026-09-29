@@ -65,8 +65,19 @@ export function BattleCard({
                 <div
                     className={["battle-card-sprite",
                         active ? 'battle-card-sprite--active' : '',].join(' ')}
-                    style={{ backgroundImage: `url(${sheet})` }}
-                />
+                >
+                    <div
+                        className="battle-card-sprite-layer battle-card-sprite-layer--idle"
+                        style={{ backgroundImage: `url(${idle})` }}
+                    />
+                    {attack ? (
+                        <div
+                            className={['battle-card-sprite-layer battle-card-sprite-layer--attack',
+                                attacking ? 'battle-card-sprite-layer--attack-on' : ''].join(' ')}
+                            style={{ backgroundImage: `url(${attack})` }}
+                        />
+                    ) : null}
+                </div>
             ) : (
                 <span className="battle-card-icon">{icon ?? '❔'}</span>
             )}

@@ -1,7 +1,11 @@
 import { useState } from 'react';
+import { useGame } from '../game/GameContext';
+import { PlacePage } from './PlacePage';
+import { TeamPage } from './TeamPage';
 import { ActionBarTestScreen } from './ActionBarTestScreen';
 import { StressFightScreen } from './StressFightScreen';
 import { FightGenScreen } from './FightGenScreen';
+import { DamagesScreen } from './DamagesScreen';
 import { Modal } from '../components/UI/Modal';
 
 /**
@@ -12,16 +16,20 @@ import { Modal } from '../components/UI/Modal';
  * opens a modal that lists the test screens as rows.
  */
 const PAGES = [
+    { id: 'place', label: 'Place' },
+    { id: 'team', label: 'Team' },
     { id: 'actions', label: 'Actions' },
     { id: 'stress', label: 'Stress 80v80' },
     { id: 'fightgen', label: 'Fight Gen' },
+    { id: 'damages', label: 'Damages' },
 ] as const;
 
 type PageId = typeof PAGES[number]['id'];
 
 export function NewUiRouter() {
-    const [page, setPage] = useState<PageId>('fightgen');
+    const [page, setPage] = useState<PageId>('place');
     const [menuOpen, setMenuOpen] = useState(false);
+    const api = useGame();
 
     const exitToGame = () => {
         // Drop the ?ui=1 flag and reload into the regular game router.
@@ -29,7 +37,7 @@ export function NewUiRouter() {
     };
 
     return (
-        <div className="newui-shell pixel-font">
+        <div className="newui-shell pixel-font" style={{ position: 'relative' }}>
             <div className="newui-header">
                 <button
                     type="button"
@@ -47,10 +55,15 @@ export function NewUiRouter() {
             </div>
 
             <div className="newui-body">
+                {page === 'place' ? <PlacePage onOpenTeam={() => setPage('team')} /> : null}
+                {page === 'team' ? <TeamPage onBack={() => setPage('place')} /> : null}
                 {page === 'actions' ? <ActionBarTestScreen /> : null}
                 {page === 'stress' ? <StressFightScreen /> : null}
                 {page === 'fightgen' ? <FightGenScreen /> : null}
+                {page === 'damages' ? <DamagesScreen /> : null}
             </div>
+
+            {api.toast ? <div className="newui-toast">{api.toast}</div> : null}
 
             <Modal title="Menu" open={menuOpen} onClose={() => setMenuOpen(false)}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s2)' }}>

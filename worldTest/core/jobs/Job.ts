@@ -31,6 +31,8 @@ export class Job {
         // (added on assignment, removed on swap). Plain numbers, not
         // statuses: they live directly on the character stats.
         readonly statBonuses: JobStatBonuses = {},
+        // Whether the job may carry a shield in the offhand.
+        readonly canShield: boolean = false,
     ) {}
 
     /** Whether the job may wield a weapon of the given type. Untyped

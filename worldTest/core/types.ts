@@ -46,6 +46,9 @@ export type Place = {
     name: string;
     description: string;
     emoji: string;
+    // Artwork key resolved by the UI (see web/assets/places.ts); when
+    // unset the place renders the default groceries art.
+    image?: string;
     actions: PlaceAction[];
     connections: PlaceConnection[];
     // The place's people, as data: live characters are built from these

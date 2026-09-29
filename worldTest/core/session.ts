@@ -24,6 +24,8 @@ import {
 } from './constants/jobs';
 import { FaintRegistry, applyCarryStatus, clearCarryStatus } from './fainting';
 import { syncPositionToWeapon } from './combat/range';
+import { equipItem, equippedItemsOf, unequipFrom } from './equipment/loadout';
+import type { CharacterLoadout } from './equipment/loadout';
 import { SkillTree } from './skillTree/skillTree';
 import { createCompanionTree, createHeroTree } from './skillTree/trees';
 import { GROWTH, applyGrowthAtLevel, jobIdOf, wireGrowth } from './config/growth';
@@ -468,7 +470,7 @@ export class WorldSession {
             if (before.has(id)) continue;
             const character = this.roster.character(id);
             if (!character) continue;
-            for (const worn of character.equipment.getEquippedItems()) {
+            for (const worn of equippedItemsOf(character)) {
                 const slot = this.team.inventory.getItemSlotByItemId(worn.id);
                 if (!slot) {
                     if (!canAddItem(this.team, worn)) continue;
@@ -640,7 +642,7 @@ export class WorldSession {
             const character = this.roster.character(id);
             const name = character?.name ?? id;
             if (character) {
-                for (const item of character.equipment.getEquippedItems()) {
+                for (const item of equippedItemsOf(character)) {
                     if (this.team.inventory.getItemSlotByItemId(item.id)) {
                         this.team.inventory.returnAvailable(item.id, 1);
                     } else if (canAddItem(this.team, item)) {
@@ -822,12 +824,21 @@ export class WorldSession {
         applyJobBonuses(character, job);
 
         // The new job may not wield everything the old one could: those
-        // items go back to the shared inventory.
+        // items go back to the shared inventory (loadout or legacy).
         const removed: string[] = [];
-        for (const item of character.equipment.getEquippedItems()) {
+        for (const item of equippedItemsOf(character)) {
             if (item.definition.slot !== 'weapon') continue;
             if (job.allowsWeapon(item.definition.weaponType)) continue;
-            if (unequipFromCharacter(this.team.inventory, character, 'weapon')) {
+            const isLoadout = character.loadout?.weapon?.id === item.id;
+            if (isLoadout) {
+                const result = unequipFrom(character, 'weapon');
+                if (result.ok) {
+                    for (const removedItem of result.removed) {
+                        this.team.inventory.returnAvailable(removedItem.id, 1);
+                    }
+                    removed.push(item.name);
+                }
+            } else if (unequipFromCharacter(this.team.inventory, character, 'weapon')) {
                 removed.push(item.name);
             }
         }
@@ -1258,6 +1269,7 @@ export class WorldSession {
             equipment: Object.entries(character.equipment.getAllSlots())
                 .filter(([, item]) => Boolean(item))
                 .map(([slot, item]) => ({ slot, itemId: (item as Item).id })),
+            loadout: serializeLoadout(character),
         };
     }
 
@@ -1294,6 +1306,12 @@ export class WorldSession {
                 if (!session.itemTable.has(equipment.itemId)) continue;
                 const item = session.itemTable.createItem(equipment.itemId);
                 character.equipment.equipOrReplace(item, character);
+            }
+            // The five-slot loadout (optional: saves made before it
+            // existed keep their legacy equipment only).
+            for (const entry of saved.loadout ?? []) {
+                if (!session.itemTable.has(entry.itemId)) continue;
+                equipItem(character, session.itemTable.createItem(entry.itemId));
             }
             return character;
         };
@@ -1528,4 +1546,22 @@ export class WorldSession {
 
         return session;
     }
+}
+
+/**
+ * The loadout as save entries (one per equipped slot). Undefined when
+ * the character never used the loadout.
+ */
+function serializeLoadout(character: Character): SavedCharacter['loadout'] {
+    const loadout: CharacterLoadout | undefined = character.loadout;
+    if (!loadout) return undefined;
+    const entries: { slot: string; itemId: string }[] = [];
+    if (loadout.weapon) entries.push({ slot: 'weapon', itemId: loadout.weapon.id });
+    if (loadout.offhand) entries.push({ slot: 'offhand', itemId: loadout.offhand.id });
+    if (loadout.helmet) entries.push({ slot: 'helmet', itemId: loadout.helmet.id });
+    if (loadout.clothes) entries.push({ slot: 'clothes', itemId: loadout.clothes.id });
+    for (const item of loadout.accessories) {
+        entries.push({ slot: 'accessory', itemId: item.id });
+    }
+    return entries;
 }

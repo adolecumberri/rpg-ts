@@ -60,13 +60,13 @@ export function jobById(jobId: string): Job | undefined {
 }
 
 const STAT_LABELS: Record<JobStatKey, string> = {
-    attack: '⚔️ attack',
-    defence: '🛡️ defence',
-    magicDefence: '🔮 magic def',
-    critChance: '🎯 crit chance',
-    critMultiplier: '💥 crit multiplier',
-    speed: '⚡ speed',
-    magic: '✨ magic',
+    attack: '⚔️ Atq. físico',
+    defence: '🛡️ Def. física',
+    magicDefence: '🔮 Def. mágica',
+    critChance: '🎯 Crit.',
+    critMultiplier: '💥 Crit. Mult.',
+    speed: '⚡ Rapidez',
+    magic: '✨ Poder mágico',
 };
 
 // The bonus keys in a stable order, so the helpers below iterate the

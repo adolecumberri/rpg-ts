@@ -25,3 +25,4 @@ export * from './calendar';
 export * from './flags';
 export * from './jobs';
 export * from './fainting';
+export * from './equipment/loadout';

@@ -22,10 +22,10 @@ const GROWTH_ICONS: Record<GrowthStats, string> = {
 };
 
 export const GROWTH_STAT_LABELS: Record<GrowthStats, string> = {
-    attack: 'Attack',
-    defence: 'Defence',
-    magicDefence: 'Magic Def',
-    speed: 'Speed',
+    attack: 'Atq. físico',
+    defence: 'Def. física',
+    magicDefence: 'Def. mágica',
+    speed: 'Rapidez',
     totalHp: 'Max HP',
 };
 

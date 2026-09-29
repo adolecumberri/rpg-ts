@@ -166,8 +166,9 @@ describe('fainting', () => {
         expect(session.roster.character('soldier_0')).toBeUndefined();
         expect(session.corpsesAt('farm')).toHaveLength(0);
 
-        // The fallen soldier's gear returned to the shared inventory.
-        expect(session.team.inventory.getItemSlotByItemId('sword')?.totalQuantity).toBe(1);
+        // The fallen soldier's gear returned to the shared inventory
+        // (the test bag seeds two swords; the returned copy is available).
+        expect(session.team.inventory.getItemSlotByItemId('sword')?.totalQuantity).toBe(2);
 
         // The camp no longer hosts them.
         expect(session.npcsAt('camp').map((npc) => npc.id)).not.toContain('soldier_0');

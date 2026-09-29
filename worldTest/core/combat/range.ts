@@ -1,6 +1,7 @@
 import type { Character } from '../../../src';
 // Pulls in the interface merges (rangeOf on Statistics/ItemDefinition).
 import '../config/damage';
+import { equippedItemsOf } from '../equipment/loadout';
 
 // ---------------------------------------------------------------------------
 // Rows and attack reach. A battle formation has three rows (front,
@@ -19,7 +20,7 @@ export const ROWS: RowPosition[] = ['front', 'center', 'back'];
 
 /** The character's own reach: its weapon's rangeOf, else its stat. */
 export function effectiveRangeOf(character: Character): RangeOf {
-    const weapon = character.equipment.getEquippedItems()
+    const weapon = equippedItemsOf(character)
         .find((item) => item.definition.rangeOf);
     // rangeOf is a string stat with no modifiers: read it raw through
     // the enhanced Statistics (getStat is for numeric stats).

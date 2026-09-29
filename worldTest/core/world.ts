@@ -15,6 +15,7 @@ import {
 import { DEFAULT_ITEM_TABLE } from './items';
 import { farmerNameFor } from './names';
 import { applyJobBonuses, jobOfCharacter } from './constants/jobs';
+import { equipItem } from './equipment/loadout';
 
 // ---------------------------------------------------------------------------
 // Act 1 world content: El Fergel, the lord's farm and the hay field.
@@ -244,8 +245,16 @@ export function createInitialWorld(): {
         applyJobBonuses(player, defaultJob);
     }
     player.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sack'), player);
-    player.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('farmer_outfit'), player);
-    player.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sword'), player);
+    // The player's starting loadout: the soldier sword and the farmer
+    // outfit. Their copies are counted as equipped from the seeded bag.
+    const seedBag = ['sword', 'bow', 'staff', 'farmer_outfit', 'helmet', 'necklace', 'shield'];
+    for (const itemId of seedBag) {
+        team.inventory.addItem(DEFAULT_ITEM_TABLE.createItem(itemId), 2);
+    }
+    equipItem(player, DEFAULT_ITEM_TABLE.createItem('sword'));
+    equipItem(player, DEFAULT_ITEM_TABLE.createItem('farmer_outfit'));
+    team.inventory.consumeAvailable('sword', 1);
+    team.inventory.consumeAvailable('farmer_outfit', 1);
     team.gold = 10;
 
     const { npcs, rosterCharacters } = buildNpcsFromPlaces(PLACES);

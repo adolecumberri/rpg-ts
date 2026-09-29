@@ -34,6 +34,9 @@ export type SavedCharacter = {
         critMultiplier?: number;
     };
     equipment: { slot: string; itemId: string }[];
+    // The five-slot loadout (optional: saves made before the loadout
+    // existed keep their legacy equipment and load with an empty one).
+    loadout?: { slot: string; itemId: string }[];
 };
 
 export type SavedSlot = {

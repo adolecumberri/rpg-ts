@@ -5,6 +5,7 @@ import type { ElementId } from './elements';
 import { CHARACTER_AFFINITIES } from './affinities';
 import { kindOfElement } from '../config/damage';
 import { resolveGeneralAttack } from './general';
+import { equippedItemsOf } from '../equipment/loadout';
 
 /**
  * Attack components of a character: the base physical attack plus the
@@ -16,7 +17,7 @@ import { resolveGeneralAttack } from './general';
 export function attackComponentsOf(character: Character): DamageComponent[] {
     const baseAttack = character.getStat('attack');
     const magic = character.getStat('magic') ?? 0;
-    const equipped = character.equipment.getEquippedItems();
+    const equipped = equippedItemsOf(character);
 
     const components: DamageComponent[] = [
         { kind: 'physical', element: 'physical', amount: baseAttack, label: 'Attack' },
@@ -49,7 +50,7 @@ export function defenceLayersOf(character: Character): DefenceLayer[] {
     const layers: DefenceLayer[] = [];
 
     const reductions = new Map<ElementId, number>();
-    for (const item of character.equipment.getEquippedItems()) {
+    for (const item of equippedItemsOf(character)) {
         for (const element of item.definition.elements ?? []) {
             if (!element.resistanceValue) continue;
             const id = element.element as ElementId;
