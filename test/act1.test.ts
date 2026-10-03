@@ -15,8 +15,8 @@ describe('act 1 world', () => {
         const player = session.team.getCharacter('player')!;
         expect(player.name).toBe('Player');
         expect(player.equipment.get('bag')?.id).toBe('sack');
-        // The outfit lives in the loadout's clothes slot.
-        expect(player.loadout?.clothes?.id).toBe('farmer_outfit');
+        // The outfit lives in the second loadout hole.
+        expect(player.loadout?.holes?.[1]?.id).toBe('farmer_outfit');
 
         // 5 base slots + the sack's 5 = 10.
         expect(inventoryCapacity(session.team)).toBe(INVENTORY.baseSlots + 5);

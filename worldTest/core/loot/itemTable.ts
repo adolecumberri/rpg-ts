@@ -35,6 +35,9 @@ export type ItemTableEntry = {
     loadoutSlot?: 'weapon' | 'offhand' | 'helmet' | 'clothes' | 'accessory';
     // How many arms a weapon occupies: 1 = one-handed, 2 = two-handed.
     arms?: 1 | 2;
+    // The icon dictionary id (web assets/icons.ts) the item renders
+    // with; unknown ids fall back to the default icon.
+    icon?: string;
     onEquip?: (self: Item, target: Character) => void;
     onUnEquip?: (self: Item, target: Character) => void;
     // Bags add inventory slots to the party capacity.

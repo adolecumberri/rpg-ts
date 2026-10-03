@@ -115,9 +115,7 @@ export function MapScreen() {
                     })}
                 </svg>
             </div>
-            <div className="empty">
-                Tap a connected place to travel · gold ring = current
-            </div>
+
             <button className="btn" onClick={() => api.openPlace()}>Close</button>
         </div>
     );

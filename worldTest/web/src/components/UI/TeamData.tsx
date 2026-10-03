@@ -1,33 +1,10 @@
 import type { Character, Item } from '@rpg';
-import { JOB_ICONS, heldJobOf, loadoutOf } from '@core';
+import { heldJobOf, loadoutOf } from '@core';
 import { portraitUrl } from '../../constants/portraits';
-
-type StatKey =
-    | 'attack'
-    | 'defence'
-    | 'magicDefence'
-    | 'speed'
-    | 'magic'
-    | 'critChance'
-    | 'critMultiplier';
-
-const STATS: Array<{
-    icon: string;
-    label: string;
-    stat: StatKey;
-    suffix?: string;
-    prefix?: string;
-}> = [
-    { icon: '⚔️', label: 'Atq. físico', stat: 'attack' },
-    { icon: '🛡️', label: 'Def. física', stat: 'defence' },
-    { icon: '🔮', label: 'Def. mágica', stat: 'magicDefence' },
-    { icon: '⚡', label: 'Rapidez', stat: 'speed' },
-    { icon: '✨', label: 'Poder mágico', stat: 'magic' },
-    { icon: '🎯', label: 'Crit.', stat: 'critChance', suffix: '%' },
-    { icon: '💥', label: 'Crit. Mult.', stat: 'critMultiplier', prefix: '×' },
-];
-
-// Slot icons stand in for the item art until real item icons exist.
+import { Icon } from './Icon';
+import { StatsColumn } from './StatsColumn';
+import type { StatRow } from './StatsColumn';
+import { STAT_CATALOG } from '../../game/statCatalog';
 
 /**
  * The selected character's data panel: the name overlaid on a
@@ -38,19 +15,21 @@ const STATS: Array<{
  */
 export function TeamData({ character }: { character: Character }) {
     const job = heldJobOf(character);
-    const jobLine = job ? `${JOB_ICONS[job.id] ?? ''} ${job.title}` : 'The Player';
+    const jobLine = job ? job.title : 'The Player';
     const experience = character.experience;
     const loadout = loadoutOf(character);
-    // The five slots (two accessory holes) as display lines; the slot
-    // icons stand in until real item icons exist.
-    const lines: Array<{ key: string; icon: string; item?: Item }> = [
-        { key: 'weapon', icon: '⚔️', item: loadout.weapon },
-        { key: 'offhand', icon: '🛡️', item: loadout.offhand },
-        { key: 'helmet', icon: '⛑️', item: loadout.helmet },
-        { key: 'clothes', icon: '👕', item: loadout.clothes },
-        { key: 'accessory_0', icon: '📿', item: loadout.accessories[0] },
-        { key: 'accessory_1', icon: '📿', item: loadout.accessories[1] },
-    ];
+    // The five holes: each shows its item (icon + name) or is empty.
+    const lines: Array<{ key: string; icon: string; item?: Item }> = loadout.holes.map((item, index) => ({
+        key: `hole_${index}`,
+        icon: item?.definition.icon ?? 'default',
+        item,
+    }));
+    // The character's totals as stats rows (the shared catalog order).
+    const rows: StatRow[] = STAT_CATALOG.map((entry) => ({
+        icon: entry.icon,
+        label: entry.label,
+        value: `${entry.prefix ?? ''}${Math.round(character.getStat(entry.key))}${entry.suffix ?? ''}`,
+    }));
 
     return (
         <div className="pixel-panel team-data">
@@ -62,32 +41,28 @@ export function TeamData({ character }: { character: Character }) {
                 <div className="team-data-identity">
                     <div style={{ fontSize: 'var(--s3)' }}>
                         <span className="team-data-lv">Lv. {experience.level}</span>
-                        <span style={{ color: 'var(--muted)' }}>{jobLine}</span>
+                        <span style={{ color: 'var(--muted)' }}>
+                            <Icon id="default" size={4} /> {jobLine}
+                        </span>
                     </div>
                     <div style={{ fontSize: 'var(--s3)' }}>
-                        ❤️ {Math.round(character.getStat('hp'))}/{Math.round(character.getStat('totalHp'))}
+                        <Icon id="default" size={4} /> {Math.round(character.getStat('hp'))}/{Math.round(character.getStat('totalHp'))}
                     </div>
-                    <div style={{ fontSize: 'var(--s3)' }}>⭐ XP {experience.currentXp}</div>
+                    <div style={{ fontSize: 'var(--s3)' }}>
+                        <Icon id="default" size={4} /> XP {experience.currentXp}
+                    </div>
                 </div>
             </div>
             <div className="team-data-split">
-                <div className="team-data-stats">
-                    {STATS.map((entry) => (
-                        <div key={entry.stat} className="team-stat-line">
-                            <span className="team-stat-icon">{entry.icon}</span>
-                            <span className="team-stat-name">{entry.label}</span>
-                            <span className="team-stat-value">
-                                {entry.prefix ?? ''}{Math.round(character.getStat(entry.stat))}{entry.suffix ?? ''}
-                            </span>
-                        </div>
-                    ))}
-                </div>
+                <StatsColumn rows={rows} />
                 <div className="team-data-side">
                     <div className="team-data-block">
                         <div className="team-data-block-title">Equipment</div>
                         {lines.map((line) => (
                             <div key={line.key} className="equip-line">
-                                <span className="inv-item-icon">{line.icon}</span>
+                                <span className="inv-item-icon">
+                                    <Icon id={line.icon} size={4} />
+                                </span>
                                 <span className={line.item ? 'equip-line-item' : 'equip-line-empty'}>
                                     {line.item ? line.item.name : 'Empty'}
                                 </span>

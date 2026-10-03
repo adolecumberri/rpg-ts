@@ -4,14 +4,18 @@ import { heldJobOf } from '../constants/jobs';
 import type { WeaponType } from '../jobs/Job';
 
 // ---------------------------------------------------------------------------
-// The equipment loadout: a character's five slots (weapon, offhand,
-// helmet, clothes, accessories) with capacity rules and equippability
-// policies. The data lives on each character (independent per
-// character); the jobs and the characters both own a policy object and
-// the effective one merges both with the CHARACTER taking priority, so
-// abilities can later change what a specific character may wear.
+// The equipment loadout. Every character has FIVE generic holes (each
+// holds one item or nothing): the first hole may carry an accessory,
+// the next one clothes, another a weapon... The content each hole may
+// take comes from the SLOT DEFINITIONS below — the kinds an item can
+// belong to, with their global limits per character — plus the
+// equippability policy (character config + job, character priority).
 // ---------------------------------------------------------------------------
 
+// How many holes every character has.
+export const SLOT_COUNT = 5;
+
+// The kind an item belongs to (its definition declares loadoutSlot).
 export type LoadoutSlot = 'weapon' | 'offhand' | 'helmet' | 'clothes' | 'accessory';
 
 // The equipment tab pages (one section per page).
@@ -27,35 +31,62 @@ export type EquipmentSection =
 // What a bearer may equip. Every field is optional: an unset field
 // inherits from the job's policy.
 export type EquipmentPolicy = {
-    // Weapon types the bearer may wield.
     weaponTypes?: WeaponType[];
-    // May hold a shield in the offhand.
     canShield?: boolean;
-    // May hold a second one-handed weapon (a future ability).
     doubleWeapon?: boolean;
 };
 
-// A character's equipped items, one per slot (two accessories).
-export type CharacterLoadout = {
-    weapon?: Item;
-    offhand?: Item;
-    helmet?: Item;
-    clothes?: Item;
-    accessories: Item[];
+/**
+ * A slot definition: one of the KINDS a hole may be filled with —
+ * its label, icon and the global maximum of that kind the character
+ * may wear across all its holes. These are the options of what can be
+ * selected into an empty slot, NOT the literal holes of the page.
+ */
+export type SlotDefinition = {
+    kind: LoadoutSlot;
+    label: string;
+    icon: string;
+    max: number;
 };
 
-const ACCESSORY_CAPACITY = 2;
+export const SLOT_DEFINITIONS: SlotDefinition[] = [
+    { kind: 'weapon', label: 'Arma', icon: 'espada', max: 1 },
+    { kind: 'offhand', label: 'Escudo', icon: 'escudo', max: 1 },
+    { kind: 'helmet', label: 'Casco', icon: 'casco', max: 1 },
+    { kind: 'clothes', label: 'Ropa', icon: 'armadura', max: 1 },
+    { kind: 'accessory', label: 'Accesorio', icon: 'default', max: 2 },
+];
+
+const SLOTS_BY_KIND: Record<LoadoutSlot, SlotDefinition> = SLOT_DEFINITIONS.reduce(
+    (acc: Record<LoadoutSlot, SlotDefinition>, definition) => {
+        acc[definition.kind] = definition;
+        return acc;
+    },
+    {} as Record<LoadoutSlot, SlotDefinition>,
+);
+
+/** The definition of a kind (what a hole may hold). */
+export function slotDefinitionOf(kind: LoadoutSlot): SlotDefinition {
+    return SLOTS_BY_KIND[kind];
+}
+
+/** A character's loadout: its five holes, each with one item or none. */
+export type CharacterLoadout = {
+    holes: Array<Item | undefined>;
+};
 
 declare module '@rpg' {
     interface ItemDefinition {
-        // Which loadout slot the item occupies (content declares it).
+        // Which kind the item belongs to (its definition declares it).
         loadoutSlot?: LoadoutSlot;
         // How many arms a weapon occupies: 1 = one-handed, 2 = two-handed.
         arms?: 1 | 2;
+        // The icon dictionary id the item renders with (web assets/icons).
+        icon?: string;
     }
 
     interface Character {
-        // The five-slot loadout (undefined until the character equips).
+        // The five-hole loadout (undefined until the character equips).
         loadout?: CharacterLoadout;
         // The character's own equippability policy (abilities set it);
         // unset fields inherit from the held job.
@@ -64,7 +95,7 @@ declare module '@rpg' {
 }
 
 export function emptyLoadout(): CharacterLoadout {
-    return { accessories: [] };
+    return { holes: [undefined, undefined, undefined, undefined, undefined] };
 }
 
 /** The character's loadout, created lazily on first use. */
@@ -73,6 +104,13 @@ export function loadoutOf(character: Character): CharacterLoadout {
         character.loadout = emptyLoadout();
     }
     return character.loadout;
+}
+
+/** The index of the first empty hole (the last one when all are full). */
+export function firstFreeHole(character: Character): number {
+    const holes = loadoutOf(character).holes;
+    const index = holes.findIndex((entry) => entry === undefined);
+    return index === -1 ? SLOT_COUNT - 1 : index;
 }
 
 /** The effective policy: the character's own fields win over the job's. */
@@ -88,21 +126,14 @@ export function policyOf(character: Character): EquipmentPolicy {
 
 /**
  * Every equipped item the character carries, legacy manager plus the
- * loadout (deduplicated by id). Combat reads equipment through this.
+ * loadout holes (deduplicated by id). Combat reads equipment via this.
  */
 export function equippedItemsOf(character: Character): Item[] {
     const items = character.equipment.getEquippedItems();
     const loadout = character.loadout;
     if (!loadout) return items;
     const seen = new Set(items.map((item) => item.id));
-    const candidates = [
-        loadout.weapon,
-        loadout.offhand,
-        loadout.helmet,
-        loadout.clothes,
-        ...loadout.accessories,
-    ];
-    for (const item of candidates) {
+    for (const item of loadout.holes) {
         if (item && !seen.has(item.id)) {
             items.push(item);
             seen.add(item.id);
@@ -125,17 +156,24 @@ export function sectionOfItem(item: Item): EquipmentSection | undefined {
     return undefined;
 }
 
-/** The sections a slot's picker shows (one section per page). */
-export function sectionsForSlot(slot: LoadoutSlot): EquipmentSection[] {
-    if (slot === 'weapon') return ['espadas', 'varas', 'arcos'];
-    if (slot === 'offhand') return ['escudos'];
-    if (slot === 'helmet') return ['cascos'];
-    if (slot === 'clothes') return ['ropa'];
-    return ['accesorios'];
-}
+/**
+ * The outcome of an equipment operation, machine-readable: the UI
+ * translates these codes into its own wording (tests/logs may use the
+ * `message` field instead).
+ */
+export type EquipOutcome =
+    | 'ok'
+    | 'not-equippable'
+    | 'job-refused'
+    | 'capacity-full'
+    | 'two-hands'
+    | 'no-copies'
+    | 'unknown-slot'
+    | 'empty-slot';
 
 export type EquipResult = {
     ok: boolean;
+    code: EquipOutcome;
     message: string;
     // Items the new equipment replaced (return them to the bag).
     replaced: Item[];
@@ -143,6 +181,7 @@ export type EquipResult = {
 
 export type UnequipResult = {
     ok: boolean;
+    code: EquipOutcome;
     message: string;
     // Items that left the loadout (return them to the bag).
     removed: Item[];
@@ -150,176 +189,183 @@ export type UnequipResult = {
 
 /** Whether the character may wear the item at all (policy checks). */
 export function canEquipItem(character: Character, item: Item): EquipResult {
-    const slot = item.definition.loadoutSlot;
-    if (!slot) {
-        return { ok: false, message: 'This item cannot be equipped.', replaced: [] };
+    const kind = item.definition.loadoutSlot;
+    if (!kind) {
+        return {
+            ok: false,
+            code: 'not-equippable',
+            message: 'This item cannot be equipped.',
+            replaced: [],
+        };
     }
     const policy = policyOf(character);
-    if (slot === 'weapon') {
+    if (kind === 'weapon') {
         const type = item.definition.weaponType;
         if (type && policy.weaponTypes && policy.weaponTypes.indexOf(type) === -1) {
-            return { ok: false, message: 'The job cannot wield this weapon.', replaced: [] };
+            return {
+                ok: false,
+                code: 'job-refused',
+                message: 'Your job does not allow you to equip this.',
+                replaced: [],
+            };
         }
     }
-    if (slot === 'offhand') {
+    if (kind === 'offhand') {
         if (!policy.canShield) {
-            return { ok: false, message: 'The job cannot use shields.', replaced: [] };
+            return {
+                ok: false,
+                code: 'job-refused',
+                message: 'Your job does not allow you to equip this.',
+                replaced: [],
+            };
         }
     }
-    return { ok: true, message: '', replaced: [] };
+    return { ok: true, code: 'ok', message: '', replaced: [] };
 }
 
 /**
- * Equips the item into its loadout slot, applying its stat effects.
- * Capacity rules: one weapon (a two-handed one also empties the
- * offhand), one offhand (needs a one-handed weapon), one helmet, one
- * clothes, two accessories.
+ * Equips the item into the given hole, applying its stat effects.
+ * The hole is generic (anything goes in any hole); the slot
+ * definitions limit the totals per kind: one weapon, one shield, one
+ * helmet, one clothes, two accessories. A two-handed weapon drops any
+ * shield; a shield stands alone or beside a one-handed weapon.
  */
-export function equipItem(character: Character, item: Item): EquipResult {
-    const slot = item.definition.loadoutSlot;
-    if (!slot) {
-        return { ok: false, message: 'This item cannot be equipped.', replaced: [] };
+export function equipInto(character: Character, holeIndex: number, item: Item): EquipResult {
+    if (holeIndex < 0 || holeIndex >= SLOT_COUNT) {
+        return { ok: false, code: 'unknown-slot', message: 'Unknown slot.', replaced: [] };
+    }
+    const kind = item.definition.loadoutSlot;
+    if (!kind) {
+        return {
+            ok: false,
+            code: 'not-equippable',
+            message: 'This item cannot be equipped.',
+            replaced: [],
+        };
     }
     const allowed = canEquipItem(character, item);
     if (!allowed.ok) return allowed;
 
-    const loadout = loadoutOf(character);
+    const definition = slotDefinitionOf(kind);
+    const holes = loadoutOf(character).holes;
+    const current = holes[holeIndex];
     const replaced: Item[] = [];
 
-    if (slot === 'weapon') {
-        const old = loadout.weapon;
-        if (old) {
-            old.unEquip(character);
-            replaced.push(old);
+    // How many of this kind are worn in the OTHER holes.
+    let worn = 0;
+    for (let index = 0; index < holes.length; index++) {
+        if (index !== holeIndex && holes[index]?.definition.loadoutSlot === kind) {
+            worn += 1;
         }
-        loadout.weapon = item;
-        // A two-handed weapon occupies the offhand slot too.
-        if ((item.definition.arms ?? 1) === 2 && loadout.offhand) {
-            loadout.offhand.unEquip(character);
-            replaced.push(loadout.offhand);
-            loadout.offhand = undefined;
-        }
-        item.equip(character);
-        return { ok: true, message: `${item.name} equipped.`, replaced };
     }
 
-    if (slot === 'offhand') {
-        if (!loadout.weapon) {
-            return { ok: false, message: 'Equip a one-handed weapon first.', replaced };
+    // Single-max kinds REPLACE what is already worn (a new sword swaps
+    // the old one, which returns to the bag); the accessory kind fills
+    // up to its capacity and then refuses. For weapons, the double-
+    // weapon ability may allow a second one-handed weapon instead.
+    if (worn >= definition.max) {
+        if (definition.max > 1) {
+            return {
+                ok: false,
+                code: 'capacity-full',
+                message: `${definition.label} is full.`,
+                replaced,
+            };
         }
-        if ((loadout.weapon.definition.arms ?? 1) === 2) {
-            return { ok: false, message: 'The weapon occupies both hands.', replaced };
+        let allowSecond = false;
+        if (kind === 'weapon') {
+            const policy = policyOf(character);
+            const other = holes.find((entry) => entry?.definition.loadoutSlot === 'weapon');
+            const bothOneHanded = Boolean(other)
+                && (other?.definition.arms ?? 1) === 1
+                && (item.definition.arms ?? 1) === 1;
+            allowSecond = Boolean(policy.doubleWeapon) && bothOneHanded;
         }
-        const old = loadout.offhand;
-        if (old) {
-            old.unEquip(character);
-            replaced.push(old);
+        if (!allowSecond) {
+            const existing = holes.findIndex((entry, index) =>
+                index !== holeIndex && entry?.definition.loadoutSlot === kind);
+            if (existing !== -1) {
+                const old = holes[existing] as Item;
+                old.unEquip(character);
+                holes[existing] = undefined;
+                replaced.push(old);
+            }
         }
-        loadout.offhand = item;
-        item.equip(character);
-        return { ok: true, message: `${item.name} equipped.`, replaced };
     }
 
-    if (slot === 'helmet') {
-        const old = loadout.helmet;
-        if (old) {
-            old.unEquip(character);
-            replaced.push(old);
+    if (kind === 'offhand') {
+        // The shield stands alone or beside a one-handed weapon; only
+        // a two-handed weapon occupies both hands and blocks it.
+        const weapon = holes.find((entry) => entry?.definition.loadoutSlot === 'weapon');
+        if (weapon && (weapon.definition.arms ?? 1) === 2) {
+            return {
+                ok: false,
+                code: 'two-hands',
+                message: 'The weapon occupies both hands.',
+                replaced,
+            };
         }
-        loadout.helmet = item;
-        item.equip(character);
-        return { ok: true, message: `${item.name} equipped.`, replaced };
     }
 
-    if (slot === 'clothes') {
-        const old = loadout.clothes;
-        if (old) {
-            old.unEquip(character);
-            replaced.push(old);
+    if (kind === 'weapon' && (item.definition.arms ?? 1) === 2) {
+        // A two-handed weapon occupies both arms: drop any shield.
+        for (let index = 0; index < holes.length; index++) {
+            const entry = holes[index];
+            if (entry && entry.definition.loadoutSlot === 'offhand') {
+                entry.unEquip(character);
+                holes[index] = undefined;
+                replaced.push(entry);
+            }
         }
-        loadout.clothes = item;
-        item.equip(character);
-        return { ok: true, message: `${item.name} equipped.`, replaced };
     }
 
-    // Accessory: fills a free slot (two max).
-    if (loadout.accessories.length >= ACCESSORY_CAPACITY) {
-        return { ok: false, message: 'Both accessory slots are full.', replaced };
+    if (current) {
+        current.unEquip(character);
+        replaced.push(current);
     }
-    loadout.accessories.push(item);
+    holes[holeIndex] = item;
     item.equip(character);
-    return { ok: true, message: `${item.name} equipped.`, replaced };
+    return { ok: true, code: 'ok', message: `${item.name} equipped.`, replaced };
 }
 
-/**
- * Unequips the given slot (accessories by index, defaulting to the
- * last one). Removing a weapon also removes the offhand, which cannot
- * exist without a one-handed weapon.
- */
-export function unequipFrom(character: Character, slot: LoadoutSlot, accessoryIndex?: number): UnequipResult {
-    const loadout = loadoutOf(character);
-    const removed: Item[] = [];
-
-    if (slot === 'weapon') {
-        const item = loadout.weapon;
-        if (!item) return { ok: false, message: 'No weapon equipped.', removed };
-        item.unEquip(character);
-        loadout.weapon = undefined;
-        removed.push(item);
-        if (loadout.offhand) {
-            loadout.offhand.unEquip(character);
-            removed.push(loadout.offhand);
-            loadout.offhand = undefined;
-        }
-        return { ok: true, message: `${item.name} unequipped.`, removed };
+/** Unequips one hole, returning its item. */
+export function unequipHole(character: Character, holeIndex: number): UnequipResult {
+    const holes = loadoutOf(character).holes;
+    const item = holes[holeIndex];
+    if (!item) {
+        return {
+            ok: false,
+            code: 'empty-slot',
+            message: 'Nothing equipped in this slot.',
+            removed: [],
+        };
     }
-
-    if (slot === 'offhand') {
-        const item = loadout.offhand;
-        if (!item) return { ok: false, message: 'Nothing equipped there.', removed };
-        item.unEquip(character);
-        loadout.offhand = undefined;
-        removed.push(item);
-        return { ok: true, message: `${item.name} unequipped.`, removed };
-    }
-
-    if (slot === 'helmet') {
-        const item = loadout.helmet;
-        if (!item) return { ok: false, message: 'Nothing equipped there.', removed };
-        item.unEquip(character);
-        loadout.helmet = undefined;
-        removed.push(item);
-        return { ok: true, message: `${item.name} unequipped.`, removed };
-    }
-
-    if (slot === 'clothes') {
-        const item = loadout.clothes;
-        if (!item) return { ok: false, message: 'Nothing equipped there.', removed };
-        item.unEquip(character);
-        loadout.clothes = undefined;
-        removed.push(item);
-        return { ok: true, message: `${item.name} unequipped.`, removed };
-    }
-
-    const index = accessoryIndex ?? loadout.accessories.length - 1;
-    const [item] = loadout.accessories.splice(index, 1);
-    if (!item) return { ok: false, message: 'No accessory equipped there.', removed };
     item.unEquip(character);
-    removed.push(item);
-    return { ok: true, message: `${item.name} unequipped.`, removed };
+    holes[holeIndex] = undefined;
+    return { ok: true, code: 'ok', message: `${item.name} unequipped.`, removed: [item] };
 }
 
 /**
- * Equips one available copy from the shared bag, returning replaced
- * items to it and consuming the equipped copy.
+ * Equips one available copy from the shared bag into a hole,
+ * returning replaced items to the bag and consuming the copy.
  */
-export function equipFromInventory(team: Team, character: Character, itemId: string): EquipResult {
+export function equipFromInventory(
+    team: Team,
+    character: Character,
+    itemId: string,
+    holeIndex: number,
+): EquipResult {
     const inventory = team.inventory;
     const slot = inventory.getItemSlotByItemId(itemId);
     if (!slot || slot.quantity <= 0) {
-        return { ok: false, message: 'No available copies in the bag.', replaced: [] };
+        return {
+            ok: false,
+            code: 'no-copies',
+            message: 'No available copies in the bag.',
+            replaced: [],
+        };
     }
-    const result = equipItem(character, new ItemClass(slot.item.definition));
+    const result = equipInto(character, holeIndex, new ItemClass(slot.item.definition));
     if (!result.ok) return result;
     for (const old of result.replaced) {
         inventory.returnAvailable(old.id, 1);
@@ -328,14 +374,9 @@ export function equipFromInventory(team: Team, character: Character, itemId: str
     return result;
 }
 
-/** Unequips a loadout slot, returning the removed items to the bag. */
-export function unequipToInventory(
-    team: Team,
-    character: Character,
-    loadoutSlot: LoadoutSlot,
-    accessoryIndex?: number,
-): UnequipResult {
-    const result = unequipFrom(character, loadoutSlot, accessoryIndex);
+/** Unequips a hole, returning its item to the bag. */
+export function unequipToInventory(team: Team, character: Character, holeIndex: number): UnequipResult {
+    const result = unequipHole(character, holeIndex);
     if (!result.ok) return result;
     for (const item of result.removed) {
         team.inventory.returnAvailable(item.id, 1);

@@ -1,10 +1,20 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { Icon } from './Icon';
 
 /**
- * The icon of an action button: either a single character (emoji, '›',
- * '‹'...) or an image (a sprite URL once the art exists).
+ * The icon of an action button: a single character (emoji, '›', '‹'),
+ * an image ({src}), or a dictionary icon ({icon: id}) rendered at a
+ * fixed size so nothing overflows the cell.
  */
-export type ActionIcon = string | { src: string; alt?: string };
+export type ActionIcon = string | { src: string; alt?: string } | { icon: string; size?: number };
+
+// Default icon sizes per bar size, in UI units (1u = 4px): fixed so
+// nothing overflows the cell.
+const ICON_SIZES: Record<'sm' | 'md' | 'lg', number> = {
+    sm: 3.5,
+    md: 4.5,
+    lg: 5.5,
+};
 
 /**
  * One cell of the action bar: a button component (not raw HTML) that
@@ -48,17 +58,22 @@ export function ActionButton({
         ? { gridRow: Math.ceil(slot / 2), gridColumn: ((slot - 1) % 2) + 1 }
         : undefined;
 
-    const iconNode = icon
-        ? typeof icon === 'string'
-            ? <span className="action-btn-icon">{icon}</span>
-            : (
+    let iconNode: ReactNode = null;
+    if (icon) {
+        if (typeof icon === 'string') {
+            iconNode = <span className="action-btn-icon">{icon}</span>;
+        } else if ('src' in icon) {
+            iconNode = (
                 <img
                     className="action-btn-icon action-btn-icon--img"
                     src={icon.src}
                     alt={icon.alt ?? ''}
                 />
-            )
-        : null;
+            );
+        } else {
+            iconNode = <Icon id={icon.icon} size={icon.size ?? ICON_SIZES[size]} />;
+        }
+    }
 
     return (
         <button

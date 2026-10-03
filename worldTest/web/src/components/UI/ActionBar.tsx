@@ -53,6 +53,7 @@ export function ActionBar({
     size = 'lg',
     back,
     accept,
+    pinLast = false,
 }: {
     cells: ActionBarCell[];
     size?: ActionBarSize;
@@ -62,11 +63,17 @@ export function ActionBar({
     // The floating accept: shown when the caller passes it, over the
     // panel's top edge, MD size.
     accept?: { label?: string; onClick: () => void };
+    // The last cell is pinned to the final grid slot (6 in lg, where
+    // More would sit) so short lists show it instead of paginating.
+    pinLast?: boolean;
 }) {
     const [page, setPage] = useState(0);
     const [hint, setHint] = useState<string | null>(null);
 
     const mode = MODES[size];
+    // The pinned cell leaves the paginated list.
+    const list = pinLast && cells.length > 0 ? cells.slice(0, -1) : cells;
+    const pinned = pinLast && cells.length > 0 ? cells[cells.length - 1] : undefined;
     // The cancel occupies a slot on the first page only.
     const special = back ? 1 : 0;
     const firstPage = mode.capacity - 1 - special;
@@ -86,16 +93,16 @@ export function ActionBar({
     if (cells.length === 0 && !back && !accept) return null;
 
     const capacity = mode.capacity - special;
-    const pages = cells.length <= capacity
-        ? 1
-        : 1 + Math.ceil((cells.length - firstPage) / middlePage);
+    const pages = list.length <= capacity ?
+        1 :
+        1 + Math.ceil((list.length - firstPage) / middlePage);
 
     const start = page === 0 ? 0 : firstPage + (page - 1) * middlePage;
-    const count = page === 0
-        ? Math.min(firstPage, cells.length)
-        : Math.min(middlePage, cells.length - start);
-    const visible = cells.slice(start, start + count);
-    const layout = layoutFor(pages === 1 ? visible.length + special : mode.capacity);
+    const count = page === 0 ?
+        Math.min(firstPage, list.length) :
+        Math.min(middlePage, list.length - start);
+    const visible = list.slice(start, start + count);
+    const layout = layoutFor(pages === 1 ? visible.length + special + (pinned ? 1 : 0) : mode.capacity);
 
     const press = (cell: ActionBarCell) => {
         if (cell.disabled) {
@@ -119,8 +126,9 @@ export function ActionBar({
         />
     ));
 
-    // Slot 6 (the last): More on every page but the last.
-    const nextSlot = pages > 1 && page < pages - 1 ? mode.capacity : undefined;
+    // Slot 6 (the last): More on every page but the last — or the
+    // pinned cell when pinLast reserves the slot.
+    const nextSlot = pages > 1 && page < pages - 1 && !pinned ? mode.capacity : undefined;
     if (nextSlot !== undefined) {
         rendered.push(
             <ActionButton
@@ -131,6 +139,23 @@ export function ActionBar({
                 variant="nav"
                 slot={nextSlot}
                 onClick={() => setPage((p) => p + 1)}
+            />,
+        );
+    }
+
+    if (pinned) {
+        rendered.push(
+            <ActionButton
+                key={`pinned-${pinned.id}`}
+                label={pinned.label}
+                icon={pinned.icon}
+                size={size}
+                tone={pinned.tone}
+                disabled={pinned.disabled}
+                selected={pinned.selected}
+                mark={pinned.mark}
+                slot={mode.capacity}
+                onClick={() => press(pinned)}
             />,
         );
     }

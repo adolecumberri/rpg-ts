@@ -121,9 +121,7 @@ export function MapPage({ onClose }: { onClose: () => void }) {
                     })}
                 </svg>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', padding: 'var(--s1)' }}>
-                Tap a connected place to travel · gold ring = current
-            </div>
+
             <OptionsBar
                 size="lg"
                 options={[{ id: 'close', label: 'Close', icon: '✕', onClick: onClose }]}

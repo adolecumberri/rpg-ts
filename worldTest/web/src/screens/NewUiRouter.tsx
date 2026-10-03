@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGame } from '../game/GameContext';
 import { PlacePage } from './PlacePage';
 import { TeamPage } from './TeamPage';
+import { WorldMapScreen } from './WorldMapScreen';
 import { ActionBarTestScreen } from './ActionBarTestScreen';
 import { StressFightScreen } from './StressFightScreen';
 import { FightGenScreen } from './FightGenScreen';
@@ -18,6 +19,7 @@ import { Modal } from '../components/UI/Modal';
 const PAGES = [
     { id: 'place', label: 'Place' },
     { id: 'team', label: 'Team' },
+    { id: 'worldmap', label: 'World Map' },
     { id: 'actions', label: 'Actions' },
     { id: 'stress', label: 'Stress 80v80' },
     { id: 'fightgen', label: 'Fight Gen' },
@@ -57,6 +59,7 @@ export function NewUiRouter() {
             <div className="newui-body">
                 {page === 'place' ? <PlacePage onOpenTeam={() => setPage('team')} /> : null}
                 {page === 'team' ? <TeamPage onBack={() => setPage('place')} /> : null}
+                {page === 'worldmap' ? <WorldMapScreen /> : null}
                 {page === 'actions' ? <ActionBarTestScreen /> : null}
                 {page === 'stress' ? <StressFightScreen /> : null}
                 {page === 'fightgen' ? <FightGenScreen /> : null}

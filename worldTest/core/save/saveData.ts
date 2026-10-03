@@ -34,9 +34,11 @@ export type SavedCharacter = {
         critMultiplier?: number;
     };
     equipment: { slot: string; itemId: string }[];
-    // The five-slot loadout (optional: saves made before the loadout
-    // existed keep their legacy equipment and load with an empty one).
-    loadout?: { slot: string; itemId: string }[];
+    // The five-hole loadout (optional: saves made before the loadout
+    // existed keep their legacy equipment and load with empty holes).
+    // The hole is 0-based; entries without it (very old saves, named
+    // slots) fill the first free hole on load.
+    loadout?: { hole?: number; itemId: string }[];
 };
 
 export type SavedSlot = {
@@ -101,4 +103,7 @@ export type SaveData = {
     fainted?: FaintedEntry[];
     // Characters whose corpse waited too long: dead for good.
     deceased?: string[];
+    // The test bag was seeded (optional: saves made before it existed
+    // get it once on load).
+    testBag?: boolean;
 };

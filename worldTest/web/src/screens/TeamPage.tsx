@@ -1,37 +1,44 @@
 import { useState } from 'react';
-import type { Character, Item } from '@rpg';
+import type { Character, InventorySlot, Item } from '@rpg';
 import {
     canEquipItem,
     equipFromInventory,
+    equippedItemsOf,
     loadoutOf,
     sectionOfItem,
-    sectionsForSlot,
     unequipToInventory,
 } from '@core';
-import type { EquipmentSection, LoadoutSlot } from '@core';
+import type { EquipmentSection } from '@core';
 import { useGame } from '../game/GameContext';
+import { EQUIP_MESSAGES, messageOf } from '../game/equipmentMessages';
+import { statsOfItems } from '../game/equipmentStats';
 import { OptionsBar } from '../components/UI/OptionsBar';
 import { Modal } from '../components/UI/Modal';
 import { TeamCard } from '../components/UI/TeamCard';
 import { TeamData } from '../components/UI/TeamData';
+import { Icon } from '../components/UI/Icon';
+import { StatsColumn } from '../components/UI/StatsColumn';
+import type { IconId } from '../components/UI/Icon';
 
-// The five loadout slots as bar options, with their picker sections.
-const SLOT_OPTIONS: Array<{ slot: LoadoutSlot; label: string; icon: string }> = [
-    { slot: 'weapon', label: 'Arma', icon: '⚔️' },
-    { slot: 'offhand', label: 'Brazos', icon: '🛡️' },
-    { slot: 'helmet', label: 'Casco', icon: '⛑️' },
-    { slot: 'clothes', label: 'Ropa', icon: '👕' },
-    { slot: 'accessory', label: 'Accesorios', icon: '📿' },
+// The bag modal shows every section as a tab page (one section each).
+const ALL_SECTIONS: EquipmentSection[] = [
+    'espadas',
+    'varas',
+    'arcos',
+    'cascos',
+    'ropa',
+    'escudos',
+    'accesorios',
 ];
 
-const SECTION_META: Record<EquipmentSection, { label: string; icon: string }> = {
-    espadas: { label: 'Espadas', icon: '⚔️' },
-    varas: { label: 'Varas', icon: '✨' },
-    arcos: { label: 'Arcos', icon: '🏹' },
-    cascos: { label: 'Cascos', icon: '⛑️' },
-    ropa: { label: 'Ropa', icon: '👕' },
-    escudos: { label: 'Escudos', icon: '🛡️' },
-    accesorios: { label: 'Accesorios', icon: '📿' },
+const SECTION_META: Record<EquipmentSection, { label: string; icon: IconId }> = {
+    espadas: { label: 'Armas de filo', icon: 'espada' },
+    varas: { label: 'Armas contundentes', icon: 'vara' },
+    arcos: { label: 'Armas arrojadizas', icon: 'arco' },
+    cascos: { label: 'Protección cabeza', icon: 'casco' },
+    ropa: { label: 'Protección torso', icon: 'armadura' },
+    escudos: { label: 'Escudos', icon: 'escudo' },
+    accesorios: { label: 'Accesorios', icon: 'default' },
 };
 
 /**
@@ -46,8 +53,10 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [statusModal, setStatusModal] = useState(false);
     const [equipView, setEquipView] = useState(false);
-    const [equipSlot, setEquipSlot] = useState<LoadoutSlot | null>(null);
+    const [selectedHole, setSelectedHole] = useState<number | null>(null);
     const [pickerSection, setPickerSection] = useState<EquipmentSection>('espadas');
+    // The item whose stats the column previews (tap a row to set it).
+    const [previewItem, setPreviewItem] = useState<Item | null>(null);
 
     const activeIds = api.session.roster.activeIds();
     const members = activeIds
@@ -56,68 +65,185 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
     const selected = selectedId ? members.find((entry) => entry.id === selectedId) : undefined;
 
     const loadout = selected ? loadoutOf(selected) : undefined;
-    const loadoutLines: Array<{ key: string; icon: string; item?: Item }> = loadout ? [
-        { key: 'weapon', icon: '⚔️', item: loadout.weapon },
-        { key: 'offhand', icon: '🛡️', item: loadout.offhand },
-        { key: 'helmet', icon: '⛑️', item: loadout.helmet },
-        { key: 'clothes', icon: '👕', item: loadout.clothes },
-        { key: 'accessory_0', icon: '📿', item: loadout.accessories[0] },
-        { key: 'accessory_1', icon: '📿', item: loadout.accessories[1] },
-    ] : [];
+    // The five holes: each holds an item or nothing (Vacío). Any hole
+    // may take any equipable item; the engine's kind limits validate.
+    const holeRows: Array<{ key: string; hole: number; icon: string; item?: Item }> = (
+        loadout ? loadout.holes : []
+    ).map((item, index) => ({
+        key: `hole_${index}`,
+        hole: index,
+        icon: item?.definition.icon ?? 'default',
+        item,
+    }));
 
     const statuses = selected ?
         Array.from(selected.statusManager.statuses.values()) :
         [];
 
-    const openSlotPicker = (slot: LoadoutSlot) => {
-        const sections = sectionsForSlot(slot);
-        setPickerSection(sections[0]);
-        setEquipSlot(slot);
+    const openHolePicker = (hole: number) => {
+        // If the hole already holds equipment, open its own section
+        // (a helmet opens Protección cabeza); empty holes open Espadas.
+        const item = loadout ? loadout.holes[hole] : undefined;
+        setPickerSection(item ? (sectionOfItem(item) ?? 'espadas') : 'espadas');
+        setPreviewItem(null);
+        setSelectedHole(hole);
     };
 
-    const pickItem = (itemId: string) => {
-        if (!selected || !equipSlot) return;
-        const result = equipFromInventory(api.team, selected, itemId);
+    const pickItem = (bagSlot: InventorySlot) => {
+        if (!selected || selectedHole === null) return;
+        const result = equipFromInventory(api.team, selected, bagSlot.item.id, selectedHole);
         api.refresh();
-        api.showToast(result.message);
-        if (result.ok) setEquipSlot(null);
+        // No message on success: the item is equipped and the picker
+        // closes instantly. Failures translate the engine's code.
+        if (result.ok) {
+            setSelectedHole(null);
+            setPreviewItem(null);
+            return;
+        }
+        api.showToast(messageOf(result.code));
     };
 
     const unequipCurrent = () => {
-        if (!selected || !equipSlot) return;
-        const result = unequipToInventory(api.team, selected, equipSlot);
+        if (!selected || selectedHole === null) return;
+        const result = unequipToInventory(api.team, selected, selectedHole);
         api.refresh();
-        api.showToast(result.message);
-        if (result.ok) setEquipSlot(null);
+        if (result.ok) {
+            setSelectedHole(null);
+            setPreviewItem(null);
+        } else {
+            api.showToast(messageOf(result.code));
+        }
     };
 
-    // The picker lists the bag items of the current section (one section
-    // per page), disabled when the policy refuses them.
+    // The bag lists every section as a tab page, disabled rows when the
+    // policy refuses them. The item's own slot decides where it goes.
     const bagSlots = api.team.inventory.getAllItems();
     const pickerSlots = bagSlots.filter(
         (slot) => slot.quantity > 0 && sectionOfItem(slot.item) === pickerSection,
     );
-    const pickerSections = equipSlot ? sectionsForSlot(equipSlot) : [];
-    const slotHasItem = selected && equipSlot && loadout ?
-        loadoutLines.some(
-            (line) => line.item && line.key === equipSlot,
-        ) :
+    const slotHasItem = selected && selectedHole !== null && loadout ?
+        Boolean(loadout.holes[selectedHole]) :
         false;
+
+    // The stats column: with a hole's picker open it starts EMPTY and
+    // fills with the tapped row's item; in the general equipment view
+    // it shows the equipped items' bonuses.
+    const equippedStats = selected ? statsOfItems(equippedItemsOf(selected)) : [];
+    const statsRows = previewItem ?
+        statsOfItems([previewItem]) :
+        selectedHole !== null ? statsOfItems([]) : equippedStats;
 
     const content = selected ? (
         equipView ? (
-            <div className="pixel-panel">
-                <div className="pixel-title">Equipo · {selected.name}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s1)' }}>
-                    {loadoutLines.map((line) => (
-                        <div key={line.key} className="equip-line">
-                            <span className="inv-item-icon">{line.icon}</span>
-                            <span className={line.item ? 'equip-line-item' : 'equip-line-empty'}>
-                                {line.item ? line.item.name : 'Empty'}
-                            </span>
+            <div className="equip-view">
+                {selectedHole !== null ? (
+                    <div className="equip-picker">
+                        <div className="pixel-modal-header">
+                            <span className="pixel-modal-title">{SECTION_META[pickerSection].label}</span>
+                            <div className="inv-tabs">
+                                {ALL_SECTIONS.map((section) => {
+                                    const meta = SECTION_META[section];
+                                    return (
+                                        <button
+                                            key={section}
+                                            type="button"
+                                            title={meta.label}
+                                            aria-label={meta.label}
+                                            className={`inv-tab pixel-btn${pickerSection === section ? ' pixel-btn--primary' : ''}`}
+                                            onClick={() => setPickerSection(section)}
+                                        >
+                                            <Icon id={meta.icon} size={4} />
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    ))}
-                </div>
+                        <div className="pixel-modal-body">
+                            {pickerSlots.length === 0 ? (
+                                <div style={{ fontSize: 'var(--s3)', color: 'var(--muted)' }}>
+                                    {EQUIP_MESSAGES['no-copies']}
+                                </div>
+                            ) : (
+                                <div>
+                                    <div className="inv-table-head">
+                                        <span className="inv-head-spacer" />
+                                        <span className="inv-head-name">nombre</span>
+                                        <span className="inv-head-count">en uso</span>
+                                        <span className="inv-head-count">total</span>
+                                        <span className="inv-head-action" />
+                                    </div>
+                                    {pickerSlots.map((slot) => {
+                                        const allowed = selected ?
+                                            canEquipItem(selected, slot.item) :
+                                            { ok: false, message: '' };
+                                        const inUse = slot.totalQuantity - slot.quantity;
+                                        const isPreview = previewItem !== null && previewItem.id === slot.item.id;
+                                        const rowClass = [
+                                            'inv-item-row',
+                                            allowed.ok ? '' : 'inv-item-row--disabled',
+                                            isPreview ? 'inv-item-row--preview' : '',
+                                        ].join(' ');
+                                        return (
+                                            <div
+                                                key={slot.id}
+                                                className={rowClass}
+                                                onClick={() => setPreviewItem(slot.item)}
+                                            >
+                                                <span className="inv-item-icon">
+                                                    <Icon id={slot.item.definition.icon ?? 'default'} size={4} />
+                                                </span>
+                                                <span className="inv-item-info">
+                                                    <span className="inv-item-name">{slot.item.name}</span>
+                                                </span>
+                                                <span className="inv-count">{inUse}</span>
+                                                <span className="inv-count">{slot.totalQuantity}</span>
+                                                <button
+                                                    type="button"
+                                                    className="pixel-btn"
+                                                    style={{
+                                                        height: 'var(--s8)',
+                                                        ...(!allowed.ok ? { opacity: 0.5 } : {}),
+                                                    }}
+                                                    onClick={() => pickItem(slot)}
+                                                >
+                                                    Equip
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            {slotHasItem ? (
+                                <div style={{ marginTop: 'var(--s2)' }}>
+                                    <button
+                                        type="button"
+                                        className="pixel-btn pixel-btn--danger"
+                                        onClick={unequipCurrent}
+                                    >
+                                        Unequip
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="pixel-panel">
+                        <div className="pixel-title">Equipo · {selected.name}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s1)' }}>
+                            {holeRows.map((row) => (
+                                <div key={row.key} className="equip-line">
+                                    <span className="inv-item-icon">
+                                        <Icon id={row.icon} size={4} />
+                                    </span>
+                                    <span className={row.item ? 'equip-line-item' : 'equip-line-empty'}>
+                                        {row.item ? row.item.name : 'Vacío'}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                <StatsColumn rows={statsRows} />
             </div>
         ) : (
             <TeamData character={selected} />
@@ -171,13 +297,27 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
     ) : selected && equipView ? (
         <OptionsBar
             size="lg"
-            options={SLOT_OPTIONS.map((entry) => ({
-                id: entry.slot,
-                label: entry.label,
-                icon: entry.icon,
-                onClick: () => openSlotPicker(entry.slot),
+            pinLast
+            options={holeRows.map((row) => ({
+                id: row.key,
+                label: row.item ? row.item.name : 'Vacío',
+                icon: { icon: row.icon },
+                onClick: () => openHolePicker(row.hole),
             }))}
-            back={{ label: 'Atrás', onClick: () => setEquipView(false) }}
+            back={{
+                label: 'Atrás',
+                // While a hole's picker is open, Atrás closes the picker
+                // (back to the general equipment view); otherwise it
+                // leaves the equipment view.
+                onClick: () => {
+                    if (selectedHole !== null) {
+                        setSelectedHole(null);
+                        setPreviewItem(null);
+                    } else {
+                        setEquipView(false);
+                    }
+                },
+            }}
         />
     ) : (
         <OptionsBar
@@ -210,81 +350,6 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                         ))}
                     </div>
                 )}
-            </Modal>
-
-            <Modal
-                title={equipSlot ? SLOT_OPTIONS.find((entry) => entry.slot === equipSlot)?.label ?? '' : ''}
-                size="lg"
-                open={equipSlot !== null}
-                onClose={() => setEquipSlot(null)}
-            >
-                {equipSlot ? (
-                    <>
-                        <div className="inv-tabs">
-                            {pickerSections.map((section) => {
-                                const meta = SECTION_META[section];
-                                return (
-                                    <button
-                                        key={section}
-                                        type="button"
-                                        title={meta.label}
-                                        aria-label={meta.label}
-                                        className={`inv-tab pixel-btn${pickerSection === section ? ' pixel-btn--primary' : ''}`}
-                                        onClick={() => setPickerSection(section)}
-                                    >
-                                        {meta.icon}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        {pickerSlots.length === 0 ? (
-                            <div style={{ fontSize: 'var(--s3)', color: 'var(--muted)' }}>
-                                Nothing of this section in the bag.
-                            </div>
-                        ) : (
-                            <div>
-                                {pickerSlots.map((slot) => {
-                                    const allowed = selected ?
-                                        canEquipItem(selected, slot.item) :
-                                        { ok: false, message: '' };
-                                    return (
-                                        <div key={slot.id} className="inv-item-row">
-                                            <span className="inv-item-icon" />
-                                            <span className="inv-item-info">
-                                                <span className="inv-item-name">{slot.item.name}</span>
-                                                <span className="inv-item-values">Tienes {slot.quantity}</span>
-                                            </span>
-                                            <button
-                                                type="button"
-                                                className="pixel-btn"
-                                                title={allowed.ok ? undefined : allowed.message}
-                                                style={{
-                                                    height: 'var(--s8)',
-                                                    ...(!allowed.ok ? { opacity: 0.5 } : {}),
-                                                }}
-                                                disabled={!allowed.ok}
-                                                onClick={() => pickItem(slot.item.id)}
-                                            >
-                                                Equip
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                        {slotHasItem ? (
-                            <div style={{ marginTop: 'var(--s2)' }}>
-                                <button
-                                    type="button"
-                                    className="pixel-btn pixel-btn--danger"
-                                    onClick={unequipCurrent}
-                                >
-                                    Unequip
-                                </button>
-                            </div>
-                        ) : null}
-                    </>
-                ) : null}
             </Modal>
         </div>
     );

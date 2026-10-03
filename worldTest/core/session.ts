@@ -1,7 +1,7 @@
 import { Character, Item, Stats, Team } from '../../src';
 import type { InventorySlot, TeamPosition } from '../../src';
 import type { EquipmentSlot } from '../../src/classes/items/EquipmentManager';
-import { PLACES, PLACES_BY_ID, buildNpcsFromPlaces, createInitialMissions, createInitialWorld } from './world';
+import { PLACES, PLACES_BY_ID, TEST_BAG_ITEMS, buildNpcsFromPlaces, createInitialMissions, createInitialWorld } from './world';
 import { buyItem, sellItem } from './shop';
 import { equipToCharacter, unequipFromCharacter, useItemOn } from './inventory';
 import { grantCombatXp } from './xp/xpSystem';
@@ -24,7 +24,7 @@ import {
 } from './constants/jobs';
 import { FaintRegistry, applyCarryStatus, clearCarryStatus } from './fainting';
 import { syncPositionToWeapon } from './combat/range';
-import { equipItem, equippedItemsOf, unequipFrom } from './equipment/loadout';
+import { equipInto, equippedItemsOf, firstFreeHole, unequipHole } from './equipment/loadout';
 import type { CharacterLoadout } from './equipment/loadout';
 import { SkillTree } from './skillTree/skillTree';
 import { createCompanionTree, createHeroTree } from './skillTree/trees';
@@ -829,9 +829,12 @@ export class WorldSession {
         for (const item of equippedItemsOf(character)) {
             if (item.definition.slot !== 'weapon') continue;
             if (job.allowsWeapon(item.definition.weaponType)) continue;
-            const isLoadout = character.loadout?.weapon?.id === item.id;
-            if (isLoadout) {
-                const result = unequipFrom(character, 'weapon');
+            const loadout = character.loadout;
+            const holeIndex = loadout
+                ? loadout.holes.findIndex((entry) => entry?.id === item.id)
+                : -1;
+            if (holeIndex !== -1) {
+                const result = unequipHole(character, holeIndex);
                 if (result.ok) {
                     for (const removedItem of result.removed) {
                         this.team.inventory.returnAvailable(removedItem.id, 1);
@@ -1240,6 +1243,7 @@ export class WorldSession {
             shops: Array.from(this.shopStock).map(([shopId, remaining]) => ({ shopId, remaining })),
             fainted: this.faints.snapshot(),
             deceased: this.faints.deceasedIds(),
+            testBag: true,
         };
     }
 
@@ -1307,11 +1311,15 @@ export class WorldSession {
                 const item = session.itemTable.createItem(equipment.itemId);
                 character.equipment.equipOrReplace(item, character);
             }
-            // The five-slot loadout (optional: saves made before it
-            // existed keep their legacy equipment only).
+            // The five-hole loadout (optional: saves made before it
+            // existed keep their legacy equipment only; entries without
+            // a hole fill the first free one).
             for (const entry of saved.loadout ?? []) {
                 if (!session.itemTable.has(entry.itemId)) continue;
-                equipItem(character, session.itemTable.createItem(entry.itemId));
+                const hole = typeof entry.hole === 'number'
+                    ? entry.hole
+                    : firstFreeHole(character);
+                equipInto(character, hole, session.itemTable.createItem(entry.itemId));
             }
             return character;
         };
@@ -1544,6 +1552,15 @@ export class WorldSession {
             session.shopStock.set(saved.shopId, valid);
         }
 
+        // Saves made before the test bag existed get it seeded once
+        // (their next save carries the flag).
+        if (!data.testBag) {
+            for (const itemId of TEST_BAG_ITEMS) {
+                if (!session.itemTable.has(itemId)) continue;
+                session.team.inventory.addItem(session.itemTable.createItem(itemId), 2);
+            }
+        }
+
         return session;
     }
 }
@@ -1555,13 +1572,12 @@ export class WorldSession {
 function serializeLoadout(character: Character): SavedCharacter['loadout'] {
     const loadout: CharacterLoadout | undefined = character.loadout;
     if (!loadout) return undefined;
-    const entries: { slot: string; itemId: string }[] = [];
-    if (loadout.weapon) entries.push({ slot: 'weapon', itemId: loadout.weapon.id });
-    if (loadout.offhand) entries.push({ slot: 'offhand', itemId: loadout.offhand.id });
-    if (loadout.helmet) entries.push({ slot: 'helmet', itemId: loadout.helmet.id });
-    if (loadout.clothes) entries.push({ slot: 'clothes', itemId: loadout.clothes.id });
-    for (const item of loadout.accessories) {
-        entries.push({ slot: 'accessory', itemId: item.id });
+    const entries: { hole: number; itemId: string }[] = [];
+    for (let index = 0; index < loadout.holes.length; index++) {
+        const item = loadout.holes[index];
+        if (item) {
+            entries.push({ hole: index, itemId: item.id });
+        }
     }
     return entries;
 }

@@ -238,11 +238,11 @@ describe('arrival events', () => {
         ]);
 
         // The player enlisted as a soldier: sack plus the sword and the
-        // outfit in the loadout.
+        // outfit in the loadout holes.
         const player = session.team.getCharacter('player')!;
         expect(player.equipment.get('bag')?.id).toBe('sack');
-        expect(player.loadout?.weapon?.id).toBe('sword');
-        expect(player.loadout?.clothes?.id).toBe('farmer_outfit');
+        expect(player.loadout?.holes?.[0]?.id).toBe('sword');
+        expect(player.loadout?.holes?.[1]?.id).toBe('farmer_outfit');
     });
 });
 

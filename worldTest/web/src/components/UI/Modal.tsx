@@ -19,6 +19,9 @@ export function Modal({
     onClose,
     children,
     size = 'default',
+    closable = true,
+    header,
+    centered = false,
 }: {
     title: string;
     open: boolean;
@@ -26,6 +29,14 @@ export function Modal({
     children: ReactNode;
     // 'lg' fills almost the whole canvas (tall lists like the inventory).
     size?: 'default' | 'lg';
+    // Shows the ✕ close button (screens with their own cancel/back can
+    // hide it).
+    closable?: boolean;
+    // Extra content rendered inside the header, next to the title
+    // (the item picker puts its tabs there).
+    header?: ReactNode;
+    // Centers the modal on the canvas and stretches it to 100% width.
+    centered?: boolean;
 }) {
     const [layer, setLayer] = useState(0);
 
@@ -46,21 +57,28 @@ export function Modal({
         <>
             <div className="pixel-modal-overlay" style={style} onClick={onClose} />
             <div
-                className={`pixel-modal${size === 'lg' ? ' pixel-modal--lg' : ''}`}
+                className={[
+                    'pixel-modal',
+                    size === 'lg' ? 'pixel-modal--lg' : '',
+                    centered ? 'pixel-modal--center' : '',
+                ].join(' ')}
                 style={style}
                 role="dialog"
                 aria-label={title}
             >
                 <div className="pixel-modal-header">
                     <span className="pixel-modal-title">{title}</span>
-                    <button
-                        type="button"
-                        className="pixel-modal-close"
-                        aria-label="Close"
-                        onClick={onClose}
-                    >
-                        ✕
-                    </button>
+                    {header}
+                    {closable ? (
+                        <button
+                            type="button"
+                            className="pixel-modal-close"
+                            aria-label="Close"
+                            onClick={onClose}
+                        >
+                            ✕
+                        </button>
+                    ) : null}
                 </div>
                 <div className="pixel-modal-body">{children}</div>
             </div>
