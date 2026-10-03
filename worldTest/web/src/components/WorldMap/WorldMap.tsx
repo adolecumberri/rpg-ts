@@ -3,12 +3,11 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import aguaSrc from '../../../../assets/maps/agua.webp';
 import aguaNubesSrc from '../../../../assets/maps/agua_nubes.webp';
 import mapaSrc from '../../../../assets/maps/mapa.webp';
-import mapaPaisesSrc from '../../../../assets/maps/mapa_paises.webp';
 import regionMaskSrc from '../../../../assets/maps/mapa_detalles.webp';
 import { REGIONS, REGION_BY_ID } from './regions';
 import type { RegionData } from './regions';
-import { COUNTRIES, COUNTRY_BY_ID } from './countries';
-import { MAP_WIDTH, MAP_HEIGHT, countryAt, loadImage, loadMaskData, regionAt } from './mask';
+import { MAP_POINTS, POINT_SPRITE } from './points';
+import { MAP_WIDTH, MAP_HEIGHT, loadImage, loadMaskData, regionAt } from './mask';
 import type { MaskData } from './mask';
 import './WorldMap.css';
 
@@ -56,48 +55,37 @@ const DRAG_THRESHOLD = 4;
 const WHEEL_STEP = 120;
 
 // The zoom bands, with ASYMMETRIC (hysteresis) thresholds like some
-// Pokémon maps: zooming INTO a closer band needs a higher zoom than
+// Pokémon maps: zooming INTO the details needs a higher zoom than
 // zooming back OUT, so sitting at the boundary never flickers when the
-// player keeps zooming around it (anti zoom-spam). Our ladder: far =
-// low zoom, close = high zoom. Each pair is one ladder step apart, so
-// each rung belongs to one determined band from both directions.
-const COUNTRIES_LEAVE_ZOOM = 0.6; // countries -> regions (zooming in)
-const COUNTRIES_ENTER_ZOOM = 0.5; // regions -> countries (zooming out)
+// player keeps zooming around it (anti zoom-spam). Only two bands now:
+// regions (far) and details (close).
 const DETAILS_LEAVE_ZOOM = 0.7; // details -> regions (zooming out)
 const DETAILS_ENTER_ZOOM = 0.8; // regions -> details (zooming in)
 
-type Band = 'countries' | 'regions' | 'details';
+type Band = 'regions' | 'details';
 
-/**
- * The band after a zoom change, applying the asymmetric thresholds.
- * Big camera jumps (selection recenter, fast pinch) land directly on
- * the right band; small crossings around the boundaries keep the
- * hysteresis.
- */
+/** The band after a zoom change, applying the asymmetric thresholds. */
 function nextBand(current: Band, zoom: number): Band {
-    switch (current) {
-    case 'countries':
-        if (zoom >= DETAILS_ENTER_ZOOM) return 'details';
-        return zoom >= COUNTRIES_LEAVE_ZOOM ? 'regions' : 'countries';
-    case 'regions':
-        if (zoom <= COUNTRIES_ENTER_ZOOM) return 'countries';
-        if (zoom >= DETAILS_ENTER_ZOOM) return 'details';
-        return 'regions';
-    case 'details':
-        if (zoom <= COUNTRIES_ENTER_ZOOM) return 'countries';
-        return zoom <= DETAILS_LEAVE_ZOOM ? 'regions' : 'details';
-    }
+    if (zoom >= DETAILS_ENTER_ZOOM) return 'details';
+    if (zoom <= DETAILS_LEAVE_ZOOM) return 'regions';
+    return current;
 }
 
 // Duration of the one-shot crossfade between two band arts.
 const BAND_FADE_MS = 450;
 
+// Duration of the hover fade-in/fade-out on a region.
+const HOVER_FADE_MS = 200;
+
+// Selecting a region fits it on screen: the zoom that makes the region
+// image fill this fraction of the viewport (0.9 = 10% breathing room).
+const REGION_FIT_MARGIN = 0.9;
+
 type Camera = { x: number; y: number; zoom: number };
 
-// The continent currently lives in the bottom third of the 1696x2032
-// map (measured from the mask bounding boxes: x 208..1519, y 1264..1887).
-// Zoom 0.7 opens on the regions band (details start at 0.8).
-const DEFAULT_CAMERA: Camera = { x: 863, y: 1576, zoom: 0.7 };
+// The default location: Fergel East, where the first map points live.
+// Zoom 1 opens on the details band (mapa.webp only covers Fergel now).
+const DEFAULT_CAMERA: Camera = { x: 1384, y: 1632, zoom: 1 };
 
 type Point = { x: number; y: number };
 
@@ -250,55 +238,58 @@ function cachedMapImage(src: string): Promise<HTMLImageElement> {
     return cached;
 }
 
-/** Stamps a tinted image (its own silhouette) onto a canvas. */
-function tintSprite(
-    ctx: CanvasRenderingContext2D,
+/** A tinted copy of an image (its own silhouette filled with a color). */
+function tintCanvas(
     image: HTMLImageElement,
-    x: number,
-    y: number,
     rgb: [number, number, number],
     alpha: number,
-) {
+): HTMLCanvasElement {
     const temp = document.createElement('canvas');
     temp.width = image.naturalWidth;
     temp.height = image.naturalHeight;
     const tempCtx = temp.getContext('2d');
-    if (!tempCtx) return;
+    if (!tempCtx) throw new Error('Canvas 2D is not available.');
     tempCtx.drawImage(image, 0, 0);
     tempCtx.globalCompositeOperation = 'source-atop';
     tempCtx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha / 255})`;
     tempCtx.fillRect(0, 0, temp.width, temp.height);
-    ctx.drawImage(temp, x, y);
+    return temp;
 }
 
 /**
  * A hover/selection target: an image tinted on the overlay canvas.
- * `center` anchors it on its center (region/country art), otherwise on
- * its top-left (cloud sprites).
+ * `center` anchors it on its center (region art), otherwise on its
+ * top-left (cloud sprites).
  */
 type TintTarget = { src: string; x: number; y: number; center: boolean };
 
-/**
- * Tints the given images (region/country art or cloud sprites), so the
- * hover and the selection always follow the IMAGE shape — never the
- * square mask. Images load lazily; missing ones are skipped.
- */
-async function drawTints(
-    ctx: CanvasRenderingContext2D,
-    targets: TintTarget[],
+/** A tinted image ready to draw: the canvas plus its anchor. */
+type TintFrame = { canvas: HTMLCanvasElement; left: number; top: number };
+
+/** Loads and tints a target image (missing images become null). */
+async function buildTintFrame(
+    target: TintTarget,
     rgb: [number, number, number],
     alpha: number,
-) {
-    for (const target of targets) {
-        try {
-            const image = await cachedMapImage(target.src);
-            const left = target.center ? target.x - Math.floor(image.naturalWidth / 2) : target.x;
-            const top = target.center ? target.y - Math.floor(image.naturalHeight / 2) : target.y;
-            tintSprite(ctx, image, left, top, rgb, alpha);
-        } catch {
-            // Missing image: skip.
-        }
+): Promise<TintFrame | null> {
+    try {
+        const image = await cachedMapImage(target.src);
+        const left = target.center ? target.x - Math.floor(image.naturalWidth / 2) : target.x;
+        const top = target.center ? target.y - Math.floor(image.naturalHeight / 2) : target.y;
+        return { canvas: tintCanvas(image, rgb, alpha), left, top };
+    } catch {
+        return null;
     }
+}
+
+/** Draws tinted frames at a weight (0..1). */
+function drawFrames(ctx: CanvasRenderingContext2D, frames: TintFrame[], weight: number) {
+    if (weight <= 0) return;
+    ctx.globalAlpha = weight;
+    for (const frame of frames) {
+        ctx.drawImage(frame.canvas, frame.left, frame.top);
+    }
+    ctx.globalAlpha = 1;
 }
 
 /**
@@ -328,30 +319,6 @@ async function buildRegionsBand(discovered: Set<string>): Promise<HTMLCanvasElem
         }
     }
     return canvas;
-}
-
-/**
- * A map image (country / region): natural size, pixel perfect, centered
- * on its anchor. It stays hidden until its size is known, so it never
- * flickers at a wrong position.
- */
-function MapIcon({ src, x, y }: { src: string; x: number; y: number }) {
-    const [size, setSize] = useState<{ w: number; h: number } | null>(null);
-    const style = size ?
-        { left: x - Math.floor(size.w / 2), top: y - Math.floor(size.h / 2) } :
-        { left: x, top: y, visibility: 'hidden' as const };
-    return (
-        <img
-            className="worldmap-layer worldmap-icon"
-            src={src}
-            alt=""
-            onLoad={(event) => {
-                const image = event.currentTarget;
-                setSize({ w: image.naturalWidth, h: image.naturalHeight });
-            }}
-            style={style}
-        />
-    );
 }
 
 /** Translucent overlay over the pixels whose index matches the target. */
@@ -404,15 +371,6 @@ const drawRegionOverlay = (
     withOutline: boolean,
 ) => drawOverlay(ctx, mask.indexData, mask.regionIds, regionId, rgb, fillAlpha, withOutline);
 
-const drawCountryOverlay = (
-    ctx: CanvasRenderingContext2D,
-    mask: MaskData,
-    countryId: string,
-    rgb: [number, number, number],
-    fillAlpha: number,
-    withOutline: boolean,
-) => drawOverlay(ctx, mask.countryIndexData, mask.countryIds, countryId, rgb, fillAlpha, withOutline);
-
 const HOVER_RGB: [number, number, number] = [0, 0, 0];
 
 const distBetween = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - b.y);
@@ -422,35 +380,31 @@ const midOf = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.
 export type WorldMapProps = {
     discoveredRegions: string[];
     selectedRegion: string | null;
-    discoveredCountries?: string[];
-    selectedCountry?: string | null;
     onRegionSelect?: (regionId: string | null) => void;
-    onCountrySelect?: (countryId: string | null) => void;
     onRegionEnter?: (regionId: string | null) => void;
     onRegionLeave?: (regionId: string | null) => void;
+    // Clicking a map point (the interactive dots).
+    onPointClick?: (pointId: string) => void;
     // Clicking an undiscovered target: 'ignore' (default) does nothing;
     // 'select' selects it but keeps its info hidden.
     undiscovered?: 'ignore' | 'select';
 };
 
 /**
- * The FFTA2-style world map over the real art, with zoom bands: far
- * out it shows the COUNTRIES art revealed by the derived country mask;
- * the middle band shows the regions art (mapa_regiones) and the close
- * band the detailed place art (mapa), both revealed by the region
- * mask. Controls: wheel zoom (anchored at the cursor), drag to pan,
- * two-finger pinch. The dev button (top right) opens a panel with the
- * live mouse coordinates and the layer toggles.
+ * The FFTA2-style world map over the real art, with two zoom bands:
+ * far out shows the regions (composited from the per-region images),
+ * close up shows the detailed place art (mapa). Controls: wheel zoom
+ * (anchored at the cursor), drag to pan, two-finger pinch. The dev
+ * button (top right) opens a panel with the live mouse coordinates
+ * and the layer toggles.
  */
 export function WorldMap({
     discoveredRegions,
     selectedRegion,
-    discoveredCountries = [],
-    selectedCountry = null,
     onRegionSelect,
-    onCountrySelect,
     onRegionEnter,
     onRegionLeave,
+    onPointClick,
     undiscovered = 'ignore',
 }: WorldMapProps) {
     const [mask, setMask] = useState<MaskData | null>(null);
@@ -463,7 +417,6 @@ export function WorldMap({
     // Dev tool state.
     const [devOpen, setDevOpen] = useState(false);
     const [showNubes, setShowNubes] = useState(true);
-    const [showIcons, setShowIcons] = useState(true);
     const [showMapa, setShowMapa] = useState(true);
     const [showMask, setShowMask] = useState(false);
     const [showSelection, setShowSelection] = useState(true);
@@ -471,7 +424,6 @@ export function WorldMap({
         x: number;
         y: number;
         region: string | null;
-        country: string | null;
     } | null>(null);
     const [copied, setCopied] = useState(false);
     // The discovered target under the mouse (drives the hover overlay).
@@ -484,6 +436,9 @@ export function WorldMap({
     const selectionRef = useRef<HTMLCanvasElement | null>(null);
     const hoverCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const hoverRef = useRef<string | null>(null);
+    // The tinted frames currently shown on the hover canvas (the hover
+    // fade animates from these to the new target's frames).
+    const hoverFramesRef = useRef<TintFrame[]>([]);
     const cameraRef = useRef(camera);
     cameraRef.current = camera;
     const pointersRef = useRef(new Map<number, Point>());
@@ -536,7 +491,6 @@ export function WorldMap({
     }, []);
 
     const discoveredRegionSet = new Set(discoveredRegions);
-    const discoveredCountrySet = new Set(discoveredCountries);
 
     // The current band is STATE, not a pure function of the zoom: the
     // asymmetric thresholds keep it stable around the boundaries.
@@ -562,7 +516,6 @@ export function WorldMap({
 
     // A selection only counts when the target is discovered.
     const effectiveRegion = selectedRegion && discoveredRegionSet.has(selectedRegion) ? selectedRegion : null;
-    const effectiveCountry = selectedCountry && discoveredCountrySet.has(selectedCountry) ? selectedCountry : null;
 
     // Cloud mode: enabled when at least one region defines a cloud
     // sprite. The sprite IS the fog (and the hover/selection shape);
@@ -578,23 +531,17 @@ export function WorldMap({
         if (!mask || !showMapa) return;
         const build = (band: Band): Promise<HTMLCanvasElement> => {
             if (band === 'regions') return buildRegionsBand(discoveredRegionSet);
-            const artSrc = band === 'countries' ? mapaPaisesSrc : mapaSrc;
-            const indexData = band === 'countries' ? mask.countryIndexData : mask.indexData;
-            const ids = band === 'countries' ? mask.countryIds : mask.regionIds;
-            const discovered = band === 'countries' ?
-                new Set(mask.countryIds.filter((id) => id !== '')) :
-                discoveredRegionSet;
-            return cachedReveal(artSrc).then((artCanvas) => {
+            return cachedReveal(mapaSrc).then((artCanvas) => {
                 // Cloud mode: the fog comes from the per-region cloud
                 // sprites, so the band art is revealed fully (the
                 // fallback clips it with the discovered mask).
                 return hasClouds ?
                     artCanvas :
-                    clipReveal(artCanvas, indexData, ids, discovered);
+                    clipReveal(artCanvas, mask.indexData, mask.regionIds, discoveredRegionSet);
             });
         };
         let alive = true;
-        const bands: Band[] = ['countries', 'regions', 'details'];
+        const bands: Band[] = ['regions', 'details'];
         let pending = bands.length;
         const built: Partial<Record<Band, HTMLCanvasElement>> = {};
         for (const band of bands) {
@@ -639,59 +586,44 @@ export function WorldMap({
         return () => cancelAnimationFrame(raf);
     }, [fade, showMapa]);
 
-    // Selection: tints the selected entity's IMAGE (region/country art
-    // or cloud sprite), so the highlight always follows the image
-    // shape. The mask overlay is only the fallback for entities
-    // without an image. The details band is below the region level:
-    // nothing to highlight there.
+    // Selection: tints the selected region's IMAGE (or cloud sprite),
+    // so the highlight always follows the image shape. The mask
+    // overlay is only the fallback for regions without an image. The
+    // details band is below the region level: nothing to highlight.
     useEffect(() => {
         const canvas = selectionRef.current;
         if (!canvas || !mask || !showSelection) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         ctx.clearRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+        if (band !== 'regions' || !effectiveRegion) return;
+        const region = REGION_BY_ID[effectiveRegion];
+        if (!region) return;
         const targets: TintTarget[] = [];
-        if (band === 'countries' && effectiveCountry) {
-            const country = COUNTRY_BY_ID[effectiveCountry];
-            if (country && country.image) {
-                targets.push({ src: country.image.src, x: country.position.x, y: country.position.y, center: true });
-            }
-        } else if (band === 'regions' && effectiveRegion) {
-            const region = REGION_BY_ID[effectiveRegion];
-            if (region) {
-                if (region.cloud) {
-                    targets.push({ src: region.cloud.src, x: region.cloud.x, y: region.cloud.y, center: false });
-                } else if (region.image) {
-                    targets.push({ src: region.image.src, x: region.position.x, y: region.position.y, center: true });
-                }
-            }
+        if (region.cloud) {
+            targets.push({ src: region.cloud.src, x: region.cloud.x, y: region.cloud.y, center: false });
+        } else if (region.image) {
+            targets.push({ src: region.image.src, x: region.position.x, y: region.position.y, center: true });
         }
         if (targets.length > 0) {
-            drawTints(ctx, targets, SELECT_RGB, 70).catch(() => {});
-        } else if (band === 'countries' && effectiveCountry) {
-            drawCountryOverlay(ctx, mask, effectiveCountry, SELECT_RGB, 70, true);
-        } else if (band === 'regions' && effectiveRegion) {
+            Promise.all(targets.map((target) => buildTintFrame(target, SELECT_RGB, 70)))
+                .then((frames) => drawFrames(ctx, frames.flatMap((frame) => (frame ? [frame] : [])), 1))
+                .catch(() => {});
+        } else {
             drawRegionOverlay(ctx, mask, effectiveRegion, SELECT_RGB, 70, true);
         }
-    }, [mask, effectiveRegion, effectiveCountry, band, showSelection]);
+    }, [mask, effectiveRegion, band, showSelection]);
 
-    // Hover overlay: a dark tint over the discovered target's image
-    // (region/country art or cloud sprite); mask-shaped only for
-    // entities without an image. No hover on the details band.
+    // Hover overlay: a dark tint over the hovered region's image, with
+    // a smooth crossfade (HOVER_FADE_MS) between targets. Regions band
+    // only: the details band has no region-level hover.
     useEffect(() => {
         const canvas = hoverCanvasRef.current;
         if (!canvas || !mask) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        ctx.clearRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
-        if (!hoverTarget) return;
         const targets: TintTarget[] = [];
-        if (band === 'countries') {
-            const country = COUNTRY_BY_ID[hoverTarget];
-            if (country && country.image) {
-                targets.push({ src: country.image.src, x: country.position.x, y: country.position.y, center: true });
-            }
-        } else if (band === 'regions') {
+        if (band === 'regions' && hoverTarget) {
             const region = REGION_BY_ID[hoverTarget];
             if (region) {
                 if (region.cloud) {
@@ -701,31 +633,61 @@ export function WorldMap({
                 }
             }
         }
-        if (targets.length > 0) {
-            drawTints(ctx, targets, HOVER_RGB, 70).catch(() => {});
-        } else if (band === 'countries') {
-            drawCountryOverlay(ctx, mask, hoverTarget, HOVER_RGB, 70, false);
-        } else if (band === 'regions') {
-            drawRegionOverlay(ctx, mask, hoverTarget, HOVER_RGB, 70, false);
-        }
+        let alive = true;
+        let raf = 0;
+        const previous = hoverFramesRef.current;
+        Promise.all(targets.map((target) => buildTintFrame(target, HOVER_RGB, 70)))
+            .then((built) => {
+                if (!alive) return;
+                const next = built.flatMap((frame) => (frame ? [frame] : []));
+                const start = performance.now();
+                const step = (now: number) => {
+                    const progress = Math.min(1, (now - start) / HOVER_FADE_MS);
+                    ctx.clearRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+                    if (progress < 1) drawFrames(ctx, previous, 1 - progress);
+                    if (progress > 0) drawFrames(ctx, next, progress);
+                    if (progress < 1) {
+                        raf = requestAnimationFrame(step);
+                    } else {
+                        hoverFramesRef.current = next;
+                    }
+                };
+                raf = requestAnimationFrame(step);
+            })
+            .catch(() => {});
+        return () => {
+            alive = false;
+            cancelAnimationFrame(raf);
+        };
     }, [mask, hoverTarget, band]);
 
-    // Selecting a target centers the camera on its own camera. Keyed on
-    // the selection VALUES only: crossing a zoom band must never
-    // recenter (the map must not jump when the LOD toggles).
-    useEffect(() => {
-        if (!effectiveCountry) return;
-        const country = COUNTRY_BY_ID[effectiveCountry];
-        if (country && country.camera) setCamera(country.camera);
-    }, [effectiveCountry]);
-
+    // Selecting a region FITS it on screen: the camera centers on the
+    // region and zooms so its image fills the viewport with a small
+    // margin. Keyed on the selection VALUE only: zoom band changes
+    // never recenter.
     useEffect(() => {
         if (!effectiveRegion) return;
         const region = REGION_BY_ID[effectiveRegion];
-        if (region) setCamera(region.camera);
+        if (!region || !region.image) return;
+        const viewport = viewportRef.current;
+        if (!viewport || viewport.clientWidth === 0) return;
+        let alive = true;
+        cachedMapImage(region.image.src).then((image) => {
+            if (!alive) return;
+            const current = viewportRef.current;
+            if (!current) return;
+            const fit = Math.min(
+                current.clientWidth / image.naturalWidth,
+                current.clientHeight / image.naturalHeight,
+            ) * REGION_FIT_MARGIN;
+            setCamera({ x: region.position.x, y: region.position.y, zoom: clampZoom(fit) });
+        }).catch(() => {});
+        return () => {
+            alive = false;
+        };
     }, [effectiveRegion]);
 
-    // Band changes invalidate the hover (region ids vs country ids).
+    // Band changes invalidate the hover (it is band-scoped).
     useEffect(() => {
         hoverRef.current = null;
         setHoverTarget(null);
@@ -762,13 +724,6 @@ export function WorldMap({
         return regionAt(mask, logical.x, logical.y);
     };
 
-    const countryUnder = (clientX: number, clientY: number): string | null => {
-        if (!mask) return null;
-        const logical = rawLogical(clientX, clientY);
-        if (!logical) return null;
-        return countryAt(mask, logical.x, logical.y);
-    };
-
     const updateHover = (clientX: number, clientY: number) => {
         // The details band is below the region level: no hover at all.
         if (band === 'details') {
@@ -778,16 +733,13 @@ export function WorldMap({
             setHoverTarget(null);
             return;
         }
-        const id = band === 'countries' ? countryUnder(clientX, clientY) : regionUnder(clientX, clientY);
+        const id = regionUnder(clientX, clientY);
         if (id === hoverRef.current) return;
-        if (hoverRef.current !== null && band !== 'countries') onRegionLeave?.(hoverRef.current);
+        if (hoverRef.current !== null) onRegionLeave?.(hoverRef.current);
         hoverRef.current = id;
-        if (id !== null && band !== 'countries') onRegionEnter?.(id);
+        if (id !== null) onRegionEnter?.(id);
         // Only DISCOVERED targets get the visual hover overlay.
-        const discovered = id !== null && (band === 'countries' ?
-            discoveredCountrySet.has(id) :
-            discoveredRegionSet.has(id));
-        setHoverTarget(discovered ? id : null);
+        setHoverTarget(id !== null && discoveredRegionSet.has(id) ? id : null);
     };
 
     const updateCursor = (clientX: number, clientY: number) => {
@@ -798,22 +750,12 @@ export function WorldMap({
             x: Math.round(logical.x),
             y: Math.round(logical.y),
             region: mask ? regionAt(mask, logical.x, logical.y) : null,
-            country: mask ? countryAt(mask, logical.x, logical.y) : null,
         });
     };
 
     const selectAt = (clientX: number, clientY: number) => {
         // The details band is below the region level: no selection.
         if (band === 'details') return;
-        if (band === 'countries') {
-            const id = countryUnder(clientX, clientY);
-            if (!id) return;
-            const country = COUNTRY_BY_ID[id];
-            if (country && country.selectable === false) return;
-            if (!discoveredCountrySet.has(id) && undiscovered !== 'select') return;
-            onCountrySelect?.(id);
-            return;
-        }
         const id = regionUnder(clientX, clientY);
         if (!id) return;
         const region = REGION_BY_ID[id];
@@ -955,7 +897,7 @@ export function WorldMap({
         if (pointersRef.current.size === 0) {
             gestureRef.current = null;
             if (hoverRef.current !== null) {
-                if (band !== 'countries') onRegionLeave?.(hoverRef.current);
+                onRegionLeave?.(hoverRef.current);
                 hoverRef.current = null;
             }
             setHoverTarget(null);
@@ -1007,33 +949,15 @@ export function WorldMap({
     const ty = viewportSize.h / 2 - camera.y * camera.zoom;
     const worldStyle = { transform: `translate(${tx}px, ${ty}px) scale(${camera.zoom})` };
 
-    const selectedInfo = band === 'countries' ?
-        (effectiveCountry ? COUNTRY_BY_ID[effectiveCountry] : undefined) :
-        (effectiveRegion ? REGION_BY_ID[effectiveRegion] : undefined);
-    const hiddenSelected = band === 'countries' ?
-        selectedCountry !== null && effectiveCountry === null :
-        selectedRegion !== null && effectiveRegion === null;
+    const selectedInfo = effectiveRegion ? REGION_BY_ID[effectiveRegion] : undefined;
+    const hiddenSelected = selectedRegion !== null && effectiveRegion === null;
 
     const devToggles: Array<{ label: string; value: boolean; onToggle: () => void }> = [
         { label: 'nubes', value: showNubes, onToggle: () => setShowNubes((v) => !v) },
         { label: 'mapa', value: showMapa, onToggle: () => setShowMapa((v) => !v) },
         { label: 'mask', value: showMask, onToggle: () => setShowMask((v) => !v) },
         { label: 'selección', value: showSelection, onToggle: () => setShowSelection((v) => !v) },
-        { label: 'iconos', value: showIcons, onToggle: () => setShowIcons((v) => !v) },
     ];
-
-    // The map images of the current band. Country images show on the
-    // far band (always visible, no fog there). Region images are NOT
-    // a separate layer: they ARE the regions band canvas itself, so
-    // they disappear on their own when zooming into the details.
-    const icons: Array<{ key: string; src: string; x: number; y: number }> = [];
-    if (band === 'countries') {
-        for (const country of COUNTRIES) {
-            if (country.image) {
-                icons.push({ key: country.id, src: country.image.src, x: country.position.x, y: country.position.y });
-            }
-        }
-    }
 
     return (
         <div className="worldmap pixel-font">
@@ -1063,7 +987,7 @@ export function WorldMap({
                             height={MAP_HEIGHT}
                         />
                     ) : null}
-                    {showNubes && hasClouds && band !== 'countries' ? (
+                    {showNubes && hasClouds ? (
                         REGIONS.flatMap((region) => {
                             if (!region.cloud || discoveredRegionSet.has(region.id)) return [];
                             return [
@@ -1077,11 +1001,24 @@ export function WorldMap({
                             ];
                         })
                     ) : null}
-                    {showIcons ? (
-                        icons.map((icon) => (
-                            <MapIcon key={icon.key} src={icon.src} x={icon.x} y={icon.y} />
-                        ))
-                    ) : null}
+                    {MAP_POINTS.flatMap((point) => {
+                        if (!discoveredRegionSet.has(point.regionId)) return [];
+                        return [
+                            <button
+                                key={point.id}
+                                type="button"
+                                className="worldmap-point"
+                                style={{
+                                    left: point.x - POINT_SPRITE.size / 2,
+                                    top: point.y - POINT_SPRITE.size / 2,
+                                    backgroundImage: `url(${POINT_SPRITE.src})`,
+                                    backgroundPosition: '0 0',
+                                }}
+                                onPointerDown={(event) => event.stopPropagation()}
+                                onClick={() => onPointClick?.(point.id)}
+                            />,
+                        ];
+                    })}
                     {showSelection ? (
                         <canvas
                             ref={selectionRef}
@@ -1122,7 +1059,7 @@ export function WorldMap({
                             {cursor ? `${cursor.x}, ${cursor.y}` : '—, —'}
                         </div>
                         <div className="worldmap-dev-region">
-                            {cursor ? `${cursor.country ?? '—'} · ${cursor.region ?? '—'}` : '—'}
+                            {cursor ? (cursor.region ?? '—') : '—'}
                         </div>
                         <button
                             type="button"
@@ -1163,7 +1100,7 @@ export function WorldMap({
                         className="pixel-btn"
                         onClick={() => {
                             setCamera(DEFAULT_CAMERA);
-                            setBand('regions');
+                            setBand(nextBand(band, DEFAULT_CAMERA.zoom));
                         }}
                     >
                         ⌂

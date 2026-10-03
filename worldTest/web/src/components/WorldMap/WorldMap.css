@@ -71,6 +71,21 @@
     pointer-events: none;
 }
 
+/* An interactive map point: a 16x16 frame of the shared circle sheet,
+   absolutely placed on its map coordinates. Clickable. */
+.worldmap-point {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    z-index: 2;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    cursor: pointer;
+}
+
 .worldmap-layer--nubes {
     z-index: 1;
 }
