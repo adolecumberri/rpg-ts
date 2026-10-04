@@ -3,6 +3,7 @@ import { useGame } from '../game/GameContext';
 import { OptionsBar } from '../components/UI/OptionsBar';
 import type { OptionSpec } from '../components/UI/OptionsBar';
 import { placeImageOf } from '../assets/places';
+import { ACTION_ICONS } from '../assets/actionIcons';
 import { WorldMapScreen } from './WorldMapScreen';
 
 /**
@@ -22,7 +23,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
     const options: OptionSpec[] = [];
 
     // Always first: the map stays on the first page of the bar.
-    options.push({ id: 'map', label: 'Map', icon: '', onClick: () => setView('map') });
+    options.push({ id: 'map', label: 'Map', icon: ACTION_ICONS.map, sub: 'Region', onClick: () => setView('map') });
 
     const corpses = api.session.corpsesAt(place.id).length;
 
@@ -79,7 +80,8 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '🛒',
+                    icon: ACTION_ICONS.shop,
+                    sub: 'Goods & Rations',
                     disabled: closed,
                     disabledReason: 'Closed',
                     onClick: () => api.navigate({ name: 'shop', shopId: action.shopId }),
@@ -133,7 +135,8 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '📋',
+                    icon: ACTION_ICONS.missions,
+                    sub: 'The Hall',
                     onClick: () => api.navigate({ name: 'board' }),
                 });
             } else if (action.kind === 'team') {
@@ -153,7 +156,8 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: corpses > 0 ? `${action.label} ⚰️ ${corpses}` : action.label,
-                    icon: action.icon ?? '🔍',
+                    icon: ACTION_ICONS.look,
+                    sub: 'Inspect',
                     onClick: () => api.navigate({ name: 'lookaround' }),
                 });
             } else if (action.kind === 'fountain') {
@@ -176,10 +180,13 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
             <div className="place-view">
                 <img className="place-image" src={placeImageOf(place.image)} alt={place.name} />
                 <div className="place-caption">
-                    <div className="pixel-title" style={{ borderBottom: 'none', marginBottom: 4 }}>
-                        {place.emoji} {place.name}
+                    <div className="place-card-head">
+                        <div className="place-card-title">{place.name}</div>
+                        {place.subtitle ? (
+                            <div className="place-card-subtitle">{place.subtitle}</div>
+                        ) : null}
                     </div>
-                    <div style={{ fontSize: 'var(--s3)', color: 'var(--muted)' }}>{place.description}</div>
+                    <p className="place-card-desc">{place.description}</p>
                     {activeHere.length > 0 || markers.length > 0 ? (
                         <div style={{ marginTop: 8 }}>
                             {activeHere.map((mission) => (

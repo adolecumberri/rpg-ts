@@ -13,6 +13,8 @@ export type OptionSpec = {
     tone?: 'default' | 'primary' | 'danger';
     disabled?: boolean;
     disabledReason?: string;
+    // The muted sub-label under the label.
+    sub?: string;
     onClick?: () => void;
 };
 
@@ -42,6 +44,7 @@ export function OptionsBar({
         tone: option.tone,
         disabled: option.disabled,
         disabledReason: option.disabledReason,
+        sub: option.sub,
         onClick: option.onClick,
     }));
 

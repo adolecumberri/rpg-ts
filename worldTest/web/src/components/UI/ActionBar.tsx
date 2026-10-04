@@ -18,6 +18,8 @@ export type ActionBarCell = {
     selected?: boolean;
     // The badge on a picked cell ('✓' or '✓×2' for stacked hits).
     mark?: string;
+    // The muted sub-label under the label.
+    sub?: string;
     onClick?: () => void;
 };
 
@@ -138,6 +140,7 @@ export function ActionBar({
                 disabled={cell.disabled}
                 selected={cell.selected}
                 mark={cell.mark}
+                sub={cell.sub}
                 onClick={() => press(cell)}
             />,
         );

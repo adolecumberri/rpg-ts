@@ -46,6 +46,9 @@ export type Place = {
     name: string;
     description: string;
     emoji: string;
+    // The small uppercase tag next to the name on the place card
+    // (the design's "Barony Domain").
+    subtitle?: string;
     // Artwork key resolved by the UI (see web/assets/places.ts); when
     // unset the place renders the default groceries art.
     image?: string;

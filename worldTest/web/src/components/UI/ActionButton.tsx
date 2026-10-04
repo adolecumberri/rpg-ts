@@ -3,10 +3,15 @@ import { Icon } from './Icon';
 
 /**
  * The icon of an action button: a single character (emoji, '›', '‹'),
- * an image ({src}), or a dictionary icon ({icon: id}) rendered at a
- * fixed size so nothing overflows the cell.
+ * an image ({src}), a dictionary icon ({icon: id}) rendered at a
+ * fixed size so nothing overflows the cell, or a flat vector SVG
+ * ({svg: path}) from the design (no outline).
  */
-export type ActionIcon = string | { src: string; alt?: string } | { icon: string; size?: number };
+export type ActionIcon =
+    | string
+    | { src: string; alt?: string }
+    | { icon: string; size?: number }
+    | { svg: string; color?: string };
 
 // Default icon sizes per bar size, in UI units (1u = 4px): fixed so
 // nothing overflows the cell.
@@ -31,6 +36,7 @@ export function ActionButton({
     selected,
     mark,
     slot,
+    sub,
     onClick,
 }: {
     label: string;
@@ -48,15 +54,18 @@ export function ActionButton({
     // The grid slot (1-based): row 3 col 2 for slot 6, etc. Keeps the
     // page controls pinned to their slots on short pages.
     slot?: number;
+    // The muted sub-label under the main label (the design's buttons:
+    // icon slot + text + subtext).
+    sub?: string;
     onClick?: () => void;
 }) {
-    const toneClass = tone === 'primary'
-        ? 'pixel-btn--primary'
-        : tone === 'danger' ? 'pixel-btn--danger' : '';
+    const toneClass = tone === 'primary' ?
+        'pixel-btn--primary' :
+        tone === 'danger' ? 'pixel-btn--danger' : '';
 
-    const style: CSSProperties | undefined = slot
-        ? { gridRow: Math.ceil(slot / 2), gridColumn: ((slot - 1) % 2) + 1 }
-        : undefined;
+    const style: CSSProperties | undefined = slot ?
+        { gridRow: Math.ceil(slot / 2), gridColumn: ((slot - 1) % 2) + 1 } :
+        undefined;
 
     let iconNode: ReactNode = null;
     if (icon) {
@@ -70,10 +79,30 @@ export function ActionButton({
                     alt={icon.alt ?? ''}
                 />
             );
+        } else if ('svg' in icon) {
+            iconNode = (
+                <svg
+                    className="action-btn-svg"
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    style={{ color: icon.color ?? 'currentColor' }}
+                    aria-hidden="true"
+                >
+                    <path d={icon.svg} />
+                </svg>
+            );
         } else {
             iconNode = <Icon id={icon.icon} size={icon.size ?? ICON_SIZES[size]} />;
         }
+    } else if (variant !== 'nav') {
+        // No icon: fall back to the default pixel icon of the system
+        // (never an empty slot).
+        iconNode = <Icon id="default" size={ICON_SIZES[size]} />;
     }
+
+    const checkNode = selected || mark ? (
+        <span className="action-btn-check">{mark ?? '✓'}</span>
+    ) : null;
 
     return (
         <button
@@ -90,13 +119,23 @@ export function ActionButton({
             style={style}
             onClick={onClick}
         >
-            <span className="action-btn-label">
-                {iconNode}
-                {label}
-                {selected || mark ? (
-                    <span className="action-btn-check">{mark ?? '✓'}</span>
-                ) : null}
-            </span>
+            {variant === 'nav' ? (
+                <span className="action-btn-label">
+                    {iconNode}
+                    {label}
+                </span>
+            ) : (
+                <>
+                    {iconNode ? <span className="action-btn-slot">{iconNode}</span> : null}
+                    <span className="action-btn-text">
+                        <span className="action-btn-label action-btn-title">
+                            <span className="action-btn-label-text">{label}</span>
+                            {checkNode}
+                        </span>
+                        {sub ? <span className="action-btn-caption">{sub}</span> : null}
+                    </span>
+                </>
+            )}
         </button>
     );
 }

@@ -79,6 +79,7 @@ export function WorldMapScreen({ onBack }: { onBack?: () => void }) {
                     id: 'go',
                     label: 'Go',
                     icon: '🚶',
+                    sub: 'Travel',
                     onClick: go,
                     disabled: !shownReachable,
                     disabledReason: 'You cannot reach this place.',

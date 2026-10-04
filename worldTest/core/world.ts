@@ -140,10 +140,11 @@ export const PLACES: Place[] = [
         id: ACT1.startPlaceId,
         name: "The Lord's Farm",
         emoji: '',
+        subtitle: 'Barony Domain',
         description: 'A farm in El Fergel, a southern country. You were bought by the lord and work his land.',
         position: { x: 300, y: 260 },
         actions: [
-            { id: 'mission_board', label: 'Mission Board (The Hall)', kind: 'mission_board', icon: '' },
+            { id: 'mission_board', label: 'Mission Board', kind: 'mission_board', icon: '' },
             { id: 'farm_shop', label: 'Farm Shop', kind: 'shop', shopId: 'farm_shop', icon: '' },
             { id: 'farm_look', label: 'Look around', kind: 'look_around', icon: '' },
             ...ACT1.tasks.map((task) => ({
