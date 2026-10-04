@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
-import aguaSrc from '../../../../assets/maps/agua.webp';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import aguaNubesSrc from '../../../../assets/maps/agua_nubes.webp';
 import mapaSrc from '../../../../assets/maps/mapa.webp';
 import regionMaskSrc from '../../../../assets/maps/mapa_detalles.webp';
+import indicatorSrc from '../../../../assets/maps/icons/map_indicator.webp';
 import { REGIONS, REGION_BY_ID } from './regions';
 import type { RegionData } from './regions';
-import { MAP_POINTS, POINT_SPRITE } from './points';
+import { MAP_PLACES, MARKER_SPRITE } from './mapPlaces';
+import type { MapPlace } from './mapPlaces';
+import type { RegionId } from './ids';
 import { MAP_WIDTH, MAP_HEIGHT, loadImage, loadMaskData, regionAt } from './mask';
 import type { MaskData } from './mask';
 import './WorldMap.css';
 
 const SELECT_RGB: [number, number, number] = [245, 185, 66];
+// The selected map place highlight: #f7b750.
+const PLACE_SELECT_RGB: [number, number, number] = [247, 183, 80];
 
 // The zoom ladder: fine steps both out (the whole map at 0.2) and in
 // (small jumps near the 6x maximum, so one wheel notch never leaps).
@@ -83,9 +87,14 @@ const REGION_FIT_MARGIN = 0.9;
 
 type Camera = { x: number; y: number; zoom: number };
 
-// The default location: Fergel East, where the first map points live.
-// Zoom 1 opens on the details band (mapa.webp only covers Fergel now).
-const DEFAULT_CAMERA: Camera = { x: 1384, y: 1632, zoom: 1 };
+// The player starts at the Order Camp: the camera opens on its map
+// place (data-driven, so moving the camp in mapPlaces.ts follows).
+const START_PLACE = MAP_PLACES.find((place) => place.placeId === 'camp');
+const DEFAULT_CAMERA: Camera = {
+    x: START_PLACE ? START_PLACE.x : MAP_WIDTH / 2,
+    y: START_PLACE ? START_PLACE.y : MAP_HEIGHT / 2,
+    zoom: 1,
+};
 
 type Point = { x: number; y: number };
 
@@ -321,6 +330,80 @@ async function buildRegionsBand(discovered: Set<string>): Promise<HTMLCanvasElem
     return canvas;
 }
 
+/**
+ * A map place's cut-out image, centered on its coordinates. It is NOT
+ * interactive itself: taps and drags go to the viewport (so the map
+ * can be dragged from anywhere) and the viewport hit-tests the place
+ * on tap. Hidden until its size is known, so it never flickers at a
+ * wrong position.
+ */
+function PlaceImage({ place, hovered }: { place: MapPlace; hovered: boolean }) {
+    const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+    const image = place.image ?? '';
+    return (
+        <div
+            className={`worldmap-location${hovered ? ' worldmap-location--hovered' : ''}`}
+            style={size ?
+                {
+                    left: place.x - Math.floor(size.w / 2),
+                    top: place.y - Math.floor(size.h / 2),
+                    width: size.w,
+                    height: size.h,
+                } :
+                { left: place.x, top: place.y, visibility: 'hidden' }}
+        >
+            <img
+                className="worldmap-location-image"
+                src={image}
+                alt={place.name}
+                onLoad={(event) => {
+                    const measured = {
+                        w: event.currentTarget.naturalWidth,
+                        h: event.currentTarget.naturalHeight,
+                    };
+                    locationSizes.set(image, measured);
+                    setSize(measured);
+                }}
+            />
+        </div>
+    );
+}
+
+/**
+ * The "you are here" indicator: drawn over the location of the
+ * current place. Purely visual (pointer-events disabled).
+ */
+function IndicatorMarker({ x, y }: { x: number; y: number }) {
+    const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+    return (
+        <div
+            className="worldmap-indicator"
+            style={size ?
+                {
+                    left: x - Math.floor(size.w / 2),
+                    top: y - Math.floor(size.h),
+                    width: size.w,
+                    height: size.h,
+                } :
+                { left: x, top: y, visibility: 'hidden' }}
+        >
+            <img
+                className="worldmap-indicator-image"
+                src={indicatorSrc}
+                alt="You are here"
+                onLoad={(event) => {
+                    const image = event.currentTarget;
+                    setSize({ w: image.naturalWidth, h: image.naturalHeight });
+                }}
+            />
+        </div>
+    );
+}
+
+/** Natural sizes of the location images, reported on load (used by
+    the viewport's tap/hover hit-testing). */
+const locationSizes = new Map<string, { w: number; h: number }>();
+
 /** Translucent overlay over the pixels whose index matches the target. */
 function drawOverlay(
     ctx: CanvasRenderingContext2D,
@@ -378,13 +461,21 @@ const distBetween = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - 
 const midOf = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
 export type WorldMapProps = {
-    discoveredRegions: string[];
-    selectedRegion: string | null;
-    onRegionSelect?: (regionId: string | null) => void;
-    onRegionEnter?: (regionId: string | null) => void;
-    onRegionLeave?: (regionId: string | null) => void;
-    // Clicking a map point (the interactive dots).
-    onPointClick?: (pointId: string) => void;
+    discoveredRegions: RegionId[];
+    selectedRegion: RegionId | null;
+    onRegionSelect?: (regionId: RegionId | null) => void;
+    onRegionEnter?: (regionId: RegionId | null) => void;
+    onRegionLeave?: (regionId: RegionId | null) => void;
+    // Clicking a map place (its image and/or its marker).
+    onMapPlaceClick?: (placeId: string) => void;
+    // The selected map place: highlighted on the map in #f7b750.
+    selectedPlaceId?: string | null;
+    // The game place the party is in ('farm', 'camp', ...): its
+    // location gets the "you are here" indicator.
+    currentLocationId?: string | null;
+    // The places reachable from the current one: unreachable places
+    // show the third circle frame. Null = all places look reachable.
+    reachablePlaceIds?: Set<string> | null;
     // Clicking an undiscovered target: 'ignore' (default) does nothing;
     // 'select' selects it but keeps its info hidden.
     undiscovered?: 'ignore' | 'select';
@@ -404,7 +495,10 @@ export function WorldMap({
     onRegionSelect,
     onRegionEnter,
     onRegionLeave,
-    onPointClick,
+    onMapPlaceClick,
+    selectedPlaceId = null,
+    currentLocationId = null,
+    reachablePlaceIds = null,
     undiscovered = 'ignore',
 }: WorldMapProps) {
     const [mask, setMask] = useState<MaskData | null>(null);
@@ -416,18 +510,19 @@ export function WorldMap({
 
     // Dev tool state.
     const [devOpen, setDevOpen] = useState(false);
-    const [showNubes, setShowNubes] = useState(true);
     const [showMapa, setShowMapa] = useState(true);
     const [showMask, setShowMask] = useState(false);
     const [showSelection, setShowSelection] = useState(true);
     const [cursor, setCursor] = useState<{
         x: number;
         y: number;
-        region: string | null;
+        region: RegionId | null;
     } | null>(null);
     const [copied, setCopied] = useState(false);
     // The discovered target under the mouse (drives the hover overlay).
-    const [hoverTarget, setHoverTarget] = useState<string | null>(null);
+    const [hoverTarget, setHoverTarget] = useState<RegionId | null>(null);
+    // The map place under the mouse (drives its hover shadow).
+    const [hoveredPlace, setHoveredPlace] = useState<string | null>(null);
 
     const viewportRef = useRef<HTMLDivElement | null>(null);
     const revealRef = useRef<HTMLCanvasElement | null>(null);
@@ -435,7 +530,7 @@ export function WorldMap({
     const revealedRef = useRef<Partial<Record<Band, HTMLCanvasElement>>>({});
     const selectionRef = useRef<HTMLCanvasElement | null>(null);
     const hoverCanvasRef = useRef<HTMLCanvasElement | null>(null);
-    const hoverRef = useRef<string | null>(null);
+    const hoverRef = useRef<RegionId | null>(null);
     // The tinted frames currently shown on the hover canvas (the hover
     // fade animates from these to the new target's frames).
     const hoverFramesRef = useRef<TintFrame[]>([]);
@@ -586,33 +681,74 @@ export function WorldMap({
         return () => cancelAnimationFrame(raf);
     }, [fade, showMapa]);
 
-    // Selection: tints the selected region's IMAGE (or cloud sprite),
-    // so the highlight always follows the image shape. The mask
-    // overlay is only the fallback for regions without an image. The
-    // details band is below the region level: nothing to highlight.
+    // Selection: tints the selected region's IMAGE (or cloud sprite)
+    // with SELECT_RGB, and the SELECTED PLACE with PLACE_SELECT_RGB
+    // (every band). The mask overlay is only the fallback for regions
+    // without an image. The details band has no region-level
+    // highlight, but the place highlight still shows there.
     useEffect(() => {
         const canvas = selectionRef.current;
         if (!canvas || !mask || !showSelection) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         ctx.clearRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
-        if (band !== 'regions' || !effectiveRegion) return;
-        const region = REGION_BY_ID[effectiveRegion];
-        if (!region) return;
-        const targets: TintTarget[] = [];
-        if (region.cloud) {
-            targets.push({ src: region.cloud.src, x: region.cloud.x, y: region.cloud.y, center: false });
-        } else if (region.image) {
-            targets.push({ src: region.image.src, x: region.position.x, y: region.position.y, center: true });
+        let alive = true;
+        const work: Array<Promise<void>> = [];
+
+        if (band === 'regions' && effectiveRegion) {
+            const region = REGION_BY_ID[effectiveRegion];
+            if (region) {
+                const targets: TintTarget[] = [];
+                if (region.cloud) {
+                    targets.push({ src: region.cloud.src, x: region.cloud.x, y: region.cloud.y, center: false });
+                } else if (region.image) {
+                    targets.push({ src: region.image.src, x: region.position.x, y: region.position.y, center: true });
+                }
+                if (targets.length > 0) {
+                    work.push(
+                        Promise.all(targets.map((target) => buildTintFrame(target, SELECT_RGB, 70)))
+                            .then((frames) => {
+                                if (!alive) return;
+                                drawFrames(ctx, frames.flatMap((frame) => (frame ? [frame] : [])), 1);
+                            }),
+                    );
+                } else {
+                    drawRegionOverlay(ctx, mask, effectiveRegion, SELECT_RGB, 70, true);
+                }
+            }
         }
-        if (targets.length > 0) {
-            Promise.all(targets.map((target) => buildTintFrame(target, SELECT_RGB, 70)))
-                .then((frames) => drawFrames(ctx, frames.flatMap((frame) => (frame ? [frame] : [])), 1))
-                .catch(() => {});
-        } else {
-            drawRegionOverlay(ctx, mask, effectiveRegion, SELECT_RGB, 70, true);
+
+        const selectedEntry = selectedPlaceId ?
+            MAP_PLACES.find((entry) => entry.placeId === selectedPlaceId) :
+            undefined;
+        if (selectedEntry && selectedEntry.image) {
+            work.push(
+                buildTintFrame(
+                    { src: selectedEntry.image, x: selectedEntry.x, y: selectedEntry.y, center: true },
+                    PLACE_SELECT_RGB,
+                    100,
+                ).then((frame) => {
+                    if (alive && frame) drawFrames(ctx, [frame], 1);
+                }),
+            );
+        } else if (selectedEntry && selectedEntry.marker) {
+            // No image: highlight the marker square itself.
+            const half = MARKER_SPRITE.size / 2;
+            ctx.fillStyle = `rgba(${PLACE_SELECT_RGB[0]}, ${PLACE_SELECT_RGB[1]}, ${PLACE_SELECT_RGB[2]}, 0.45)`;
+            ctx.fillRect(
+                selectedEntry.marker.x - half,
+                selectedEntry.marker.y - half,
+                MARKER_SPRITE.size,
+                MARKER_SPRITE.size,
+            );
         }
-    }, [mask, effectiveRegion, band, showSelection]);
+
+        // Run the async tints in order over the cleared canvas.
+        work.reduce((chain, task) => chain.then(() => task), Promise.resolve()).catch(() => { });
+        return () => {
+            alive = false;
+        };
+    }, [mask, effectiveRegion, band, showSelection, selectedPlaceId]);
 
     // Hover overlay: a dark tint over the hovered region's image, with
     // a smooth crossfade (HOVER_FADE_MS) between targets. Regions band
@@ -654,7 +790,7 @@ export function WorldMap({
                 };
                 raf = requestAnimationFrame(step);
             })
-            .catch(() => {});
+            .catch(() => { });
         return () => {
             alive = false;
             cancelAnimationFrame(raf);
@@ -681,7 +817,7 @@ export function WorldMap({
                 current.clientHeight / image.naturalHeight,
             ) * REGION_FIT_MARGIN;
             setCamera({ x: region.position.x, y: region.position.y, zoom: clampZoom(fit) });
-        }).catch(() => {});
+        }).catch(() => { });
         return () => {
             alive = false;
         };
@@ -717,14 +853,56 @@ export function WorldMap({
         };
     };
 
-    const regionUnder = (clientX: number, clientY: number): string | null => {
+    const regionUnder = (clientX: number, clientY: number): RegionId | null => {
         if (!mask) return null;
         const logical = rawLogical(clientX, clientY);
         if (!logical) return null;
         return regionAt(mask, logical.x, logical.y);
     };
 
+    /** The map place under a screen point (its image rect or marker). */
+    const mapPlaceAt = (clientX: number, clientY: number): MapPlace | null => {
+        const logical = rawLogical(clientX, clientY);
+        if (!logical) return null;
+        for (const place of MAP_PLACES) {
+            if (place.regionId && !discoveredRegionSet.has(place.regionId)) continue;
+            if (place.image) {
+                const size = locationSizes.get(place.image);
+                if (size) {
+                    const halfW = Math.floor(size.w / 2);
+                    const halfH = Math.floor(size.h / 2);
+                    if (
+                        logical.x >= place.x - halfW &&
+                        logical.x <= place.x + (size.w - halfW) &&
+                        logical.y >= place.y - halfH &&
+                        logical.y <= place.y + (size.h - halfH)
+                    ) {
+                        return place;
+                    }
+                }
+            }
+            if (place.marker) {
+                const half = MARKER_SPRITE.size / 2;
+                if (
+                    logical.x >= place.marker.x - half &&
+                    logical.x <= place.marker.x + half &&
+                    logical.y >= place.marker.y - half &&
+                    logical.y <= place.marker.y + half
+                ) {
+                    return place;
+                }
+            }
+        }
+        return null;
+    };
+
     const updateHover = (clientX: number, clientY: number) => {
+        const hovered = mapPlaceAt(clientX, clientY);
+        // Unreachable places get no hover shadow: they must not look
+        // selectable.
+        const hoverable = hovered !== null &&
+            (!reachablePlaceIds || reachablePlaceIds.has(hovered.placeId));
+        setHoveredPlace(hoverable ? hovered.placeId : null);
         // The details band is below the region level: no hover at all.
         if (band === 'details') {
             const previous = hoverRef.current;
@@ -863,7 +1041,14 @@ export function WorldMap({
 
         if (gesture.type === 'pan' && gesture.pointerId === event.pointerId) {
             if (!gesture.moved) {
-                // A tap selects the target under it (mask-driven).
+                // A tap hits, in order: a map place, a region.
+                const place = mapPlaceAt(event.clientX, event.clientY);
+                if (place) {
+                    // Unreachable places have their click disabled.
+                    if (reachablePlaceIds && !reachablePlaceIds.has(place.placeId)) return;
+                    onMapPlaceClick?.(place.placeId);
+                    return;
+                }
                 selectAt(event.clientX, event.clientY);
             }
             if (pointers.size === 1) {
@@ -901,6 +1086,7 @@ export function WorldMap({
                 hoverRef.current = null;
             }
             setHoverTarget(null);
+            setHoveredPlace(null);
         }
     };
 
@@ -925,14 +1111,6 @@ export function WorldMap({
         });
     };
 
-    const zoomBy = (delta: number) => {
-        const viewport = viewportRef.current;
-        if (!viewport) return;
-        const rect = viewport.getBoundingClientRect();
-        // Buttons zoom around the viewport center.
-        zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, delta);
-    };
-
     const copyCoords = () => {
         if (!cursor) return;
         const text = `${cursor.x}, ${cursor.y}`;
@@ -949,11 +1127,7 @@ export function WorldMap({
     const ty = viewportSize.h / 2 - camera.y * camera.zoom;
     const worldStyle = { transform: `translate(${tx}px, ${ty}px) scale(${camera.zoom})` };
 
-    const selectedInfo = effectiveRegion ? REGION_BY_ID[effectiveRegion] : undefined;
-    const hiddenSelected = selectedRegion !== null && effectiveRegion === null;
-
     const devToggles: Array<{ label: string; value: boolean; onToggle: () => void }> = [
-        { label: 'nubes', value: showNubes, onToggle: () => setShowNubes((v) => !v) },
         { label: 'mapa', value: showMapa, onToggle: () => setShowMapa((v) => !v) },
         { label: 'mask', value: showMask, onToggle: () => setShowMask((v) => !v) },
         { label: 'selección', value: showSelection, onToggle: () => setShowSelection((v) => !v) },
@@ -971,14 +1145,11 @@ export function WorldMap({
                 onPointerLeave={handleLeave}
             >
                 <div className="worldmap-world" style={worldStyle}>
-                    <img className="worldmap-layer" src={aguaSrc} alt="Water" />
-                    {showNubes ? (
-                        <img
-                            className="worldmap-layer worldmap-layer--nubes"
-                            src={aguaNubesSrc}
-                            alt="Water with clouds"
-                        />
-                    ) : null}
+                    <img
+                        className="worldmap-layer worldmap-layer--nubes"
+                        src={aguaNubesSrc}
+                        alt="Water with clouds"
+                    />
                     {showMapa ? (
                         <canvas
                             ref={revealRef}
@@ -987,7 +1158,7 @@ export function WorldMap({
                             height={MAP_HEIGHT}
                         />
                     ) : null}
-                    {showNubes && hasClouds ? (
+                    {hasClouds ? (
                         REGIONS.flatMap((region) => {
                             if (!region.cloud || discoveredRegionSet.has(region.id)) return [];
                             return [
@@ -1001,23 +1172,42 @@ export function WorldMap({
                             ];
                         })
                     ) : null}
-                    {MAP_POINTS.flatMap((point) => {
-                        if (!discoveredRegionSet.has(point.regionId)) return [];
-                        return [
-                            <button
-                                key={point.id}
-                                type="button"
-                                className="worldmap-point"
-                                style={{
-                                    left: point.x - POINT_SPRITE.size / 2,
-                                    top: point.y - POINT_SPRITE.size / 2,
-                                    backgroundImage: `url(${POINT_SPRITE.src})`,
-                                    backgroundPosition: '0 0',
-                                }}
-                                onPointerDown={(event) => event.stopPropagation()}
-                                onClick={() => onPointClick?.(point.id)}
-                            />,
-                        ];
+                    {MAP_PLACES.flatMap((place) => {
+                        if (place.regionId && !discoveredRegionSet.has(place.regionId)) return [];
+                        const nodes: ReactNode[] = [];
+                        if (place.image) {
+                            nodes.push(
+                                <PlaceImage
+                                    key={`${place.placeId}-image`}
+                                    place={place}
+                                    hovered={hoveredPlace === place.placeId}
+                                />,
+                            );
+                        }
+                        if (place.marker) {
+                            const reachable = !reachablePlaceIds || reachablePlaceIds.has(place.placeId);
+                            nodes.push(
+                                <div
+                                    key={`${place.placeId}-marker`}
+                                    className="worldmap-point"
+                                    style={{
+                                        left: place.marker.x - MARKER_SPRITE.size / 2,
+                                        top: place.marker.y - MARKER_SPRITE.size / 2,
+                                        backgroundImage: `url(${MARKER_SPRITE.src})`,
+                                        backgroundPosition: reachable ?
+                                            '0 0' :
+                                            `-${MARKER_SPRITE.unreachableX}px 0`,
+                                    }}
+                                />,
+                            );
+                        }
+                        return nodes;
+                    })}
+                    {MAP_PLACES.flatMap((place) => {
+                        if (currentLocationId === null || place.placeId !== currentLocationId) return [];
+                        // The indicator sits on the place's marker.
+                        const anchor = place.marker ?? { x: place.x, y: place.y };
+                        return [<IndicatorMarker key={place.placeId} x={anchor.x} y={anchor.y} />];
                     })}
                     {showSelection ? (
                         <canvas
@@ -1085,28 +1275,7 @@ export function WorldMap({
                     </div>
                 ) : null}
             </div>
-            <div className="worldmap-ui">
-                <div className="worldmap-region-name">
-                    {hiddenSelected ? '???' : (selectedInfo ? selectedInfo.name : '—')}
-                </div>
-                <div className="worldmap-region-description">
-                    {hiddenSelected ? 'Undiscovered region.' : (selectedInfo ? selectedInfo.description : '')}
-                </div>
-                <div className="worldmap-controls">
-                    <button type="button" className="pixel-btn" onClick={() => zoomBy(-1)}>−</button>
-                    <button type="button" className="pixel-btn" onClick={() => zoomBy(1)}>+</button>
-                    <button
-                        type="button"
-                        className="pixel-btn"
-                        onClick={() => {
-                            setCamera(DEFAULT_CAMERA);
-                            setBand(nextBand(band, DEFAULT_CAMERA.zoom));
-                        }}
-                    >
-                        ⌂
-                    </button>
-                </div>
-            </div>
+
         </div>
     );
 }

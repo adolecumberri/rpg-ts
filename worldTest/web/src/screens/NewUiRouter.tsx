@@ -10,11 +10,10 @@ import { DamagesScreen } from './DamagesScreen';
 import { Modal } from '../components/UI/Modal';
 
 /**
- * The new-UI router: a clean-room shell for the pixel-art design. It
- * renders inside the same scaled canvas but shares nothing with the old
- * app chrome (no legacy header/shell) — only pixelUI.css classes.
- * Reachable at ?ui=1 while the design is being built. The header menu
- * opens a modal that lists the test screens as rows.
+ * The main UI router: a clean-room shell for the pixel-art design. It
+ * renders inside the same scaled canvas but shares nothing with the
+ * legacy app chrome (no old header/shell) — only pixelUI.css classes.
+ * The header menu opens a modal that lists the pages as rows.
  */
 const PAGES = [
     { id: 'place', label: 'Place' },
@@ -33,27 +32,19 @@ export function NewUiRouter() {
     const [menuOpen, setMenuOpen] = useState(false);
     const api = useGame();
 
-    const exitToGame = () => {
-        // Drop the ?ui=1 flag and reload into the regular game router.
-        window.location.search = '';
-    };
-
     return (
         <div className="newui-shell pixel-font" style={{ position: 'relative' }}>
             <div className="newui-header">
                 <button
                     type="button"
                     className="pixel-btn"
-                    style={{ height: 'var(--s8)', padding: '0 var(--s2)' }}
+                    style={{ height: 'var(--s6)', padding: '0 var(--s2)', background: 'var(--bg-light)' }}
                     aria-label="Menu"
                     onClick={() => setMenuOpen(true)}
                 >
-                    ☰ Menu
+                    ☰
                 </button>
-                <span className="newui-header-title">UI TEST</span>
-                <button className="pixel-btn" style={{ height: 'var(--s8)', padding: '0 var(--s2)' }} onClick={exitToGame}>
-                    ← game
-                </button>
+                <span className="newui-header-title">RPG-TS</span>
             </div>
 
             <div className="newui-body">

@@ -20,7 +20,8 @@
     overflow: hidden;
     background: #05060a;
     border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 var(--s1) var(--border);
+    border-top: 0px solid black;
+    /* box-shadow: inset 0 0 0 var(--s1) var(--border); */
     /* The viewport owns every gesture (drag, pinch): no browser
        scrolling or double-tap zoom. */
     touch-action: none;
@@ -42,8 +43,8 @@
 }
 
 /* Every map layer shares the native size; z-order builds the picture:
-   agua (0) → agua_nubes (1) → reveal (2) → clouds (2) → selection (3)
-   → hover (4) → debug mask (5). */
+   agua_nubes (0) → reveal (1) → clouds/locations/points (2) →
+   selection (3) → hover (4) → debug mask (5). */
 .worldmap-layer {
     position: absolute;
     inset: 0;
@@ -62,17 +63,9 @@
     pointer-events: none;
 }
 
-/* A country/region map image: natural size, centered on its anchor. */
-.worldmap-icon {
-    width: auto;
-    height: auto;
-    inset: auto;
-    z-index: 2;
-    pointer-events: none;
-}
-
 /* An interactive map point: a 16x16 frame of the shared circle sheet,
-   absolutely placed on its map coordinates. Clickable. */
+   absolutely placed on its map coordinates. Taps are hit-tested by the
+   viewport, so it is purely visual. */
 .worldmap-point {
     position: absolute;
     width: 16px;
@@ -83,11 +76,67 @@
     background-color: transparent;
     background-repeat: no-repeat;
     image-rendering: pixelated;
-    cursor: pointer;
+    pointer-events: none;
+}
+
+/* A clickable map location: its own image, centered on its
+   coordinates, BELOW the points (markers draw over the places).
+   Not interactive itself: the viewport hit-tests taps, so the map
+   can be dragged from anywhere. */
+.worldmap-location {
+    position: absolute;
+    z-index: 2;
+    padding: 0;
+    border: none;
+    background: transparent;
+    image-rendering: pixelated;
+    pointer-events: none;
+    /* The hover shadow fades in/out instead of popping. */
+    filter: drop-shadow(var(--s1) var(--s1) 3px rgba(0, 0, 0, 0));
+    transition: filter 0.2s ease;
+}
+
+.worldmap-location-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+}
+
+/* Hovered location: highlighted with an image-shaped shadow. */
+.worldmap-location--hovered {
+    filter: drop-shadow(0px 0px 2px #6d3a36);
+}
+
+/* The "you are here" indicator over the current place's location.
+   It bobs up and down with an ease-in-out animation. */
+.worldmap-indicator {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    image-rendering: pixelated;
+    animation: worldmap-indicator-bob 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes worldmap-indicator-bob {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(calc(var(--s1) * -1));
+    }
+}
+
+.worldmap-indicator-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
 }
 
 .worldmap-layer--nubes {
-    z-index: 1;
+    z-index: 0;
 }
 
 .worldmap-layer--reveal {
@@ -129,7 +178,7 @@
     background: var(--card-2);
     color: var(--text);
     border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 var(--s1) var(--border);
+    /* box-shadow: inset 0 0 0 var(--s1) var(--border); */
     cursor: pointer;
 }
 
@@ -173,7 +222,7 @@
     padding: var(--s2);
     background: var(--card-2);
     border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 var(--s1) var(--border);
+    /* box-shadow: inset 0 0 0 var(--s1) var(--border); */
 }
 
 .worldmap-region-name {

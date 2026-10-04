@@ -1,5 +1,7 @@
 import type { IconId } from '../UI/Icon';
 import { COUNTRY_ENABLED } from './flags';
+import { COUNTRY_IDS, REGION_IDS } from './ids';
+import type { CountryId, RegionId } from './ids';
 import fergelOesteImg from '../../../../assets/maps/icons/fergel_oeste.webp';
 import fergelSuroesteImg from '../../../../assets/maps/icons/fergel_suroeste.webp';
 import fergelNorteImg from '../../../../assets/maps/icons/fergel_norte.webp';
@@ -26,9 +28,9 @@ import timbretSuroesteImg from '../../../../assets/maps/icons/timbret_suroeste.w
  * coordinates: x/y are the sprite's top-left in the 1696x2032 space.
  */
 export type RegionData = {
-    id: string;
+    id: RegionId;
     // The country this region belongs to (see countries.ts).
-    countryId: string;
+    countryId: CountryId;
     name: string;
     description: string;
     // Flat RGB of the region in the region mask.
@@ -52,8 +54,8 @@ export type RegionData = {
 const ALL_REGIONS: RegionData[] = [
     // ---- Fergel ----
     {
-        id: 'fergel_oeste',
-        countryId: 'fergel',
+        id: REGION_IDS.fergel_oeste,
+        countryId: COUNTRY_IDS.fergel,
         name: 'Oeste',
         description: 'Placeholder description for the fergel west.',
         maskColor: '#14ff00',
@@ -64,8 +66,8 @@ const ALL_REGIONS: RegionData[] = [
         camera: { x: 744, y: 1592, zoom: 3 },
     },
     {
-        id: 'fergel_suroeste',
-        countryId: 'fergel',
+        id: REGION_IDS.fergel_suroeste,
+        countryId: COUNTRY_IDS.fergel,
         name: 'Suroeste',
         description: 'Placeholder description for the fergel south west.',
         maskColor: '#00ffd2',
@@ -76,8 +78,8 @@ const ALL_REGIONS: RegionData[] = [
         camera: { x: 984, y: 1760, zoom: 3 },
     },
     {
-        id: 'fergel_norte',
-        countryId: 'fergel',
+        id: REGION_IDS.fergel_norte,
+        countryId: COUNTRY_IDS.fergel,
         name: 'Norte',
         description: 'Placeholder description for the fergel north.',
         maskColor: '#00d7ff',
@@ -88,8 +90,8 @@ const ALL_REGIONS: RegionData[] = [
         camera: { x: 1096, y: 1512, zoom: 3 },
     },
     {
-        id: 'fergel_centro',
-        countryId: 'fergel',
+        id: REGION_IDS.fergel_centro,
+        countryId: COUNTRY_IDS.fergel,
         name: 'Centro',
         description: 'Placeholder description for the fergel center.',
         maskColor: '#0076ff',
@@ -100,8 +102,8 @@ const ALL_REGIONS: RegionData[] = [
         camera: { x: 1048, y: 1584, zoom: 3 },
     },
     {
-        id: 'fergel_sureste',
-        countryId: 'fergel',
+        id: REGION_IDS.fergel_sureste,
+        countryId: COUNTRY_IDS.fergel,
         name: 'Sureste',
         description: 'Placeholder description for the fergel south east.',
         maskColor: '#00ff6c',
@@ -112,8 +114,8 @@ const ALL_REGIONS: RegionData[] = [
         camera: { x: 1200, y: 1648, zoom: 3 },
     },
     {
-        id: 'fergel_este',
-        countryId: 'fergel',
+        id: REGION_IDS.fergel_este,
+        countryId: COUNTRY_IDS.fergel,
         name: 'Este',
         description: 'Placeholder description for the fergel east.',
         maskColor: '#98ff00',
@@ -124,8 +126,8 @@ const ALL_REGIONS: RegionData[] = [
         camera: { x: 1384, y: 1632, zoom: 3 },
     },
     {
-        id: 'fergel_islas',
-        countryId: 'fergel',
+        id: REGION_IDS.fergel_islas,
+        countryId: COUNTRY_IDS.fergel,
         name: 'Islas',
         description: 'Placeholder description for the fergel islands.',
         maskColor: '#e4ff00',
@@ -137,8 +139,8 @@ const ALL_REGIONS: RegionData[] = [
     },
     // ---- Timbret ----
     {
-        id: 'timbret_sureste',
-        countryId: 'timbret',
+        id: REGION_IDS.timbret_sureste,
+        countryId: COUNTRY_IDS.timbret,
         name: 'Sureste',
         description: 'Placeholder description for the timbret south east.',
         maskColor: '#b800ff',
@@ -149,8 +151,8 @@ const ALL_REGIONS: RegionData[] = [
         camera: { x: 600, y: 1624, zoom: 3 },
     },
     {
-        id: 'timbret_noreste',
-        countryId: 'timbret',
+        id: REGION_IDS.timbret_noreste,
+        countryId: COUNTRY_IDS.timbret,
         name: 'Noreste',
         description: 'Placeholder description for the timbret north east.',
         maskColor: '#7000ff',
@@ -161,8 +163,8 @@ const ALL_REGIONS: RegionData[] = [
         camera: { x: 568, y: 1432, zoom: 3 },
     },
     {
-        id: 'timbret_noroeste',
-        countryId: 'timbret',
+        id: REGION_IDS.timbret_noroeste,
+        countryId: COUNTRY_IDS.timbret,
         name: 'Noroeste',
         description: 'Placeholder description for the timbret north west.',
         maskColor: '#3400ff',
@@ -173,8 +175,8 @@ const ALL_REGIONS: RegionData[] = [
         camera: { x: 368, y: 1424, zoom: 3 },
     },
     {
-        id: 'timbret_suroeste',
-        countryId: 'timbret',
+        id: REGION_IDS.timbret_suroeste,
+        countryId: COUNTRY_IDS.timbret,
         name: 'Suroeste',
         description: 'Placeholder description for the timbret south west.',
         maskColor: '#ff00f5',
@@ -195,10 +197,10 @@ export const REGIONS: RegionData[] = ALL_REGIONS.filter(
     (region) => COUNTRY_ENABLED[region.countryId],
 );
 
-export const REGION_BY_ID: Record<string, RegionData> = REGIONS.reduce(
-    (acc: Record<string, RegionData>, region) => {
+export const REGION_BY_ID: Record<RegionId, RegionData> = REGIONS.reduce(
+    (acc: Record<RegionId, RegionData>, region) => {
         acc[region.id] = region;
         return acc;
     },
-    {},
+    {} as Record<RegionId, RegionData>,
 );

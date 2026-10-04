@@ -25,12 +25,15 @@ export function OptionsBar({
     size = 'lg',
     back,
     pinLast = false,
+    banner,
 }: {
     options: OptionSpec[];
     size?: ActionBarSize;
     back?: { label?: string; onClick: () => void };
     // The last option is pinned to the final grid slot (6 in lg).
     pinLast?: boolean;
+    // A text banner spanning the first two slots of the first page.
+    banner?: string;
 }) {
     const cells: ActionBarCell[] = options.map((option) => ({
         id: option.id,
@@ -42,5 +45,13 @@ export function OptionsBar({
         onClick: option.onClick,
     }));
 
-    return <ActionBar cells={cells} size={size} back={back} pinLast={pinLast} />;
+    return (
+        <ActionBar
+            cells={cells}
+            size={size}
+            back={back}
+            pinLast={pinLast}
+            banner={banner}
+        />
+    );
 }

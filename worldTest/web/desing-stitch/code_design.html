@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RPG-TS Place View &amp; Pixel Art System Spec</title>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts for Retro Pixel Aesthetics -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;family=VT323&amp;family=Cinzel:wght@700&amp;display=swap" rel="stylesheet"/>
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rpg: {
+              bg: '#140c0c',
+              card: '#2c1515',
+              cardborder: '#4a2525',
+              gold: '#f2a63b',
+              golddim: '#a16820',
+              accent: '#387346',
+              text: '#eedbcc',
+              textmuted: '#9e8179',
+              darkred: '#3d1616',
+              amber: '#e69c24',
+              teal: '#1b4b52',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom CSS System Variables & Pixel Shaders -->
+<style data-purpose="design-tokens">
+    :root {
+      /* Precise User Grid System: 1 UI unit = 4px */
+      --u: 4px;
+      --s1: 4px;   /* 1u */
+      --s2: 8px;   /* 2u */
+      --s3: 12px;  /* 3u */
+      --s4: 16px;  /* 4u */
+      --s6: 24px;  /* 6u */
+      --s8: 32px;  /* 8u */
+      --s10: 40px; /* 10u */
+      --s12: 48px; /* 12u - EXACT Header Height */
+      --s14: 56px; /* 14u - FFTA2 Tactical Button Height */
+      --s16: 64px; /* 16u */
+      --s48: 192px; /* 48u - EXACT Action Tray Height */
+
+      /* Palette */
+      --c-border-light: #5a3030;
+      --c-border-dark: #120505;
+      --c-bg-panel: #2e1616;
+      --c-bg-btn: #411e1e;
+      --c-gold: #f5a938;
+      --c-cyan: #4ce6dc;
+    }
+
+    body {
+      background-color: #0b0707;
+      color: #dfcfc2;
+      font-family: 'VT323', monospace;
+      image-rendering: pixelated;
+      -webkit-font-smoothing: none;
+    }
+
+    .font-pixel {
+      font-family: 'Press Start 2P', monospace;
+    }
+    .font-vt {
+      font-family: 'VT323', monospace;
+    }
+
+    /* Beveled pixel art borders inspired by FFTA2 */
+    .pixel-bevel-outset {
+      box-shadow: 
+        inset 2px 2px 0px 0px rgba(255, 200, 160, 0.28),
+        inset -2px -2px 0px 0px rgba(0, 0, 0, 0.75),
+        inset 4px 4px 0px 0px rgba(255, 255, 255, 0.1),
+        inset -4px -4px 0px 0px rgba(10, 2, 2, 0.9),
+        0 0 0 2px #000000;
+    }
+
+    .pixel-bevel-inset {
+      box-shadow: 
+        inset -2px -2px 0px 0px rgba(255, 200, 160, 0.25),
+        inset 2px 2px 0px 0px rgba(0, 0, 0, 0.8),
+        inset -3px -3px 0px 0px rgba(255, 255, 255, 0.05),
+        inset 3px 3px 0px 0px rgba(0, 0, 0, 0.95),
+        0 0 0 2px #000000;
+    }
+
+    .btn-tactical {
+      position: relative;
+      background: #3b1c1c;
+      border: 2px solid #5a2e2e;
+      box-shadow: 
+        inset 2px 2px 0px 0px #703d3d,
+        inset -2px -2px 0px 0px #1a0a0a,
+        inset 3px 3px 0px 0px rgba(255,255,255,0.08),
+        inset -3px -3px 0px 0px rgba(0,0,0,0.6),
+        0 0 0 1px #050202;
+      transition: none;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .btn-tactical:hover {
+      background: #462222;
+      border-color: #723c3c;
+    }
+
+    .btn-tactical:active, .btn-tactical.active-press {
+      background: #251010;
+      transform: translate(1px, 2px);
+      box-shadow: 
+        inset -2px -2px 0px 0px #613333,
+        inset 2px 2px 0px 0px #0e0505,
+        0 0 0 1px #000000;
+    }
+
+    /* Primary Highlight Button (Chop Wood) */
+    .btn-tactical-work {
+      background: #2a3a1f;
+      border-color: #4a6635;
+      box-shadow: 
+        inset 2px 2px 0px 0px #638c45,
+        inset -2px -2px 0px 0px #111a0c,
+        0 0 0 1px #000000;
+    }
+    .btn-tactical-work:hover {
+      background: #344826;
+    }
+    .btn-tactical-work:active {
+      background: #1b2613;
+      transform: translate(1px, 2px);
+      box-shadow: 
+        inset -2px -2px 0px 0px #527538,
+        inset 2px 2px 0px 0px #090e06,
+        0 0 0 1px #000000;
+    }
+
+    /* Retro CRT Screen lines toggle effect */
+    .scanlines {
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.28) 50%
+      ), linear-gradient(
+        90deg,
+        rgba(255, 0, 0, 0.03),
+        rgba(0, 255, 0, 0.01),
+        rgba(0, 0, 255, 0.03)
+      );
+      background-size: 100% 3px, 4px 100%;
+      pointer-events: none;
+    }
+
+    /* Grid Overlay for Visualizer */
+    .grid-overlay {
+      background-size: 16px 16px;
+      background-image: 
+        linear-gradient(to right, rgba(245, 169, 56, 0.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(245, 169, 56, 0.07) 1px, transparent 1px);
+    }
+  </style>
+<!-- END: Custom CSS System Variables & Pixel Shaders -->
+</head>
+<body class="p-2 sm:p-6 lg:p-8 min-h-screen flex flex-col justify-between">
+<!-- BEGIN: Workbench Header -->
+<header class="max-w-7xl mx-auto w-full mb-6 flex flex-wrap items-center justify-between gap-4 border-b-2 border-rpg-cardborder pb-4" data-purpose="workbench-header">
+<div class="flex items-center space-x-3">
+<div class="w-7 h-7 bg-amber-600 flex items-center justify-center border border-black shadow-[1px_1px_0_#ffbc52]">
+<span class="font-pixel text-xs text-black">8b</span>
+</div>
+<div>
+<h1 class="text-xl sm:text-2xl font-bold tracking-wider text-rpg-gold uppercase flex items-center gap-2">
+          RPG-TS Mobile Viewport System
+          <span class="text-xs bg-red-950 text-amber-400 px-2 py-0.5 border border-red-800 font-pixel">v2.4 - 320x640</span>
+</h1>
+<p class="text-xs sm:text-sm text-rpg-textmuted font-vt tracking-wide">
+          Calculated against base UI unit: <code class="text-amber-300">--u: 4px</code>. Header: <code class="text-amber-300">var(--s12)=48px</code>, Action Tray: <code class="text-amber-300">var(--s48)=192px</code>.
+        </p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="btn-tactical px-3 py-1.5 text-xs text-amber-200 font-pixel uppercase flex items-center gap-2" id="toggle-grid-btn">
+<span class="w-2 h-2 bg-amber-400 inline-block"></span> Toggle 4px Grid
+      </button>
+<button class="btn-tactical px-3 py-1.5 text-xs text-amber-200 font-pixel uppercase flex items-center gap-2" id="toggle-scanlines-btn">
+<span class="w-2 h-2 bg-emerald-400 inline-block"></span> CRT FX
+      </button>
+</div>
+</header>
+<!-- END: Workbench Header -->
+<!-- BEGIN: Main Workspace (Interactive Demo + Architecture Blueprint) -->
+<main class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-10" data-purpose="workspace-container">
+<!-- LEFT COLUMN: The Physical 320px Canvas Simulator -->
+<section class="lg:col-span-5 flex flex-col items-center" data-purpose="device-emulator-column">
+<div class="text-center mb-2">
+<div class="font-pixel text-[10px] text-amber-400 tracking-widest uppercase">
+          Device Viewport: 320px (80 Units)
+        </div>
+<div class="text-xs text-stone-500 font-vt">Interactive 1:1 Pixel-Perfect Frame</div>
+</div>
+<!-- Device Outer Frame -->
+<div class="relative p-2 bg-[#050303] border-4 border-[#241212] shadow-[0_0_20px_rgba(0,0,0,0.9)] rounded-sm">
+<!-- Mobile Viewport: Exactly 320px width -->
+<div class="relative w-[320px] h-[640px] bg-[#1d0e0e] overflow-hidden flex flex-col select-none border-2 border-black" id="mobile-viewport" style="box-sizing: content-box;">
+<!-- Scanline Overlay -->
+<div class="scanlines absolute inset-0 z-40 pointer-events-none opacity-85" id="scanline-layer"></div>
+<!-- 4px Grid Guide Overlay (hidden by default) -->
+<div class="grid-overlay absolute inset-0 z-30 pointer-events-none hidden" id="grid-layer"></div>
+<!-- BEGIN: Exactly 12 UI units (48px) Header -->
+<header class="relative z-20 w-full h-[48px] bg-[#220d0d] border-b-2 border-black flex items-center justify-between px-2 shrink-0 pixel-bevel-outset" data-purpose="rpg-status-header" style="height: var(--s12);">
+<!-- Left: Menu Hamburger Button (var(--s8) = 32px height/width) -->
+<button class="btn-tactical w-[32px] h-[32px] flex flex-col items-center justify-center gap-[3px] p-1 shrink-0" id="btn-menu" style="width: var(--s8); height: var(--s8);" title="Open System Menu">
+<span class="w-[18px] h-[3px] bg-amber-300 block shadow-[0_1px_0_#000]"></span>
+<span class="w-[18px] h-[3px] bg-amber-300 block shadow-[0_1px_0_#000]"></span>
+<span class="w-[18px] h-[3px] bg-amber-300 block shadow-[0_1px_0_#000]"></span>
+</button>
+<!-- Center: RPG Status & Context Dashboard (Answers the user dilemma!) -->
+<div class="flex flex-col items-center px-1">
+<!-- Row 1: Region & Game ID -->
+<div class="flex items-center gap-1.5">
+<span class="text-[9px] font-pixel text-[#ffbf60] tracking-tighter">EL FERGEL</span>
+<span class="text-[8px] font-pixel text-red-500 bg-red-950 px-1 border border-black">ZONE 01</span>
+</div>
+<!-- Row 2: Day/Night + Gold Currency + Stamina -->
+<div class="flex items-center gap-2 text-xs font-vt text-amber-100">
+<span class="flex items-center gap-1 text-orange-300">
+<span class="inline-block w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_4px_#ff9900]"></span>
+                  DAY 14
+                </span>
+<span class="text-stone-400">|</span>
+<span class="text-yellow-400 flex items-center gap-0.5">
+<span class="font-pixel text-[8px] text-yellow-500">G</span>
+<span id="gold-ticker">480</span>
+</span>
+<span class="text-stone-400">|</span>
+<span class="text-emerald-400 flex items-center gap-0.5">
+<span class="font-pixel text-[8px]">ST</span>
+<span id="sta-ticker">65/80</span>
+</span>
+</div>
+</div>
+<!-- Right: Logo Badge RPG-TS -->
+<div class="text-right shrink-0">
+<span class="font-pixel text-[9px] text-amber-500 block leading-tight drop-shadow-[1px_1px_0_#000]">RPG-TS</span>
+<span class="text-[10px] text-emerald-300 font-vt tracking-wider">SAVE: OK</span>
+</div>
+</header>
+<!-- END: Exactly 12 UI units (48px) Header -->
+<!-- BEGIN: Scrollable/Fluid Middle Location Content -->
+<div class="flex-1 overflow-y-auto flex flex-col bg-[#190a0a]" data-purpose="location-content-body">
+<!-- Graphic Canvas / Hero Pixel Art Landscape (matches https://lh3.googleusercontent.com/aida-public/AB6AXuAJ50vkLAIZQDNGn-6v7nJL3QMKTfIZjVQdh0g43fg4utsh6G0RqiogrAlvmCRT65jued0EDqRAhYtrI1WPs-E2aYTy7rpmpH3OwpA9ZQgDZj-Y2FsilABJBAHVLqHEXL2f1czF1E-pS9S9txdZHM2znj4gX1ENl1YbyulmSpHJtehvfkpxLct5gXsyoC8Qec7q74PQISsK1dgjUbmRwZyEoEewL_Vr0xxXAfp4f5sCPSrJ3WptPTWKzKOdZxcEXGmc2bU) -->
+<div class="relative w-full h-[180px] bg-[#071318] overflow-hidden shrink-0 border-b-2 border-black" data-purpose="scene-artwork">
+<img alt="The Lord's Farm pixel forest landscape" class="w-full h-full object-cover object-center filter saturate-110 contrast-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDE7NHjf8o5HCVrFqzMZP6ozSghWLxzd6YZ60qhT6wGC_p9qfSbbaW4YufXHUv_-evo8sbGvAcvC6vjKBy0Bu_DehTJYCp8KEqVJNxdFWIaHrAIM2biJzeDO73chFXP8Odl1iCzPBsCxYKsBmTZ-3hHqwWgEolH9aaS6ljFM7bv3n2mcpKmbEVezs6HrzcLzuNaOjIY7crEN_pcM-VqUWCfvBD87qh5f-lE9BtvozdcLKvk6Z9ozGjjQM-FCVm-5hSSyTg" style="image-rendering: pixelated;"/>
+<!-- Atmosphere Overlay Gradient -->
+<div class="absolute inset-0 bg-gradient-to-t from-[#1d0e0e] via-transparent to-black/30"></div>
+<!-- Location Mini Stamp -->
+<div class="absolute bottom-2 left-2 bg-black/80 px-2 py-0.5 border border-amber-800 text-[9px] font-pixel text-amber-400">
+                CAMPUS SOUTHERN GATE
+              </div>
+<div class="absolute bottom-2 right-2 bg-red-950/90 px-1.5 py-0.5 border border-red-700 text-[10px] font-vt text-red-200">
+                THREAT: SAFE
+              </div>
+</div>
+<!-- Descriptive Location Card -->
+<div class="p-3 bg-[#261010] border-b-2 border-[#3d1a1a] flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-baseline justify-between mb-1">
+<h2 class="font-pixel text-[13px] text-amber-400 tracking-wide drop-shadow-[1px_1px_0_#000000]">
+                    The Lord's Farm
+                  </h2>
+<span class="text-xs font-vt text-amber-200/60 uppercase">Barony Domain</span>
+</div>
+<p class="font-vt text-[15px] leading-4 text-[#dec7b5] mb-2 tracking-wide">
+                  A farm in El Fergel, a southern country. You were bought by the lord and work his land under the iron gaze of the fieldwardens.
+                </p>
+<!-- Environmental Condition Badges -->
+<div class="grid grid-cols-2 gap-1.5 pt-1 text-xs font-vt">
+<div class="bg-[#180a0a] border border-[#401f1f] px-2 py-0.5 flex items-center justify-between">
+<span class="text-stone-400">WEATHER:</span>
+<span class="text-cyan-300">Overcast (Muddy)</span>
+</div>
+<div class="bg-[#180a0a] border border-[#401f1f] px-2 py-0.5 flex items-center justify-between">
+<span class="text-stone-400">DAILY TAX:</span>
+<span class="text-amber-400">12G Due Dusk</span>
+</div>
+</div>
+</div>
+<!-- Situational Ambient Prompt / Event Box -->
+<div class="mt-2 p-2 bg-[#170808] border border-amber-900/60 flex items-start gap-2">
+<div class="w-3 h-3 bg-amber-500 shrink-0 mt-0.5 animate-pulse"></div>
+<div class="text-[13px] font-vt leading-tight text-amber-200/90">
+<span class="text-amber-400 font-bold">Overseer Bryan:</span> "Timber quotas double tomorrow. Don't be found idle in the copse."
+                </div>
+</div>
+</div>
+</div>
+<!-- END: Middle Location Content -->
+<!-- Dynamic Live Notification Toast Inside Viewport -->
+<div class="absolute top-14 left-4 right-4 bg-black/95 border-2 border-amber-400 p-2 text-center text-xs font-pixel text-amber-300 z-50 transition-transform duration-200 transform -translate-y-24 shadow-lg pointer-events-none" id="viewport-toast">
+            ACTION COMPLETED
+          </div>
+<!-- BEGIN: Exactly 48 UI units (192px) Bottom Tactical Action Tray -->
+<footer class="relative z-20 w-full h-[192px] bg-[#160707] border-t-2 border-black p-[6px] flex flex-col justify-between shrink-0" data-purpose="tactical-action-tray" style="height: var(--s48);">
+<!-- 2x2 Tactical Grid: 4 Standard Actions (FFTA2 Pattern) -->
+<div class="grid grid-cols-2 gap-1.5 h-[118px]">
+<!-- Button 1: Map -->
+<button class="btn-tactical flex items-center px-2 py-1 text-left group" data-action="map">
+<!-- 24x24 Pixel Icon Slot -->
+<div class="w-[26px] h-[26px] bg-[#1a0c0c] border border-[#522929] mr-2 flex items-center justify-center shrink-0">
+<svg class="w-4 h-4 text-amber-400" fill="currentColor" viewbox="0 0 16 16">
+<path d="M1 2.5L5.5 1L10.5 3L15 1.5V13.5L10.5 15L5.5 13L1 14.5V2.5ZM6 2.5V11.8L10 13.4V4.1L6 2.5Z"></path>
+</svg>
+</div>
+<div class="overflow-hidden">
+<span class="font-vt text-[18px] text-amber-100 group-hover:text-amber-300 block leading-none">Map</span>
+<span class="text-[10px] text-amber-200/50 font-vt tracking-wider uppercase">Region [S]</span>
+</div>
+</button>
+<!-- Button 2: Mission Board -->
+<button class="btn-tactical flex items-center px-2 py-1 text-left group" data-action="mission">
+<div class="w-[26px] h-[26px] bg-[#1a0c0c] border border-[#522929] mr-2 flex items-center justify-center shrink-0">
+<svg class="w-4 h-4 text-orange-400" fill="currentColor" viewbox="0 0 16 16">
+<path d="M3 2H13V4H3V2ZM2 5H14V14H2V5ZM4 7V9H7V7H4ZM9 7V9H12V7H9ZM4 10V12H7V10H4ZM9 10V12H12V10H9Z"></path>
+</svg>
+</div>
+<div class="overflow-hidden">
+<span class="font-vt text-[17px] text-amber-100 group-hover:text-amber-300 block leading-none truncate">Missions</span>
+<span class="text-[10px] text-amber-200/50 font-vt tracking-wider truncate">The Hall (3)</span>
+</div>
+</button>
+<!-- Button 3: Farm Shop -->
+<button class="btn-tactical flex items-center px-2 py-1 text-left group" data-action="shop">
+<div class="w-[26px] h-[26px] bg-[#1a0c0c] border border-[#522929] mr-2 flex items-center justify-center shrink-0">
+<svg class="w-4 h-4 text-yellow-300" fill="currentColor" viewbox="0 0 16 16">
+<path d="M2 3H14L13 7H3L2 3ZM1 8H15V14H1V8ZM4 10V12H6V10H4ZM10 10V12H12V10H10Z"></path>
+</svg>
+</div>
+<div class="overflow-hidden">
+<span class="font-vt text-[18px] text-amber-100 group-hover:text-amber-300 block leading-none">Farm Shop</span>
+<span class="text-[10px] text-amber-200/50 font-vt tracking-wider uppercase">Goods &amp; Rations</span>
+</div>
+</button>
+<!-- Button 4: Look Around -->
+<button class="btn-tactical flex items-center px-2 py-1 text-left group" data-action="inspect">
+<div class="w-[26px] h-[26px] bg-[#1a0c0c] border border-[#522929] mr-2 flex items-center justify-center shrink-0">
+<svg class="w-4 h-4 text-cyan-400" fill="currentColor" viewbox="0 0 16 16">
+<path d="M8 2C4 2 1 8 1 8C1 8 4 14 8 14C12 14 15 8 15 8C15 8 12 2 8 2ZM8 11.5C6.07 11.5 4.5 9.93 4.5 8C4.5 6.07 6.07 4.5 8 4.5C9.93 4.5 11.5 6.07 11.5 8C11.5 9.93 9.93 11.5 8 11.5ZM8 6.5C7.17 6.5 6.5 7.17 6.5 8C6.5 8.83 7.17 9.5 8 9.5C8.83 9.5 9.5 8.83 9.5 8C9.5 7.17 8.83 6.5 8 6.5Z"></path>
+</svg>
+</div>
+<div class="overflow-hidden">
+<span class="font-vt text-[18px] text-amber-100 group-hover:text-amber-300 block leading-none">Look Around</span>
+<span class="text-[10px] text-cyan-300 font-vt tracking-wider uppercase">Inspect [100%]</span>
+</div>
+</button>
+</div>
+<!-- Priority Special Work Action: Chop Wood (Full Width or High Focus) -->
+<button class="btn-tactical btn-tactical-work w-full h-[52px] flex items-center justify-between px-3 mt-1.5 text-left border-emerald-900 group" data-action="chop" id="btn-chop-wood">
+<div class="flex items-center gap-2">
+<!-- Pixel Axe Graphic -->
+<div class="w-[30px] h-[30px] bg-[#112411] border border-[#2f6631] flex items-center justify-center text-base">
+                  🪓
+                </div>
+<div>
+<div class="font-vt text-[20px] text-emerald-100 font-bold leading-tight group-hover:text-emerald-300 flex items-center gap-2">
+                    Chop Wood
+                    <span class="text-[10px] font-pixel bg-emerald-900/90 text-emerald-300 px-1 border border-emerald-600">LABOR</span>
+</div>
+<div class="text-[11px] font-vt text-emerald-200/70">
+                    COST: <span class="text-amber-300">-10 STAMINA</span> • YIELD: <span class="text-green-300">+4 TIMBER</span>
+</div>
+</div>
+</div>
+<!-- Tactical Shortcut Indicator -->
+<div class="text-right">
+<span class="font-pixel text-[9px] text-amber-300 bg-black/60 px-1.5 py-0.5 border border-stone-800">
+                  [TAP]
+                </span>
+</div>
+</button>
+</footer>
+<!-- END: Exactly 48 UI units (192px) Bottom Tactical Action Tray -->
+</div>
+<!-- End 320x640 Box -->
+</div>
+<!-- End Outer Frame -->
+<!-- Mini Helper Caption -->
+<div class="mt-3 text-center text-xs font-vt text-stone-400">
+        Tap "Chop Wood" to test state transitions &amp; resource generation.
+      </div>
+</section>
+<!-- END LEFT COLUMN -->
+<!-- BEGIN RIGHT COLUMN: Design System, Spatial Mathematics & Solution Guide -->
+<section class="lg:col-span-7 flex flex-col gap-6" data-purpose="design-system-blueprint">
+<!-- Architectural Solution Card: Solving the Header Dilemma -->
+<div class="bg-rpg-card border-2 border-rpg-cardborder p-5 pixel-bevel-outset" data-purpose="header-solution-explanation">
+<div class="flex items-center justify-between mb-3 border-b border-stone-800 pb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 bg-amber-500"></span>
+<h3 class="font-pixel text-xs sm:text-sm text-rpg-gold uppercase tracking-wider">
+              1. Header Architectural Purpose (12 Units / 48px)
+            </h3>
+</div>
+<span class="text-xs bg-stone-900 text-stone-300 px-2 py-0.5 font-vt border border-stone-700">Solved Dilemma</span>
+</div>
+<p class="text-sm font-vt text-stone-300 leading-5 mb-4">
+          In pixel RPGs, an empty 48px header feels like dead space. The implemented design turns it into a high-density, persistent tactical status bar:
+        </p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-vt">
+<div class="bg-[#190a0a] p-2.5 border border-[#3b1717]">
+<span class="text-amber-400 font-pixel text-[9px] block mb-1">HAMBURGER BUTTON</span>
+<p class="text-stone-300">
+              Allocated exactly <code class="text-amber-200">var(--s8) = 32px</code> square within the 48px tray, leaving 8px balanced vertical padding.
+            </p>
+</div>
+<div class="bg-[#190a0a] p-2.5 border border-[#3b1717]">
+<span class="text-amber-400 font-pixel text-[9px] block mb-1">WORLD CONTEXT</span>
+<p class="text-stone-300">
+              Displays regional territory (<strong>EL FERGEL</strong>), zone danger rating, and in-game day/night phase (<strong>DAY 14</strong>).
+            </p>
+</div>
+<div class="bg-[#190a0a] p-2.5 border border-[#3b1717]">
+<span class="text-amber-400 font-pixel text-[9px] block mb-1">ECONOMY &amp; STAMINA</span>
+<p class="text-stone-300">
+              Direct live counters for Gold (<code class="text-yellow-400">480G</code>) and Stamina (<code class="text-emerald-400">65/80 ST</code>) so the player knows their work limits.
+            </p>
+</div>
+</div>
+</div>
+<!-- Precise Spatial Math Table -->
+<div class="bg-rpg-card border-2 border-rpg-cardborder p-5 pixel-bevel-outset" data-purpose="spatial-grid-math">
+<div class="flex items-center justify-between mb-3 border-b border-stone-800 pb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 bg-cyan-400"></span>
+<h3 class="font-pixel text-xs sm:text-sm text-cyan-300 uppercase tracking-wider">
+              2. Strict UI Unit Scale (1 Unit = 4px)
+            </h3>
+</div>
+<span class="text-xs font-vt text-cyan-400 bg-cyan-950 px-2 py-0.5 border border-cyan-800">Pixel Perfect</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-vt text-sm border-collapse">
+<thead>
+<tr class="bg-[#190a0a] text-amber-300 border-b border-stone-800 text-xs font-pixel">
+<th class="p-2">Variable</th>
+<th class="p-2">Units</th>
+<th class="p-2">Pixel Size</th>
+<th class="p-2">Implementation Element</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-stone-800 text-stone-200">
+<tr>
+<td class="p-2 font-mono text-xs text-amber-200">--s1</td>
+<td class="p-2">1 UI Unit</td>
+<td class="p-2 font-bold text-amber-400">4px</td>
+<td class="p-2">Micro spacing, hairline borders, indicator pips</td>
+</tr>
+<tr>
+<td class="p-2 font-mono text-xs text-amber-200">--s2</td>
+<td class="p-2">2 UI Units</td>
+<td class="p-2 font-bold text-amber-400">8px</td>
+<td class="p-2">Grid margins, action button inner gap (1.5u = 6px)</td>
+</tr>
+<tr>
+<td class="p-2 font-mono text-xs text-amber-200">--s8</td>
+<td class="p-2">8 UI Units</td>
+<td class="p-2 font-bold text-amber-400">32px</td>
+<td class="p-2">Hamburger menu button, tactical action icons</td>
+</tr>
+<tr class="bg-amber-950/30">
+<td class="p-2 font-mono text-xs text-amber-200">--s12</td>
+<td class="p-2 font-bold text-amber-300">12 UI Units</td>
+<td class="p-2 font-bold text-amber-300">48px</td>
+<td class="p-2 font-bold text-white">Top RPG Status Header (Exact Specification)</td>
+</tr>
+<tr>
+<td class="p-2 font-mono text-xs text-amber-200">--s14</td>
+<td class="p-2">14 UI Units</td>
+<td class="p-2 font-bold text-amber-400">56px</td>
+<td class="p-2">Standard Tactical Combat Action Button (from FFTA2 reference)</td>
+</tr>
+<tr class="bg-red-950/30">
+<td class="p-2 font-mono text-xs text-amber-200">--s48</td>
+<td class="p-2 font-bold text-red-300">48 UI Units</td>
+<td class="p-2 font-bold text-red-300">192px</td>
+<td class="p-2 font-bold text-white">Bottom Action Button Tray (Exact Specification)</td>
+</tr>
+<tr>
+<td class="p-2 font-mono text-xs text-stone-400">Viewport Total</td>
+<td class="p-2">80 × 160 Units</td>
+<td class="p-2 text-stone-300 font-bold">320 × 640px</td>
+<td class="p-2">Complete Game Screen Canvas Frame</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Ready-to-copy CSS Token Module -->
+<div class="bg-rpg-card border-2 border-rpg-cardborder p-5 pixel-bevel-outset" data-purpose="code-snippet-panel">
+<div class="flex items-center justify-between mb-3 border-b border-stone-800 pb-2">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 bg-emerald-500"></span>
+<h3 class="font-pixel text-xs sm:text-sm text-emerald-400 uppercase tracking-wider">
+              3. Production CSS Variables &amp; Bevel Recipe
+            </h3>
+</div>
+<button class="text-xs font-vt bg-stone-900 hover:bg-stone-800 text-amber-300 px-2.5 py-1 border border-amber-800" id="copy-css-btn">
+            Copy CSS
+          </button>
+</div>
+<pre class="bg-[#110707] p-3 text-xs font-mono text-amber-200 overflow-x-auto border border-stone-900 leading-relaxed" id="css-code-block">:root {
+  --u: 4px;
+  --s1: 4px;   --s2: 8px;   --s3: 12px;  --s4: 16px;
+  --s6: 24px;  --s8: 32px;  --s10: 40px; 
+  --s12: 48px;  /* Header Height: exactly 12 UI units */
+  --s14: 56px;  /* FFTA2 Button height: 14 units */
+  --s48: 192px; /* Action Panel: exactly 48 UI units */
+}
+
+/* FFTA2 2px/4px Double Bevel Technique */
+.pixel-btn {
+  background: #3b1c1c;
+  border: 2px solid #5a2e2e;
+  box-shadow: 
+    inset 2px 2px 0px 0px #703d3d,
+    inset -2px -2px 0px 0px #1a0a0a,
+    0 0 0 1px #050202;
+  image-rendering: pixelated;
+}
+.pixel-btn:active {
+  transform: translate(1px, 2px);
+  box-shadow: 
+    inset -2px -2px 0px 0px #703d3d,
+    inset 2px 2px 0px 0px #1a0a0a,
+    0 0 0 1px #050202;
+}</pre>
+</div>
+</section>
+<!-- END RIGHT COLUMN -->
+</main>
+<!-- END: Main Workspace -->
+<!-- BEGIN: Page Footer -->
+<footer class="max-w-7xl mx-auto w-full text-center text-xs font-vt text-stone-500 py-3 border-t border-stone-900" data-purpose="page-footer">
+    Pixel Art Mobile RPG Framework • Designed for standard 320px viewport &amp; scaled integer rendering • FFTA2 Tactile Button Compatibility Mode
+  </footer>
+<!-- END: Page Footer -->
+<!-- BEGIN: Interactive Game Logic & Visual Toggles -->
+<script data-purpose="gameplay-interactivity">
+    document.addEventListener('DOMContentLoaded', () => {
+      // Element selections
+      const chopBtn = document.getElementById('btn-chop-wood');
+      const goldTicker = document.getElementById('gold-ticker');
+      const staTicker = document.getElementById('sta-ticker');
+      const toast = document.getElementById('viewport-toast');
+      const toggleGridBtn = document.getElementById('toggle-grid-btn');
+      const toggleScanBtn = document.getElementById('toggle-scanlines-btn');
+      const gridLayer = document.getElementById('grid-layer');
+      const scanlineLayer = document.getElementById('scanline-layer');
+      const copyCssBtn = document.getElementById('copy-css-btn');
+      const tacticalButtons = document.querySelectorAll('.btn-tactical');
+
+      // State variables
+      let currentGold = 480;
+      let currentStamina = 65;
+      const maxStamina = 80;
+      let logsCollected = 0;
+
+      // Toast notification helper
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.remove('-translate-y-24');
+        toast.classList.add('translate-y-0');
+        
+        setTimeout(() => {
+          toast.classList.remove('translate-y-0');
+          toast.classList.add('-translate-y-24');
+        }, 1800);
+      }
+
+      // Audio click sound simulation via Web Audio API (Pure 8-bit synthetic beep)
+      const audioCtx = (window.AudioContext || window.webkitAudioContext) ? new (window.AudioContext || window.webkitAudioContext)() : null;
+      
+      function playBleep(frequency = 440, type = 'square', duration = 0.04) {
+        if (!audioCtx) return;
+        try {
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + duration);
+        } catch(e) {
+          // Audio policy silent fallback
+        }
+      }
+
+      // Tactical Button Click Feedback (All Buttons)
+      tacticalButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          playBleep(320, 'triangle', 0.05);
+          
+          const action = btn.getAttribute('data-action');
+          if (action === 'map') {
+            showToast("Opening El Fergel Atlas...");
+          } else if (action === 'mission') {
+            showToast("Bounty: 3 Board Quests Available");
+          } else if (action === 'shop') {
+            showToast("Merchant: 'Seeds & Sickles in stock!'");
+          } else if (action === 'inspect') {
+            showToast("You scan the timber yard. Guard on watch.");
+          }
+        });
+      });
+
+      // Chop Wood Primary Action Simulation
+      if (chopBtn) {
+        chopBtn.addEventListener('click', () => {
+          if (currentStamina >= 10) {
+            currentStamina -= 10;
+            currentGold += 4;
+            logsCollected += 4;
+            staTicker.textContent = `${currentStamina}/${maxStamina}`;
+            goldTicker.textContent = currentGold;
+
+            playBleep(220, 'square', 0.08);
+            setTimeout(() => playBleep(440, 'square', 0.06), 70);
+
+            showToast(`+4 Logs Cut! (+4G Value)`);
+          } else {
+            playBleep(150, 'sawtooth', 0.15);
+            showToast("Exhausted! Rest or drink tonic.");
+          }
+        });
+      }
+
+      // Hamburger Menu Click
+      const btnMenu = document.getElementById('btn-menu');
+      if (btnMenu) {
+        btnMenu.addEventListener('click', () => {
+          playBleep(520, 'square', 0.06);
+          showToast("Main Menu: Status / Inventory / Save");
+        });
+      }
+
+      // Toggle Grid
+      toggleGridBtn.addEventListener('click', () => {
+        gridLayer.classList.toggle('hidden');
+        playBleep(600, 'sine', 0.03);
+      });
+
+      // Toggle CRT FX
+      toggleScanBtn.addEventListener('click', () => {
+        scanlineLayer.classList.toggle('hidden');
+        playBleep(600, 'sine', 0.03);
+      });
+
+      // Copy CSS
+      copyCssBtn.addEventListener('click', () => {
+        const text = document.getElementById('css-code-block').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+          copyCssBtn.textContent = "COPIED!";
+          setTimeout(() => { copyCssBtn.textContent = "Copy CSS"; }, 1500);
+        });
+      });
+    });
+  </script>
+<!-- END: Interactive Game Logic & Visual Toggles -->
+</body></html>

@@ -54,6 +54,7 @@ export function ActionBar({
     back,
     accept,
     pinLast = false,
+    banner,
 }: {
     cells: ActionBarCell[];
     size?: ActionBarSize;
@@ -66,6 +67,9 @@ export function ActionBar({
     // The last cell is pinned to the final grid slot (6 in lg, where
     // More would sit) so short lists show it instead of paginating.
     pinLast?: boolean;
+    // A text banner spanning the first two slots of the first page
+    // (the world map shows the place name there).
+    banner?: string;
 }) {
     const [page, setPage] = useState(0);
     const [hint, setHint] = useState<string | null>(null);
@@ -74,9 +78,10 @@ export function ActionBar({
     // The pinned cell leaves the paginated list.
     const list = pinLast && cells.length > 0 ? cells.slice(0, -1) : cells;
     const pinned = pinLast && cells.length > 0 ? cells[cells.length - 1] : undefined;
-    // The cancel occupies a slot on the first page only.
+    // The cancel occupies a slot on the first page only, and the
+    // banner occupies the first two slots of the first page.
     const special = back ? 1 : 0;
-    const firstPage = mode.capacity - 1 - special;
+    const firstPage = mode.capacity - 1 - special - (banner ? 2 : 0);
     const middlePage = mode.capacity - 2;
 
     // A fresh cell list starts over at the first page.
@@ -90,7 +95,7 @@ export function ActionBar({
         return () => window.clearTimeout(timer);
     }, [hint]);
 
-    if (cells.length === 0 && !back && !accept) return null;
+    if (cells.length === 0 && !back && !accept && !banner) return null;
 
     const capacity = mode.capacity - special;
     const pages = list.length <= capacity ?
@@ -102,7 +107,10 @@ export function ActionBar({
         Math.min(firstPage, list.length) :
         Math.min(middlePage, list.length - start);
     const visible = list.slice(start, start + count);
-    const layout = layoutFor(pages === 1 ? visible.length + special + (pinned ? 1 : 0) : mode.capacity);
+    // The banner spans two cells, so the bar always uses the grid.
+    const layout = banner ?
+        'grid' :
+        layoutFor(pages === 1 ? visible.length + special + (pinned ? 1 : 0) : mode.capacity);
 
     const press = (cell: ActionBarCell) => {
         if (cell.disabled) {
@@ -112,19 +120,28 @@ export function ActionBar({
         cell.onClick?.();
     };
 
-    const rendered: ReactNode[] = visible.map((cell) => (
-        <ActionButton
-            key={cell.id}
-            label={cell.label}
-            icon={cell.icon}
-            size={size}
-            tone={cell.tone}
-            disabled={cell.disabled}
-            selected={cell.selected}
-            mark={cell.mark}
-            onClick={() => press(cell)}
-        />
-    ));
+    const rendered: ReactNode[] = [];
+    // The banner occupies the first two slots of the first page.
+    if (banner && page === 0) {
+        rendered.push(
+            <div key="banner" className="action-bar-banner">{banner}</div>,
+        );
+    }
+    for (const cell of visible) {
+        rendered.push(
+            <ActionButton
+                key={cell.id}
+                label={cell.label}
+                icon={cell.icon}
+                size={size}
+                tone={cell.tone}
+                disabled={cell.disabled}
+                selected={cell.selected}
+                mark={cell.mark}
+                onClick={() => press(cell)}
+            />,
+        );
+    }
 
     // Slot 6 (the last): More on every page but the last — or the
     // pinned cell when pinLast reserves the slot.

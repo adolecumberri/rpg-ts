@@ -1,5 +1,7 @@
 import type { IconId } from '../UI/Icon';
 import { COUNTRY_ENABLED } from './flags';
+import { COUNTRY_IDS } from './ids';
+import type { CountryId } from './ids';
 import { REGIONS } from './regions';
 import fergelImg from '../../../../assets/maps/icons/fergel.webp';
 import timbretImg from '../../../../assets/maps/icons/timbret.webp';
@@ -10,7 +12,7 @@ import timbretImg from '../../../../assets/maps/icons/timbret.webp';
  * DERIVED from the region mask at load (see mask.ts).
  */
 export type CountryData = {
-    id: string;
+    id: CountryId;
     name: string;
     description: string;
     icon: IconId;
@@ -28,7 +30,7 @@ export type CountryData = {
 
 const ALL_COUNTRIES: CountryData[] = [
     {
-        id: 'fergel',
+        id: COUNTRY_IDS.fergel,
         name: 'Fergel',
         description: 'Placeholder description for Fergel.',
         icon: 'default',
@@ -38,7 +40,7 @@ const ALL_COUNTRIES: CountryData[] = [
         image: { src: fergelImg },
     },
     {
-        id: 'timbret',
+        id: COUNTRY_IDS.timbret,
         name: 'Timbret',
         description: 'Placeholder description for Timbret.',
         icon: 'default',
@@ -58,12 +60,12 @@ export const COUNTRIES: CountryData[] = ALL_COUNTRIES.filter(
     (country) => COUNTRY_ENABLED[country.id],
 );
 
-export const COUNTRY_BY_ID: Record<string, CountryData> = COUNTRIES.reduce(
-    (acc: Record<string, CountryData>, country) => {
+export const COUNTRY_BY_ID: Record<CountryId, CountryData> = COUNTRIES.reduce(
+    (acc: Record<CountryId, CountryData>, country) => {
         acc[country.id] = country;
         return acc;
     },
-    {},
+    {} as Record<CountryId, CountryData>,
 );
 
 /** The country a region belongs to. */

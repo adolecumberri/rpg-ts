@@ -3,28 +3,26 @@ import { useGame } from '../game/GameContext';
 import { OptionsBar } from '../components/UI/OptionsBar';
 import type { OptionSpec } from '../components/UI/OptionsBar';
 import { placeImageOf } from '../assets/places';
-import { MapPage } from './MapPage';
+import { WorldMapScreen } from './WorldMapScreen';
 
 /**
  * The place page (new UI): the place's hero plus its action bar, with
  * the Map option always first so it never hides behind the bar's
- * pagination. It is the ported version of the legacy PlaceScreen — the
- * action handlers are the same; the screens some of them open (shop,
- * combat, missions...) are ported next.
+ * pagination. The map is the canonical WorldMap now.
  */
 export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
     const api = useGame();
     const [view, setView] = useState<'place' | 'map'>('place');
 
     if (view === 'map') {
-        return <MapPage onClose={() => setView('place')} />;
+        return <WorldMapScreen onBack={() => setView('place')} />;
     }
 
     const place = api.currentPlace;
     const options: OptionSpec[] = [];
 
     // Always first: the map stays on the first page of the bar.
-    options.push({ id: 'map', label: 'Map', icon: '🗺️', onClick: () => setView('map') });
+    options.push({ id: 'map', label: 'Map', icon: '', onClick: () => setView('map') });
 
     const corpses = api.session.corpsesAt(place.id).length;
 

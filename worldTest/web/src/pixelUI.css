@@ -35,6 +35,9 @@
     /* 48 button height, button icon */
     --s12: calc(var(--u) * 12);
 
+    /* 56 */
+    --s14: calc(var(--u) * 14);
+
     /* 64 large ability icon */
     --s16: calc(var(--u) * 16);
 
@@ -50,11 +53,28 @@
     /* for the main container. */
     --s100: calc(var(--u) * 100);
 
-    --bg: #0f1117;
-    --bg-soft: #171a24;
-    --card: #1e2230;
-    --card-2: #262b3d;
-    --border: #32384c;
+
+
+    /*
+      #4c1a12
+      - #842C1F
+      ---#DA7E6C //lighter
+      --#32110C
+      ---#100604 //darker
+#5F2525
+#CACAAA
+#EEC584
+#C8AB83
+    */
+
+    --bg-lighter: #DA7E6C;
+    --bg-light: #842C1F;
+    --bg: #4c1a12;
+    --bg-dark: #32110C;
+    --bg-darker: #100604;
+    --card: #4c1a12;
+    --card-2: #5f2525;
+    --border: #100604;
     --text: #e8eaf2;
     --muted: #9aa1b5;
     --accent: #f5b942;
@@ -166,23 +186,34 @@
 }
 
 .pixel-btn {
-    font-family: inherit;
-    letter-spacing: 0.5px;
-    /* text-transform: uppercase; */
-    font-size: var(--s3);
-    height: var(--s12);
-    padding: 0 var(--s2);
-    background: var(--card);
-    color: var(--text);
-    border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 var(--s1) var(--border);
+    background: #3b1c1c;
+    border: 2px solid #5a2e2e;
+    /* box-shadow:
+        inset 2px 2px 0px 0px #703d3d,
+        inset -2px -2px 0px 0px #1a0a0a,
+        0 0 0 1px #050202; */
+    image-rendering: pixelated;
+    position: relative;
+    background: #3b1c1c;
+    border: 2px solid #5a2e2e;
+    box-shadow: inset 2px 2px 0px 0px #703d3d, inset -2px -2px 0px 0px #1a0a0a, inset 3px 3px 0px 0px rgba(255, 255, 255, 0.08), inset -3px -3px 0px 0px rgba(0, 0, 0, 0.6), 0 0 0 1px #050202;
+    transition: none;
     cursor: pointer;
+    user-select: none;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
 }
 
 .pixel-btn:active:not(:disabled) {
-    transform: translate(calc(var(--s1) / 2), calc(var(--s1) / 2));
-    box-shadow: none;
+    transform: translate(1px, 2px);
+    box-shadow:
+        inset -2px -2px 0px 0px #703d3d,
+        inset 2px 2px 0px 0px #1a0a0a,
+        0 0 0 1px #050202;
 }
+
 
 .pixel-btn:disabled {
     opacity: 0.5;
@@ -406,8 +437,8 @@
 }
 
 /* ---------------------------------------------------------------------------
-   The new-UI router shell (?ui=1): the clean-room chrome for the design,
-   independent from the legacy header/screens.
+   The main UI shell: the clean-room chrome for the design, independent
+   from the legacy header/screens (which stay reachable at ?ui=0).
 --------------------------------------------------------------------------- */
 .newui-shell {
     height: 100%;
@@ -422,8 +453,8 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--s2);
-    padding: var(--s3);
-    background: var(--bg-soft);
+    padding: var(--s1) var(--s2);
+    background: var(--bg-dark);
     border-bottom: var(--s1) solid #000;
     box-shadow: inset 0 calc(-1 * var(--s1)) 0 var(--border);
     flex: none;
@@ -485,7 +516,7 @@
     justify-content: space-between;
     gap: var(--s2);
     padding: var(--s1) var(--s2);
-    background: var(--bg-soft);
+    background: var(--bg-dark);
     border-bottom: var(--s1) solid #000;
 }
 
@@ -534,11 +565,11 @@
     display: flex;
     flex-direction: column;
     padding: 0;
-    background: var(--bg-soft);
+    background: var(--bg-darker);
     border-top: var(--s1) solid #000;
     box-shadow: inset 0 var(--s1) 0 var(--border);
     flex: none;
-    height: calc(var(--u) * 44);
+    height: calc(var(--u) * 48);
     position: relative;
 }
 
@@ -571,7 +602,7 @@
 
 .action-bar--lg {
     --bar-row: var(--s12);
-    padding: var(--s4) 0;
+    /* padding: var(--s4) 0; */
 }
 
 .action-bar-hint {
@@ -600,7 +631,33 @@
 
 .action-bar-grid--grid {
     grid-template-columns: 1fr 1fr;
-    grid-auto-rows: var(--bar-row, var(--s12));
+    /* grid-auto-rows: var(--bar-row, var(--s16)); */
+    gap: var(--s1);
+    padding: var(--s1) var(--s1) 0;
+    border-bottom: var(--s1) solid var(--border);
+
+}
+
+/* The banner: a text spanning the first two slots of the first page
+   (the world map place name lives there). */
+.action-bar-banner {
+    grid-row: 1;
+    grid-column: 1 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--bar-row, var(--s12));
+    padding: 0 var(--s2);
+    font-size: var(--s4);
+    color: var(--text);
+    background: var(--card-2);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: var(--s3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
 }
 
 .action-btn {
@@ -610,7 +667,7 @@
     gap: var(--s1);
     padding: var(--s1);
     width: 100%;
-    height: auto;
+    /* height: auto; */
 }
 
 .action-btn--sm {
@@ -623,6 +680,7 @@
 
 .action-btn--lg {
     font-size: var(--s5);
+    height: var(--s14);
 }
 
 .action-btn--sm .action-btn-icon {
@@ -667,7 +725,7 @@
 
 /* The page controls inside the grid: quieter than real actions. */
 .action-btn--nav {
-    background: var(--bg-soft);
+    background: var(--bg);
 }
 
 /* A picked multi-select target. */
@@ -863,7 +921,7 @@
     background: var(--card);
     color: var(--text);
     border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 var(--s1) var(--border);
+    /* box-shadow: inset 0 0 0 var(--s1) var(--border); */
     padding: 0 var(--s2);
     width: var(--s14);
     box-sizing: border-box;
@@ -996,7 +1054,7 @@
     font-size: var(--s3);
     background: var(--card-2);
     border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 var(--s1) var(--border);
+    /* box-shadow: inset 0 0 0 var(--s1) var(--border); */
     cursor: pointer;
 }
 
@@ -1050,6 +1108,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: var(--text);
 }
 
 /* While a character is selected the data panel is the whole page. */
@@ -1063,6 +1122,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--s1);
+    color: var(--text);
 }
 
 .team-data-lv {
@@ -1110,6 +1170,7 @@
     width: var(--s5);
     text-align: right;
     font-weight: 700;
+    color: var(--text);
 }
 
 /* The right side of the split: the equipment block. */
@@ -1151,6 +1212,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: white;
 }
 
 .equip-line-empty {
@@ -1208,7 +1270,7 @@
 
 .inv-tab.pixel-btn--primary {
     filter: none;
-    box-shadow: inset 0 0 0 var(--s1) var(--border);
+    /* box-shadow: inset 0 0 0 var(--s1) var(--border); */
 }
 
 /* The centered full-width modal (the equipment picker). Full canvas

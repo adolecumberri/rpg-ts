@@ -128,24 +128,24 @@ export const PLACES: Place[] = [
         description: 'The Order Army camp: you were recruited here with eleven other farmers.',
         position: { x: 120, y: 260 },
         actions: [
-            { id: 'squad', label: 'Form the Squad', kind: 'team', icon: '🛡️' },
-            { id: 'camp_board', label: "The General's Orders", kind: 'mission_board', icon: '📋' },
-            { id: 'camp_fountain', label: 'Fountain', kind: 'fountain', icon: '⛲' },
-            { id: 'camp_look', label: 'Look around', kind: 'look_around', icon: '🔍' },
+            { id: 'squad', label: 'Form the Squad', kind: 'team', icon: '' },
+            { id: 'camp_board', label: "The General's Orders", kind: 'mission_board', icon: '' },
+            { id: 'camp_fountain', label: 'Fountain', kind: 'fountain', icon: '' },
+            { id: 'camp_look', label: 'Look around', kind: 'look_around', icon: '' },
         ],
-        connections: [{ label: "The Lord's Farm", to: ACT1.startPlaceId, icon: '🏰' }],
+        connections: [{ label: "The Lord's Farm", to: ACT1.startPlaceId, icon: '' }],
         npcs: [GENERAL_NPC, ...RECRUIT_NPCS],
     },
     {
         id: ACT1.startPlaceId,
         name: "The Lord's Farm",
-        emoji: '🌾',
+        emoji: '',
         description: 'A farm in El Fergel, a southern country. You were bought by the lord and work his land.',
         position: { x: 300, y: 260 },
         actions: [
-            { id: 'mission_board', label: 'Mission Board (The Hall)', kind: 'mission_board', icon: '📋' },
-            { id: 'farm_shop', label: 'Farm Shop', kind: 'shop', shopId: 'farm_shop', icon: '🛒' },
-            { id: 'farm_look', label: 'Look around', kind: 'look_around', icon: '🔍' },
+            { id: 'mission_board', label: 'Mission Board (The Hall)', kind: 'mission_board', icon: '' },
+            { id: 'farm_shop', label: 'Farm Shop', kind: 'shop', shopId: 'farm_shop', icon: '' },
+            { id: 'farm_look', label: 'Look around', kind: 'look_around', icon: '' },
             ...ACT1.tasks.map((task) => ({
                 id: task.id,
                 label: task.label,
@@ -167,11 +167,11 @@ export const PLACES: Place[] = [
     {
         id: 'hay_field',
         name: 'Hay Field',
-        emoji: '🌾',
+        emoji: '',
         description: 'Golden fields where the hay grows. Arturo works here.',
         position: { x: 600, y: 260 },
         actions: [{ id: 'hay_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
-        connections: [{ label: "The Lord's Farm", to: ACT1.startPlaceId, icon: '🏰' }],
+        connections: [{ label: "The Lord's Farm", to: ACT1.startPlaceId, icon: '' }],
         npcs: [],
         // No menu here: arriving plays the sickles story (thanks, then
         // goblins), the battle decides the mission, and the player goes

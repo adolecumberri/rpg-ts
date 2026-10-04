@@ -1,5 +1,6 @@
 import { REGIONS } from './regions';
 import { countryOfRegion } from './countries';
+import type { RegionId } from './ids';
 
 // The native logical resolution of the map art. Every coordinate in
 // the map system lives in this space (the camera just moves over it).
@@ -111,12 +112,12 @@ export async function loadMaskData(src: string): Promise<MaskData> {
 }
 
 /** The region under a logical coordinate (O(1) index read). */
-export function regionAt(mask: MaskData, x: number, y: number): string | null {
+export function regionAt(mask: MaskData, x: number, y: number): RegionId | null {
     const xi = Math.floor(x);
     const yi = Math.floor(y);
     if (xi < 0 || yi < 0 || xi >= MAP_WIDTH || yi >= MAP_HEIGHT) return null;
     const index = mask.indexData[yi * MAP_WIDTH + xi];
-    return index === 0 ? null : mask.regionIds[index];
+    return index === 0 ? null : mask.regionIds[index] as RegionId;
 }
 
 /** The country under a logical coordinate (O(1), derived index). */

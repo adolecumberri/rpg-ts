@@ -39,8 +39,8 @@ export const ACT1 = {
         soldier: { hp: 20, totalHp: 20, attack: 6, defence: 3, speed: 5 },
     },
     tasks: [
-        { id: 'chop_wood', label: 'Chop wood', icon: '🪵', itemId: 'wood', quantity: 1 },
-        { id: 'collect_hay', label: 'Collect hay', icon: '🌾', itemId: 'hay', quantity: 1 },
+        { id: 'chop_wood', label: 'Chop wood', icon: '', itemId: 'wood', quantity: 1 },
+        { id: 'collect_hay', label: 'Collect hay', icon: '', itemId: 'hay', quantity: 1 },
     ],
 } as const;
 
