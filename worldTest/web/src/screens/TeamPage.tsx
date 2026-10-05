@@ -251,11 +251,9 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
         )
     ) : (
         <>
-            <div className="pixel-panel">
-                <div className="pixel-title">The Squad</div>
-                <div style={{ fontSize: 'var(--s3)', color: 'var(--muted)' }}>
-                    Tap a character to open their data.
-                </div>
+            <div className="squad-card">
+                <div className="squad-card-title">THE SQUAD</div>
+                <div className="squad-card-text">Tap a character to open their data.</div>
             </div>
             <div className="team-grid">
                 {members.map((character) => (

@@ -1,12 +1,15 @@
-// Global story messages: systems (arrival events, missions) push lines
-// here and the web shows them in a text box over everything. The
-// speaker is optional (name shown when present); the portrait is an id
-// the web resolves, falling back to the general portrait.
+// Global story messages: systems (arrival events, missions, battles)
+// push lines here and the web shows them in a dialog box over
+// everything. The speaker is optional (name shown when present); the
+// portrait is an id (or url) the web resolves, falling back to the
+// general portrait; the side decides which half of the box the
+// portrait sits on (left by default).
 
 export type MessageLine = {
     speaker?: string;
     portrait?: string;
     text: string;
+    side?: 'left' | 'right';
 };
 
 export class MessageQueue {
@@ -29,6 +32,11 @@ export class MessageQueue {
 
     hasPending(): boolean {
         return this.lines.length > 0;
+    }
+
+    /** How many lines are left (the current one included). */
+    remaining(): number {
+        return this.lines.length;
     }
 
     clear(): void {

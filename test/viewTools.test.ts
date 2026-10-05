@@ -11,7 +11,9 @@ describe('travel graph', () => {
     it('builds nodes for the act places and their connections', () => {
         const graph = buildTravelGraph(PLACES, new Set());
 
-        expect(graph.nodes).toHaveLength(3); // camp, farm, hay field
+        // 7 places: the 3 connected story places plus the 4 general
+        // region locations (no connections yet).
+        expect(graph.nodes).toHaveLength(7);
         expect(graph.edges).toHaveLength(2);
 
         const farmHay = graph.edges.filter(

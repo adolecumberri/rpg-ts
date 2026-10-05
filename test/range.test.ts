@@ -7,6 +7,7 @@ import {
     rowEntriesOf,
 } from '../worldTest/core/combat/range';
 import { jobOfCharacter } from '../worldTest/core/constants/jobs';
+import { equippedItemsOf } from '../worldTest/core/equipment/loadout';
 import { DEFAULT_ITEM_TABLE } from '../worldTest/core/items';
 import { FIGHTS } from '../worldTest/core/config/fights';
 
@@ -84,9 +85,11 @@ describe('weapon reach and gear', () => {
 
     it('the recruits wear their class weapons', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        expect(session.roster.character('archer_0')!.equipment.get('weapon')?.id).toBe('bow');
-        expect(session.roster.character('arturo')!.equipment.get('weapon')?.id).toBe('staff');
-        expect(session.roster.character('soldier_0')!.equipment.get('weapon')?.id).toBe('sword');
+        const wornIds = (id: string) =>
+            equippedItemsOf(session.roster.character(id)!).map((item) => item.id);
+        expect(wornIds('archer_0')).toContain('bow');
+        expect(wornIds('arturo')).toContain('staff');
+        expect(wornIds('soldier_0')).toContain('sword');
         expect(session.roster.character('archer_0')!.getStat('attack')).toBe(10); // 5 + job 2 + bow 3
         expect(session.roster.character('soldier_0')!.getStat('attack')).toBe(13); // 6 + job 3 + sword 4
     });

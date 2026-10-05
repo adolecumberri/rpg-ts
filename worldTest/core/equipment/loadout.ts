@@ -1,5 +1,6 @@
 import type { Character, Item, Team } from '../../../src';
 import { Item as ItemClass } from '../../../src';
+import type { EquipmentSlot } from '../../../src/classes/items/EquipmentManager';
 import { heldJobOf } from '../constants/jobs';
 import type { WeaponType } from '../jobs/Job';
 
@@ -382,4 +383,29 @@ export function unequipToInventory(team: Team, character: Character, holeIndex: 
         team.inventory.returnAvailable(item.id, 1);
     }
     return result;
+}
+
+/**
+ * Moves loadout-compatible legacy equipment into the five-hole
+ * loadout and drops it from the legacy manager. Items the loadout
+ * cannot hold (the bag, untyped weapons) stay in the legacy manager,
+ * where combat still counts them. Used to self-heal saves and worlds
+ * made before the loadout existed, so the new UI shows the gear the
+ * character always carried.
+ */
+export function migrateLegacyEquipment(character: Character): void {
+    const slots = character.equipment.getAllSlots();
+    for (const slot of Object.keys(slots) as EquipmentSlot[]) {
+        const item = slots[slot];
+        if (!item || !item.definition.loadoutSlot) continue;
+        // The legacy manager and the loadout share one modifier source
+        // per item id: unEquip first so the loadout equip re-adds it,
+        // instead of a later legacy unequip wiping the loadout's stat
+        // bonus. A refused item goes back to the legacy manager.
+        character.equipment.unequip(slot, character);
+        const result = equipInto(character, firstFreeHole(character), item);
+        if (!result.ok) {
+            character.equipment.equipOrReplace(item, character);
+        }
+    }
 }

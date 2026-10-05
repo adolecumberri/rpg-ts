@@ -109,7 +109,15 @@ describe('act 1 world', () => {
         expect(session.missions.mission('cow_hunt')).toBeDefined();
 
         const placeIds = PLACES.map((place) => place.id);
-        expect(placeIds).toEqual(['camp', 'farm', 'hay_field']);
+        expect(placeIds).toEqual([
+            'camp',
+            'farm',
+            'hay_field',
+            'fergel_north_settlement',
+            'playa_sur',
+            'east_field',
+            'fergel_faro',
+        ]);
         expect(ACT1.startPlaceId).toBe('farm');
     });
 });

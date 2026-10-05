@@ -49,6 +49,9 @@ function layoutFor(count: number): 'rows' | 'grid' {
  *   first page  = cancel (when picking) in slot 5 + More in slot 6
  *   middle pages = Back (page) in slot 5 + More in slot 6
  *   last page   = Back (page) in slot 5, slot 6 empty
+ *
+ * The page controls render like the other actions (icon slot + title
+ * + caption) with a Material Symbol chevron in the icon box.
  */
 export function ActionBar({
     cells,
@@ -155,10 +158,10 @@ export function ActionBar({
             <ActionButton
                 key="nav-next"
                 label="More"
-                icon="›"
+                icon={{ symbol: 'chevron_right', color: '#f2ca50' }}
                 size={size}
-                variant="nav"
                 slot={nextSlot}
+                sub="Next page"
                 onClick={() => setPage((p) => p + 1)}
             />,
         );
@@ -199,10 +202,10 @@ export function ActionBar({
             <ActionButton
                 key="nav-back"
                 label="Back"
-                icon="‹"
+                icon={{ symbol: 'chevron_left', color: '#f2ca50' }}
                 size={size}
-                variant="nav"
                 slot={mode.capacity - 1}
+                sub="Previous page"
                 onClick={() => setPage((p) => p - 1)}
             />,
         );

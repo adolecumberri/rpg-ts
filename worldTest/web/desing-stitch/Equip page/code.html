@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RPG-TS: The Squad</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: VT323 & Press Start 2P -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;family=VT323&amp;display=swap" rel="stylesheet"/>
+<!-- Pixel Art & Color Scheme Stylesheet -->
+<style data-purpose="retro-theme">
+    body {
+      background-color: #000000;
+      font-family: 'VT323', monospace;
+      image-rendering: pixelated;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    /* Pixelated screen canvas wrapper */
+    .game-screen {
+      width: 320px;
+      height: 640px;
+      position: relative;
+      background-color: #1a0f0d;
+      border: 3px solid #3c1e19;
+      box-shadow: inset 1px 1px 0px #5c2e26, inset -1px -1px 0px #110705;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Custom tactical bevel boxes */
+    .pixel-box-header {
+      background-color: #271412;
+      border: 2px solid #5a2720;
+      box-shadow: inset 2px 2px 0px #3f1d17, inset -2px -2px 0px #130806;
+    }
+
+    .pixel-box-panel {
+      background-color: #3b1b17;
+      border: 2px solid #140705;
+      box-shadow: inset 2px 2px 0px #522722, inset -2px -2px 0px #240f0c;
+    }
+
+    .character-card {
+      background-color: #552723;
+      border: 2px solid #180908;
+      box-shadow: inset 2px 2px 0px #703631, inset -2px -2px 0px #311512;
+      transition: transform 0.05s ease, filter 0.05s ease;
+      cursor: pointer;
+    }
+
+    .character-card:active {
+      transform: translate(1px, 1px);
+      box-shadow: inset 2px 2px 0px #240f0c, inset -2px -2px 0px #703631;
+      filter: brightness(1.1);
+    }
+
+    .pixel-box-footer-btn {
+      background-color: #3a1a16;
+      border: 2px solid #170907;
+      box-shadow: inset 2px 2px 0px #5c2923, inset -2px -2px 0px #220e0b;
+      cursor: pointer;
+    }
+
+    .pixel-box-footer-btn:active {
+      transform: translate(1px, 1px);
+      box-shadow: inset 2px 2px 0px #1a0b08, inset -2px -2px 0px #5c2923;
+    }
+
+    .pixel-icon-frame {
+      background-color: #200d0b;
+      border: 2px solid #0f0504;
+      box-shadow: inset 1px 1px 0px #361612, inset -1px -1px 0px #130706;
+    }
+
+    /* Font helper classes */
+    .font-press-start {
+      font-family: 'Press Start 2P', monospace;
+    }
+  </style>
+</head>
+<body>
+<!-- BEGIN: GameScreenContainer -->
+<main class="game-screen" data-purpose="game-canvas">
+<!-- BEGIN: TopStatusHeader -->
+<header class="h-[48px] w-full px-2 py-1.5 flex items-center justify-between border-b-2 border-[#120705] bg-[#22100d] shrink-0" data-purpose="header-panel">
+<!-- Hamburger Menu Button -->
+<button aria-label="Menu" class="w-[32px] h-[32px] bg-[#291310] border-2 border-[#54241d] shadow-[inset_1px_1px_0px_#733328,inset_-1px_-1px_0px_#140705] flex flex-col justify-center items-center gap-[3px] active:translate-y-[1px]" data-purpose="menu-toggle">
+<span class="w-[18px] h-[2.5px] bg-[#df973d] shadow-[0_1px_0_#4c2206]"></span>
+<span class="w-[18px] h-[2.5px] bg-[#df973d] shadow-[0_1px_0_#4c2206]"></span>
+<span class="w-[18px] h-[2.5px] bg-[#df973d] shadow-[0_1px_0_#4c2206]"></span>
+</button>
+<!-- Center Status Meta -->
+<div class="flex flex-col items-center justify-center leading-tight mx-auto" data-purpose="center-title">
+<div class="flex items-center gap-1.5">
+<span class="font-press-start text-[10px] text-[#f7ad3b] tracking-wider font-bold">EL FERGEL</span>
+<span class="bg-[#592621] border border-[#2b100d] text-[#e0a86d] text-[8px] px-1 font-press-start leading-none py-0.5">ESTE</span>
+</div>
+<div class="flex items-center gap-1.5 text-[14px] text-[#d6b087] mt-0.5 font-bold">
+<span class="inline-block w-2.5 h-2.5 rounded-full bg-[#f39c12] shadow-[inset_-1px_-1px_0px_#965700]"></span>
+<span>DAY 2</span>
+<span class="text-[#7d5147]">|</span>
+<span>G 10</span>
+<span class="text-[#7d5147]">|</span>
+<span class="text-[#64cb3f] text-sm leading-none">🌱</span>
+</div>
+</div>
+<!-- Right Meta Info -->
+<div class="flex flex-col items-end leading-none font-press-start" data-purpose="save-indicator">
+<span class="text-[7px] text-[#df973d] tracking-tight">RPG-TS</span>
+<span class="text-[7px] text-[#55cf53] mt-1 tracking-tight">SAVE: OK</span>
+</div>
+</header>
+<!-- END: TopStatusHeader -->
+<!-- BEGIN: SquadContentStage -->
+<section class="p-2 flex flex-col flex-1" data-purpose="squad-selection-stage">
+<!-- Header Title Box -->
+<div class="pixel-box-panel p-1.5 px-2 mb-2" data-purpose="instruction-card">
+<h1 class="font-press-start text-[9px] text-[#e5a840] tracking-wider mb-1">THE SQUAD</h1>
+<p class="text-[15px] text-[#d4b595] leading-none tracking-wide">Tap a character to open their data.</p>
+</div>
+<!-- Character 6-Grid Selection (3 Rows x 2 Columns) -->
+<div class="grid grid-cols-2 gap-2 flex-grow-0" data-purpose="squad-grid">
+<!-- Character 1: Player (Soldier) -->
+<article class="character-card h-[88px] flex flex-col items-center justify-between py-1.5 px-1 text-center" data-purpose="character-card-player">
+<!-- Pixel Sprite (Soldier with shield/sword) -->
+<svg class="w-7 h-7 drop-shadow-[0_2px_0_rgba(0,0,0,0.6)]" fill="none" viewbox="0 0 16 16">
+<!-- Helm / Head -->
+<rect fill="#d2d2d2" height="2" width="4" x="6" y="2"></rect>
+<rect fill="#fed0a4" height="4" width="6" x="5" y="4"></rect>
+<rect fill="#6d4930" height="3" width="2" x="5" y="3"></rect>
+<rect fill="#6d4930" height="3" width="2" x="9" y="3"></rect>
+<rect fill="#000000" height="1" width="2" x="7" y="5"></rect>
+<!-- Body Armor -->
+<rect fill="#586c8d" height="4" width="4" x="6" y="8"></rect>
+<rect fill="#99aabf" height="3" width="1" x="5" y="8"></rect>
+<rect fill="#99aabf" height="3" width="1" x="10" y="8"></rect>
+<!-- Golden Shield Right -->
+<rect fill="#f4b41b" height="5" width="3" x="11" y="7"></rect>
+<rect fill="#fae16c" height="3" width="1" x="12" y="8"></rect>
+<rect fill="#be7b06" height="1" width="3" x="11" y="9"></rect>
+<!-- Sword Left -->
+<rect fill="#dedede" height="6" width="1" x="3" y="6"></rect>
+<rect fill="#997541" height="1" width="3" x="2" y="10"></rect>
+<!-- Legs -->
+<rect fill="#303b4f" height="3" width="2" x="6" y="12"></rect>
+<rect fill="#303b4f" height="3" width="2" x="8" y="12"></rect>
+</svg>
+<span class="text-[15px] text-[#f7e6d4] leading-tight font-bold tracking-wide">Player</span>
+<div class="flex items-center gap-1 text-[13px] text-[#e0a86d] leading-none">
+<span>⚔</span>
+<span>Soldier</span>
+</div>
+</article>
+<!-- Character 2: Roma Perez (Archer) -->
+<article class="character-card h-[88px] flex flex-col items-center justify-between py-1.5 px-1 text-center" data-purpose="character-card-roma">
+<!-- Pixel Sprite (Archer with purple hood & bow) -->
+<svg class="w-7 h-7 drop-shadow-[0_2px_0_rgba(0,0,0,0.6)]" fill="none" viewbox="0 0 16 16">
+<!-- Hood/Face -->
+<rect fill="#753066" height="2" width="5" x="6" y="2"></rect>
+<rect fill="#e8b082" height="4" width="6" x="5" y="4"></rect>
+<rect fill="#753066" height="5" width="2" x="5" y="3"></rect>
+<rect fill="#753066" height="5" width="2" x="10" y="3"></rect>
+<rect fill="#000000" height="1" width="2" x="7" y="5"></rect>
+<!-- Body -->
+<rect fill="#a4528f" height="4" width="4" x="6" y="8"></rect>
+<rect fill="#e48624" height="3" width="2" x="7" y="9"></rect>
+<!-- Bow & Arrow -->
+<rect fill="#b06f2e" height="7" width="1" x="11" y="5"></rect>
+<rect fill="#f8e3a2" height="5" width="1" x="12" y="6"></rect>
+<rect fill="#f5f5f5" height="1" width="4" x="10" y="8"></rect>
+<!-- Legs -->
+<rect fill="#44213d" height="3" width="2" x="6" y="12"></rect>
+<rect fill="#44213d" height="3" width="2" x="8" y="12"></rect>
+</svg>
+<span class="text-[15px] text-[#f7e6d4] leading-tight font-bold tracking-wide">Roma Perez</span>
+<div class="flex items-center gap-1 text-[13px] text-[#e0a86d] leading-none">
+<span>🏹</span>
+<span>Archer</span>
+</div>
+</article>
+<!-- Character 3: Naoufal Prieto (Archer) -->
+<article class="character-card h-[88px] flex flex-col items-center justify-between py-1.5 px-1 text-center" data-purpose="character-card-naoufal">
+<!-- Pixel Sprite (Archer variant) -->
+<svg class="w-7 h-7 drop-shadow-[0_2px_0_rgba(0,0,0,0.6)]" fill="none" viewbox="0 0 16 16">
+<!-- Headband/Face -->
+<rect fill="#c4792b" height="2" width="4" x="6" y="2"></rect>
+<rect fill="#fed0a4" height="4" width="6" x="5" y="4"></rect>
+<rect fill="#914f17" height="1" width="6" x="5" y="4"></rect>
+<rect fill="#000000" height="1" width="2" x="7" y="5"></rect>
+<!-- Cloak/Tunic -->
+<rect fill="#84325a" height="4" width="4" x="6" y="8"></rect>
+<!-- Bow Left -->
+<rect fill="#8f5724" height="7" width="1" x="11" y="5"></rect>
+<rect fill="#f0db99" height="5" width="1" x="12" y="6"></rect>
+<rect fill="#ffffff" height="1" width="4" x="10" y="8"></rect>
+<!-- Boots -->
+<rect fill="#4f2038" height="3" width="2" x="6" y="12"></rect>
+<rect fill="#4f2038" height="3" width="2" x="8" y="12"></rect>
+</svg>
+<span class="text-[15px] text-[#f7e6d4] leading-tight font-bold tracking-wide">Naoufal Prieto</span>
+<div class="flex items-center gap-1 text-[13px] text-[#e0a86d] leading-none">
+<span>🏹</span>
+<span>Archer</span>
+</div>
+</article>
+<!-- Character 4: Arturo (Healer) -->
+<article class="character-card h-[88px] flex flex-col items-center justify-between py-1.5 px-1 text-center" data-purpose="character-card-arturo">
+<!-- Pixel Sprite (Healer with staff & hood) -->
+<svg class="w-7 h-7 drop-shadow-[0_2px_0_rgba(0,0,0,0.6)]" fill="none" viewbox="0 0 16 16">
+<!-- Dark Cowl -->
+<rect fill="#243343" height="2" width="4" x="6" y="2"></rect>
+<rect fill="#1b2530" height="5" width="6" x="5" y="4"></rect>
+<rect fill="#fed0a4" height="3" width="3" x="7" y="4"></rect>
+<rect fill="#000000" height="1" width="1" x="8" y="5"></rect>
+<!-- White/Gold Robe -->
+<rect fill="#eae8e4" height="4" width="4" x="6" y="9"></rect>
+<rect fill="#e8a838" height="4" width="2" x="7" y="9"></rect>
+<!-- Staff -->
+<rect fill="#7d532a" height="10" width="1" x="11" y="4"></rect>
+<rect fill="#f2cf41" height="2" width="3" x="10" y="3"></rect>
+<rect fill="#58d1ec" height="1" width="1" x="11" y="2"></rect>
+<!-- Base Robe Hem -->
+<rect fill="#243343" height="2" width="4" x="6" y="13"></rect>
+</svg>
+<span class="text-[15px] text-[#f7e6d4] leading-tight font-bold tracking-wide">Arturo</span>
+<div class="flex items-center gap-1 text-[13px] text-[#e0a86d] leading-none">
+<span class="text-[#ecc348]">✨</span>
+<span>Healer</span>
+</div>
+</article>
+<!-- Character 5: Dani Navas (Soldier) -->
+<article class="character-card h-[88px] flex flex-col items-center justify-between py-1.5 px-1 text-center" data-purpose="character-card-dani">
+<!-- Pixel Sprite (Soldier Variant) -->
+<svg class="w-7 h-7 drop-shadow-[0_2px_0_rgba(0,0,0,0.6)]" fill="none" viewbox="0 0 16 16">
+<rect fill="#8892a0" height="2" width="4" x="6" y="2"></rect>
+<rect fill="#ffcaa0" height="4" width="6" x="5" y="4"></rect>
+<rect fill="#4d3020" height="3" width="2" x="5" y="3"></rect>
+<rect fill="#4d3020" height="3" width="2" x="9" y="3"></rect>
+<rect fill="#000000" height="1" width="2" x="7" y="5"></rect>
+<rect fill="#4e5e78" height="4" width="4" x="6" y="8"></rect>
+<!-- Shield -->
+<rect fill="#f4b41b" height="5" width="3" x="11" y="7"></rect>
+<rect fill="#fae16c" height="3" width="1" x="12" y="8"></rect>
+<rect fill="#be7b06" height="1" width="3" x="11" y="9"></rect>
+<!-- Sword -->
+<rect fill="#dedede" height="6" width="1" x="3" y="6"></rect>
+<rect fill="#997541" height="1" width="3" x="2" y="10"></rect>
+<!-- Boots -->
+<rect fill="#29303d" height="3" width="2" x="6" y="12"></rect>
+<rect fill="#29303d" height="3" width="2" x="8" y="12"></rect>
+</svg>
+<span class="text-[15px] text-[#f7e6d4] leading-tight font-bold tracking-wide">Dani Navas</span>
+<div class="flex items-center gap-1 text-[13px] text-[#e0a86d] leading-none">
+<span>⚔</span>
+<span>Soldier</span>
+</div>
+</article>
+<!-- Character 6: Betsabe Rivera (Soldier) -->
+<article class="character-card h-[88px] flex flex-col items-center justify-between py-1.5 px-1 text-center" data-purpose="character-card-betsabe">
+<!-- Pixel Sprite (Soldier Variant) -->
+<svg class="w-7 h-7 drop-shadow-[0_2px_0_rgba(0,0,0,0.6)]" fill="none" viewbox="0 0 16 16">
+<rect fill="#8892a0" height="2" width="4" x="6" y="2"></rect>
+<rect fill="#fed0a4" height="4" width="6" x="5" y="4"></rect>
+<rect fill="#3a1e12" height="4" width="2" x="5" y="3"></rect>
+<rect fill="#3a1e12" height="4" width="2" x="9" y="3"></rect>
+<rect fill="#000000" height="1" width="2" x="7" y="5"></rect>
+<rect fill="#4e5e78" height="4" width="4" x="6" y="8"></rect>
+<!-- Shield -->
+<rect fill="#f4b41b" height="5" width="3" x="11" y="7"></rect>
+<rect fill="#fae16c" height="3" width="1" x="12" y="8"></rect>
+<rect fill="#be7b06" height="1" width="3" x="11" y="9"></rect>
+<!-- Sword -->
+<rect fill="#dedede" height="6" width="1" x="3" y="6"></rect>
+<rect fill="#997541" height="1" width="3" x="2" y="10"></rect>
+<!-- Legs -->
+<rect fill="#29303d" height="3" width="2" x="6" y="12"></rect>
+<rect fill="#29303d" height="3" width="2" x="8" y="12"></rect>
+</svg>
+<span class="text-[15px] text-[#f7e6d4] leading-tight font-bold tracking-wide">Betsabe Rivera</span>
+<div class="flex items-center gap-1 text-[13px] text-[#e0a86d] leading-none">
+<span>⚔</span>
+<span>Soldier</span>
+</div>
+</article>
+</div>
+</section>
+<!-- END: SquadContentStage -->
+<!-- BEGIN: BottomActionTray -->
+<!-- Fixed 192px tactical tray bottom section -->
+<footer class="h-[192px] w-full bg-[#120807] border-t-2 border-[#3c1914] flex flex-col justify-end p-2 mt-auto" data-purpose="tactical-action-tray">
+<!-- Back Navigation Button -->
+<button class="pixel-box-footer-btn h-[44px] w-full flex items-center px-2 mb-6" data-purpose="back-button">
+<!-- Close / Cancel Icon Box -->
+<div class="pixel-icon-frame w-[28px] h-[28px] flex items-center justify-center mr-3 shrink-0">
+<!-- Pixel Art Cross 'X' -->
+<svg class="w-4 h-4" fill="none" viewbox="0 0 10 10">
+<rect fill="#d97f26" height="2" width="2" x="1" y="1"></rect>
+<rect fill="#d97f26" height="2" width="2" x="7" y="1"></rect>
+<rect fill="#eed6a1" height="4" width="4" x="3" y="3"></rect>
+<rect fill="#ab3f17" height="2" width="2" x="4" y="4"></rect>
+<rect fill="#d97f26" height="2" width="2" x="1" y="7"></rect>
+<rect fill="#d97f26" height="2" width="2" x="7" y="7"></rect>
+</svg>
+</div>
+<!-- Button Label -->
+<span class="text-[20px] text-[#f7e6d4] font-bold tracking-wider leading-none">Back</span>
+</button>
+</footer>
+<!-- END: BottomActionTray -->
+</main>
+<!-- END: GameScreenContainer -->
+</body></html>

@@ -15,7 +15,7 @@ import {
 import { DEFAULT_ITEM_TABLE } from './items';
 import { farmerNameFor } from './names';
 import { applyJobBonuses, jobOfCharacter } from './constants/jobs';
-import { equipInto } from './equipment/loadout';
+import { equipInto, migrateLegacyEquipment } from './equipment/loadout';
 
 // The test bag: two copies of every equipment section, seeded into a
 // fresh world and migrated into saves made before it existed.
@@ -126,6 +126,7 @@ export const PLACES: Place[] = [
         name: 'Order Camp',
         emoji: '🏕️',
         description: 'The Order Army camp: you were recruited here with eleven other farmers.',
+        regionId: 'fergel_este',
         position: { x: 120, y: 260 },
         actions: [
             { id: 'squad', label: 'Form the Squad', kind: 'team', icon: '' },
@@ -142,6 +143,7 @@ export const PLACES: Place[] = [
         emoji: '',
         subtitle: 'Barony Domain',
         description: 'A farm in El Fergel, a southern country. You were bought by the lord and work his land.',
+        regionId: 'fergel_este',
         position: { x: 300, y: 260 },
         actions: [
             { id: 'mission_board', label: 'Mission Board', kind: 'mission_board', icon: '' },
@@ -170,6 +172,11 @@ export const PLACES: Place[] = [
         name: 'Hay Field',
         emoji: '',
         description: 'Golden fields where the hay grows. Arturo works here.',
+        regionId: 'fergel_este',
+        // The place itself opens only while the sickles mission runs
+        // (the road lock is the map view's mirror of this gate).
+        lockedByMission: 'sickles_to_hay',
+        lockedMessage: 'The hay field is closed until the mission.',
         position: { x: 600, y: 260 },
         actions: [{ id: 'hay_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
         connections: [{ label: "The Lord's Farm", to: ACT1.startPlaceId, icon: '' }],
@@ -179,6 +186,59 @@ export const PLACES: Place[] = [
         // back to the map.
         menu: false,
         arrival: hayFieldArrival(),
+    },
+    // ------------------------------------------------------------------
+    // The rest of Fergel Este: general locations of the region. Open
+    // places need no road (same-region travel is free); the east field
+    // is a locked place and the faro a hidden one (discovered by the
+    // sickles flag). The faro is the future border crossing to Islas.
+    // ------------------------------------------------------------------
+    {
+        id: 'fergel_north_settlement',
+        name: 'North Settlement',
+        emoji: '🏘️',
+        description: 'The northern settlement of El Fergel.',
+        regionId: 'fergel_este',
+        actions: [{ id: 'ns_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
+        connections: [],
+        npcs: [],
+    },
+    {
+        id: 'playa_sur',
+        name: 'Playa Sur',
+        emoji: '🏖️',
+        description: 'The southern beach of the region.',
+        regionId: 'fergel_este',
+        actions: [{ id: 'playa_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
+        connections: [],
+        npcs: [],
+    },
+    {
+        id: 'east_field',
+        name: 'East Field',
+        emoji: '🌾',
+        description: 'The eastern fields, closed while the farm suffers.',
+        regionId: 'fergel_este',
+        // The combat end already flips this flag ("the east road is
+        // now open"): a locked place, visible but closed until then.
+        lockedByFlag: 'east_unlocked',
+        lockedMessage: 'The east road opens when the villages unite.',
+        actions: [{ id: 'east_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
+        connections: [],
+        npcs: [],
+    },
+    {
+        id: 'fergel_faro',
+        name: 'Faro',
+        emoji: '🗼',
+        description: 'The lighthouse on the region border. Ships leave from here.',
+        regionId: 'fergel_este',
+        // A hidden place: not drawn on the map until the east road
+        // opens. The future border crossing to the islands.
+        hiddenUntilFlag: 'east_unlocked',
+        actions: [{ id: 'faro_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
+        connections: [],
+        npcs: [],
     },
 ];
 
@@ -218,6 +278,10 @@ export function buildNpcsFromPlaces(places: Place[]): {
                 if (!DEFAULT_ITEM_TABLE.has(itemId)) continue;
                 character.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem(itemId), character);
             }
+            // The new UI shows the five-hole loadout: move any gear the
+            // loadout supports out of the legacy manager so roster
+            // members display it (the sickles stay legacy).
+            migrateLegacyEquipment(character);
             list.push({
                 id: def.id,
                 character,

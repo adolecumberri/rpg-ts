@@ -71,7 +71,7 @@
     --bg-light: #842C1F;
     --bg: #4c1a12;
     --bg-dark: #32110C;
-    --bg-darker: #100604;
+    --bg-darker: #170c05;
     --card: #4c1a12;
     --card-2: #5f2525;
     --border: #100604;
@@ -542,6 +542,7 @@
     overflow: hidden;
     background: #251911;
     padding: var(--s2) calc(var(--u) * 2.5);
+
 }
 
 /* ---------------------------------------------------------------------------
@@ -868,22 +869,6 @@
     flex: none;
 }
 
-/* The page controls inside the grid: quieter than real actions (the
-   icon slot collapses for them). */
-.action-btn--nav {
-    background: var(--bg);
-    justify-content: center;
-    text-align: center;
-}
-
-.action-btn--nav .action-btn-slot {
-    width: auto;
-    height: auto;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-}
-
 /* A picked multi-select target. */
 .action-btn--selected {
     background: var(--accent);
@@ -896,8 +881,9 @@
 }
 
 
-/* Test-screen scaffold: content scrolls, the bar is pinned to the
-   bottom of the visible canvas. */
+/* Test-screen scaffold: the page is a column (panels stack on top of
+   each other), the bar is pinned to the bottom of the visible canvas,
+   and the content area scrolls vertically when the panels exceed it. */
 .action-bar-demo {
     height: 100%;
     display: flex;
@@ -907,9 +893,10 @@
 
 .action-bar-demo-content {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
-    min-height: var(--s100);
+    flex-direction: column;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1247,11 +1234,41 @@
     font-family: inherit;
     box-shadow: 2px 2px 0 #403229;
     cursor: pointer;
+    margin-right: calc(var(--s1) / 2);
 }
 
 .tactical-close-btn:active {
     transform: translate(1px, 1px);
     box-shadow: 1px 1px 0 #403229;
+}
+
+/* The submenu back square in the overlay head: the same hard offset
+   shadow as the close button, in the surface-container tone with a
+   gold chevron. */
+.tactical-back-btn {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: none;
+    background: #2a1d15;
+    color: #f2ca50;
+    font-size: 14px;
+    line-height: 1;
+    font-family: inherit;
+    box-shadow: 2px 2px 0 #403229;
+    cursor: pointer;
+}
+
+.tactical-back-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 #403229;
+}
+
+.tactical-back-btn .material-symbol {
+    font-size: 14px;
 }
 
 .menu-overlay-list {
@@ -1273,7 +1290,7 @@
     padding: 3px;
     border: none;
     background: #2a1d15;
-    box-shadow: inset 1px 1px 0 #45362d, inset -1px -1px 0 #170c05;
+    box-shadow: inset 1px 1px 0 #45362d, inset -1px -1px 0 var(--bg-darker);
     text-align: left;
     cursor: pointer;
     font-family: inherit;
@@ -1287,16 +1304,35 @@
     background: #f2ca50;
 }
 
+/* Locked rows (Save/Load away from a place): muted ink, no hover or
+   press feedback. */
+.tactical-menu-row:disabled {
+    cursor: default;
+}
+
+.tactical-menu-row:disabled:hover {
+    background: #2a1d15;
+}
+
+.tactical-menu-row:disabled .tactical-icon-frame,
+.tactical-menu-row:disabled .tactical-menu-title,
+.tactical-menu-row:disabled .tactical-menu-number,
+.tactical-menu-row:disabled .tactical-menu-caption {
+    color: #6b6152;
+}
+
 .tactical-icon-frame {
     flex: none;
     width: 26px;
     height: 26px;
     display: grid;
     place-items: center;
-    background: #170c05;
+    background: var(--bg-darker);
     box-shadow: inset 1px 1px 0 #000;
     color: #f2ca50;
-    font-size: 13px;
+    /* The glyph fills the 26px frame (the design's 13px glyph left the
+       box half empty). */
+    font-size: calc(var(--u) * 5);
 }
 
 .tactical-menu-text {
@@ -1371,23 +1407,75 @@
     align-content: start;
 }
 
+/* The squad page header (google-stitch pixel-box-panel): the title and
+   the helper line above the character grid. The design pads the card
+   p-1.5 (1.5u = 6px) with a 1u gap between title and text. */
+.squad-card {
+    margin-bottom: var(--s2);
+    padding: calc(var(--s1) * 1.5) var(--s2);
+    background: #3b1b17;
+    border: 2px solid #140705;
+    box-shadow: inset 2px 2px 0 #522722, inset -2px -2px 0 #240f0c;
+}
+
+.squad-card-title {
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 9px;
+    font-size-adjust: none;
+    letter-spacing: 0.05em;
+    color: #e5a840;
+    text-shadow: none;
+    margin-bottom: var(--s1);
+}
+
+.squad-card-text {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    letter-spacing: 0.025em;
+    color: #d4b595;
+    text-shadow: none;
+    line-height: 1;
+}
+
 .team-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--s1);
-    padding: var(--s2) 0;
+    justify-content: space-between;
+    height: 88px;
+    padding: var(--s1) 0;
+    box-sizing: border-box;
     font-family: inherit;
-    font-size: var(--s3);
-    background: var(--card-2);
-    border: var(--s1) solid #000;
-    /* box-shadow: inset 0 0 0 var(--s1) var(--border); */
+    background: #552723;
+    border: 2px solid #180908;
+    box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512;
     cursor: pointer;
+    transition: transform 0.05s ease, filter 0.05s ease;
+}
+
+/* The pressed card sinks 1px and inverts its bevel, like the design. */
+.team-card:active {
+    transform: translate(1px, 1px);
+    box-shadow: inset 2px 2px 0 #240f0c, inset -2px -2px 0 #703631;
+    filter: brightness(1.1);
+}
+
+/* The picked card keeps its bevels under a gold ring. */
+.team-card.pixel-cell--selected {
+    border-color: #f2ca50;
+    box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512, inset 0 0 0 2px #f2ca50;
 }
 
 .team-card-name {
-    font-size: var(--s3);
-    line-height: 1.1;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #f7e6d4;
+    text-shadow: none;
+    line-height: 1;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1397,10 +1485,18 @@
 }
 
 .team-card-job {
-    font-size: calc(var(--u) * 2.25);
-    color: var(--muted);
-    line-height: 1.1;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 13px;
+    font-size-adjust: none;
+    color: #e0a86d;
+    text-shadow: none;
+    line-height: 1;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     padding: 0 var(--s1);
+    box-sizing: border-box;
 }
 
 .team-data-head {
@@ -1443,6 +1539,13 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: var(--card-2);
+    padding: var(--s2);
+    box-shadow: inset 2px 2px 0 0 rgba(255, 200, 160, 0.28), inset -2px -2px 0 0 rgba(0, 0, 0, 0.75), inset 4px 4px 0 0 rgba(255, 255, 255, 0.1), inset -4px -4px 0 0 rgba(10, 2, 2, 0.9), 0 0 0 2px #000000;
+    border: 0px solid black;
 }
 
 .team-data-identity {
@@ -1476,7 +1579,7 @@
     flex-direction: column;
     gap: var(--s1);
     padding: var(--s2);
-    background: #170c05;
+    background: var(--bg-darker);
     box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 #35271f;
 }
 
@@ -1540,7 +1643,7 @@
 /* The equipment block: the same ledger well as the stats column
    (dark container, inverted bevel, hairline rows, gold names). */
 .team-data-block {
-    background: #170c05;
+    background: var(--bg-darker);
     box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 #35271f;
     padding: var(--s2);
     display: flex;
@@ -1740,7 +1843,7 @@
 
 /* Header: gold uppercase label + the 7 category tabs. */
 .equip-picker .pixel-modal-header {
-    background: #170c05;
+    background: var(--bg-darker);
     gap: var(--s2);
 }
 
@@ -1760,7 +1863,7 @@
 .equip-picker .inv-tab {
     width: calc(var(--u) * 5);
     height: calc(var(--u) * 5);
-    background: #170c05;
+    background: var(--bg-darker);
     color: #d0c5af;
     filter: none;
 }
@@ -1804,7 +1907,7 @@
     background: #403229;
     border-color: #403229;
     color: #d0c5af;
-    box-shadow: inset 1px 1px 0 #4d4635, inset -1px -1px 0 #170c05;
+    box-shadow: inset 1px 1px 0 #4d4635, inset -1px -1px 0 var(--bg-darker);
 }
 
 .equip-actions .pixel-btn--danger:hover:not(:disabled) {
@@ -1833,7 +1936,7 @@
     gap: var(--s2);
     padding: var(--s1);
     background: #251911;
-    box-shadow: inset 1px 1px 0 #170c05;
+    box-shadow: inset 1px 1px 0 var(--bg-darker);
     font-size: calc(var(--u) * 2.5);
     color: #f6ded1;
     cursor: pointer;
@@ -1929,6 +2032,260 @@
     font-display: swap;
 }
 
+/* ---------------------------------------------------------------------------
+   The dialogs dev page: text inputs, the line editor rows and the
+   dialogue player (portrait + bubble, side by side).
+--------------------------------------------------------------------------- */
+.dev-input {
+    flex: 1;
+    min-width: 0;
+    background: #1a0c0c;
+    border: var(--s1) solid #522929;
+    border-radius: 0;
+    color: #eedbcc;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 13px;
+    font-size-adjust: none;
+    padding: var(--s1) var(--s2);
+    outline: none;
+}
+
+.dev-input:focus {
+    border-color: #f2ca50;
+}
+
+.dev-input::placeholder {
+    color: #6b6152;
+}
+
+.dlg-title-input {
+    margin-bottom: var(--s2);
+}
+
+/* The dialog list titles: mission/chat names are long, so they use
+   the terminal font at a size that fits the 320px rows (the menu's
+   Press Start 2P titles overflowed here). */
+.dlg-row-title {
+    flex: 1;
+    min-width: 0;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    color: #f2ca50;
+    text-shadow: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The dialogs library: the panel fills the container (width AND
+   height) and scrolls its own rows, instead of the page scaffold
+   pushing the panel through the screen. */
+.dlg-library-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* One editable line: side toggle + text row, img row under it. */
+.dlg-editor-line {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    padding: var(--s2) 0;
+    border-top: 1px solid #3d1a1a;
+}
+
+.dlg-editor-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+}
+
+.dlg-side-btn {
+    flex: none;
+    width: var(--s7);
+    height: var(--s7);
+    padding: 0;
+    display: grid;
+    place-items: center;
+}
+
+.dlg-editor-label {
+    flex: none;
+    width: var(--s6);
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    color: rgba(253, 230, 138, 0.5);
+    letter-spacing: 0.05em;
+    text-shadow: none;
+}
+
+/* The dev player: a relative anchor the shared MessageLineView (the
+   absolute bottom dialog box) fills. */
+.dlg-stage {
+    position: relative;
+    flex: 1;
+    min-height: var(--s24);
+    display: flex;
+    padding: var(--s2);
+}
+
+/* ---------------------------------------------------------------------------
+   The global story dialogue box: fixed at the bottom of the canvas,
+   over every screen (pages, bars, modals, toast). Modal: the overlay
+   blocks all input while a line is on screen.
+--------------------------------------------------------------------------- */
+.messagebox-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 70;
+    background: rgba(0, 0, 0, 0.90);
+    cursor: pointer;
+}
+
+/* The global dialog wrapper: pinned above the bottom action tray
+   (the design's 192px = 48u tray), so the box never covers the
+   buttons. The dev player keeps its own in-stage anchor. */
+.messagebox-global {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: var(--s48);
+    z-index: 71;
+}
+
+.messagebox-global .messagebox {
+    /* Relative so the absolute portrait anchors to the box itself. */
+    position: relative;
+}
+
+.messagebox {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 71;
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding: var(--s2) var(--s3);
+    background: rgba(23, 12, 5, 0.96);
+    box-shadow: inset 0 0 0 2px #403229, inset 0 0 0 4px #1c1109;
+    cursor: pointer;
+    text-align: left;
+}
+
+.messagebox-portrait {
+    /* Absolute: the portrait escapes the box through its top edge
+       (half in, half out), anchored left or right by the side class. */
+    position: absolute;
+    /* top: 0; */
+
+    /* fixed dimension, don´t know*/
+    top: -31px;
+    /* transform: translateY(-50%); */
+    width: calc(var(--s24) + var(--s2));
+    height: calc(var(--s24) + var(--s2));
+    object-fit: cover;
+    image-rendering: pixelated;
+    background: var(--bg-darker);
+    box-shadow: inset 0 0 0 2px #403229;
+}
+
+.messagebox--side-left .messagebox-portrait {
+    /* left: var(--s2); */
+    left: 0px;
+
+}
+
+.messagebox--side-right .messagebox-portrait {
+    /* right: var(--s2); */
+    right: 0px;
+}
+
+/* The text column steps away from the overflowing portrait. */
+.messagebox--side-left .messagebox-body {
+    padding-left: var(--s24);
+}
+
+.messagebox--side-right .messagebox-body {
+    padding-right: var(--s24);
+}
+
+.messagebox-portrait--empty {
+    display: grid;
+    place-items: center;
+    color: #f2ca50;
+    font-size: var(--s5);
+}
+
+.messagebox-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+}
+
+.messagebox-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s2);
+}
+
+.messagebox-speaker {
+    min-width: 0;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    color: #f2ca50;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-shadow: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.messagebox-meta {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+}
+
+.messagebox-counter {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    color: #99907c;
+    letter-spacing: 0.05em;
+    text-shadow: none;
+}
+
+.messagebox-next {
+    color: #f2ca50;
+    font-size: var(--s4);
+}
+
+.messagebox-text {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    line-height: 1.25;
+    letter-spacing: 0.025em;
+    color: #eedbcc;
+    text-shadow: none;
+    white-space: pre-wrap;
+    max-height: calc(var(--s16) * 2);
+    overflow-y: auto;
+}
+
 /* VT323: the retro terminal font of the google-stitch design (button
    titles and captions, body text). */
 @font-face {
@@ -1996,7 +2353,7 @@
 }
 
 ::-webkit-scrollbar-track {
-    background: #170c05;
+    background: var(--bg-darker);
     border-radius: 0;
 }
 
@@ -2007,14 +2364,14 @@
 }
 
 ::-webkit-scrollbar-corner {
-    background: #170c05;
+    background: var(--bg-darker);
 }
 
 /* Firefox: the standard properties are the only control available. */
 @supports not selector(::-webkit-scrollbar) {
     * {
         scrollbar-width: thin;
-        scrollbar-color: #f2ca50 #170c05;
+        scrollbar-color: #f2ca50 var(--bg-darker);
     }
 }
 

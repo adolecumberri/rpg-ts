@@ -46,6 +46,20 @@ export type Place = {
     name: string;
     description: string;
     emoji: string;
+    // The region the place belongs to (string ids shared with the map).
+    // Same-region travel needs no road: any open place of the region is
+    // a direct destination. Crossing regions needs a border connection.
+    regionId: string;
+    // The place's own locks: it stays closed until the flag exists /
+    // the mission is active. Unlike connection locks, they gate the
+    // place itself no matter where the player comes from.
+    lockedByFlag?: string;
+    lockedByMission?: string;
+    // What the bar explains when the place is locked.
+    lockedMessage?: string;
+    // Hidden from the map until the flag exists (a discovered place).
+    // Hidden places cannot be traveled to either.
+    hiddenUntilFlag?: string;
     // The small uppercase tag next to the name on the place card
     // (the design's "Barony Domain").
     subtitle?: string;

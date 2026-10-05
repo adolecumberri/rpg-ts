@@ -2,11 +2,11 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Icon } from './Icon';
 
 /**
- * The icon of an action button: a single character (emoji, '›', '‹'),
- * an image ({src}), a dictionary icon ({icon: id}) rendered at a
- * fixed size so nothing overflows the cell, a flat vector SVG
- * ({svg: path}) from the design (no outline), or a Material Symbol
- * ({symbol: name}) from the icon font.
+ * The icon of an action button: a single character (emoji, '✓'), an
+ * image ({src}), a dictionary icon ({icon: id}) rendered at a fixed
+ * size so nothing overflows the cell, a flat vector SVG ({svg: path})
+ * from the design (no outline), or a Material Symbol ({symbol: name})
+ * from the icon font.
  */
 export type ActionIcon =
     | string
@@ -33,7 +33,6 @@ export function ActionButton({
     icon,
     size = 'lg',
     tone = 'default',
-    variant = 'action',
     disabled,
     selected,
     mark,
@@ -45,8 +44,6 @@ export function ActionButton({
     icon?: ActionIcon;
     size?: 'sm' | 'md' | 'lg';
     tone?: 'default' | 'primary' | 'danger';
-    // 'nav' is the quieter page-control style (Back/More cells).
-    variant?: 'action' | 'nav';
     disabled?: boolean;
     // Multi-target picking: the cell shows the selected state.
     selected?: boolean;
@@ -106,7 +103,7 @@ export function ActionButton({
         } else {
             iconNode = <Icon id={icon.icon} size={icon.size ?? ICON_SIZES[size]} />;
         }
-    } else if (variant !== 'nav') {
+    } else {
         // No icon: fall back to the default pixel icon of the system
         // (never an empty slot).
         iconNode = <Icon id="default" size={ICON_SIZES[size]} />;
@@ -122,7 +119,6 @@ export function ActionButton({
             className={[
                 'action-btn',
                 `action-btn--${size}`,
-                `action-btn--${variant}`,
                 'pixel-btn',
                 toneClass,
                 selected ? 'action-btn--selected' : '',
@@ -131,23 +127,14 @@ export function ActionButton({
             style={style}
             onClick={onClick}
         >
-            {variant === 'nav' ? (
-                <span className="action-btn-label">
-                    {iconNode}
-                    {label}
+            {iconNode ? <span className="action-btn-slot">{iconNode}</span> : null}
+            <span className="action-btn-text">
+                <span className="action-btn-label action-btn-title">
+                    <span className="action-btn-label-text">{label}</span>
+                    {checkNode}
                 </span>
-            ) : (
-                <>
-                    {iconNode ? <span className="action-btn-slot">{iconNode}</span> : null}
-                    <span className="action-btn-text">
-                        <span className="action-btn-label action-btn-title">
-                            <span className="action-btn-label-text">{label}</span>
-                            {checkNode}
-                        </span>
-                        {sub ? <span className="action-btn-caption">{sub}</span> : null}
-                    </span>
-                </>
-            )}
+                {sub ? <span className="action-btn-caption">{sub}</span> : null}
+            </span>
         </button>
     );
 }

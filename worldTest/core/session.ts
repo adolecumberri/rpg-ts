@@ -24,7 +24,7 @@ import {
 } from './constants/jobs';
 import { FaintRegistry, applyCarryStatus, clearCarryStatus } from './fainting';
 import { syncPositionToWeapon } from './combat/range';
-import { equipInto, equippedItemsOf, firstFreeHole, unequipHole } from './equipment/loadout';
+import { equipInto, equippedItemsOf, firstFreeHole, migrateLegacyEquipment, unequipHole } from './equipment/loadout';
 import type { CharacterLoadout } from './equipment/loadout';
 import { SkillTree } from './skillTree/skillTree';
 import { createCompanionTree, createHeroTree } from './skillTree/trees';
@@ -67,6 +67,17 @@ export type CombatEndResult = {
     unlockedEast: boolean;
     drops: LootDrop[];
     specialSpawn?: { id: string; name: string } | null;
+};
+
+// One travel option the map renders: a hidden place is not drawn at
+// all; a blocked one is drawn but explains why through `reason`.
+export type TravelTarget = {
+    placeId: string;
+    name: string;
+    regionId: string;
+    hidden: boolean;
+    allowed: boolean;
+    reason?: string;
 };
 
 /**
@@ -161,20 +172,52 @@ export class WorldSession {
         return this.encounterTracker.victoriesAt(placeId);
     }
 
-    travel(to: string): { ok: boolean; message?: string; arrival?: boolean } {
-        const connection = this.currentPlace.connections.find((c) => c.to === to);
-        if (!connection) {
+    /**
+     * The non-destructive travel gate: every lock between the current
+     * place and `to`. Place-level locks always apply (they gate the
+     * place itself); crossing into another region additionally needs a
+     * border connection from the current place, with its own locks.
+     * Shared by travel() and the map's travelTargets().
+     */
+    private travelGate(to: string): { ok: boolean; message?: string } {
+        const target = PLACES_BY_ID[to];
+        if (!target) {
             return { ok: false, message: 'You cannot travel there.' };
         }
-        if (connection.requiredFlag && !this.unlocked.has(connection.requiredFlag)) {
-            return { ok: false, message: connection.lockedMessage ?? 'The way is closed.' };
+        if (target.hiddenUntilFlag && !this.unlocked.has(target.hiddenUntilFlag)) {
+            return { ok: false, message: 'You cannot travel there.' };
         }
-        if (connection.requiredMissionId
-            && !this.missionIsActive(connection.requiredMissionId)) {
-            return { ok: false, message: connection.lockedMessage ?? 'A mission is needed to go there.' };
+        if (target.lockedByFlag && !this.unlocked.has(target.lockedByFlag)) {
+            return { ok: false, message: target.lockedMessage ?? 'The way is closed.' };
+        }
+        if (target.lockedByMission && !this.missionIsActive(target.lockedByMission)) {
+            return { ok: false, message: target.lockedMessage ?? 'A mission is needed to go there.' };
+        }
+        // Same region: any open place is a direct destination (no road
+        // needed). Crossing regions needs a border connection.
+        if (target.regionId !== this.currentPlace.regionId) {
+            const connection = this.currentPlace.connections.find((c) => c.to === to);
+            if (!connection) {
+                return { ok: false, message: 'You must cross at a border location.' };
+            }
+            if (connection.requiredFlag && !this.unlocked.has(connection.requiredFlag)) {
+                return { ok: false, message: connection.lockedMessage ?? 'The way is closed.' };
+            }
+            if (connection.requiredMissionId
+                && !this.missionIsActive(connection.requiredMissionId)) {
+                return { ok: false, message: connection.lockedMessage ?? 'A mission is needed to go there.' };
+            }
         }
         if (!this.missions.travelAllowedTo(to)) {
             return { ok: false, message: 'Your mission does not lead there.' };
+        }
+        return { ok: true };
+    }
+
+    travel(to: string): { ok: boolean; message?: string; arrival?: boolean } {
+        const gate = this.travelGate(to);
+        if (!gate.ok) {
+            return gate;
         }
 
         this.currentPlaceId = to;
@@ -212,6 +255,36 @@ export class WorldSession {
             message: [...(titles.length > 0 ? [`Mission complete: ${titles.join(', ')}`] : []), ...deathNews].join(' ') || undefined,
             arrival,
         };
+    }
+
+    /**
+     * Every place of the world as a travel target from the current
+     * position: hidden (not drawn until its flag exists), allowed (open
+     * now) or blocked with the reason the map's bar explains. Same
+     * region places are direct destinations; cross-region ones need the
+     * border connection from the current place.
+     */
+    travelTargets(): TravelTarget[] {
+        return PLACES.map((place) => {
+            if (place.hiddenUntilFlag && !this.unlocked.has(place.hiddenUntilFlag)) {
+                return {
+                    placeId: place.id,
+                    name: place.name,
+                    regionId: place.regionId,
+                    hidden: true,
+                    allowed: false,
+                };
+            }
+            const gate = this.travelGate(place.id);
+            return {
+                placeId: place.id,
+                name: place.name,
+                regionId: place.regionId,
+                hidden: false,
+                allowed: gate.ok,
+                reason: gate.message,
+            };
+        });
     }
 
     /** The battle an arrival event queued (null when none is pending). */
@@ -449,6 +522,9 @@ export class WorldSession {
      * there is room) and refreshes the team.
      */
     addRosterCharacter(character: Character): void {
+        // The new UI shows the five-hole loadout: recruited people wear
+        // their gear there instead of the legacy manager.
+        migrateLegacyEquipment(character);
         this.roster.add(character);
         this.roster.rebuildTeam(this.team);
     }
@@ -1321,6 +1397,12 @@ export class WorldSession {
                     : firstFreeHole(character);
                 equipInto(character, hole, session.itemTable.createItem(entry.itemId));
             }
+            // Saves made before the five-hole loadout carry their gear
+            // only in the legacy manager; migrate it so the new UI
+            // shows it in the holes.
+            if (!saved.loadout || saved.loadout.length === 0) {
+                migrateLegacyEquipment(character);
+            }
             return character;
         };
 
@@ -1430,13 +1512,13 @@ export class WorldSession {
             for (const npc of list) {
                 const rosterCharacter = session.roster.character(npc.id);
                 if (rosterCharacter) {
-                    if (rosterCharacter.equipment.getEquippedItems().length === 0) {
+                    if (equippedItemsOf(rosterCharacter).length === 0) {
                         // Old saves self-heal by re-applying the content
                         // equipment — except weapons the character's held
                         // job cannot wield (a job swap stripped them on
                         // purpose and the save recorded it).
                         const heldJob = heldJobOf(rosterCharacter);
-                        for (const item of npc.character.equipment.getEquippedItems()) {
+                        for (const item of equippedItemsOf(npc.character)) {
                             if (
                                 item.definition.slot === 'weapon'
                                 && heldJob
@@ -1444,8 +1526,16 @@ export class WorldSession {
                             ) {
                                 continue;
                             }
-                            rosterCharacter.equipment.equipOrReplace(item, rosterCharacter);
+                            const instance = session.itemTable.createItem(item.id);
+                            if (instance.definition.slot) {
+                                rosterCharacter.equipment.equipOrReplace(instance, rosterCharacter);
+                            } else {
+                                equipInto(rosterCharacter, firstFreeHole(rosterCharacter), instance);
+                            }
                         }
+                        // The new UI shows the five-hole loadout: move
+                        // the re-applied gear out of the legacy manager.
+                        migrateLegacyEquipment(rosterCharacter);
                     }
                     npc.character = rosterCharacter;
                 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PLACES, PLACES_BY_ID, buildTravelGraph, reachableTravelGraph } from '@core';
+import { PLACES_BY_ID } from '@core';
 import { useGame } from '../game/GameContext';
 import { WorldMap } from '../components/WorldMap/WorldMap';
 import { REGION_IDS } from '../components/WorldMap/ids';
@@ -9,10 +9,11 @@ import type { MapPlace } from '../components/WorldMap/mapPlaces';
 import { OptionsBar } from '../components/UI/OptionsBar';
 
 /**
- * The world map page: the canonical map of the game. The bottom
- * action bar is ALWAYS visible (fixed layout): by default it shows
- * the current place; tapping a map place switches the bar to that
- * place (Go travels, Back returns to the current place).
+ * The world map page: the canonical map of the game. The engine's
+ * travelTargets() decides every marker: hidden places are not drawn,
+ * blocked ones use the unreachable circle and explain why in the bar,
+ * open ones travel straight away. Same-region places are direct
+ * destinations; crossing regions needs the border connection.
  */
 export function WorldMapScreen({ onBack }: { onBack?: () => void }) {
     const api = useGame();
@@ -25,26 +26,23 @@ export function WorldMapScreen({ onBack }: { onBack?: () => void }) {
     const shown = place ?? currentPlace;
     const shownName = shown ? (PLACES_BY_ID[shown.placeId]?.name ?? shown.name) : api.currentPlace.name;
 
-    // The places reachable from the current one: their markers use the
-    // normal circle; unreachable ones use the third sprite frame.
-    const reachableGraph = reachableTravelGraph(
-        buildTravelGraph(
-            PLACES,
-            api.session.unlocked,
-            (missionId) => api.session.missionIsActive(missionId),
-        ),
-        api.session.currentPlaceId,
+    // The engine answers for every place from the current position:
+    // hidden, allowed or blocked (with the reason the bar explains).
+    const targets = api.session.travelTargets();
+    const hiddenPlaceIds = new Set(
+        targets.filter((target) => target.hidden).map((target) => target.placeId),
     );
-    const reachablePlaceIds = new Set(reachableGraph.nodes.map((node) => node.id));
-
-    // Unavailable places: no click on the map, and the Go button is
-    // disabled (the bar explains why via the disabled hint).
-    const shownReachable = shown ? reachablePlaceIds.has(shown.placeId) : false;
+    const allowedPlaceIds = new Set(
+        targets.filter((target) => target.allowed).map((target) => target.placeId),
+    );
+    const shownTarget = shown ? targets.find((target) => target.placeId === shown.placeId) : undefined;
+    const shownReachable = shownTarget?.allowed ?? false;
+    const shownReason = shownTarget?.reason;
 
     const go = () => {
         if (!shown || !shownReachable) return;
-        // The engine answers for every id: unknown/unconnected places
-        // come back with ok: false and a message.
+        // The engine answers for every id: unknown/locked places come
+        // back with ok: false and a message.
         const result = api.session.travel(shown.placeId);
         api.refresh();
         api.showToast(result.message ?? 'You travel there.');
@@ -70,7 +68,8 @@ export function WorldMapScreen({ onBack }: { onBack?: () => void }) {
                 }}
                 currentLocationId={api.session.currentPlaceId}
                 selectedPlaceId={place ? place.placeId : null}
-                reachablePlaceIds={reachablePlaceIds}
+                reachablePlaceIds={allowedPlaceIds}
+                hiddenPlaceIds={hiddenPlaceIds}
                 undiscovered="select"
             />
             <OptionsBar
@@ -82,7 +81,7 @@ export function WorldMapScreen({ onBack }: { onBack?: () => void }) {
                     sub: 'Travel',
                     onClick: go,
                     disabled: !shownReachable,
-                    disabledReason: 'You cannot reach this place.',
+                    disabledReason: shownReason ?? 'You cannot reach this place.',
                 }]}
                 back={{ label: 'Back', onClick: back }}
                 pinLast

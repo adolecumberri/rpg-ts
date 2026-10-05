@@ -476,6 +476,8 @@ export type WorldMapProps = {
     // The places reachable from the current one: unreachable places
     // show the third circle frame. Null = all places look reachable.
     reachablePlaceIds?: Set<string> | null;
+    // Hidden places (not discovered yet): not drawn and not clickable.
+    hiddenPlaceIds?: Set<string> | null;
     // Clicking an undiscovered target: 'ignore' (default) does nothing;
     // 'select' selects it but keeps its info hidden.
     undiscovered?: 'ignore' | 'select';
@@ -499,6 +501,7 @@ export function WorldMap({
     selectedPlaceId = null,
     currentLocationId = null,
     reachablePlaceIds = null,
+    hiddenPlaceIds = null,
     undiscovered = 'ignore',
 }: WorldMapProps) {
     const [mask, setMask] = useState<MaskData | null>(null);
@@ -866,6 +869,7 @@ export function WorldMap({
         if (!logical) return null;
         for (const place of MAP_PLACES) {
             if (place.regionId && !discoveredRegionSet.has(place.regionId)) continue;
+            if (hiddenPlaceIds && hiddenPlaceIds.has(place.placeId)) continue;
             if (place.image) {
                 const size = locationSizes.get(place.image);
                 if (size) {
@@ -1174,6 +1178,7 @@ export function WorldMap({
                     ) : null}
                     {MAP_PLACES.flatMap((place) => {
                         if (place.regionId && !discoveredRegionSet.has(place.regionId)) return [];
+                        if (hiddenPlaceIds && hiddenPlaceIds.has(place.placeId)) return [];
                         const nodes: ReactNode[] = [];
                         if (place.image) {
                             nodes.push(

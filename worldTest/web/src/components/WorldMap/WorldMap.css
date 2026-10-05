@@ -65,12 +65,13 @@
 
 /* An interactive map point: a 16x16 frame of the shared circle sheet,
    absolutely placed on its map coordinates. Taps are hit-tested by the
-   viewport, so it is purely visual. */
+   viewport, so it is purely visual. Sits above every map layer
+   (places, selection glow, hover tint, debug mask). */
 .worldmap-point {
     position: absolute;
     width: 16px;
     height: 16px;
-    z-index: 2;
+    z-index: 6;
     padding: 0;
     border: none;
     background-color: transparent;
@@ -109,10 +110,11 @@
 }
 
 /* The "you are here" indicator over the current place's location.
-   It bobs up and down with an ease-in-out animation. */
+   It bobs up and down with an ease-in-out animation, above the
+   selection glow like the markers. */
 .worldmap-indicator {
     position: absolute;
-    z-index: 2;
+    z-index: 6;
     pointer-events: none;
     image-rendering: pixelated;
     animation: worldmap-indicator-bob 1.2s ease-in-out infinite alternate;
