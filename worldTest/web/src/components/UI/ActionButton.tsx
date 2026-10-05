@@ -4,14 +4,16 @@ import { Icon } from './Icon';
 /**
  * The icon of an action button: a single character (emoji, '›', '‹'),
  * an image ({src}), a dictionary icon ({icon: id}) rendered at a
- * fixed size so nothing overflows the cell, or a flat vector SVG
- * ({svg: path}) from the design (no outline).
+ * fixed size so nothing overflows the cell, a flat vector SVG
+ * ({svg: path}) from the design (no outline), or a Material Symbol
+ * ({symbol: name}) from the icon font.
  */
 export type ActionIcon =
     | string
     | { src: string; alt?: string }
     | { icon: string; size?: number }
-    | { svg: string; color?: string };
+    | { svg: string; color?: string }
+    | { symbol: string; color?: string };
 
 // Default icon sizes per bar size, in UI units (1u = 4px): fixed so
 // nothing overflows the cell.
@@ -90,6 +92,16 @@ export function ActionButton({
                 >
                     <path d={icon.svg} />
                 </svg>
+            );
+        } else if ('symbol' in icon) {
+            iconNode = (
+                <span
+                    className="action-btn-icon action-btn-symbol material-symbol"
+                    style={{ color: icon.color ?? 'currentColor' }}
+                    aria-hidden="true"
+                >
+                    {icon.symbol}
+                </span>
             );
         } else {
             iconNode = <Icon id={icon.icon} size={icon.size ?? ICON_SIZES[size]} />;

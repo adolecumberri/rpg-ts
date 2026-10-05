@@ -61,8 +61,9 @@ export function ActionBar({
     cells: ActionBarCell[];
     size?: ActionBarSize;
     // The cancel option (slot 5 on the first page): shown while the
-    // current pick is undoable.
-    back?: { label?: string; onClick: () => void };
+    // current pick is undoable. Renders as a standard action button
+    // (icon slot + title) with the pixel close icon by default.
+    back?: { label?: string; icon?: ActionIcon; onClick: () => void };
     // The floating accept: shown when the caller passes it, over the
     // panel's top edge, MD size.
     accept?: { label?: string; onClick: () => void };
@@ -187,9 +188,8 @@ export function ActionBar({
             <ActionButton
                 key="cancel"
                 label={back.label ?? 'Cancel'}
-                icon="✕"
+                icon={back.icon ?? { icon: 'atras' }}
                 size={size}
-                variant="nav"
                 slot={mode.capacity - 1}
                 onClick={back.onClick}
             />,
@@ -221,7 +221,7 @@ export function ActionBar({
                     />
                 </div>
             ) : null}
-            {hint ? <div className="action-bar-hint">{hint}</div> : null}
+            {hint ? <div className="action-bar-hint pixel-inset">{hint}</div> : null}
             <div className={`action-bar-grid action-bar-grid--${layout}`}>{rendered}</div>
         </div>
     );

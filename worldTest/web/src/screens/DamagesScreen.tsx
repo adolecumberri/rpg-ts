@@ -134,7 +134,7 @@ export function DamagesScreen() {
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--s1)', marginBottom: 8 }}>
                     {parts.map((part, index) => (
-                        <span key={`part_${index}`} className="pixel-chip">
+                        <span key={`part_${index}`} className="pixel-chip pixel-inset">
                             {part.element === 'heal' ?
                                 '✚' :
                                 DEFAULT_ELEMENTS.get(part.element)?.icon ?? ''} {part.amount}

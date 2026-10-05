@@ -78,7 +78,7 @@ export function WorldMapScreen({ onBack }: { onBack?: () => void }) {
                 options={[{
                     id: 'go',
                     label: 'Go',
-                    icon: '🚶',
+                    icon: { symbol: 'directions_walk', color: '#f2ca50' },
                     sub: 'Travel',
                     onClick: go,
                     disabled: !shownReachable,

@@ -72,7 +72,7 @@ export function Modal({
                     {closable ? (
                         <button
                             type="button"
-                            className="pixel-modal-close"
+                            className="pixel-modal-close pixel-inset"
                             aria-label="Close"
                             onClick={onClose}
                         >

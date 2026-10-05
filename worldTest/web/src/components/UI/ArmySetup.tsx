@@ -80,7 +80,7 @@ export function ArmySetup({
                             const preset = presetById(group.presetId);
                             return (
                                 <div
-                                    className="army-line"
+                                    className="army-line pixel-inset"
                                     key={`${group.presetId}_${group.row}_${group.level}_${index}`}
                                 >
                                     <span className="army-line-text">

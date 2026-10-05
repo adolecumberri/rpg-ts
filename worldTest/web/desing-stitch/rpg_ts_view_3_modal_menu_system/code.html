@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&amp;family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"on-tertiary-fixed-variant":"#910618","on-surface-variant":"#d0c5af","surface-tint":"#e9c349","on-tertiary-container":"#8e0317","inverse-on-surface":"#3c2d25","surface-container-highest":"#403229","error-container":"#93000a","surface-container-low":"#251911","on-secondary-fixed-variant":"#384668","surface-dim":"#1c1109","on-primary-container":"#554300","secondary-fixed":"#d9e2ff","tertiary-container":"#ff9590","on-surface":"#f6ded1","on-primary-fixed-variant":"#574500","on-error":"#690005","outline-variant":"#4d4635","on-tertiary-fixed":"#410005","on-secondary-container":"#a6b5dc","surface":"#1c1109","surface-container":"#2a1d15","on-secondary-fixed":"#0a1a3a","surface-bright":"#45362d","on-error-container":"#ffdad6","on-background":"#f6ded1","primary-fixed-dim":"#e9c349","surface-variant":"#403229","tertiary-fixed-dim":"#ffb3af","tertiary-fixed":"#ffdad7","tertiary":"#ffbeba","primary-fixed":"#ffe088","on-tertiary":"#68000d","surface-container-high":"#35271f","on-primary-fixed":"#241a00","error":"#ffb4ab","background":"#1c1109","inverse-surface":"#f6ded1","primary":"#f2ca50","secondary":"#b7c6ee","inverse-primary":"#735c00","on-primary":"#3c2f00","secondary-fixed-dim":"#b7c6ee","surface-container-lowest":"#170c05","primary-container":"#d4af37","on-secondary":"#213050","outline":"#99907c","secondary-container":"#384668"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-xs":"0.25rem","margin":"0.75rem","space-xl":"1.5rem","space-md":"0.75rem","margin-mobile":"0.5rem","space-lg":"1rem","space-sm":"0.5rem","gutter-mobile":"0.25rem","gutter":"0.5rem"},"fontFamily":{"headline-lg":["Space Mono"],"body-sm":["Courier Prime"],"label-md":["Space Mono"],"label-lg":["Space Mono"],"body-md":["Courier Prime"],"body-lg":["Courier Prime"],"label-sm":["Space Mono"],"headline-sm":["Space Mono"],"headline-md":["Space Mono"],"headline-lg-mobile":["Space Mono"]},"fontSize":{"headline-lg":["20px",{"lineHeight":"24px","letterSpacing":"0.5px","fontWeight":"700"}],"body-sm":["11px",{"lineHeight":"14px","letterSpacing":"0px","fontWeight":"400"}],"label-md":["10px",{"lineHeight":"12px","letterSpacing":"0.5px","fontWeight":"700"}],"label-lg":["12px",{"lineHeight":"14px","letterSpacing":"0.5px","fontWeight":"700"}],"body-md":["12px",{"lineHeight":"16px","letterSpacing":"0px","fontWeight":"700"}],"body-lg":["14px",{"lineHeight":"18px","letterSpacing":"0px","fontWeight":"700"}],"label-sm":["9px",{"lineHeight":"10px","letterSpacing":"0.25px","fontWeight":"700"}],"headline-sm":["14px",{"lineHeight":"18px","letterSpacing":"0px","fontWeight":"700"}],"headline-md":["16px",{"lineHeight":"20px","letterSpacing":"0.25px","fontWeight":"700"}],"headline-lg-mobile":["16px",{"lineHeight":"20px","letterSpacing":"0.5px","fontWeight":"700"}]}}}}</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-primary selection:text-on-primary"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[2px_0_0_0_#403229]"><div class="flex flex-col"><div class="h-14 px-space-md flex items-center justify-between bg-surface-container-low shadow-[0_2px_0_0_#403229]"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-primary text-[20px]">terminal</span><span class="font-headline-sm text-headline-sm text-primary tracking-wider uppercase">RPG-TS // DEV</span></div><span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-space-xs py-0.5 rounded">v1.04</span></div><div class="px-space-md py-space-sm"><div class="font-label-sm text-label-sm uppercase tracking-wider text-outline mb-space-sm">Workbench Specs</div><nav class="flex flex-col gap-space-xs" data-active-classes="bg-primary text-on-primary font-bold shadow-[2px_2px_0px_#403229]"><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-xs rounded transition-colors bg-primary text-on-primary font-bold shadow-[2px_2px_0px_#403229]" data-path="viewport-workbench" href="#"><span class="material-symbols-outlined text-[16px]">tv</span><span class="font-label-md text-label-md uppercase tracking-wider">CRT Viewport</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="pixel-matrix-architect" href="#"><span class="material-symbols-outlined text-[16px]">grid_4x4</span><span class="font-label-md text-label-md uppercase tracking-wider">Matrix Scale</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tactical-hud-tokens" href="#"><span class="material-symbols-outlined text-[16px]">style</span><span class="font-label-md text-label-md uppercase tracking-wider">HUD Tokens</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="memory-buffer-telemetry" href="#"><span class="material-symbols-outlined text-[16px]">memory</span><span class="font-label-md text-label-md uppercase tracking-wider">VRAM Buffer</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="engine-export-manifest" href="#"><span class="material-symbols-outlined text-[16px]">data_object</span><span class="font-label-md text-label-md uppercase tracking-wider">CSS &amp; Manifest</span></a></nav></div></div><div class="p-space-md bg-surface-container-low shadow-[0_-2px_0_0_#403229] flex flex-col gap-space-xs"><div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm"><span>CANVAS SPEC</span><span class="text-primary font-bold">320x640 PIXELS</span></div><div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm"><span>ASPECT RATIO</span><span>1:2 TACTICAL</span></div><div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm"><span>ENGINE STATE</span><span class="text-surface-tint">ONLINE [READY]</span></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-14 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_2px_0_0_#403229] z-40 flex items-center justify-between px-space-lg"><div class="flex items-center gap-space-md"><span class="font-headline-sm text-headline-sm text-primary tracking-widest">RPG-TS VIEWPORT SYSTEM [320x640]</span><span class="font-label-sm text-label-sm text-outline px-space-xs py-0.5 bg-surface-container rounded">CRT-STAGE</span></div><div class="flex items-center gap-space-md"><div class="hidden md:flex items-center gap-space-xs font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-space-sm py-1 rounded"><span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span><span>RASTER LOCK: 4px/8px</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-14 w-full bg-surface min-h-screen"><div class="flex flex-col w-full">
+<div class="p-space-lg max-w-7xl mx-auto w-full flex flex-col gap-space-lg">
+<!-- Top Utility Ribbon / View Title & Live Telemetry -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md bg-surface-container-low p-space-md shadow-md rounded">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 bg-surface-container-highest flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-primary text-[24px]">menu_open</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-primary tracking-wide">VIEW 03 // TACTICAL MODAL MENU SYSTEM</span>
+<span class="font-label-sm text-label-sm bg-primary text-on-primary px-space-xs py-0.5 rounded">MODAL LAYER ACTIVE</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Dual-screen handheld emulator layout (320x640px) with 7-route system stack &amp; developer telemetry.</p>
+</div>
+</div>
+<!-- Action Toggles -->
+<div class="flex items-center gap-space-sm flex-wrap">
+<button class="flex items-center gap-space-xs px-space-sm py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors shadow-sm rounded" id="toggle-grid-btn">
+<span class="material-symbols-outlined text-[16px]">grid_on</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Raster Grid: <span class="text-primary font-bold" id="grid-status">OFF</span></span>
+</button>
+<button class="flex items-center gap-space-xs px-space-sm py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors shadow-sm rounded" id="audio-toggle-btn">
+<span class="material-symbols-outlined text-[16px]">volume_up</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">SFX Synth: <span class="text-primary font-bold">ON</span></span>
+</button>
+<button class="flex items-center gap-space-xs px-space-sm py-1.5 bg-primary text-on-primary hover:bg-primary-fixed-dim transition-colors shadow-sm rounded" id="reset-modal-btn">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Cycle Modal</span>
+</button>
+</div>
+</div>
+<!-- Main Workspace Split: LEFT 320x640 VIEWPORT | RIGHT ARCHITECTURAL BREAKDOWN -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- LEFT: Mobile Viewport Container (320px wide, exactly 640px tall) -->
+<div class="lg:col-span-5 flex flex-col items-center">
+<!-- Physical Chassis Decoration -->
+<div class="bg-surface-container-lowest p-space-sm shadow-xl rounded-lg w-[344px] flex flex-col items-center">
+<div class="w-full flex items-center justify-between pb-space-xs px-space-xs text-outline font-label-sm text-label-sm">
+<span>TACTICAL GBA-DS CRT</span>
+<span class="text-primary tracking-widest font-bold">80x160 UNITS [1U=4PX]</span>
+</div>
+<!-- THE 320x640 VIEWPORT FRAME -->
+<div class="relative w-[320px] h-[640px] bg-surface-container-lowest overflow-hidden select-none shadow-inner flex flex-col" id="viewport-stage">
+<!-- Grid Overlay Layer (Toggled via JS) -->
+<div class="pointer-events-none absolute inset-0 z-50 opacity-0 transition-opacity duration-150" id="raster-grid-overlay" style="background-image: linear-gradient(to right, rgba(242, 202, 80, 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(242, 202, 80, 0.08) 1px, transparent 1px); background-size: 4px 4px;"></div>
+<!-- SECTION 1: HEADER (48px / 12 UI units) -->
+<header class="h-[48px] min-h-[48px] w-full bg-surface-container-high px-space-xs flex items-center justify-between relative z-30 shadow-md">
+<!-- 32px Hamburger button with 3 amber bars -->
+<button class="w-[32px] h-[32px] bg-surface-container-highest hover:bg-surface-bright flex flex-col items-center justify-center gap-[4px] p-[6px] shadow-sm rounded-none active:translate-y-[1px]" id="hw-hamburger-btn">
+<span class="w-[20px] h-[2px] bg-primary block"></span>
+<span class="w-[20px] h-[2px] bg-primary block"></span>
+<span class="w-[20px] h-[2px] bg-primary block"></span>
+</button>
+<!-- Center Zone: EL FERGEL [ESTE] over DAY 1 | G 10 | 🌱 -->
+<div class="flex flex-col items-center text-center leading-none">
+<span class="font-headline-sm text-[11px] leading-[13px] text-primary tracking-wider uppercase font-bold">EL FERGEL [ESTE]</span>
+<span class="font-body-sm text-[10px] leading-[12px] text-on-surface-variant flex items-center gap-[3px] mt-[1px]">
+<span>DAY 1</span>
+<span class="text-outline">|</span>
+<span class="text-surface-tint font-bold">G 10</span>
+<span class="text-outline">|</span>
+<span>🌱</span>
+</span>
+</div>
+<!-- Right Zone: RPG-TS | SAVE: OK -->
+<div class="flex flex-col items-end text-right leading-none pr-space-xs">
+<span class="font-label-sm text-[9px] leading-[11px] text-outline font-bold tracking-tight">RPG-TS</span>
+<span class="font-label-sm text-[9px] leading-[11px] text-secondary font-bold">SAVE: OK</span>
+</div>
+</header>
+<!-- SECTION 2: CONTENT AREA (400px / 100 UI units) - MODAL OVERLAY -->
+<main class="relative h-[400px] min-h-[400px] w-full bg-surface-dim overflow-hidden flex flex-col z-20">
+<!-- Subtle Background Map Preview (Dimmed by the active modal) -->
+<div class="absolute inset-0 bg-surface-container opacity-25 flex flex-col justify-center items-center pointer-events-none p-space-md">
+<div class="grid grid-cols-4 gap-2 w-full h-full opacity-20">
+<div class="bg-primary/20 rounded"></div>
+<div class="bg-primary/20 rounded"></div>
+<div class="bg-primary/20 rounded"></div>
+<div class="bg-primary/20 rounded"></div>
+<div class="bg-primary/20 rounded"></div>
+<div class="bg-secondary/20 rounded"></div>
+<div class="bg-primary/20 rounded"></div>
+<div class="bg-primary/20 rounded"></div>
+</div>
+</div>
+<!-- INSET DARK TACTICAL DIALOG OVERLAY (Locks 400px scrollable content area) -->
+<div class="absolute inset-0 bg-surface-container-lowest/95 backdrop-blur-[2px] flex flex-col p-space-xs overflow-hidden transition-all duration-200" id="modal-container">
+<!-- Modal Title Header + 24px Tactical Close Button -->
+<div class="h-[32px] min-h-[32px] w-full bg-surface-container-low px-space-xs flex items-center justify-between shadow-sm mb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="text-primary text-[12px] font-bold">▶</span>
+<span class="font-headline-sm text-[12px] leading-[14px] text-primary tracking-widest font-bold">MENÚ PRINCIPAL</span>
+</div>
+<!-- 24px tactical square close button '✕' -->
+<button class="w-[24px] h-[24px] bg-error-container hover:bg-on-tertiary-container text-on-error flex items-center justify-center font-headline-sm text-[12px] font-bold shadow-sm active:translate-y-[1px] transition-transform" id="modal-close-x">
+                    ✕
+                  </button>
+</div>
+<!-- 7 Double-Beveled Tactical List Rows (Scrollable inner box) -->
+<div class="flex-1 overflow-y-auto flex flex-col gap-[3px] pr-[1px]">
+<!-- ROW 1: 🏰 Place -->
+<div class="tactical-menu-row group cursor-pointer bg-surface-container hover:bg-surface-container-high active:bg-primary active:text-on-primary p-[3px] flex items-center gap-[6px] shadow-sm transition-colors" data-label="Place: The Lord's Farm" data-route="place">
+<div class="w-[26px] h-[26px] min-w-[26px] bg-surface-container-lowest flex items-center justify-center text-[13px] shadow-inner">
+                      🏰
+                    </div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-[12px] leading-[14px] text-primary group-hover:text-primary font-bold truncate">Place</span>
+<span class="font-label-sm text-[9px] text-outline group-hover:text-on-surface-variant font-mono">01</span>
+</div>
+<span class="font-body-sm text-[9px] leading-[11px] text-on-surface-variant truncate">Current: The Lord's Farm</span>
+</div>
+</div>
+<!-- ROW 2: 👥 Team -->
+<div class="tactical-menu-row group cursor-pointer bg-surface-container hover:bg-surface-container-high active:bg-primary active:text-on-primary p-[3px] flex items-center gap-[6px] shadow-sm transition-colors" data-label="Team: Active Squad &amp; Equipment" data-route="team">
+<div class="w-[26px] h-[26px] min-w-[26px] bg-surface-container-lowest flex items-center justify-center text-[13px] shadow-inner">
+                      👥
+                    </div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-[12px] leading-[14px] text-primary group-hover:text-primary font-bold truncate">Team</span>
+<span class="font-label-sm text-[9px] text-outline group-hover:text-on-surface-variant font-mono">02</span>
+</div>
+<span class="font-body-sm text-[9px] leading-[11px] text-on-surface-variant truncate">Active Squad &amp; Equipment</span>
+</div>
+</div>
+<!-- ROW 3: 🗺️ World Map -->
+<div class="tactical-menu-row group cursor-pointer bg-surface-container hover:bg-surface-container-high active:bg-primary active:text-on-primary p-[3px] flex items-center gap-[6px] shadow-sm transition-colors" data-label="World Map: Regions &amp; Exploration" data-route="world-map">
+<div class="w-[26px] h-[26px] min-w-[26px] bg-surface-container-lowest flex items-center justify-center text-[13px] shadow-inner">
+                      🗺️
+                    </div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-[12px] leading-[14px] text-primary group-hover:text-primary font-bold truncate">World Map</span>
+<span class="font-label-sm text-[9px] text-outline group-hover:text-on-surface-variant font-mono">03</span>
+</div>
+<span class="font-body-sm text-[9px] leading-[11px] text-on-surface-variant truncate">Regions &amp; Exploration</span>
+</div>
+</div>
+<!-- ROW 4: ⚔️ Actions -->
+<div class="tactical-menu-row group cursor-pointer bg-surface-container hover:bg-surface-container-high active:bg-primary active:text-on-primary p-[3px] flex items-center gap-[6px] shadow-sm transition-colors" data-label="Actions: Combat &amp; Field Labor" data-route="actions">
+<div class="w-[26px] h-[26px] min-w-[26px] bg-surface-container-lowest flex items-center justify-center text-[13px] shadow-inner">
+                      ⚔️
+                    </div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-[12px] leading-[14px] text-primary group-hover:text-primary font-bold truncate">Actions</span>
+<span class="font-label-sm text-[9px] text-outline group-hover:text-on-surface-variant font-mono">04</span>
+</div>
+<span class="font-body-sm text-[9px] leading-[11px] text-on-surface-variant truncate">Combat &amp; Field Labor</span>
+</div>
+</div>
+<!-- ROW 5: ⚡ Stress 80v80 -->
+<div class="tactical-menu-row group cursor-pointer bg-surface-container hover:bg-surface-container-high active:bg-primary active:text-on-primary p-[3px] flex items-center gap-[6px] shadow-sm transition-colors" data-label="Stress 80v80: Massive Battle Sim" data-route="stress">
+<div class="w-[26px] h-[26px] min-w-[26px] bg-surface-container-lowest flex items-center justify-center text-[13px] shadow-inner">
+                      ⚡
+                    </div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-[12px] leading-[14px] text-primary group-hover:text-primary font-bold truncate">Stress 80v80</span>
+<span class="font-label-sm text-[9px] text-tertiary font-mono">SIM</span>
+</div>
+<span class="font-body-sm text-[9px] leading-[11px] text-on-surface-variant truncate">Massive Unit Battle Sim</span>
+</div>
+</div>
+<!-- ROW 6: 🎲 Fight Gen -->
+<div class="tactical-menu-row group cursor-pointer bg-surface-container hover:bg-surface-container-high active:bg-primary active:text-on-primary p-[3px] flex items-center gap-[6px] shadow-sm transition-colors" data-label="Fight Gen: Encounter Generator" data-route="fight-gen">
+<div class="w-[26px] h-[26px] min-w-[26px] bg-surface-container-lowest flex items-center justify-center text-[13px] shadow-inner">
+                      🎲
+                    </div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-[12px] leading-[14px] text-primary group-hover:text-primary font-bold truncate">Fight Gen</span>
+<span class="font-label-sm text-[9px] text-secondary font-mono">RND</span>
+</div>
+<span class="font-body-sm text-[9px] leading-[11px] text-on-surface-variant truncate">Encounter Generator</span>
+</div>
+</div>
+<!-- ROW 7: 📊 Damages -->
+<div class="tactical-menu-row group cursor-pointer bg-surface-container hover:bg-surface-container-high active:bg-primary active:text-on-primary p-[3px] flex items-center gap-[6px] shadow-sm transition-colors" data-label="Damages: Combat Math Formula" data-route="damages">
+<div class="w-[26px] h-[26px] min-w-[26px] bg-surface-container-lowest flex items-center justify-center text-[13px] shadow-inner">
+                      📊
+                    </div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-[12px] leading-[14px] text-primary group-hover:text-primary font-bold truncate">Damages</span>
+<span class="font-label-sm text-[9px] text-outline font-mono">MATH</span>
+</div>
+<span class="font-body-sm text-[9px] leading-[11px] text-on-surface-variant truncate">Combat Math Formula</span>
+</div>
+</div>
+</div>
+<!-- Dialog Footnote -->
+<div class="mt-space-xs pt-[2px] flex items-center justify-between px-space-xs text-outline font-label-sm text-[9px]">
+<span>CURSOR: TOUCH / D-PAD</span>
+<span>SEL: [A] / BACK: [B]</span>
+</div>
+</div>
+</main>
+<!-- SECTION 3: BOTTOM ACTION TRAY (192px / 48 UI units) -->
+<footer class="h-[192px] min-h-[192px] w-full bg-surface-container-low p-space-xs flex flex-col justify-between z-30 shadow-[0_-2px_0_0_#403229]">
+<!-- 2-column x 3-row grid command palette -->
+<div class="grid grid-cols-2 grid-rows-3 gap-[4px] h-[152px]">
+<!-- Slot 1: Status -->
+<div class="bg-surface-container hover:bg-surface-container-high p-space-xs flex flex-col justify-between shadow-sm cursor-pointer opacity-70">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-[9px] text-outline">SLOT 01</span>
+<span class="material-symbols-outlined text-[12px] text-on-surface-variant">person</span>
+</div>
+<span class="font-headline-sm text-[11px] text-on-surface font-bold">STATUS</span>
+</div>
+<!-- Slot 2: Roster -->
+<div class="bg-surface-container hover:bg-surface-container-high p-space-xs flex flex-col justify-between shadow-sm cursor-pointer opacity-70">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-[9px] text-outline">SLOT 02</span>
+<span class="material-symbols-outlined text-[12px] text-on-surface-variant">group</span>
+</div>
+<span class="font-headline-sm text-[11px] text-on-surface font-bold">ROSTER</span>
+</div>
+<!-- Slot 3: Inventory -->
+<div class="bg-surface-container hover:bg-surface-container-high p-space-xs flex flex-col justify-between shadow-sm cursor-pointer opacity-70">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-[9px] text-outline">SLOT 03</span>
+<span class="material-symbols-outlined text-[12px] text-on-surface-variant">backpack</span>
+</div>
+<span class="font-headline-sm text-[11px] text-on-surface font-bold">BAG [14/30]</span>
+</div>
+<!-- Slot 4: Log -->
+<div class="bg-surface-container hover:bg-surface-container-high p-space-xs flex flex-col justify-between shadow-sm cursor-pointer opacity-70">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-[9px] text-outline">SLOT 04</span>
+<span class="material-symbols-outlined text-[12px] text-on-surface-variant">history_edu</span>
+</div>
+<span class="font-headline-sm text-[11px] text-on-surface font-bold">CHRONICLE</span>
+</div>
+<!-- Slot 5: PINNED CLOSE BUTTON '✕ Cerrar Menú' / '✕ Atrás' -->
+<button class="bg-error-container hover:bg-on-tertiary-container text-on-error p-space-xs flex flex-col justify-between shadow-sm cursor-pointer active:translate-y-[1px] transition-transform text-left" id="pinned-close-btn">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-[9px] text-error font-bold uppercase tracking-wider">ACTION [B]</span>
+<span class="material-symbols-outlined text-[12px] text-on-error">close</span>
+</div>
+<span class="font-headline-sm text-[11px] text-on-error font-bold tracking-tight">✕ CERRAR MENÚ</span>
+</button>
+<!-- Slot 6: Quick Save -->
+<div class="bg-surface-container hover:bg-surface-container-high p-space-xs flex flex-col justify-between shadow-sm cursor-pointer opacity-70">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-[9px] text-outline">SLOT 06</span>
+<span class="material-symbols-outlined text-[12px] text-surface-tint">save</span>
+</div>
+<span class="font-headline-sm text-[11px] text-on-surface font-bold">QUICK MEM</span>
+</div>
+</div>
+<!-- Context ticker or navigation helper -->
+<div class="h-[24px] bg-surface-container-lowest px-space-xs flex items-center justify-between text-[10px] font-mono shadow-inner">
+<span class="text-primary font-bold flex items-center gap-[4px]">
+<span class="inline-block w-1.5 h-1.5 bg-primary animate-pulse"></span>
+<span id="ticker-text">SELECT ROUTE VIA CURSOR</span>
+</span>
+<span class="text-outline">TRAY: 48U LOCK</span>
+</div>
+</footer>
+</div>
+</div>
+<!-- Scale reference footnote below physical frame -->
+<div class="mt-space-sm flex items-center gap-space-sm text-outline font-label-sm text-label-sm">
+<span>Viewport dimensions: 320px × 640px</span>
+<span>•</span>
+<span>1 Unit = 4px Grid</span>
+</div>
+</div>
+<!-- RIGHT: ARCHITECTURAL BREAKDOWN PANEL -->
+<div class="lg:col-span-7 flex flex-col gap-space-lg">
+<!-- CARD 1: Modal Overlay Architecture (320 x 640) -->
+<div class="bg-surface-container-low p-space-lg rounded shadow-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-4 bg-primary inline-block"></span>
+<span class="font-headline-sm text-headline-sm text-primary uppercase tracking-wide">1. MODAL OVERLAY ARCHITECTURE (320 X 640)</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline bg-surface-container px-space-xs py-0.5 rounded">Z-INDEX HIERARCHY</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Handheld dual-screen ergonomics dictate strict zonal boundaries. Rather than an unbounded full-screen popup, the modal is hard-contained within the middle tactical theater (<code class="text-primary bg-surface-container-lowest px-1 py-0.5 rounded">400px / 100u</code>), maintaining continuous orientation with the status header and action tray.
+          </p>
+<!-- Zone Breakdown Visualization Chart -->
+<div class="bg-surface-container-lowest p-space-md rounded flex flex-col gap-space-sm shadow-inner">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-outline border-b pb-1">
+<span>ZONAL ALLOCATION</span>
+<span>PIXEL SPEC</span>
+<span>BEHAVIOR ON MODAL CALL</span>
+</div>
+<div class="flex items-center justify-between p-space-xs bg-surface-container rounded text-body-sm">
+<div class="flex items-center gap-space-sm">
+<span class="w-3 h-3 bg-primary rounded-full"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Top Header Ribbon</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary">48px (12 units)</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">Persistent &amp; Accessible</span>
+</div>
+<div class="flex items-center justify-between p-space-xs bg-surface-container-highest rounded text-body-sm">
+<div class="flex items-center gap-space-sm">
+<span class="w-3 h-3 bg-tertiary rounded-full"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Content Stage [MODAL]</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary">400px (100 units)</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">Scroll-Locked Overlay Active</span>
+</div>
+<div class="flex items-center justify-between p-space-xs bg-surface-container rounded text-body-sm">
+<div class="flex items-center gap-space-sm">
+<span class="w-3 h-3 bg-secondary rounded-full"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Bottom Action Tray</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">192px (48 units)</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">Slot 5 Pinned to ✕ Atrás</span>
+</div>
+</div>
+</div>
+<!-- CARD 2: THE 7 CORE MENU ROUTES -->
+<div class="bg-surface-container-low p-space-lg rounded shadow-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-4 bg-secondary inline-block"></span>
+<span class="font-headline-sm text-headline-sm text-secondary uppercase tracking-wide">2. THE 7 CORE MENU ROUTES</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-secondary-container bg-secondary-container px-space-xs py-0.5 rounded">CANONICAL SYSTEM</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            The RPG-TS command hierarchy consists of exactly seven canonical routes. No supplementary items or invented options are permitted to preserve unit testing parity and screen density.
+          </p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-xs">
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm">
+<span class="text-xl">🏰</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary">1. Place</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Current Location: The Lord's Farm</span>
+</div>
+</div>
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm">
+<span class="text-xl">👥</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary">2. Team</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Active Squad &amp; Equipment Matrix</span>
+</div>
+</div>
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm">
+<span class="text-xl">🗺️</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary">3. World Map</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Exploration nodes &amp; Biomes</span>
+</div>
+</div>
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm">
+<span class="text-xl">⚔️</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary">4. Actions</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Combat rounds &amp; Field Labor chores</span>
+</div>
+</div>
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm">
+<span class="text-xl">⚡</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary">5. Stress 80v80</span>
+<span class="font-body-sm text-body-sm text-tertiary">Massive Unit Battle Engine Test</span>
+</div>
+</div>
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm">
+<span class="text-xl">🎲</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary">6. Fight Gen</span>
+<span class="font-body-sm text-body-sm text-secondary">Dynamic Random Encounter Generator</span>
+</div>
+</div>
+<div class="bg-surface-container p-space-sm rounded flex items-center gap-space-sm md:col-span-2">
+<span class="text-xl">📊</span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-primary">7. Damages</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Combat Math Formula: ATK vs DEF Curve Inspection</span>
+</div>
+</div>
+</div>
+</div>
+<!-- CARD 3: PRODUCTION CSS & TACTICAL MENU ROW RECIPE -->
+<div class="bg-surface-container-low p-space-lg rounded shadow-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-4 bg-surface-tint inline-block"></span>
+<span class="font-headline-sm text-headline-sm text-surface-tint uppercase tracking-wide">3. PRODUCTION CSS &amp; TACTICAL MENU ROW RECIPE</span>
+</div>
+<button class="font-label-sm text-label-sm text-on-primary bg-primary hover:bg-primary-fixed-dim px-space-sm py-1 rounded transition-colors flex items-center gap-1" id="copy-css-btn">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span>Copy CSS</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Copy-pasteable Tailwind &amp; custom CSS recipe for the 24px tactical close button, double-beveled tactical list rows, and 26px inset icon slots:
+          </p>
+<div class="bg-surface-container-lowest p-space-md rounded font-mono text-body-sm text-on-surface-variant overflow-x-auto shadow-inner leading-relaxed">
+<pre><code>/* 1. Tactical Modal Dialog Overlay Container */
+.tactical-modal-overlay {
+  position: absolute;
+  inset: 0;
+  height: 400px; /* Exact 100 UI Units (4px * 100) */
+  background: rgba(23, 12, 5, 0.96);
+  box-shadow: inset 0 0 0 2px #403229, inset 0 0 0 4px #1c1109;
+}
+
+/* 2. 24px Square Tactical Close Button */
+.tactical-close-btn {
+  width: 24px;
+  height: 24px;
+  background-color: #93000a;
+  color: #ffdad6;
+  box-shadow: 2px 2px 0px #403229;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tactical-close-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #403229;
+}
+
+/* 3. Double-Beveled Menu Row &amp; 26px Inset Icon */
+.tactical-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+  background-color: #2a1d15;
+  box-shadow: inset 1px 1px 0px #45362d, inset -1px -1px 0px #170c05;
+}
+.tactical-menu-row:hover {
+  background-color: #35271f;
+}
+.tactical-menu-row:active {
+  background-color: #f2ca50;
+  color: #3c2f00;
+}
+.tactical-icon-frame {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  background-color: #170c05;
+  box-shadow: inset 1px 1px 0px #000000;
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Interactive Logic for Retro Synthesizer Audio, Grid Toggle, and Modal Actions -->
+<script>
+    (function initTacticalMenu() {
+      // Audio Context Synthesizer for Retro 8-bit Handheld SFX
+      let audioCtx = null;
+      let sfxEnabled = true;
+
+      function getAudioContext() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return audioCtx;
+      }
+
+      function playRetroBeep(freq = 440, type = 'square', duration = 0.04) {
+        if (!sfxEnabled) return;
+        try {
+          const ctx = getAudioContext();
+          if (ctx.state === 'suspended') {
+            ctx.resume();
+          }
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + duration);
+        } catch (e) {
+          // Audio blocked or unsupported
+        }
+      }
+
+      // DOM Selectors
+      const modal = document.getElementById('modal-container');
+      const closeBtnX = document.getElementById('modal-close-x');
+      const pinnedCloseBtn = document.getElementById('pinned-close-btn');
+      const hamburgerBtn = document.getElementById('hw-hamburger-btn');
+      const resetModalBtn = document.getElementById('reset-modal-btn');
+      const toggleGridBtn = document.getElementById('toggle-grid-btn');
+      const gridStatus = document.getElementById('grid-status');
+      const rasterGrid = document.getElementById('raster-grid-overlay');
+      const audioToggleBtn = document.getElementById('audio-toggle-btn');
+      const tickerText = document.getElementById('ticker-text');
+      const menuRows = document.querySelectorAll('.tactical-menu-row');
+      const copyCssBtn = document.getElementById('copy-css-btn');
+
+      // Raster Grid Toggle
+      let gridActive = false;
+      if (toggleGridBtn) {
+        toggleGridBtn.addEventListener('click', () => {
+          gridActive = !gridActive;
+          rasterGrid.classList.toggle('opacity-0', !gridActive);
+          rasterGrid.classList.toggle('opacity-100', gridActive);
+          gridStatus.textContent = gridActive ? 'ON [4px]' : 'OFF';
+          playRetroBeep(gridActive ? 680 : 340, 'triangle', 0.05);
+        });
+      }
+
+      // Audio Toggle
+      if (audioToggleBtn) {
+        audioToggleBtn.addEventListener('click', () => {
+          sfxEnabled = !sfxEnabled;
+          audioToggleBtn.querySelector('.font-bold').textContent = sfxEnabled ? 'ON' : 'OFF';
+          playRetroBeep(520, 'square', 0.04);
+        });
+      }
+
+      // Modal Hide / Show
+      function closeModal() {
+        if (modal) {
+          modal.style.opacity = '0';
+          modal.style.pointerEvents = 'none';
+          tickerText.textContent = 'MODAL DISMISSED // PRESS [MENU]';
+          playRetroBeep(260, 'sawtooth', 0.08);
+        }
+      }
+
+      function openModal() {
+        if (modal) {
+          modal.style.opacity = '1';
+          modal.style.pointerEvents = 'auto';
+          tickerText.textContent = 'SELECT ROUTE VIA CURSOR';
+          playRetroBeep(880, 'square', 0.06);
+        }
+      }
+
+      if (closeBtnX) closeBtnX.addEventListener('click', closeModal);
+      if (pinnedCloseBtn) pinnedCloseBtn.addEventListener('click', closeModal);
+      if (hamburgerBtn) hamburgerBtn.addEventListener('click', openModal);
+      if (resetModalBtn) resetModalBtn.addEventListener('click', () => {
+        openModal();
+      });
+
+      // Hover / Click behavior on Menu Rows
+      menuRows.forEach((row) => {
+        row.addEventListener('mouseenter', () => {
+          playRetroBeep(587.33, 'square', 0.03); // D5 tone
+          const label = row.getAttribute('data-label');
+          if (label && tickerText) {
+            tickerText.textContent = label.toUpperCase();
+          }
+        });
+
+        row.addEventListener('click', () => {
+          playRetroBeep(880, 'sine', 0.1); // A5 high confirm
+          const route = row.getAttribute('data-route');
+          tickerText.textContent = 'LOADING: ' + route.toUpperCase() + '...';
+        });
+      });
+
+      // Copy CSS Snippet
+      if (copyCssBtn) {
+        copyCssBtn.addEventListener('click', () => {
+          const code = document.querySelector('pre code').innerText;
+          navigator.clipboard.writeText(code).then(() => {
+            const originalHTML = copyCssBtn.innerHTML;
+            copyCssBtn.innerHTML = '<span class="material-symbols-outlined text-[14px]">check</span><span>Copied!</span>';
+            playRetroBeep(1046.5, 'sine', 0.06);
+            setTimeout(() => {
+              copyCssBtn.innerHTML = originalHTML;
+            }, 1800);
+          });
+        });
+      }
+    })();
+  </script>
+</div></main></div></body></html>

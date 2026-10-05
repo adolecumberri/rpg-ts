@@ -44,7 +44,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '💬',
+                    icon: action.icon ?? { symbol: 'chat', color: '#f2ca50' },
                     onClick: () => {
                         if (action.gold) api.team.gold += action.gold;
                         api.refresh();
@@ -55,7 +55,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '⚔️',
+                    icon: action.icon ?? { symbol: 'swords', color: '#f2ca50' },
                     tone: 'danger',
                     onClick: () => api.navigate({ name: 'combat', npcId: action.npcId, placeId: place.id }),
                 });
@@ -63,7 +63,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '⚔️',
+                    icon: action.icon ?? { symbol: 'swords', color: '#f2ca50' },
                     tone: 'danger',
                     onClick: () => api.navigate({ name: 'combat', fightId: action.fightId, placeId: place.id }),
                 });
@@ -71,7 +71,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '⏱️',
+                    icon: action.icon ?? { symbol: 'timer', color: '#f2ca50' },
                     tone: 'danger',
                     onClick: () => api.navigate({ name: 'interval' }),
                 });
@@ -90,14 +90,14 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '🛏️',
+                    icon: action.icon ?? { symbol: 'bed', color: '#f2ca50' },
                     onClick: () => api.rest(),
                 });
             } else if (action.kind === 'train') {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '💪',
+                    icon: action.icon ?? { symbol: 'fitness_center', color: '#f2ca50' },
                     onClick: () => {
                         const result = api.session.train(action.levels);
                         api.refresh();
@@ -108,7 +108,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '🧺',
+                    icon: action.icon ?? { symbol: 'agriculture', color: '#f2ca50' },
                     onClick: () => {
                         const result = api.session.doTask(action);
                         api.refresh();
@@ -120,7 +120,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: completed ? `${action.label} ✓` : action.label,
-                    icon: action.icon ?? '📜',
+                    icon: action.icon ?? { symbol: 'description', color: '#f2ca50' },
                     onClick: () => {
                         if (completed) {
                             api.showToast('This mission is already completed.');
@@ -143,7 +143,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? '🛡️',
+                    icon: action.icon ?? { symbol: 'groups', color: '#f2ca50' },
                     onClick: () => {
                         if (onOpenTeam) {
                             onOpenTeam();
@@ -165,7 +165,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: candidates > 0 ? `${action.label} ♻️` : action.label,
-                    icon: action.icon ?? '⛲',
+                    icon: action.icon ?? { symbol: 'water_drop', color: '#f2ca50' },
                     onClick: () => api.navigate({ name: 'fountain' }),
                 });
             }

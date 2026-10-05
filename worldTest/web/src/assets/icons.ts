@@ -38,6 +38,7 @@ export type IconId =
     | 'vara'
     | 'armadura'
     | 'bota'
+    | 'atras'
     | 'default';
 
 type IconRef = { sheet: number; row: number; col: number };
@@ -59,6 +60,9 @@ export const ICONS: Record<IconId, IconRef> = {
     vara: { sheet: 3, row: 3, col: 1 },
     armadura: { sheet: 3, row: 4, col: 1 },
     bota: { sheet: 3, row: 8, col: 1 },
+
+    // The back/close X: icons_4 (5,1).
+    atras: { sheet: 4, row: 5, col: 1 },
 
     // icons_4 (1,1): the fallback for unknown ids.
     default: { sheet: 4, row: 1, col: 1 },

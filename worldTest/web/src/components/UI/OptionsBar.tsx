@@ -31,7 +31,7 @@ export function OptionsBar({
 }: {
     options: OptionSpec[];
     size?: ActionBarSize;
-    back?: { label?: string; onClick: () => void };
+    back?: { label?: string; icon?: ActionIcon; onClick: () => void };
     // The last option is pinned to the final grid slot (6 in lg).
     pinLast?: boolean;
     // A text banner spanning the first two slots of the first page.

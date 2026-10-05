@@ -135,6 +135,23 @@ DEFAULT_ITEM_TABLE.register({
     weaponType: 'sword',
 });
 
+// Stress-test blades: more swords in the shop so the item list scrolls.
+for (const [index, name] of [['1', 'Sword 1'], ['2', 'Sword 2'], ['3', 'Sword 3'], ['4', 'Sword 4']] as const) {
+    DEFAULT_ITEM_TABLE.register({
+        id: `sword_${index}`,
+        name,
+        category: 'weapon',
+        slot: 'weapon',
+        loadoutSlot: 'weapon',
+        arms: 1,
+        icon: 'espada',
+        description: `Stress-test blade. +4 attack.`,
+        effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 4 }],
+        rangeOf: 'short',
+        weaponType: 'sword',
+    });
+}
+
 DEFAULT_ITEM_TABLE.register({
     id: 'bow',
     name: 'Bow',

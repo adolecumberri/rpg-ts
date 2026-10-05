@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&amp;family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"on-tertiary-fixed-variant":"#910618","on-surface-variant":"#d0c5af","surface-tint":"#e9c349","on-tertiary-container":"#8e0317","inverse-on-surface":"#3c2d25","surface-container-highest":"#403229","error-container":"#93000a","surface-container-low":"#251911","on-secondary-fixed-variant":"#384668","surface-dim":"#1c1109","on-primary-container":"#554300","secondary-fixed":"#d9e2ff","tertiary-container":"#ff9590","on-surface":"#f6ded1","on-primary-fixed-variant":"#574500","on-error":"#690005","outline-variant":"#4d4635","on-tertiary-fixed":"#410005","on-secondary-container":"#a6b5dc","surface":"#1c1109","surface-container":"#2a1d15","on-secondary-fixed":"#0a1a3a","surface-bright":"#45362d","on-error-container":"#ffdad6","on-background":"#f6ded1","primary-fixed-dim":"#e9c349","surface-variant":"#403229","tertiary-fixed-dim":"#ffb3af","tertiary-fixed":"#ffdad7","tertiary":"#ffbeba","primary-fixed":"#ffe088","on-tertiary":"#68000d","surface-container-high":"#35271f","on-primary-fixed":"#241a00","error":"#ffb4ab","background":"#1c1109","inverse-surface":"#f6ded1","primary":"#f2ca50","secondary":"#b7c6ee","inverse-primary":"#735c00","on-primary":"#3c2f00","secondary-fixed-dim":"#b7c6ee","surface-container-lowest":"#170c05","primary-container":"#d4af37","on-secondary":"#213050","outline":"#99907c","secondary-container":"#384668"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-xs":"0.25rem","margin":"0.75rem","space-xl":"1.5rem","space-md":"0.75rem","margin-mobile":"0.5rem","space-lg":"1rem","space-sm":"0.5rem","gutter-mobile":"0.25rem","gutter":"0.5rem"},"fontFamily":{"headline-lg":["Space Mono"],"body-sm":["Courier Prime"],"label-md":["Space Mono"],"label-lg":["Space Mono"],"body-md":["Courier Prime"],"body-lg":["Courier Prime"],"label-sm":["Space Mono"],"headline-sm":["Space Mono"],"headline-md":["Space Mono"],"headline-lg-mobile":["Space Mono"]},"fontSize":{"headline-lg":["20px",{"lineHeight":"24px","letterSpacing":"0.5px","fontWeight":"700"}],"body-sm":["11px",{"lineHeight":"14px","letterSpacing":"0px","fontWeight":"400"}],"label-md":["10px",{"lineHeight":"12px","letterSpacing":"0.5px","fontWeight":"700"}],"label-lg":["12px",{"lineHeight":"14px","letterSpacing":"0.5px","fontWeight":"700"}],"body-md":["12px",{"lineHeight":"16px","letterSpacing":"0px","fontWeight":"700"}],"body-lg":["14px",{"lineHeight":"18px","letterSpacing":"0px","fontWeight":"700"}],"label-sm":["9px",{"lineHeight":"10px","letterSpacing":"0.25px","fontWeight":"700"}],"headline-sm":["14px",{"lineHeight":"18px","letterSpacing":"0px","fontWeight":"700"}],"headline-md":["16px",{"lineHeight":"20px","letterSpacing":"0.25px","fontWeight":"700"}],"headline-lg-mobile":["16px",{"lineHeight":"20px","letterSpacing":"0.5px","fontWeight":"700"}]}}}}</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-primary selection:text-on-primary"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[2px_0_0_0_#403229]"><div class="flex flex-col"><div class="h-14 px-space-md flex items-center justify-between bg-surface-container-low shadow-[0_2px_0_0_#403229]"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-primary text-[20px]">terminal</span><span class="font-headline-sm text-headline-sm text-primary tracking-wider uppercase">RPG-TS // DEV</span></div><span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-space-xs py-0.5 rounded">v1.04</span></div><div class="px-space-md py-space-sm"><div class="font-label-sm text-label-sm uppercase tracking-wider text-outline mb-space-sm">Workbench Specs</div><nav class="flex flex-col gap-space-xs" data-active-classes="bg-primary text-on-primary font-bold shadow-[2px_2px_0px_#403229]"><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-xs rounded transition-colors bg-primary text-on-primary font-bold shadow-[2px_2px_0px_#403229]" data-path="viewport-workbench" href="#"><span class="material-symbols-outlined text-[16px]">tv</span><span class="font-label-md text-label-md uppercase tracking-wider">CRT Viewport</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="pixel-matrix-architect" href="#"><span class="material-symbols-outlined text-[16px]">grid_4x4</span><span class="font-label-md text-label-md uppercase tracking-wider">Matrix Scale</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="tactical-hud-tokens" href="#"><span class="material-symbols-outlined text-[16px]">style</span><span class="font-label-md text-label-md uppercase tracking-wider">HUD Tokens</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="memory-buffer-telemetry" href="#"><span class="material-symbols-outlined text-[16px]">memory</span><span class="font-label-md text-label-md uppercase tracking-wider">VRAM Buffer</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="engine-export-manifest" href="#"><span class="material-symbols-outlined text-[16px]">data_object</span><span class="font-label-md text-label-md uppercase tracking-wider">CSS &amp; Manifest</span></a></nav></div></div><div class="p-space-md bg-surface-container-low shadow-[0_-2px_0_0_#403229] flex flex-col gap-space-xs"><div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm"><span>CANVAS SPEC</span><span class="text-primary font-bold">320x640 PIXELS</span></div><div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm"><span>ASPECT RATIO</span><span>1:2 TACTICAL</span></div><div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm"><span>ENGINE STATE</span><span class="text-surface-tint">ONLINE [READY]</span></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-14 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_2px_0_0_#403229] z-40 flex items-center justify-between px-space-lg"><div class="flex items-center gap-space-md"><span class="font-headline-sm text-headline-sm text-primary tracking-widest">RPG-TS VIEWPORT SYSTEM [320x640]</span><span class="font-label-sm text-label-sm text-outline px-space-xs py-0.5 bg-surface-container rounded">CRT-STAGE</span></div><div class="flex items-center gap-space-md"><div class="hidden md:flex items-center gap-space-xs font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-space-sm py-1 rounded"><span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span><span>RASTER LOCK: 4px/8px</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-14 w-full bg-surface min-h-screen"><div class="flex flex-col w-full">
+<div class="p-space-lg max-w-7xl mx-auto w-full">
+<!-- Breadcrumb & Dev Workspace Status Bar -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm bg-surface-container-lowest p-space-sm shadow-md rounded mb-space-lg">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">developer_board</span>
+<span class="font-headline-sm text-headline-sm text-primary">VIEW_02: CHARACTER_SHEET &amp; SQUAD_PROFILE</span>
+<span class="font-label-sm text-label-sm bg-surface-container-high text-on-surface-variant px-space-xs py-0.5 rounded">SPEC: 320x640 (80x160 u)</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="flex items-center gap-space-xs font-label-sm text-label-sm px-space-sm py-1 bg-surface-container hover:bg-surface-container-high text-primary rounded shadow-sm transition-colors" id="toggle-crt-btn">
+<span class="material-symbols-outlined text-[14px]">tv</span>
+<span id="crt-label">CRT SCANLINES: ON</span>
+</button>
+<button class="flex items-center gap-space-xs font-label-sm text-label-sm px-space-sm py-1 bg-surface-container hover:bg-surface-container-high text-on-surface rounded shadow-sm transition-colors" id="toggle-grid-btn">
+<span class="material-symbols-outlined text-[14px]">grid_4x4</span>
+<span id="grid-label">4px RASTER: OFF</span>
+</button>
+<div class="hidden sm:flex items-center gap-1 font-label-sm text-label-sm text-outline">
+<span>PARSER:</span>
+<span class="text-primary font-bold">READY</span>
+</div>
+</div>
+</div>
+<!-- Desktop Split Canvas: Workbench Left (Viewport), Spec Right (Architectural Analysis) -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg items-start">
+<!-- ==================== LEFT COLUMN: 320x640 PIXEL CANVAS ==================== -->
+<div class="xl:col-span-5 flex flex-col items-center">
+<div class="w-full flex items-center justify-between px-space-xs mb-space-xs text-outline font-label-sm text-label-sm">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary inline-block"></span> DUAL-SCREEN EMULATOR (1X SCALE)</span>
+<span>W:320px | H:640px</span>
+</div>
+<!-- Physical Bezel Emulator Housing -->
+<div class="relative p-2 bg-[#0c0604] rounded-lg shadow-2xl flex flex-col items-center">
+<!-- Top Hardware Rivets -->
+<div class="w-full flex justify-between items-center px-2 py-1">
+<div class="flex gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#35271f] block shadow-[0_1px_0_0_#4d4635]"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-[#35271f] block shadow-[0_1px_0_0_#4d4635]"></span>
+</div>
+<span class="font-label-sm text-label-sm tracking-widest text-[#5d4635]">DEV-HARDWARE REF 02</span>
+<div class="flex gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#35271f] block shadow-[0_1px_0_0_#4d4635]"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-[#35271f] block shadow-[0_1px_0_0_#4d4635]"></span>
+</div>
+</div>
+<!-- THE EXACT 320x640 ACTIVE VIEWPORT -->
+<div class="relative w-[320px] h-[640px] bg-[#140c0c] select-none overflow-hidden flex flex-col font-['Space_Mono'] shadow-inner" id="viewport-canvas">
+<!-- Grid Overlay Layer (Toggled via JS) -->
+<div class="absolute inset-0 pointer-events-none z-30 opacity-0 transition-opacity" id="raster-grid-overlay" style="background-size: 4px 4px; background-image: linear-gradient(to right, rgba(242, 202, 80, 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(242, 202, 80, 0.08) 1px, transparent 1px);"></div>
+<!-- CRT Scanline Effect Overlay Layer (Toggled via JS) -->
+<div class="absolute inset-0 pointer-events-none z-30 transition-opacity" id="crt-overlay" style="background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 2px);"></div>
+<!-- ================= SECTION 1: HEADER (48px / 12 units) ================= -->
+<header class="h-[48px] w-full bg-[#201010] flex items-center justify-between px-2 shadow-[0_2px_0_0_#0a0505] z-20 flex-shrink-0">
+<!-- 32px Hamburger Menu Button -->
+<button class="w-[32px] h-[32px] bg-[#2e1616] active:bg-[#1a0c0c] flex flex-col items-center justify-center gap-[4px] shadow-[inset_1px_1px_0_0_#4a2626,2px_2px_0_0_#0d0606] transition-transform active:translate-y-0.5" title="Menu">
+<span class="w-[18px] h-[3px] bg-[#f2ca50] shadow-[0_1px_0_0_#735c00]"></span>
+<span class="w-[18px] h-[3px] bg-[#f2ca50] shadow-[0_1px_0_0_#735c00]"></span>
+<span class="w-[18px] h-[3px] bg-[#f2ca50] shadow-[0_1px_0_0_#735c00]"></span>
+</button>
+<!-- Center Zone: Title & Day Metas -->
+<div class="flex flex-col items-center leading-none">
+<div class="flex items-center gap-1.5">
+<span class="text-[#f2ca50] font-headline-sm text-[13px] tracking-wider font-bold">EL FERGEL</span>
+<span class="bg-[#8e0317] text-[#ffdad7] text-[8px] font-bold px-1 py-[1px] rounded tracking-tighter">ESTE</span>
+</div>
+<div class="flex items-center gap-1 text-[9px] text-[#f6ded1] mt-1 font-['Courier_Prime']">
+<span class="text-[#f2ca50]">●</span>
+<span class="font-bold">DAY 1</span>
+<span class="text-[#99907c]">|</span>
+<span class="text-[#f2ca50] font-bold">G 10</span>
+<span class="text-[#99907c]">|</span>
+<span>🌱</span>
+</div>
+</div>
+<!-- Right Zone: Engine Meta & Save Status -->
+<div class="flex flex-col items-end leading-none text-right">
+<span class="text-[#d4af37] text-[9px] font-bold tracking-tighter">RPG-TS</span>
+<span class="text-[#2bd965] text-[8px] font-bold mt-1 tracking-tight">SAVE: OK</span>
+</div>
+</header>
+<!-- ================= SECTION 2: CONTENT AREA (400px / 100 units) ================= -->
+<main class="h-[400px] w-full bg-[#522929] p-3 flex flex-col justify-between flex-shrink-0 relative overflow-hidden shadow-inner">
+<!-- Sub-header: Top Character Identification Header -->
+<div class="w-full flex items-center justify-between">
+<span class="text-white text-[15px] font-bold tracking-wide drop-shadow-[0_1px_0_#140c0c]">Player</span>
+<span class="text-[#f2ca50] text-[10px] font-bold bg-[#381a1a] px-1.5 py-0.5 rounded shadow-[1px_1px_0_#170c05]">PARTY LEAD</span>
+</div>
+<!-- Character Presentation Row: Sprite Left + Archetype Details Right -->
+<div class="flex items-start justify-between mt-1">
+<!-- Authentic Pixel Art Hooded Figure matching Reference Image -->
+<div class="relative w-[116px] h-[124px] flex items-center justify-center">
+<!-- Pixel Art Character Canvas Representation -->
+<div class="w-[96px] h-[116px] relative flex flex-col items-center justify-start drop-shadow-[2px_3px_0_rgba(10,5,5,0.7)]">
+<!-- Mushroom-like / Bowl Helmet Hair Cover (Olive-Green) -->
+<div class="w-[72px] h-[44px] bg-[#616246] rounded-t-full relative shadow-[inset_-3px_-3px_0_0_#43442e,inset_3px_3px_0_0_#7f815e]">
+<!-- Hair fringe blocks -->
+<div class="absolute -bottom-2 left-0 w-3.5 h-4 bg-[#43442e]"></div>
+<div class="absolute -bottom-1 left-4 w-4 h-2 bg-[#525339]"></div>
+<div class="absolute -bottom-1 right-4 w-4 h-2 bg-[#525339]"></div>
+<div class="absolute -bottom-2 right-0 w-3.5 h-4 bg-[#43442e]"></div>
+</div>
+<!-- Pale Monolithic Tunic/Shroud -->
+<div class="w-[84px] h-[72px] bg-[#e3deba] rounded-t-sm shadow-[inset_-4px_0_0_#beba94,inset_4px_0_0_#f4f1d4] relative -mt-1 flex flex-col items-center">
+<!-- Mysterious Eye Line -->
+<div class="absolute top-[22px] left-[18px] w-[10px] h-[3px] bg-[#221c17]"></div>
+<!-- Shroud Fold Shading -->
+<div class="absolute bottom-0 right-[12px] w-[14px] h-[28px] bg-[#beba94]"></div>
+</div>
+</div>
+</div>
+<!-- Profile Tags / Level / Hand Indicators -->
+<div class="flex flex-col gap-1.5 pr-2 pt-2">
+<!-- Lv.1 Soldier Tag -->
+<div class="flex items-center gap-1">
+<span class="text-[#f2ca50] font-bold text-[13px]">Lv.1</span>
+<span class="text-[12px]">✋</span>
+<span class="text-white font-bold text-[12px] tracking-wide">Soldier</span>
+</div>
+<!-- HP Gauge / Numbers -->
+<div class="flex items-center gap-1.5">
+<span class="text-[11px]">✋</span>
+<div class="flex flex-col">
+<div class="flex items-center gap-1 text-[11px] font-bold text-white leading-none">
+<span>25/25</span>
+<span class="text-[#2bd965] text-[9px]">HP</span>
+</div>
+<div class="w-20 h-1.5 bg-[#170c05] mt-1 shadow-inner overflow-hidden flex">
+<div class="w-full h-full bg-[#2bd965]"></div>
+</div>
+</div>
+</div>
+<!-- XP Counter -->
+<div class="flex items-center gap-1.5">
+<span class="text-[11px]">✋</span>
+<div class="flex flex-col">
+<div class="flex items-center gap-1 text-[11px] font-bold text-white leading-none">
+<span>XP 0</span>
+<span class="text-[#f2ca50] text-[8px]">[NEXT 100]</span>
+</div>
+<div class="w-20 h-1 bg-[#170c05] mt-1 overflow-hidden">
+<div class="w-0 h-full bg-[#f2ca50]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Data Split: Stat Matrix (Left) & Equipment Bevel Box (Right) -->
+<div class="grid grid-cols-2 gap-2 mt-1">
+<!-- Stat Breakdown Matrix (Left Column) -->
+<div class="flex flex-col gap-[3px] text-[10px] text-white">
+<!-- Atq. físico -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1">
+<span class="w-4 h-4 bg-[#78362d] flex items-center justify-center text-[9px] shadow-[1px_1px_0_#140c0c]">💪</span>
+<span class="text-[#f6ded1] font-['Courier_Prime']">Atq. físico</span>
+</div>
+<span class="font-bold text-[#f2ca50]">11</span>
+</div>
+<!-- Def. física -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1">
+<span class="w-4 h-4 bg-[#78362d] flex items-center justify-center text-[9px] shadow-[1px_1px_0_#140c0c]">🛡️</span>
+<span class="text-[#f6ded1] font-['Courier_Prime']">Def. física</span>
+</div>
+<span class="font-bold text-[#f2ca50]">4</span>
+</div>
+<!-- Def. mágica -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1">
+<span class="w-4 h-4 bg-[#78362d] flex items-center justify-center text-[9px] shadow-[1px_1px_0_#140c0c]">👤</span>
+<span class="text-[#f6ded1] font-['Courier_Prime']">Def. mágica</span>
+</div>
+<span class="font-bold text-white">0</span>
+</div>
+<!-- Rapidez -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1">
+<span class="w-4 h-4 bg-[#78362d] flex items-center justify-center text-[9px] shadow-[1px_1px_0_#140c0c]">💨</span>
+<span class="text-[#f6ded1] font-['Courier_Prime']">Rapidez</span>
+</div>
+<span class="font-bold text-[#f2ca50]">6</span>
+</div>
+<!-- Poder mágico -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1">
+<span class="w-4 h-4 bg-[#78362d] flex items-center justify-center text-[9px] shadow-[1px_1px_0_#140c0c]">✨</span>
+<span class="text-[#f6ded1] font-['Courier_Prime']">Poder mágico</span>
+</div>
+<span class="font-bold text-white">0</span>
+</div>
+<!-- Crit. -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1">
+<span class="w-4 h-4 bg-[#78362d] flex items-center justify-center text-[9px] shadow-[1px_1px_0_#140c0c]">🎯</span>
+<span class="text-[#f6ded1] font-['Courier_Prime']">Crit.</span>
+</div>
+<span class="font-bold text-white">10%</span>
+</div>
+<!-- Crit. Mult. -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1">
+<span class="w-4 h-4 bg-[#78362d] flex items-center justify-center text-[9px] shadow-[1px_1px_0_#140c0c]">🎲</span>
+<span class="text-[#f6ded1] font-['Courier_Prime']">Crit. Mult.</span>
+</div>
+<span class="font-bold text-[#f2ca50]">x2</span>
+</div>
+</div>
+<!-- Equipment Summary Inset Box (Right Column) -->
+<div class="bg-[#240e0e] p-2 flex flex-col shadow-[inset_2px_2px_0_0_#0a0404,inset_-1px_-1px_0_0_#432121]">
+<span class="text-[#f2ca50] text-[9px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+<span>EQUIPMENT</span>
+<span class="text-[7px] text-[#99907c]">[2/5]</span>
+</span>
+<div class="flex flex-col gap-1 text-[9px]">
+<!-- Item 1: Sword -->
+<div class="flex items-center gap-1 hover:bg-[#341616] p-0.5 cursor-pointer">
+<span class="text-[10px]">⚔️</span>
+<span class="text-white font-bold truncate">Sword</span>
+</div>
+<!-- Item 2: Farmer Outfit -->
+<div class="flex items-center gap-1 hover:bg-[#341616] p-0.5 cursor-pointer">
+<span class="text-[10px]">👕</span>
+<span class="text-white font-bold truncate">Farmer Outfit</span>
+</div>
+<!-- Item 3: Empty -->
+<div class="flex items-center gap-1 p-0.5 text-[#99907c] opacity-80">
+<span class="text-[9px]">✋</span>
+<span class="italic font-['Courier_Prime']">Empty</span>
+</div>
+<!-- Item 4: Empty -->
+<div class="flex items-center gap-1 p-0.5 text-[#99907c] opacity-80">
+<span class="text-[9px]">✋</span>
+<span class="italic font-['Courier_Prime']">Empty</span>
+</div>
+<!-- Item 5: Empty -->
+<div class="flex items-center gap-1 p-0.5 text-[#99907c] opacity-80">
+<span class="text-[9px]">✋</span>
+<span class="italic font-['Courier_Prime']">Empty</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- ================= SECTION 3: BOTTOM ACTION TRAY (192px / 48 units) ================= -->
+<footer class="h-[192px] w-full bg-[#1c0c0c] p-2 flex flex-col justify-between flex-shrink-0 shadow-[0_-2px_0_0_#0d0606] z-20">
+<!-- 2-column x 3-row Tactical Action Grid -->
+<div class="grid grid-cols-2 gap-2 h-full">
+<!-- Slot 1: Equipo Button -->
+<button class="tactical-btn group h-[50px] bg-[#3a1d1d] hover:bg-[#482424] active:bg-[#251212] px-2 flex items-center gap-2 shadow-[inset_1px_1px_0_0_#673434,inset_-2px_-2px_0_0_#140808,2px_2px_0_0_#0a0404] transition-all">
+<span class="w-6 h-6 bg-[#251212] flex items-center justify-center text-[12px] shadow-[inset_1px_1px_0_#0a0404]">🎒</span>
+<span class="text-white font-bold text-[11px] tracking-wide group-hover:text-[#f2ca50]">Equipo</span>
+</button>
+<!-- Slot 2: Estatus Button -->
+<button class="tactical-btn group h-[50px] bg-[#3a1d1d] hover:bg-[#482424] active:bg-[#251212] px-2 flex items-center gap-2 shadow-[inset_1px_1px_0_0_#673434,inset_-2px_-2px_0_0_#140808,2px_2px_0_0_#0a0404] transition-all">
+<span class="w-6 h-6 bg-[#251212] flex items-center justify-center text-[12px] shadow-[inset_1px_1px_0_#0a0404]">✨</span>
+<span class="text-white font-bold text-[11px] tracking-wide group-hover:text-[#f2ca50]">Estatus</span>
+</button>
+<!-- Slot 3: Oficio Button -->
+<button class="tactical-btn group h-[50px] bg-[#3a1d1d] hover:bg-[#482424] active:bg-[#251212] px-2 flex items-center gap-2 shadow-[inset_1px_1px_0_0_#673434,inset_-2px_-2px_0_0_#140808,2px_2px_0_0_#0a0404] transition-all">
+<span class="w-6 h-6 bg-[#251212] flex items-center justify-center text-[12px] shadow-[inset_1px_1px_0_#0a0404]">👤</span>
+<span class="text-white font-bold text-[11px] tracking-wide group-hover:text-[#f2ca50]">Oficio</span>
+</button>
+<!-- Slot 4: Empty Slot -->
+<div class="h-[50px] bg-[#140808]/50 shadow-[inset_1px_1px_0_0_#0a0404] flex items-center justify-center">
+<span class="text-[#3c2424] text-[10px] tracking-widest">---</span>
+</div>
+<!-- Slot 5: Atrás Button (Pinned Return Command) -->
+<button class="tactical-btn group h-[50px] bg-[#2d1414] hover:bg-[#381a1a] active:bg-[#1a0a0a] px-2 flex items-center gap-1.5 shadow-[inset_1px_1px_0_0_#4a2222,inset_-2px_-2px_0_0_#100505,2px_2px_0_0_#0a0404] transition-all">
+<span class="text-[#ff9590] text-[14px] font-bold">✕</span>
+<span class="text-[#d0c5af] group-hover:text-white font-bold text-[11px] tracking-wide">Atrás</span>
+</button>
+<!-- Slot 6: Empty Slot -->
+<div class="h-[50px] bg-[#140808]/50 shadow-[inset_1px_1px_0_0_#0a0404] flex items-center justify-center">
+<span class="text-[#3c2424] text-[10px] tracking-widest">---</span>
+</div>
+</div>
+</footer>
+</div>
+<!-- Bottom Device Indicator Bar -->
+<div class="w-full flex justify-between items-center px-4 py-1.5">
+<span class="font-label-sm text-label-sm text-[#5d4635] tracking-widest">PIXEL BUFFER OK</span>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#2bd965]"></span>
+<span class="font-label-sm text-label-sm text-[#2bd965]">60 FPS</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ==================== RIGHT COLUMN: ARCHITECTURAL BREAKDOWN PANEL ==================== -->
+<div class="xl:col-span-7 flex flex-col gap-space-lg">
+<!-- Spec Section 1: Character Sheet Architecture -->
+<div class="bg-surface-container-low p-space-lg rounded shadow-md">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">layers</span>
+<h2 class="font-headline-sm text-headline-sm text-primary uppercase tracking-wider">1. CHARACTER SHEET ARCHITECTURE (320 X 640)</h2>
+</div>
+<span class="font-label-sm text-label-sm bg-surface-container px-space-xs py-0.5 rounded text-secondary">RATIO 1:2</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-md">
+            The handheld profile view is strictly mapped to an 80×160 raster unit coordinate grid (1 unit = 4 physical pixels). The canvas divides vertically into 3 distinct functional zones designed for thumb accessibility and tactical readability:
+          </p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm">
+<!-- Header Spec Card -->
+<div class="bg-surface-container p-space-sm rounded shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between text-primary font-label-md text-label-md">
+<span>ZONE A: STATUS HEADER</span>
+<span>48 PX</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">12 units vertical. Houses the primary location badge, in-game calendar day, gold balance ledger, and save daemon validation flag.</p>
+</div>
+<div class="mt-2 text-right font-label-sm text-label-sm text-outline">`h-[48px] / bg-[#201010]`</div>
+</div>
+<!-- Content Area Spec Card -->
+<div class="bg-surface-container p-space-sm rounded shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between text-primary font-label-md text-label-md">
+<span>ZONE B: SHEET CORE</span>
+<span>400 PX</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">100 units vertical. Asymmetric split: dynamic animated combatant portrait left, combat attributes matrix right, and equipment hole registers.</p>
+</div>
+<div class="mt-2 text-right font-label-sm text-label-sm text-outline">`h-[400px] / bg-[#522929]`</div>
+</div>
+<!-- Tray Spec Card -->
+<div class="bg-surface-container p-space-sm rounded shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between text-primary font-label-md text-label-md">
+<span>ZONE C: ACTION TRAY</span>
+<span>192 PX</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">48 units vertical. High-pressure 2×3 command matrix. Thumb-sized target buttons with tactile physical bevel depression states.</p>
+</div>
+<div class="mt-2 text-right font-label-sm text-label-sm text-outline">`h-[192px] / bg-[#1c0c0c]`</div>
+</div>
+</div>
+</div>
+<!-- Spec Section 2: Stat Matrix & Equipment Holes Specification -->
+<div class="bg-surface-container-low p-space-lg rounded shadow-md">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">dataset</span>
+<h2 class="font-headline-sm text-headline-sm text-primary uppercase tracking-wider">2. STAT MATRIX &amp; EQUIPMENT HOLES SPECIFICATION</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">SCHEMA: v1.4-CANONICAL</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md mt-space-sm">
+<!-- Stat Specification Table -->
+<div class="bg-surface-container p-space-sm rounded">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary block mb-space-xs">8 Canonical Tactical Attributes</span>
+<div class="flex flex-col gap-1 text-[11px] font-['Space_Mono']">
+<div class="flex justify-between items-center bg-surface-container-low p-1 rounded">
+<span class="text-on-surface-variant">Atq. físico (P.ATK)</span>
+<span class="text-primary font-bold">11 [BASE]</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-1 rounded">
+<span class="text-on-surface-variant">Def. física (P.DEF)</span>
+<span class="text-primary font-bold">4 [ARMOR]</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-1 rounded">
+<span class="text-on-surface-variant">Def. mágica (M.DEF)</span>
+<span class="text-white">0 [RESIST]</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-1 rounded">
+<span class="text-on-surface-variant">Rapidez (AGI/SPEED)</span>
+<span class="text-primary font-bold">6 [ORDER]</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-1 rounded">
+<span class="text-on-surface-variant">Poder mágico (M.POW)</span>
+<span class="text-white">0 [SPELL]</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-1 rounded">
+<span class="text-on-surface-variant">Crit. (CHANCE)</span>
+<span class="text-white">10% [PROB]</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-low p-1 rounded">
+<span class="text-on-surface-variant">Crit. Mult. (MULTIPLIER)</span>
+<span class="text-primary font-bold">x2 [SCALE]</span>
+</div>
+</div>
+</div>
+<!-- Equipment Holes & Data Contract -->
+<div class="bg-surface-container p-space-sm rounded flex flex-col justify-between">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary block mb-space-xs">5 Equipment Slot Registers</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">
+                  The engine allocates exactly 5 inventory slots per active combatant. Slots 1–2 are mapped to Primary Weapon and Attire. Slots 3–5 handle Relics/Accessories or evaluate to the fallback <code class="text-primary">Empty / Vacío</code> state.
+                </p>
+<div class="bg-surface-container-lowest p-space-xs rounded text-[10px] font-['Space_Mono'] text-outline space-y-1">
+<div>[SLOT_0]: <span class="text-white font-bold">item_sword_rusty</span> (⚔️ Sword)</div>
+<div>[SLOT_1]: <span class="text-white font-bold">armor_farmer_linen</span> (👕 Farmer Outfit)</div>
+<div>[SLOT_2]: <span class="text-outline">null</span> → fallback: 'Empty'</div>
+<div>[SLOT_3]: <span class="text-outline">null</span> → fallback: 'Empty'</div>
+<div>[SLOT_4]: <span class="text-outline">null</span> → fallback: 'Empty'</div>
+</div>
+</div>
+<div class="mt-2 flex items-center justify-between text-[10px] text-on-surface-variant">
+<span>BUFFER CAPACITY: 5/5</span>
+<span class="text-primary font-bold">STATUS: OK</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Spec Section 3: Production CSS & Button Recipe -->
+<div class="bg-surface-container-low p-space-lg rounded shadow-md">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">terminal</span>
+<h2 class="font-headline-sm text-headline-sm text-primary uppercase tracking-wider">3. PRODUCTION CSS &amp; BUTTON RECIPE</h2>
+</div>
+<button class="font-label-sm text-label-sm bg-primary text-on-primary font-bold px-space-sm py-1 rounded shadow-sm hover:opacity-90 transition-opacity" id="copy-css-btn">
+              COPY CSS RECIPES
+            </button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
+            Handheld tactile depth is produced via micro-bevel shadows without using fuzzy standard drop-shadows. These are the copy-paste Tailwind tokens for the button bevels and card insets:
+          </p>
+<!-- Code Snippets Box -->
+<div class="bg-surface-container-lowest p-space-sm rounded overflow-x-auto text-[11px] font-['Space_Mono'] text-on-surface space-y-2">
+<div>
+<span class="text-primary font-bold">// 1. TACTICAL BUTTON (RAISED BEVEL STATE)</span>
+<p class="text-[#d0c5af]">bg-[#3a1d1d] hover:bg-[#482424] active:bg-[#251212] shadow-[inset_1px_1px_0_0_#673434,inset_-2px_-2px_0_0_#140808,2px_2px_0_0_#0a0404]</p>
+</div>
+<div>
+<span class="text-primary font-bold">// 2. INSET EQUIPMENT WELL (RECESSED ENGRAVE)</span>
+<p class="text-[#d0c5af]">bg-[#240e0e] shadow-[inset_2px_2px_0_0_#0a0404,inset_-1px_-1px_0_0_#432121]</p>
+</div>
+<div>
+<span class="text-primary font-bold">// 3. STATUS HEADER TOP TRAY</span>
+<p class="text-[#d0c5af]">h-[48px] bg-[#201010] shadow-[0_2px_0_0_#0a0505]</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // CRT Scanline Toggle Logic
+  const crtBtn = document.getElementById('toggle-crt-btn');
+  const crtOverlay = document.getElementById('crt-overlay');
+  const crtLabel = document.getElementById('crt-label');
+  let crtActive = true;
+
+  crtBtn.addEventListener('click', () => {
+    crtActive = !crtActive;
+    if (crtActive) {
+      crtOverlay.classList.remove('opacity-0');
+      crtLabel.textContent = 'CRT SCANLINES: ON';
+      crtBtn.classList.remove('text-on-surface');
+      crtBtn.classList.add('text-primary');
+    } else {
+      crtOverlay.classList.add('opacity-0');
+      crtLabel.textContent = 'CRT SCANLINES: OFF';
+      crtBtn.classList.remove('text-primary');
+      crtBtn.classList.add('text-on-surface');
+    }
+  });
+
+  // 4px Raster Matrix Grid Toggle Logic
+  const gridBtn = document.getElementById('toggle-grid-btn');
+  const gridOverlay = document.getElementById('raster-grid-overlay');
+  const gridLabel = document.getElementById('grid-label');
+  let gridActive = false;
+
+  gridBtn.addEventListener('click', () => {
+    gridActive = !gridActive;
+    if (gridActive) {
+      gridOverlay.classList.remove('opacity-0');
+      gridLabel.textContent = '4px RASTER: ON';
+      gridBtn.classList.remove('text-on-surface');
+      gridBtn.classList.add('text-primary');
+    } else {
+      gridOverlay.classList.add('opacity-0');
+      gridLabel.textContent = '4px RASTER: OFF';
+      gridBtn.classList.remove('text-primary');
+      gridBtn.classList.add('text-on-surface');
+    }
+  });
+
+  // Copy CSS Recipe Helper
+  const copyBtn = document.getElementById('copy-css-btn');
+  copyBtn.addEventListener('click', () => {
+    const cssText = `/* RPG-TS Canonical Handheld Tokens */\n.tactical-btn {\n  background-color: #3a1d1d;\n  box-shadow: inset 1px 1px 0 0 #673434, inset -2px -2px 0 0 #140808, 2px 2px 0 0 #0a0404;\n}\n.equipment-well {\n  background-color: #240e0e;\n  box-shadow: inset 2px 2px 0 0 #0a0404, inset -1px -1px 0 0 #432121;\n}`;
+    navigator.clipboard.writeText(cssText).then(() => {
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = 'COPIED TO CLIPBOARD!';
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+      }, 2000);
+    });
+  });
+</script></main></div></body></html>

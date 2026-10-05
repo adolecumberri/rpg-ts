@@ -121,6 +121,12 @@
    adopts these classes as the design lands). Every size comes from the
    unit ladder above.
 --------------------------------------------------------------------------- */
+/* The shared pixel inset: hairline black border + inner bevel. */
+.pixel-inset {
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
+}
+
 .pixel-font {
     font-family: var(--font-pixel, ui-monospace, 'Cascadia Mono', 'Courier New', monospace);
     letter-spacing: 0.4px;
@@ -251,8 +257,6 @@
     letter-spacing: 0.4px;
     padding: calc(var(--s1) / 2) var(--s2);
     background: var(--card);
-    border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
     color: var(--text);
 }
 
@@ -316,8 +320,11 @@
    32x32 per frame with a stepped horizontal slide: 0, -32, -64, -96.
    Fixed pixels in the keyframes (no var/calc): interpolating values
    that depend on CSS variables can silently drop the steps() easing
-   and tween the slide instead of jumping between frames. */
+   and tween the slide instead of jumping between frames. The sprite
+   plays as two stacked layers — idle below, attack above — so both
+   sheets load once and the swing only flips opacity. */
 .battle-card-sprite {
+    position: relative;
     width: 32px;
     height: 32px;
     background-size: calc(var(--s8) * 4) var(--s8);
@@ -366,26 +373,147 @@
     overflow: hidden;
 }
 
+/* The status header (google-stitch): 48px, dark red, double bevel,
+   hamburger + world context + logo. */
 .newui-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--s2);
     padding: var(--s1) var(--s2);
-    background: var(--bg-dark);
-    border-bottom: var(--s1) solid #000;
-    box-shadow: inset 0 calc(-1 * var(--s1)) 0 var(--border);
+    background: #220d0d;
+    border-bottom: 2px solid #000;
+    box-shadow:
+        inset 2px 2px 0 0 rgba(255, 200, 160, 0.28),
+        inset -2px -2px 0 0 rgba(0, 0, 0, 0.75),
+        inset 4px 4px 0 0 rgba(255, 255, 255, 0.1),
+        inset -4px -4px 0 0 rgba(10, 2, 2, 0.9),
+        0 0 0 2px #000000;
     flex: none;
     box-sizing: border-box;
     height: var(--s12);
     /* es --s12 porque incluye el padding y el border */
 }
 
-.newui-header-title {
+/* The hamburger: a 32px tactical square with three amber bars. */
+.newui-header-menu {
+    flex: none;
+    width: var(--s8);
+    height: var(--s8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 0;
+}
+
+.newui-header-menu-bar {
+    display: block;
+    width: 18px;
+    height: 3px;
+    background: #fcd34d;
+    box-shadow: 0 1px 0 #000;
+}
+
+/* The central context: region + zone on top, the stats below. */
+.newui-header-context {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0 var(--s1);
+    min-width: 0;
+}
+
+.newui-header-region-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+}
+
+.newui-header-region {
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 9px;
+    font-size-adjust: none;
+    color: #ffbf60;
+    letter-spacing: -0.5px;
+    text-shadow: none;
+}
+
+.newui-header-zone {
+    font-size: 8px;
+    font-size-adjust: none;
+    text-shadow: none;
+    color: #ef4444;
+    background: #450a0a;
+    padding: 0 var(--s1);
+    border: 1px solid #000;
+}
+
+.newui-header-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    font-family: 'VT323', var(--font-pixel, monospace);
     font-size: var(--s3);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--accent);
+    font-size-adjust: none;
+    color: #fef3c7;
+    text-shadow: none;
+}
+
+.newui-header-day {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+    color: #fdba74;
+}
+
+.newui-header-dot {
+    width: var(--s2);
+    height: var(--s2);
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 4px #ff9900;
+}
+
+.newui-header-gold {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--s1) / 2);
+    color: #facc15;
+}
+
+.newui-header-season {
+    color: #34d399;
+}
+
+.newui-header-sep {
+    color: #a8a29e;
+}
+
+/* The right logo badge. */
+.newui-header-logo {
+    text-align: right;
+    flex: none;
+}
+
+.newui-header-logo-name {
+    display: block;
+    font-size: 9px;
+    font-size-adjust: none;
+    line-height: 1.2;
+    color: #f59e0b;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.newui-header-save {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 10px;
+    font-size-adjust: none;
+    letter-spacing: 0.5px;
+    color: #6ee7b7;
+    text-shadow: none;
 }
 
 .newui-body {
@@ -400,6 +528,20 @@
     flex-direction: column;
     gap: var(--s2);
     /* padding: var(--s2); */
+}
+
+/* The team page's central band (stitch view 1): the dark brown well
+   with the 10px/8px inner margin. It is a flex column so its children
+   (.equip-view, .team-data) fill the full fixed height. The page
+   itself never scrolls: content scrolls INSIDE its area. */
+.team-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #251911;
+    padding: var(--s2) calc(var(--u) * 2.5);
 }
 
 /* ---------------------------------------------------------------------------
@@ -433,7 +575,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--s2);
-    padding: var(--s1) var(--s2);
+    padding: var(--s1) var(--s1);
     background: var(--bg-dark);
     border-bottom: var(--s1) solid #000;
 }
@@ -455,8 +597,6 @@
     font-size: var(--s3);
     background: var(--card);
     color: var(--text);
-    border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
     cursor: pointer;
 }
 
@@ -530,8 +670,6 @@
     text-align: center;
     padding: var(--s1);
     background: var(--card);
-    border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
     flex: none;
 }
 
@@ -543,12 +681,14 @@
 }
 
 .action-bar-grid--rows {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr): the track never grows with the content, so the
+       buttons keep their fixed width and the labels ellipsize. */
+    grid-template-columns: minmax(0, 1fr);
     grid-auto-rows: var(--bar-row, var(--s12));
 }
 
 .action-bar-grid--grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     /* grid-auto-rows: var(--bar-row, var(--s16)); */
     gap: var(--s1);
     padding: var(--s1) var(--s1) 0;
@@ -583,6 +723,7 @@
     gap: var(--s2);
     padding: var(--s1) var(--s2);
     width: 100%;
+    min-width: 0;
     text-align: left;
 }
 
@@ -905,8 +1046,6 @@
     margin-bottom: var(--s2);
     padding: var(--s1) var(--s2);
     background: var(--card);
-    border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
     font-size: var(--s3);
 }
 
@@ -932,10 +1071,6 @@
 /* The sprite plays as two stacked layers — idle below, attack above —
    so both sheets load once and the swing only flips opacity. No
    background-image swap per attack, so no reload flicker mid-fight. */
-.battle-card-sprite {
-    position: relative;
-}
-
 .battle-card-sprite-layer {
     position: absolute;
     inset: 0;
@@ -1049,10 +1184,187 @@
 }
 
 /* ---------------------------------------------------------------------------
+   The main menu (google-stitch view 3): a tactical overlay that covers
+   the body band under the header. Double inset ring, red error-square
+   close button, and beveled gold rows with an icon frame, a Press
+   Start 2P title, a two-digit index and a VT323 caption.
+--------------------------------------------------------------------------- */
+.menu-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--s12);
+    bottom: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    background: rgba(23, 12, 5, 0.96);
+    box-shadow: inset 0 0 0 2px #403229, inset 0 0 0 4px #1c1109;
+}
+
+.menu-overlay-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s2);
+    padding: var(--s3) var(--s2) var(--s2) var(--s3);
+}
+
+.menu-overlay-title {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+    min-width: 0;
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 12px;
+    font-size-adjust: none;
+    letter-spacing: 0.05em;
+    color: #f2ca50;
+    text-shadow: none;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.menu-overlay-title .material-symbol {
+    flex: none;
+    font-size: 12px;
+}
+
+/* The red error-container close square: hard 2px offset shadow that
+   collapses by 1px when pressed (same trick as the action buttons). */
+.tactical-close-btn {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: none;
+    background: #93000a;
+    color: #ffdad6;
+    font-size: 14px;
+    line-height: 1;
+    font-family: inherit;
+    box-shadow: 2px 2px 0 #403229;
+    cursor: pointer;
+}
+
+.tactical-close-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 #403229;
+}
+
+.menu-overlay-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 0 var(--s2) var(--s2);
+}
+
+.tactical-menu-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    margin: 0;
+    padding: 3px;
+    border: none;
+    background: #2a1d15;
+    box-shadow: inset 1px 1px 0 #45362d, inset -1px -1px 0 #170c05;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.tactical-menu-row:hover {
+    background: #35271f;
+}
+
+.tactical-menu-row:active {
+    background: #f2ca50;
+}
+
+.tactical-icon-frame {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    background: #170c05;
+    box-shadow: inset 1px 1px 0 #000;
+    color: #f2ca50;
+    font-size: 13px;
+}
+
+.tactical-menu-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.tactical-menu-title-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s2);
+}
+
+.tactical-menu-title {
+    min-width: 0;
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 12px;
+    font-size-adjust: none;
+    letter-spacing: 0.025em;
+    color: #f2ca50;
+    text-shadow: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tactical-menu-number {
+    flex: none;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 9px;
+    font-size-adjust: none;
+    letter-spacing: 0.05em;
+    color: #99907c;
+    text-shadow: none;
+}
+
+.tactical-menu-caption {
+    min-width: 0;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 9px;
+    font-size-adjust: none;
+    letter-spacing: 0.025em;
+    color: #d0c5af;
+    text-shadow: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The pressed row flips to gold with dark ink, like the design. */
+.tactical-menu-row:active .tactical-menu-title,
+.tactical-menu-row:active .tactical-menu-number,
+.tactical-menu-row:active .tactical-menu-caption {
+    color: #3c2f00;
+}
+
+/* ---------------------------------------------------------------------------
    The team page (new UI): the squad grid, the character cards, the
    selected character's data panel, and the inventory/status rows.
 --------------------------------------------------------------------------- */
 .team-grid {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--s2);
@@ -1095,14 +1407,14 @@
     display: flex;
     gap: var(--s2);
     align-items: center;
-    margin-bottom: var(--s2);
+    margin-bottom: var(--s1);
 }
 
 /* The portrait column: the name sits above the image in normal flow
    (it takes real space and pushes the UI down a bit). */
 .team-data-portrait-wrap {
     flex: none;
-    width: var(--s36);
+    width: var(--s24);
     display: flex;
     flex-direction: column;
 }
@@ -1110,7 +1422,7 @@
 .team-data-portrait {
     display: block;
     width: 100%;
-    height: var(--s36);
+    height: var(--s24);
     object-fit: cover;
     image-rendering: pixelated;
 }
@@ -1129,6 +1441,8 @@
 /* While a character is selected the data panel is the whole page. */
 .team-data {
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .team-data-identity {
@@ -1149,23 +1463,42 @@
 .team-data-split {
     display: flex;
     gap: var(--s2);
+    /* The stats ledger is pinned to the bottom of the panel. */
+    align-items: flex-end;
 }
 
-/* The stats column: a fixed 35u wide (UI units), icon + right-aligned
-   name + a fixed-width number column (--s5). */
+/* The stats ledger (stitch view 1): a darker well with an inverted
+   inset bevel, hairline rows, muted labels and gold values. */
 .team-data-stats {
     flex: none;
     width: calc(var(--u) * 35);
     display: flex;
     flex-direction: column;
+    gap: var(--s1);
+    padding: var(--s2);
+    background: #170c05;
+    box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 #35271f;
+}
+
+.team-data-stats-title {
+    font-size: calc(var(--u) * 2);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #99907c;
+    margin-bottom: 2px;
 }
 
 .team-stat-line {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--s1);
     font-size: var(--s3);
-    height: var(--s5);
+    padding: 2px 0;
+    box-shadow: 0 1px 0 0 #251911;
+}
+
+.team-stat-line:last-child {
+    box-shadow: none;
 }
 
 .team-stat-icon {
@@ -1176,8 +1509,7 @@
 .team-stat-name {
     flex: 1;
     min-width: 0;
-    text-align: right;
-    color: var(--muted);
+    color: #b7c6ee;
 }
 
 .team-stat-value {
@@ -1185,7 +1517,14 @@
     width: var(--s5);
     text-align: right;
     font-weight: 700;
-    color: var(--text);
+    font-size: calc(var(--u) * 2.75);
+    color: #f2ca50;
+}
+
+/* A stat the item does not change reads flat/muted. */
+.team-stat-value--flat {
+    font-weight: 400;
+    color: #99907c;
 }
 
 /* The right side of the split: the equipment block. */
@@ -1198,19 +1537,23 @@
     justify-content: space-between;
 }
 
+/* The equipment block: the same ledger well as the stats column
+   (dark container, inverted bevel, hairline rows, gold names). */
 .team-data-block {
-    background: var(--card);
-    border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border);
-    padding: var(--s1) var(--s2);
+    background: #170c05;
+    box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 #35271f;
+    padding: var(--s2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
 }
 
 .team-data-block-title {
-    font-size: calc(var(--u) * 2.25);
-    color: var(--accent);
+    font-size: calc(var(--u) * 2);
+    color: #99907c;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: var(--s1);
+    letter-spacing: 0.6px;
+    margin-bottom: 2px;
 }
 
 .equip-line {
@@ -1219,6 +1562,12 @@
     gap: var(--s1);
     font-size: var(--s3);
     line-height: 1.4;
+    padding: 2px 0;
+    box-shadow: 0 1px 0 0 #251911;
+}
+
+.equip-line:last-child {
+    box-shadow: none;
 }
 
 .equip-line-item {
@@ -1227,13 +1576,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: white;
+    font-weight: 700;
+    color: #f2ca50;
 }
 
 .equip-line-empty {
     flex: 1;
     min-width: 0;
-    color: var(--muted);
+    color: #99907c;
     font-style: italic;
 }
 
@@ -1311,17 +1661,19 @@
     width: var(--s5);
 }
 
-/* The item table: header row + aligned count columns. */
+/* The item table: header row + aligned count columns (view 1: 9px
+   uppercase secondary with a hairline). */
 .inv-table-head {
     display: flex;
     align-items: center;
     gap: var(--s2);
     padding: var(--s1) 0;
-    border-bottom: var(--s1) solid var(--border);
+    border-bottom: none;
+    box-shadow: 0 1px 0 0 #403229;
     font-size: calc(var(--u) * 2.25);
-    color: var(--muted);
+    color: #b7c6ee;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
 }
 
 .inv-head-spacer {
@@ -1349,13 +1701,13 @@
     flex: none;
     width: var(--s8);
     text-align: right;
-    color: var(--muted);
+    color: #f6ded1;
     font-size: calc(var(--u) * 2.75);
 }
 
 /* The equipment view: the picker panel rendered inline at the top of
-   the central container (right below the header), leaving room for
-   the stats column underneath. */
+   the central container (right below the header), with the stats
+   ledger full-width underneath (stitch view 1 layout). */
 .equip-view {
     flex: 1;
     min-height: 0;
@@ -1365,31 +1717,126 @@
     overflow-y: auto;
 }
 
+.equip-view .team-data-stats {
+    /* A preset unit width, not 100%: percentage + padding overflows
+       horizontally inside the scroll container. 75u = the content
+       width of the team page (320 - 2x10px margins). */
+    width: calc(var(--u) * 75);
+    box-sizing: border-box;
+}
+
 .equip-picker {
-    flex: none;
-    background: var(--card-2);
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #251911;
     border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s2) var(--s2) 0 rgba(0, 0, 0, 0.7);
+    box-sizing: border-box;
+    /* box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s2) var(--s2) 0 rgba(0, 0, 0, 0.7); */
 }
 
-/* Item rows preview their stats on tap. */
-.inv-item-row {
-    cursor: pointer;
+/* ---- The shop styled as stitch view 1 ---- */
+
+/* Header: gold uppercase label + the 7 category tabs. */
+.equip-picker .pixel-modal-header {
+    background: #170c05;
+    gap: var(--s2);
 }
 
-/* Plain rows (no boxes): icon placeholder, name, usage values and the
-   equip action, separated by hairlines only. */
+.equip-picker .pixel-modal-title {
+    font-size: calc(var(--u) * 2.75);
+    letter-spacing: 0.05em;
+    color: #f2ca50;
+    text-transform: uppercase;
+}
+
+.equip-picker .inv-tabs {
+    gap: var(--s1);
+    margin-bottom: 0;
+}
+
+/* The category tabs (cat-tab): 20px squares, gold when active. */
+.equip-picker .inv-tab {
+    width: calc(var(--u) * 5);
+    height: calc(var(--u) * 5);
+    background: #170c05;
+    color: #d0c5af;
+    filter: none;
+}
+
+.equip-picker .inv-tab:hover {
+    color: #f2ca50;
+}
+
+.equip-picker .inv-tab.pixel-btn--primary {
+    background: #35271f;
+    color: #f2ca50;
+    box-shadow: inset 1px 1px 0 #f2ca50;
+}
+
+/* The item table scrolls inside the picker: many items never push the
+   stats ledger out of view. */
+.equip-picker .pixel-modal-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* The fixed strip under the table (Unequip/Equip in the design). */
+.equip-actions {
+    flex: none;
+    display: flex;
+    gap: var(--s2);
+    padding: var(--s2);
+    border-top: var(--s1) solid #000;
+}
+
+.equip-actions .pixel-btn {
+    flex: 1;
+    font-size: calc(var(--u) * 2.25);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: var(--s1) var(--s2);
+}
+
+.equip-actions .pixel-btn--danger {
+    background: #403229;
+    border-color: #403229;
+    color: #d0c5af;
+    box-shadow: inset 1px 1px 0 #4d4635, inset -1px -1px 0 #170c05;
+}
+
+.equip-actions .pixel-btn--danger:hover:not(:disabled) {
+    background: #35271f;
+    border-color: #35271f;
+}
+
+.equip-actions .equip-go {
+    background: #f2ca50;
+    border-color: #f2ca50;
+    color: #3c2f00;
+    font-weight: 700;
+    box-shadow: inset 1px 1px 0 #ffe088, inset -1px -1px 0 #554300;
+}
+
+.equip-actions .equip-go:hover:not(:disabled) {
+    background: #d4af37;
+    border-color: #d4af37;
+}
+
+/* Item rows (view 1): dark wells with a 1px groove inset, gold names.
+   Tapping previews the stats; Equip lives in the actions strip. */
 .inv-item-row {
     display: flex;
     align-items: center;
     gap: var(--s2);
-    padding: var(--s1) 0;
-    border-bottom: var(--s1) solid var(--border);
-    font-size: var(--s3);
-}
-
-.inv-item-row:last-child {
-    border-bottom: none;
+    padding: var(--s1);
+    background: #251911;
+    box-shadow: inset 1px 1px 0 #170c05;
+    font-size: calc(var(--u) * 2.5);
+    color: #f6ded1;
+    cursor: pointer;
 }
 
 .inv-item-icon {
@@ -1400,7 +1847,7 @@
     align-items: center;
     justify-content: center;
     font-size: var(--s2);
-    background: var(--card-2);
+    background: none;
 }
 
 .inv-item-info {
@@ -1412,6 +1859,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: 700;
+    color: #f2ca50;
 }
 
 /* A row the character cannot equip: icon and text read with the same
@@ -1499,10 +1948,75 @@
     font-display: swap;
 }
 
+/* Material Symbols Outlined: the icon font of the design (used when a
+   button has no pixel sprite). */
+@font-face {
+    font-family: 'Material Symbols Outlined';
+    src: url('../../assets/fonts/MaterialSymbolsOutlined.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+.material-symbol {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
 /* The pixel font may render smaller than the previous monospace at
    the same px: font-size-adjust scales every glyph so the x-height
    matches the requested value. Raise --font-adjust to enlarge
    globally (0.55 is the current default; tune on demand). */
+
+/* Custom scrollbars: a plain square gold rectangle sliding inside a
+   dark track, filling the track's full width. No arrows, no rounding.
+   NOTE: Chrome 121+ prioritizes the standard scrollbar-width/color
+   properties OVER ::-webkit-scrollbar, so the standard pair below
+   must NOT apply to Chrome — Firefox only. */
+::-webkit-scrollbar {
+    width: var(--s1);
+    height: var(--s1);
+}
+
+/* No arrow buttons at the ends of the track. */
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+::-webkit-scrollbar-track {
+    background: #170c05;
+    border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #f2ca50;
+    border: none;
+    border-radius: 0;
+}
+
+::-webkit-scrollbar-corner {
+    background: #170c05;
+}
+
+/* Firefox: the standard properties are the only control available. */
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: #f2ca50 #170c05;
+    }
+}
 
 /* A pixel icon from the sheet dictionary (assets/icons.ts): crisp at
    any size, no emoji overflow. */

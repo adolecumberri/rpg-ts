@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import type { InventorySlot, Team, TeamPosition } from '@rpg';
-import { WorldSession } from '@core';
+import { WorldSession, DEFAULT_ITEM_TABLE } from '@core';
 import type { NPC, Place, SaveData, ShopEntry } from '@core';
 import { TOAST_MS } from '../constants/toast';
 
@@ -85,6 +85,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
             }
         }
         sessionRef.current = session;
+
+        // Stress-test swords: web-only seed so the shop's sword section
+        // has enough rows to scroll. Never touches the engine's test bag
+        // (the engine tests stay green). Guards by POSITIVE quantity:
+        // an equipped (zero) copy still gets restocked.
+        const stressSwords = ['sword_1', 'sword_2', 'sword_3', 'sword_4'];
+        const bag = session.team.inventory.getAllItems();
+        for (const id of stressSwords) {
+            if (!bag.some((slot) => slot.item.id === id && slot.quantity > 0)) {
+                session.team.inventory.addItem(DEFAULT_ITEM_TABLE.createItem(id), 1);
+            }
+        }
     }
     const session = sessionRef.current;
 

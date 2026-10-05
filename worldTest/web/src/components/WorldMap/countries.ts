@@ -69,7 +69,7 @@ export const COUNTRY_BY_ID: Record<CountryId, CountryData> = COUNTRIES.reduce(
 );
 
 /** The country a region belongs to. */
-export function countryOfRegion(regionId: string): string | null {
+export function countryOfRegion(regionId: string): CountryId | null {
     const region = REGIONS.find((entry) => entry.id === regionId);
     return region ? region.countryId : null;
 }

@@ -54,7 +54,7 @@ export function TeamData({ character }: { character: Character }) {
                 </div>
             </div>
             <div className="team-data-split">
-                <StatsColumn rows={rows} />
+                <StatsColumn rows={rows} title="ESTADÍSTICAS" />
                 <div className="team-data-side">
                     <div className="team-data-block">
                         <div className="team-data-block-title">Equipment</div>

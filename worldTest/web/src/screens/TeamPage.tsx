@@ -121,6 +121,10 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
     const pickerSlots = bagSlots.filter(
         (slot) => slot.quantity > 0 && sectionOfItem(slot.item) === pickerSection,
     );
+    // The bag slot of the previewed item (the strip's Equip equips it).
+    const previewSlot = previewItem ?
+        bagSlots.find((slot) => slot.item.id === previewItem.id && slot.quantity > 0) :
+        undefined;
     const slotHasItem = selected && selectedHole !== null && loadout ?
         Boolean(loadout.holes[selectedHole]) :
         false;
@@ -170,7 +174,6 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                                         <span className="inv-head-name">nombre</span>
                                         <span className="inv-head-count">en uso</span>
                                         <span className="inv-head-count">total</span>
-                                        <span className="inv-head-action" />
                                     </div>
                                     {pickerSlots.map((slot) => {
                                         const allowed = selected ?
@@ -197,33 +200,31 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                                                 </span>
                                                 <span className="inv-count">{inUse}</span>
                                                 <span className="inv-count">{slot.totalQuantity}</span>
-                                                <button
-                                                    type="button"
-                                                    className="pixel-btn"
-                                                    style={{
-                                                        height: 'var(--s8)',
-                                                        ...(!allowed.ok ? { opacity: 0.5 } : {}),
-                                                    }}
-                                                    onClick={() => pickItem(slot)}
-                                                >
-                                                    Equip
-                                                </button>
                                             </div>
                                         );
                                     })}
                                 </div>
                             )}
-                            {slotHasItem ? (
-                                <div style={{ marginTop: 'var(--s2)' }}>
-                                    <button
-                                        type="button"
-                                        className="pixel-btn pixel-btn--danger"
-                                        onClick={unequipCurrent}
-                                    >
-                                        Unequip
-                                    </button>
-                                </div>
-                            ) : null}
+                        </div>
+                        <div className="equip-actions">
+                            <button
+                                type="button"
+                                className="pixel-btn pixel-btn--danger"
+                                disabled={!slotHasItem}
+                                onClick={unequipCurrent}
+                            >
+                                Unequip
+                            </button>
+                            <button
+                                type="button"
+                                className="pixel-btn equip-go"
+                                disabled={!previewSlot}
+                                onClick={() => {
+                                    if (previewSlot) pickItem(previewSlot);
+                                }}
+                            >
+                                Equip
+                            </button>
                         </div>
                     </div>
                 ) : (
@@ -243,7 +244,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                         </div>
                     </div>
                 )}
-                <StatsColumn rows={statsRows} />
+                <StatsColumn rows={statsRows} title="ESTADÍSTICAS DEL PORTADOR" />
             </div>
         ) : (
             <TeamData character={selected} />
@@ -276,19 +277,19 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                 {
                     id: 'equipment',
                     label: 'Equipo',
-                    icon: '🎒',
+                    icon: { symbol: 'backpack', color: '#f2ca50' },
                     onClick: () => setEquipView(true),
                 },
                 {
                     id: 'status',
                     label: 'Estatus',
-                    icon: '✨',
+                    icon: { symbol: 'auto_awesome', color: '#f2ca50' },
                     onClick: () => setStatusModal(true),
                 },
                 {
                     id: 'job',
                     label: 'Oficio',
-                    icon: '👤',
+                    icon: { symbol: 'person', color: '#f2ca50' },
                     onClick: () => api.showToast('The Jobs page is coming soon.'),
                 },
             ]}
@@ -329,7 +330,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
 
     return (
         <div className="pixel-font" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div className="newui-page" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div className="team-main">
                 {content}
             </div>
 
