@@ -9,8 +9,11 @@ import { resolveSkillEffect } from './skillEffects';
 import { consumeFaintTurn } from './fatigue';
 import { battleSkillSpecs, specOf } from '../skills';
 import type { SkillSpec } from '../skills';
+import type { ComponentLine } from '../damage/composer';
 import type { WorldSession } from '../session';
 import type { FightDefinition } from '../config/fights';
+import type { DamageKindTotals } from './battleTracker';
+import { kindTotalsOfBreakdown } from './battleTracker';
 
 // ---------------------------------------------------------------------------
 // The hybrid combat: the tick engine of the interval battle, but the
@@ -34,12 +37,25 @@ export type HybridCombatant = {
     skills?: SkillSpec[];
 };
 
+export type HybridTargetEffect = {
+    targetId: string;
+    damage: number;
+    heal: number;
+    // Post-mitigation damage split by kind (trackers consume it).
+    byKind?: Partial<DamageKindTotals>;
+};
+
 export type HybridAutoEvent = {
     kind: 'auto';
     tick: number;
     actorId: string;
     targetId: string;
     damage: number;
+    // Post-mitigation damage split by kind (trackers consume it).
+    damageByKind?: Partial<DamageKindTotals>;
+    // Counter-attack the defender answered with (basic attacks).
+    reflect?: number;
+    reflectByKind?: Partial<DamageKindTotals>;
     // Total healing of a skill action (0 for basic attacks).
     heal?: number;
     targetHpAfter: number;
@@ -48,6 +64,8 @@ export type HybridAutoEvent = {
     // leave them undefined.
     skillId?: string;
     targetIds?: string[];
+    // Per-target resolution of a skill action (damage, heal, kind).
+    effects?: HybridTargetEffect[];
     // Enemies that died from this action (kill attribution for XP).
     kills?: { targetId: string; killerId: string }[];
     note?: string;
@@ -78,6 +96,9 @@ export type HybridCombatOptions = {
     // Delegates the damage math of every basic hit (defaults to the
     // general attack resolver, so weapons with onAttack/onHit hooks work).
     damageResolver?: IntervalDamageResolver;
+    // Optional observer: fires with every resolved action — the battle
+    // trackers attach here.
+    onAction?: (event: HybridAutoEvent) => void;
 };
 
 export class HybridCombat {
@@ -86,6 +107,7 @@ export class HybridCombat {
     private maxTicks: number;
     private random: () => number;
     private damageResolver: IntervalDamageResolver;
+    private onAction?: (event: HybridAutoEvent) => void;
     // Fighters whose interval arrived on the current tick, still queued.
     private due: HybridCombatant[] = [];
     // A manual fighter waiting for the player to pick a target.
@@ -108,6 +130,7 @@ export class HybridCombat {
         this.maxTicks = options.maxTicks ?? 1000;
         this.random = options.random ?? Math.random;
         this.damageResolver = options.damageResolver ?? generalAttackResolver;
+        this.onAction = options.onAction;
         // Team auras apply from the first action on.
         this.syncAllAuras();
     }
@@ -319,16 +342,21 @@ export class HybridCombat {
         // Someone may have fallen: aura effects follow.
         this.syncAllAuras();
 
-        return {
+        const event: HybridAutoEvent = {
             kind: 'auto',
             tick: this.tick,
             actorId: actor.character.id,
             targetId: target.character.id,
             damage: resolved.damage,
+            damageByKind: resolved.byKind,
+            reflect: resolved.reflect,
+            reflectByKind: resolved.reflectByKind,
             targetHpAfter: target.character.stats.hp,
             targetAlive: target.character.stats.hp > 0,
             note: resolved.note,
         };
+        this.onAction?.(event);
+        return event;
     }
 
     private performSkill(
@@ -346,6 +374,7 @@ export class HybridCombat {
         const enemyIds = new Set(this.enemiesOf(actor).map((entry) => entry.character.id));
         const result = resolveSkillEffect(spec, actor.character, targets, {
             isEnemy: (character) => enemyIds.has(character.id),
+            breakdown: true,
         });
 
         const kills: { targetId: string; killerId: string }[] = [];
@@ -369,20 +398,34 @@ export class HybridCombat {
         this.syncAllAuras();
 
         const primary = targets[0];
-        return {
+        const event: HybridAutoEvent = {
             kind: 'auto',
             tick: this.tick,
             actorId: actor.character.id,
             targetId: primary?.id ?? '',
             damage: result.totalDamage,
+            damageByKind: kindTotalsOfBreakdown(
+                result.effects.reduce(
+                    (lines: ComponentLine[], effect) => lines.concat(effect.breakdown ?? []),
+                    [],
+                ),
+            ),
             heal: result.totalHeal,
             targetHpAfter: primary ? primary.stats.hp : 0,
             targetAlive: primary ? primary.stats.hp > 0 : false,
             skillId: spec.id,
             targetIds: targets.map((target) => target.id),
+            effects: result.effects.map((effect) => ({
+                targetId: effect.targetId,
+                damage: effect.damage,
+                heal: effect.heal,
+                byKind: kindTotalsOfBreakdown(effect.breakdown ?? []),
+            })),
             kills: kills.length > 0 ? kills : undefined,
             note: spec.name,
         };
+        this.onAction?.(event);
+        return event;
     }
 }
 

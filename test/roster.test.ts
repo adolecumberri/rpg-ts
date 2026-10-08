@@ -14,7 +14,7 @@ describe('roster', () => {
         roster.add(farmer('a'));
         roster.add(farmer('b'));
 
-        expect(roster.activeIds()).toEqual(['a']); // the single slot is taken
+        expect(roster.activeIds()).toEqual(['a', 'b']); // the six-person squad has room
         expect(roster.all()).toHaveLength(2);
     });
 
@@ -44,9 +44,9 @@ describe('roster', () => {
         roster.add(farmer('c'));
         const team = new Team();
         roster.rebuildTeam(team);
-        expect(team.getAll().map((character) => character.id)).toEqual(['a']);
+        expect(team.getAll().map((character) => character.id)).toEqual(['a', 'b', 'c']);
 
-        // Squad missions pass an explicit max.
+        // The explicit max overrides the global party size.
         roster.setActive(['c', 'a'], 3);
         roster.rebuildTeam(team);
 
@@ -60,7 +60,7 @@ describe('roster', () => {
         roster.add(farmer('b'));
 
         roster.deactivate('a');
-        expect(roster.activeIds()).toEqual([]); // b waits in the pool
+        expect(roster.activeIds()).toEqual(['b']); // b stays active
         expect(roster.has('a')).toBe(true);
 
         roster.remove('a');
@@ -76,19 +76,19 @@ describe('roster', () => {
         session.addRosterCharacter(farmer('f2'));
         session.addRosterCharacter(farmer('f3'));
 
-        // Only the player travels by default: everyone else waits in
-        // the roster until a squad mission picks them.
+        // Adding to the roster activates while the squad has room.
         expect(session.roster.all()).toHaveLength(17);
-        expect(session.roster.activeIds()).toEqual(['player']);
+        expect(session.roster.activeIds()).toEqual(['player', 'hero', 'f1', 'f2', 'f3']);
 
-        // A squad mission (the renegade league) raises the party to 6.
-        session.missions.start('renegade_league');
         session.setActiveParty(['hero', 'arturo', 'f3']);
+        // A special character keeps its own picture across the save.
+        session.roster.character('hero')!.portraitId = 'mage';
         const restored = WorldSession.fromSave(session.exportSave());
 
         expect(restored.roster.all()).toHaveLength(17);
         expect(restored.roster.activeIds()).toEqual(['hero', 'arturo', 'f3']);
         expect(restored.team.getAll().map((character) => character.id)).toEqual(['hero', 'arturo', 'f3']);
+        expect(restored.roster.character('hero')!.portraitId).toBe('mage');
     });
 
     it('loads legacy saves (no roster field) with everything active', () => {

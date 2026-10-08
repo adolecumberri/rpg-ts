@@ -20,6 +20,8 @@ export type UnitPreset = {
         // archers harass faster).
         interval: number;
         reach: 'short' | 'long' | 'all';
+        // Percent chance (0-100) of dodging an incoming attack.
+        evasion: number;
     };
     perLevel: {
         hp: number;
@@ -33,7 +35,7 @@ export const UNIT_PRESETS: UnitPreset[] = [
         name: 'Soldier',
         icon: '⚔️',
         spriteRole: 'warrior',
-        base: { hp: 30, power: 8, interval: 6, reach: 'short' },
+        base: { hp: 30, power: 8, interval: 6, reach: 'short', evasion: 0 },
         perLevel: { hp: 2, power: 1 },
     },
     {
@@ -41,7 +43,7 @@ export const UNIT_PRESETS: UnitPreset[] = [
         name: 'Archer',
         icon: '🏹',
         spriteRole: 'archer',
-        base: { hp: 22, power: 6, interval: 4, reach: 'all' },
+        base: { hp: 22, power: 6, interval: 4, reach: 'all', evasion: 25 },
         perLevel: { hp: 1, power: 1 },
     },
     {
@@ -49,14 +51,14 @@ export const UNIT_PRESETS: UnitPreset[] = [
         name: 'Mage',
         icon: '✨',
         spriteRole: 'mage',
-        base: { hp: 20, power: 5, interval: 5, reach: 'long' },
+        base: { hp: 20, power: 5, interval: 5, reach: 'long', evasion: 10 },
         perLevel: { hp: 1, power: 1 },
     },
     {
         id: 'farmer',
         name: 'Farmer',
         icon: '🌾',
-        base: { hp: 14, power: 4, interval: 6, reach: 'short' },
+        base: { hp: 14, power: 4, interval: 6, reach: 'short', evasion: 0 },
         perLevel: { hp: 2, power: 1 },
     },
 ];
@@ -82,6 +84,8 @@ export type FightUnit = BattleUnit & {
     power: number;
     interval: number;
     reach: 'short' | 'long' | 'all';
+    // Percent chance (0-100) of dodging an incoming attack.
+    evasion: number;
 };
 
 /** One group of the army builder: a preset, a count, a row and a level. */
@@ -124,6 +128,7 @@ export function unitsOfArmy(groups: ArmyGroup[], prefix: string): FightUnit[] {
                 power,
                 interval: preset.base.interval,
                 reach: preset.base.reach,
+                evasion: preset.base.evasion,
                 sub: `🎯 ${preset.base.reach}`,
             });
         }

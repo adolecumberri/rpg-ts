@@ -62,6 +62,14 @@ export interface StatusDefinition {
     onAdd?: (character: Character) => void;
     onRemove?: (character: Character) => void;
     onTrigger?: (character: Character) => void;
+    // Fires once per impact hit the bearer applies. The damage pipeline
+    // passes the hit's payload (typed `unknown` so the library stays
+    // agnostic of the game's hit context), letting the status add
+    // damage to the hit or raise its impact count (Sheen, Phantom).
+    onImpactHit?: (character: Character, payload?: unknown) => void;
+    // One-shot charges: the manager removes the status after its
+    // on-impact-hit hook fires (Sheen Ready, Phantom Strike).
+    consumedOnImpactHit?: boolean;
     // Additive extension: a signed variation applied to the FINAL
     // damage of every hit the bearer receives (after defence, affinities
     // and reactions). -70 = takes 70% less damage; positive values make

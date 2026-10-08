@@ -26,7 +26,7 @@ describe('save system', () => {
         session.equipTo('test_sword', 'hero');
         hero.experience.gain(100); // level 2
         session.unlockNode('hero', 'warcry');
-        session.unlocked.add('east_unlocked');
+        session.unlocked.add('east_field_unlocked');
         session.team.gold += 25;
         session.currentPlaceId = 'hay_field'; // direct assignment
         session.setPosition('hero', 'back');
@@ -35,7 +35,7 @@ describe('save system', () => {
 
         expect(restored.currentPlaceId).toBe('hay_field');
         expect(restored.team.gold).toBe(session.team.gold);
-        expect(restored.unlocked.has('east_unlocked')).toBe(true);
+        expect(restored.unlocked.has('east_field_unlocked')).toBe(true);
 
         const restoredHero = restored.team.getCharacter('hero')!;
         expect(restoredHero.stats.attack).toBe(hero.stats.attack);
@@ -64,7 +64,7 @@ describe('save system', () => {
 
         const restored = WorldSession.fromSave(data);
 
-        expect(restored.currentPlaceId).toBe('farm');
+        expect(restored.currentPlaceId).toBe('camp');
         expect(restored.team.getCharacter('player')).toBeDefined();
         expect(restored.roster.all()).toHaveLength(13); // player + 12 farmers
     });

@@ -1,11 +1,6 @@
 import { WorldSession } from '../worldTest/core/session';
 import { SHOPS } from '../worldTest/core/config/shops';
 
-// The sickles mission requires a sickle: grant it before accepting.
-function giveSickle(session: WorldSession): void {
-    session.team.inventory.addItem(session.itemTable.createItem('sickle'));
-}
-
 // The stock machinery is tested against a shop registered for the test
 // (the farm shop itself was emptied by the Order camp shift).
 function withStockedShop(): void {
@@ -71,23 +66,35 @@ describe('farm shop', () => {
 });
 
 describe('mission requirements', () => {
-    it('refuses the sickles mission without a sickle and reports why', () => {
+    it('refuses a mission without its required item and reports why', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.missions.register({
+            id: 'sickle_quest',
+            title: 'Sickle Quest',
+            requirements: { items: [{ itemId: 'sickle', quantity: 1 }] },
+            steps: [{ id: 'done', kind: 'reward', flags: ['sickle_done'] }],
+        });
 
-        const met = session.missionRequirementsMet('sickles_to_hay');
+        const met = session.missionRequirementsMet('sickle_quest');
         expect(met.ok).toBe(false);
         expect(met.reason).toContain('Sickle');
 
-        expect(session.startMission('sickles_to_hay')).toBe(false);
+        expect(session.startMission('sickle_quest')).toBe(false);
         expect(session.missions.activeMissions()).toEqual([]);
     });
 
-    it('accepts the mission once the sickle is owned', () => {
+    it('accepts the mission once the item is owned', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        giveSickle(session);
+        session.missions.register({
+            id: 'sickle_quest',
+            title: 'Sickle Quest',
+            requirements: { items: [{ itemId: 'sickle', quantity: 1 }] },
+            steps: [{ id: 'done', kind: 'reward', flags: ['sickle_done'] }],
+        });
+        session.team.inventory.addItem(session.itemTable.createItem('sickle'));
 
-        expect(session.missionRequirementsMet('sickles_to_hay').ok).toBe(true);
-        expect(session.startMission('sickles_to_hay')).toBe(true);
+        expect(session.missionRequirementsMet('sickle_quest').ok).toBe(true);
+        expect(session.startMission('sickle_quest')).toBe(true);
     });
 
     it('checks gold requirements too', () => {

@@ -35,6 +35,9 @@ export type FloatingHit = {
     parts?: DamagePart[];
     // Crit: shows the crit icon before the value.
     crit?: boolean;
+    // A text-only result ('evade' / 'miss'): renders as text instead of
+    // a number — the evasion/accuracy prototype's floating feedback.
+    text?: 'evade' | 'miss';
     // Position relative to the FloatingDamageLayer's box.
     x: number;
     y: number;
@@ -87,6 +90,18 @@ export function FloatingDamage({
     hit: FloatingHit;
     onDone: (id: number) => void;
 }) {
+    if (hit.text) {
+        return (
+            <div
+                className="floating-damage floating-damage--text"
+                style={{ left: hit.x, top: hit.y }}
+                onAnimationEnd={() => onDone(hit.id)}
+            >
+                {hit.text === 'evade' ? 'EVADE' : 'MISS'}
+            </div>
+        );
+    }
+
     const parts = hit.parts && hit.parts.length > 0 ?
         hit.parts :
         [{ element: hit.kind ?? 'physical', amount: hit.amount ?? 0 }];

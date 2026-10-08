@@ -6,6 +6,7 @@ import {
     assignReactiveSkills,
     battleSkillSpecs,
     hasStatusNamed,
+    reactionHandlerFromSpec,
     removeReactiveSkill,
     setReactiveSkills,
     specOf,
@@ -13,6 +14,7 @@ import {
 import { hasteStatus, rageStatus, gateOpenedStatus, berserkStatus } from '../worldTest/core/statuses';
 import { generalAttackResolver, resolveGeneralAttack } from '../worldTest/core/damage/general';
 import { addReaction, reactionsOf } from '../worldTest/core/damage/reactions';
+import type { ReactionContext } from '../worldTest/core/damage/reactions';
 import { HybridCombat } from '../worldTest/core/combat/hybridCombat';
 import { rampGatePower } from '../worldTest/core/combat/ramp';
 
@@ -42,6 +44,7 @@ describe('skill catalog', () => {
             'impetu',
             'first_aid',
             'cover',
+            'silver_bolts',
         ]);
         expect(specOf('fireball')).toBeUndefined();
         expect(specOf('warcry')).toBeUndefined();
@@ -81,27 +84,54 @@ describe('haste and rage statuses', () => {
 });
 
 describe('reactive skills', () => {
-    it('spike shield reflects 18% of the damage taken as true damage', () => {
-        const attacker = character('a', { attack: 10, hp: 100, totalHp: 100 });
-        const defender = character('spike-d', { defence: 0, hp: 100, totalHp: 100 });
+    it('spike shield answers every impact hit with a 10 + 20% defence physical counter', () => {
+        const attacker = character('a', { attack: 10, hp: 100, totalHp: 100, defence: 0 });
+        const defender = character('spike-d', { defence: 20, hp: 100, totalHp: 100 });
         assignReactiveSkills(defender, ['spike_shield']);
 
         const outcome = resolveGeneralAttack(attacker, defender, noCrit);
 
-        expect(outcome.damage).toBe(10); // the defender still takes the hit
-        expect(outcome.reflect).toBe(1.8); // 18% back, bypassing everything
+        // The defender still takes the hit (10 attack, mitigated by its 20 defence).
+        expect(outcome.damage).toBeCloseTo((10 * 50) / 70);
+        // One impact hit received: 10 + 20% of 20 defence = 14 physical.
+        expect(outcome.counter?.components).toEqual([
+            { kind: 'physical', element: 'physical', amount: 14, label: 'Spike Shield' },
+        ]);
         expect(outcome.note).toContain('spiked');
     });
 
-    it('parry negates the attack and returns 70% of the damage', () => {
-        const attacker = character('a', { attack: 10, hp: 100, totalHp: 100 });
+    it('spike shield answers once per impact hit received', () => {
+        const defender = character('spike-d', { defence: 20, hp: 100, totalHp: 100 });
+        const handler = reactionHandlerFromSpec(specOf('spike_shield')!)!;
+
+        // A triple-impact hit (a phantom-driven attack) builds three counters.
+        const outcome = handler({
+            attacker: character('a', { attack: 10 }),
+            defender,
+            incomingDamage: 10,
+            impactHits: 3,
+            random: () => 1,
+        });
+
+        expect(outcome?.counter).toEqual([
+            { kind: 'physical', element: 'physical', amount: 14, label: 'Spike Shield' },
+            { kind: 'physical', element: 'physical', amount: 14, label: 'Spike Shield' },
+            { kind: 'physical', element: 'physical', amount: 14, label: 'Spike Shield' },
+        ]);
+        expect(outcome?.damage).toBe(10); // the hit itself is not negated
+    });
+
+    it('parry negates the attack and builds a 70% physical counter-attack', () => {
+        const attacker = character('a', { attack: 10, hp: 100, totalHp: 100, defence: 0 });
         const defender = character('parry-d', { defence: 0, hp: 100, totalHp: 100 });
         assignReactiveSkills(defender, ['parry']);
 
         const outcome = resolveGeneralAttack(attacker, defender, noCrit);
 
         expect(outcome.damage).toBe(0); // the defender takes nothing
-        expect(outcome.reflect).toBe(7); // 70% of the would-be damage
+        expect(outcome.counter?.components).toEqual([
+            { kind: 'physical', element: 'physical', amount: 7, label: 'Parry' },
+        ]);
         expect(outcome.note).toContain('parried');
     });
 
@@ -112,7 +142,7 @@ describe('reactive skills', () => {
         const outcome = resolveGeneralAttack(attacker, defender, noCrit);
 
         expect(outcome.damage).toBe(10);
-        expect(outcome.reflect).toBe(0);
+        expect(outcome.counter).toBeUndefined();
     });
 
     it('the interval engine applies reflected damage to the attacker', () => {
@@ -152,14 +182,14 @@ describe('reactive skill removal', () => {
         const attacker = character('a', { attack: 10 });
         const defender = character('d', { defence: 0 });
         assignReactiveSkills(defender, ['spike_shield']);
-        expect(resolveGeneralAttack(attacker, defender, noCrit).reflect).toBe(1.8);
+        expect(resolveGeneralAttack(attacker, defender, noCrit).counter).toBeDefined();
 
         expect(removeReactiveSkill(defender, 'spike_shield')).toBe(true);
         expect(reactionsOf(defender)).toHaveLength(0);
 
         const after = resolveGeneralAttack(attacker, defender, noCrit);
         expect(after.damage).toBe(10);
-        expect(after.reflect).toBe(0);
+        expect(after.counter).toBeUndefined();
     });
 
     it('returns false when removing a skill that is not attached', () => {
@@ -178,7 +208,7 @@ describe('reactive skill removal', () => {
         // parry piece is gone, spike shield is the only one left
         expect(reactionsOf(defender)).toHaveLength(1);
         expect(outcome.damage).toBe(10);
-        expect(outcome.reflect).toBe(1.8);
+        expect(outcome.counter).toBeDefined();
     });
 
     it('setReactiveSkills with an empty list removes every attached skill', () => {
@@ -192,9 +222,8 @@ describe('reactive skill removal', () => {
 
     it('never touches reaction pieces attached by other systems', () => {
         const defender = character('d', { defence: 0, hp: 100, totalHp: 100 });
-        const custom = ({ incomingDamage }: { incomingDamage: number; attacker: Character; defender: Character; random: () => number }) => ({
-            damage: incomingDamage,
-            reflect: 1,
+        const custom = (ctx: ReactionContext) => ({
+            damage: ctx.incomingDamage,
             note: 'custom',
         });
         addReaction(defender, custom);

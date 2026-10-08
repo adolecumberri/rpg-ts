@@ -72,7 +72,7 @@ describe('skill trees', () => {
 
     it('applies stat bonuses when a node is learned', () => {
         const session = sessionWithHero();
-        session.unlocked.add('east_unlocked');
+        session.unlocked.add('east_field_unlocked');
         const hero = session.team.getCharacter('hero')!;
         const attackBefore = hero.stats.attack;
         const totalHpBefore = hero.stats.totalHp;

@@ -1,4 +1,5 @@
 import type { Character } from '../../../src';
+import type { DamageComponent } from './composer';
 
 // Reactive pieces carried by a character: they fire when the bearer is
 // attacked. Skills (or any other system) attach these pieces; the damage
@@ -9,14 +10,19 @@ export type ReactionContext = {
     defender: Character;
     // The damage the defender is about to take (already mitigated).
     incomingDamage: number;
+    // How many impact hits the incoming attack applied: a reaction may
+    // answer once per impact hit received (the Spike Shield).
+    impactHits: number;
     random: () => number;
 };
 
 export type ReactionResult = {
-    // Damage the defender actually takes.
+    // Damage the defender actually takes (0 when the reaction negates).
     damage: number;
-    // Damage reflected back at the attacker (final value: no mitigation).
-    reflect: number;
+    // The counter-attack the defender builds back at the attacker: an
+    // attack instance (components) resolved by whoever applies the hit
+    // — mitigated by the attacker's defence, crit-able, full pipeline.
+    counter?: DamageComponent[];
     // Flavour for logs, e.g. 'parried!'.
     note?: string;
 };

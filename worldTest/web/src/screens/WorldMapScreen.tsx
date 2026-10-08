@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { PLACES_BY_ID } from '@core';
 import { useGame } from '../game/GameContext';
 import { WorldMap } from '../components/WorldMap/WorldMap';
-import { REGION_IDS } from '../components/WorldMap/ids';
 import type { RegionId } from '../components/WorldMap/ids';
+import { REGIONS } from '../components/WorldMap/regions';
 import { MAP_PLACES } from '../components/WorldMap/mapPlaces';
 import type { MapPlace } from '../components/WorldMap/mapPlaces';
 import { OptionsBar } from '../components/UI/OptionsBar';
@@ -13,11 +13,19 @@ import { OptionsBar } from '../components/UI/OptionsBar';
  * travelTargets() decides every marker: hidden places are not drawn,
  * blocked ones use the unreachable circle and explain why in the bar,
  * open ones travel straight away. Same-region places are direct
- * destinations; crossing regions needs the border connection.
+ * destinations; crossing regions needs the border connection. The
+ * router owns the discovered regions (the menu can reveal them all).
  */
-export function WorldMapScreen({ onBack }: { onBack?: () => void }) {
+export function WorldMapScreen({
+    onBack,
+    discovered,
+    setDiscovered,
+}: {
+    onBack?: () => void;
+    discovered: RegionId[];
+    setDiscovered: (ids: RegionId[]) => void;
+}) {
     const api = useGame();
-    const [discovered, setDiscovered] = useState<RegionId[]>([REGION_IDS.fergel_este]);
     const [selected, setSelected] = useState<RegionId | null>(null);
     // The place shown in the action bar (null = the current place).
     const [place, setPlace] = useState<MapPlace | null>(null);
@@ -70,6 +78,10 @@ export function WorldMapScreen({ onBack }: { onBack?: () => void }) {
                 selectedPlaceId={place ? place.placeId : null}
                 reachablePlaceIds={allowedPlaceIds}
                 hiddenPlaceIds={hiddenPlaceIds}
+                onRevealAllRegions={() => {
+                    setDiscovered(REGIONS.map((region) => region.id));
+                    api.showToast('All regions discovered.');
+                }}
                 undiscovered="select"
             />
             <OptionsBar
@@ -77,11 +89,20 @@ export function WorldMapScreen({ onBack }: { onBack?: () => void }) {
                 options={[{
                     id: 'go',
                     label: 'Go',
-                    icon: { symbol: 'directions_walk', color: '#f2ca50' },
+                    icon: { symbol: 'directions_walk', color: 'var(--accent)' },
                     sub: 'Travel',
                     onClick: go,
                     disabled: !shownReachable,
                     disabledReason: shownReason ?? 'You cannot reach this place.',
+                }, {
+                    id: 'reveal',
+                    label: 'Reveal',
+                    icon: { symbol: 'travel_explore', color: 'var(--accent)' },
+                    sub: 'All regions',
+                    onClick: () => {
+                        setDiscovered(REGIONS.map((region) => region.id));
+                        api.showToast('All regions discovered.');
+                    },
                 }]}
                 back={{ label: 'Back', onClick: back }}
                 pinLast

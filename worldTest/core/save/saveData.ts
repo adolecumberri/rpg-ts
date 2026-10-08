@@ -24,6 +24,9 @@ export type SavedCharacter = {
     // existed load with the default job derived from the id, and its
     // stat bonuses are applied once as a self-heal).
     jobId?: string;
+    // The picture override (optional: characters without one follow
+    // the held job's portrait).
+    portraitId?: string;
     // The worldTest-only stats the historic fields don't cover
     // (optional: old saves load at the seeded defaults).
     extraStats?: {
@@ -89,6 +92,14 @@ export type SaveData = {
     // Mission progress (optional: saves made before missions existed
     // still load).
     missions?: MissionSnapshot[];
+    // The board-side mission state (the accept/complete counters;
+    // optional: saves made before it existed rebuild it lazily on the
+    // next board query).
+    missionBoard?: {
+        missionId: string;
+        timesAccepted: number;
+        timesCompleted: number;
+    }[];
     // Elapsed story days (optional: saves made before the calendar
     // existed still load, starting at day 0).
     calendarDay?: number;

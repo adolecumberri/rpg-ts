@@ -5,25 +5,72 @@ import type { OptionSpec } from '../components/UI/OptionsBar';
 import { placeImageOf } from '../assets/places';
 import { ACTION_ICONS } from '../assets/actionIcons';
 import { WorldMapScreen } from './WorldMapScreen';
+import type { RegionId } from '../components/WorldMap/ids';
 
 /**
  * The place page (new UI): the place's hero plus its action bar, with
  * the Map option always first so it never hides behind the bar's
  * pagination. The map is the canonical WorldMap now.
  */
-export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
+export function PlacePage({
+    onOpenTeam,
+    onOpenMissions,
+    onOpenInventory,
+    panel,
+    onPanelChange,
+    discovered,
+    setDiscovered,
+}: {
+    onOpenTeam?: (fromParty?: boolean) => void;
+    onOpenMissions?: (tab?: 'accepted') => void;
+    // Opens the informative inventory page (the party submenu's
+    // Inventory option) instead of the team page.
+    onOpenInventory?: () => void;
+    // The active options panel: the place actions or the party submenu.
+    // Controlled by the router so a Back from Inventory/Squad/Misiones
+    // can return to the party submenu instead of the place menu.
+    panel: 'place' | 'party';
+    onPanelChange: (panel: 'place' | 'party') => void;
+    discovered: RegionId[];
+    setDiscovered: (ids: RegionId[]) => void;
+}) {
     const api = useGame();
     const [view, setView] = useState<'place' | 'map'>('place');
 
     if (view === 'map') {
-        return <WorldMapScreen onBack={() => setView('place')} />;
+        return (
+            <WorldMapScreen
+                onBack={() => setView('place')}
+                discovered={discovered}
+                setDiscovered={setDiscovered}
+            />
+        );
     }
+
+    // Opening the team from the party submenu tells the router to come
+    // back to the submenu when the user presses Back there.
+    const openTeam = (fromParty = false) => {
+        if (onOpenTeam) {
+            onOpenTeam(fromParty);
+            return;
+        }
+        api.navigate({ name: 'team' });
+    };
 
     const place = api.currentPlace;
     const options: OptionSpec[] = [];
 
-    // Always first: the map stays on the first page of the bar.
+    // Always first: the map stays on the first page of the bar, and
+    // Party right after it (the place actions fill the rest, so Party
+    // never hides behind the bar's pagination).
     options.push({ id: 'map', label: 'Map', icon: ACTION_ICONS.map, sub: 'Region', onClick: () => setView('map') });
+    options.push({
+        id: 'party',
+        label: 'Party',
+        icon: { symbol: 'groups', color: '#f2ca50' },
+        sub: 'Squad & missions',
+        onClick: () => onPanelChange('party'),
+    });
 
     const corpses = api.session.corpsesAt(place.id).length;
 
@@ -44,7 +91,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? { symbol: 'chat', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'chat', color: 'var(--accent)' },
                     onClick: () => {
                         if (action.gold) api.team.gold += action.gold;
                         api.refresh();
@@ -55,7 +102,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? { symbol: 'swords', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'swords', color: 'var(--accent)' },
                     tone: 'danger',
                     onClick: () => api.navigate({ name: 'combat', npcId: action.npcId, placeId: place.id }),
                 });
@@ -63,7 +110,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? { symbol: 'swords', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'swords', color: 'var(--accent)' },
                     tone: 'danger',
                     onClick: () => api.navigate({ name: 'combat', fightId: action.fightId, placeId: place.id }),
                 });
@@ -71,7 +118,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? { symbol: 'timer', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'timer', color: 'var(--accent)' },
                     tone: 'danger',
                     onClick: () => api.navigate({ name: 'interval' }),
                 });
@@ -90,14 +137,14 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? { symbol: 'bed', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'bed', color: 'var(--accent)' },
                     onClick: () => api.rest(),
                 });
             } else if (action.kind === 'train') {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? { symbol: 'fitness_center', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'fitness_center', color: 'var(--accent)' },
                     onClick: () => {
                         const result = api.session.train(action.levels);
                         api.refresh();
@@ -108,7 +155,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? { symbol: 'agriculture', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'agriculture', color: 'var(--accent)' },
                     onClick: () => {
                         const result = api.session.doTask(action);
                         api.refresh();
@@ -120,7 +167,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: completed ? `${action.label} ✓` : action.label,
-                    icon: action.icon ?? { symbol: 'description', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'description', color: 'var(--accent)' },
                     onClick: () => {
                         if (completed) {
                             api.showToast('This mission is already completed.');
@@ -137,13 +184,19 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                     label: action.label,
                     icon: ACTION_ICONS.missions,
                     sub: 'The Hall',
-                    onClick: () => api.navigate({ name: 'board' }),
+                    onClick: () => {
+                        if (onOpenMissions) {
+                            onOpenMissions();
+                            return;
+                        }
+                        api.navigate({ name: 'board' });
+                    },
                 });
             } else if (action.kind === 'team') {
                 options.push({
                     id: action.id,
                     label: action.label,
-                    icon: action.icon ?? { symbol: 'groups', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'groups', color: 'var(--accent)' },
                     onClick: () => {
                         if (onOpenTeam) {
                             onOpenTeam();
@@ -153,11 +206,15 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                     },
                 });
             } else if (action.kind === 'look_around') {
+                // Nothing to inspect (no corpses, no leftovers): the
+                // option reads disabled instead of opening an empty view.
                 options.push({
                     id: action.id,
                     label: corpses > 0 ? `${action.label} ⚰️ ${corpses}` : action.label,
                     icon: ACTION_ICONS.look,
                     sub: 'Inspect',
+                    disabled: corpses === 0,
+                    disabledReason: 'Nothing to look around.',
                     onClick: () => api.navigate({ name: 'lookaround' }),
                 });
             } else if (action.kind === 'fountain') {
@@ -165,7 +222,7 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                 options.push({
                     id: action.id,
                     label: candidates > 0 ? `${action.label} ♻️` : action.label,
-                    icon: action.icon ?? { symbol: 'water_drop', color: '#f2ca50' },
+                    icon: action.icon ?? { symbol: 'water_drop', color: 'var(--accent)' },
                     onClick: () => api.navigate({ name: 'fountain' }),
                 });
             }
@@ -219,7 +276,49 @@ export function PlacePage({ onOpenTeam }: { onOpenTeam?: () => void }) {
                     ) : null}
                 </div>
             </div>
-            <OptionsBar options={options} size="lg" />
+            {panel === 'party' ? (
+                <OptionsBar
+                    size="lg"
+                    options={[
+                        {
+                            id: 'inventory',
+                            label: 'Inventory',
+                            icon: { symbol: 'backpack', color: '#f2ca50' },
+                            sub: 'Bag & equipment',
+                            onClick: () => {
+                                if (onOpenInventory) {
+                                    onOpenInventory();
+                                    return;
+                                }
+                                openTeam(true);
+                            },
+                        },
+                        {
+                            id: 'squad',
+                            label: 'Squad',
+                            icon: { symbol: 'groups', color: '#f2ca50' },
+                            sub: 'Active party',
+                            onClick: () => openTeam(true),
+                        },
+                        {
+                            id: 'missions',
+                            label: 'Misiones',
+                            icon: { symbol: 'assignment', color: '#f2ca50' },
+                            sub: 'Aceptadas',
+                            onClick: () => {
+                                if (onOpenMissions) {
+                                    onOpenMissions('accepted');
+                                    return;
+                                }
+                                api.navigate({ name: 'board' });
+                            },
+                        },
+                    ]}
+                    back={{ label: 'Atrás', onClick: () => onPanelChange('place') }}
+                />
+            ) : (
+                <OptionsBar options={options} size="lg" />
+            )}
         </div>
     );
 }

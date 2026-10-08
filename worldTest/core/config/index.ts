@@ -7,7 +7,6 @@ export * from './speed';
 export * from './growth';
 export * from './roster';
 export * from './inventory';
-export * from './species';
 export * from './chats';
 export * from './fights';
 export * from './calendar';

@@ -20,6 +20,10 @@ export type ActionBarCell = {
     mark?: string;
     // The muted sub-label under the label.
     sub?: string;
+    // The grid slot (1-based) and whether the cell spans the whole row
+    // (both grid columns) — screens pin their buttons to fixed places.
+    slot?: number;
+    wide?: boolean;
     onClick?: () => void;
 };
 
@@ -60,13 +64,14 @@ export function ActionBar({
     accept,
     pinLast = false,
     banner,
+    fixedRows = false,
 }: {
     cells: ActionBarCell[];
     size?: ActionBarSize;
     // The cancel option (slot 5 on the first page): shown while the
     // current pick is undoable. Renders as a standard action button
     // (icon slot + title) with the pixel close icon by default.
-    back?: { label?: string; icon?: ActionIcon; onClick: () => void };
+    back?: { label?: string; icon?: ActionIcon; wide?: boolean; onClick: () => void };
     // The floating accept: shown when the caller passes it, over the
     // panel's top edge, MD size.
     accept?: { label?: string; onClick: () => void };
@@ -76,6 +81,10 @@ export function ActionBar({
     // A text banner spanning the first two slots of the first page
     // (the world map shows the place name there).
     banner?: string;
+    // The grid keeps its fixed row heights even for empty rows, so a
+    // button pinned to a lower row (e.g. slot 5) stays at the bottom
+    // of the bar instead of closing up against the row above.
+    fixedRows?: boolean;
 }) {
     const [page, setPage] = useState(0);
     const [hint, setHint] = useState<string | null>(null);
@@ -145,6 +154,8 @@ export function ActionBar({
                 selected={cell.selected}
                 mark={cell.mark}
                 sub={cell.sub}
+                slot={cell.slot}
+                wide={cell.wide}
                 onClick={() => press(cell)}
             />,
         );
@@ -158,7 +169,7 @@ export function ActionBar({
             <ActionButton
                 key="nav-next"
                 label="More"
-                icon={{ symbol: 'chevron_right', color: '#f2ca50' }}
+                icon={{ symbol: 'chevron_right', color: 'var(--accent)' }}
                 size={size}
                 slot={nextSlot}
                 sub="Next page"
@@ -194,6 +205,7 @@ export function ActionBar({
                 icon={back.icon ?? { icon: 'atras' }}
                 size={size}
                 slot={mode.capacity - 1}
+                wide={back.wide}
                 onClick={back.onClick}
             />,
         );
@@ -202,7 +214,7 @@ export function ActionBar({
             <ActionButton
                 key="nav-back"
                 label="Back"
-                icon={{ symbol: 'chevron_left', color: '#f2ca50' }}
+                icon={{ symbol: 'chevron_left', color: 'var(--accent)' }}
                 size={size}
                 slot={mode.capacity - 1}
                 sub="Previous page"
@@ -225,7 +237,11 @@ export function ActionBar({
                 </div>
             ) : null}
             {hint ? <div className="action-bar-hint pixel-inset">{hint}</div> : null}
-            <div className={`action-bar-grid action-bar-grid--${layout}`}>{rendered}</div>
+            <div
+                className={`action-bar-grid action-bar-grid--${layout}${fixedRows ? ' action-bar-grid--fixed-rows' : ''}`}
+            >
+                {rendered}
+            </div>
         </div>
     );
 }

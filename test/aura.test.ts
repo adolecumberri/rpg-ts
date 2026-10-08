@@ -4,7 +4,6 @@ import { StatusInstance } from '../src/classes/StatusInstance';
 import { auraEffectNameOf, syncAuras } from '../worldTest/core/combat/aura';
 import { clearStatuses, revolutionaryAuraStatus } from '../worldTest/core/statuses';
 import { hasStatusNamed } from '../worldTest/core/skills';
-import { FIGHTS } from '../worldTest/core/config/fights';
 
 function character(id: string, stats: Partial<Statistics>): Character {
     return new Character({ id, name: id, stats: new Stats(stats) });
@@ -62,21 +61,5 @@ describe('team auras', () => {
         clearStatuses(boss, { keepPersistent: true });
         expect(farmer.getStat('attack')).toBe(4);
         expect(hasStatusNamed(boss, 'Revolutionary Aura')).toBe(false);
-    });
-
-    it('the farmers_boss fight brings the king, his sickle and eight men', () => {
-        const enemies = FIGHTS.farmers_boss.enemies();
-        expect(enemies).toHaveLength(9);
-
-        const boss = enemies[0];
-        expect(boss.id).toBe('farmer_boss');
-        expect(boss.name).toBe('The Farmer King');
-        expect(boss.stats.attack).toBe(14);
-        expect(boss.equipment.get('weapon')?.id).toBe('sickle');
-        expect(hasStatusNamed(boss, 'Revolutionary Aura')).toBe(true);
-
-        for (const enemy of enemies) {
-            expect(enemy.equipment.get('weapon')?.id).toBe('sickle');
-        }
     });
 });

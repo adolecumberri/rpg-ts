@@ -24,6 +24,17 @@ export const AUTO_CONDITIONS: Record<string, AutoCondition> = {
         value: 25,
         valueType: 'percent',
     },
+    // The triage line: a support may answer when anyone dropped below
+    // a third of their life (Cure's auto trigger).
+    lowestAllyHpBelow30: {
+        id: 'lowestAllyHpBelow30',
+        subject: 'ally',
+        match: 'lowest',
+        stat: 'hp',
+        compare: 'below',
+        value: 30,
+        valueType: 'percent',
+    },
 };
 
 /**

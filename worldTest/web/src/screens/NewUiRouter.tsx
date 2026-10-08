@@ -8,11 +8,18 @@ import { StressFightScreen } from './StressFightScreen';
 import { FightGenScreen } from './FightGenScreen';
 import { DamagesScreen } from './DamagesScreen';
 import { DialogsScreen } from './DialogsScreen';
+import { ItemsScreen } from './ItemsScreen';
+import { InventoryPage } from './InventoryPage';
+import { FlagsScreen } from './FlagsScreen';
+import { MissionsPage } from './MissionsPage';
+import type { MissionTabId } from './MissionsPage';
 import { CombatScreen } from './CombatScreen';
 import { MessageBox } from '../components/UI/MessageBox';
 import type { PendingBattle } from '../components/UI/MessageBox';
 import { MAP_PLACES } from '../components/WorldMap/mapPlaces';
 import { REGION_BY_ID } from '../components/WorldMap/regions';
+import { REGION_IDS } from '../components/WorldMap/ids';
+import type { RegionId } from '../components/WorldMap/ids';
 import { COUNTRY_BY_ID, countryOfRegion } from '../components/WorldMap/countries';
 
 /**
@@ -35,6 +42,7 @@ type MenuEntry = {
 const MAIN_PAGES = [
     { id: 'place', label: 'Place', symbol: 'castle', caption: '' },
     { id: 'team', label: 'Team', symbol: 'groups', caption: 'Active Squad & Equipment' },
+    { id: 'missions', label: 'Missions', symbol: 'assignment', caption: 'The mission board' },
     { id: 'worldmap', label: 'World Map', symbol: 'map', caption: 'Regions & Exploration' },
 ] as const;
 
@@ -45,6 +53,8 @@ const DEV_PAGES = [
     { id: 'fightgen', label: 'Fight Gen', symbol: 'casino', caption: 'Random Fight Generator' },
     { id: 'damages', label: 'Damages', symbol: 'bolt', caption: 'Damage Numbers Demo' },
     { id: 'dialogs', label: 'Dialogs', symbol: 'forum', caption: 'Dialog editor & player' },
+    { id: 'items', label: 'Items', symbol: 'inventory_2', caption: 'Every item in the game' },
+    { id: 'flags', label: 'Flags', symbol: 'flag', caption: 'Toggle every story flag' },
 ] as const;
 
 // The submenu opener: row 04 of the main menu.
@@ -57,7 +67,7 @@ const DEV_TOOLS_ENTRY: MenuEntry = {
 
 const PAGES = [...MAIN_PAGES, ...DEV_PAGES] as const;
 
-type PageId = typeof PAGES[number]['id'];
+type PageId = typeof PAGES[number]['id'] | 'inventory';
 
 export function NewUiRouter() {
     const [page, setPage] = useState<PageId>('place');
@@ -67,11 +77,36 @@ export function NewUiRouter() {
     // The battle a story dialogue queued: while set, it replaces the
     // pages (the real combat screen will take over this slot).
     const [combat, setCombat] = useState<PendingBattle | null>(null);
+    // The regions the map shows as discovered (shared with the map
+    // page; the dev menu can reveal them all).
+    const [discovered, setDiscovered] = useState<RegionId[]>([REGION_IDS.fergel_este]);
+    // The tab the mission page opens on (the Party option jumps to the
+    // accepted missions) and whether it is the party view (no header
+    // tabs, straight to Aceptadas) or the board view (Nuevas/Otras).
+    const [missionsTab, setMissionsTab] = useState<MissionTabId>('new');
+    const [missionsOwned, setMissionsOwned] = useState(false);
+    // The active options panel of the place screen (the party submenu
+    // or the place actions) — kept here so Back from Inventory/Squad/
+    // Misiones can re-open the party submenu instead of the place menu.
+    const [placePanel, setPlacePanel] = useState<'place' | 'party'>('place');
+    // Whether the page we navigated away to came from the party
+    // submenu: its Back returns to the submenu, not to the place menu.
+    const [returnToParty, setReturnToParty] = useState(false);
+    // The page the main menu opened the map from: the map's Back
+    // returns there.
+    const [pageBeforeMap, setPageBeforeMap] = useState<PageId>('place');
     const api = useGame();
 
     const closeMenu = () => {
         setMenuOpen(false);
         setMenuView('main');
+    };
+
+    // Going back to the place page with the given options panel open.
+    const backToPlace = (panel: 'place' | 'party') => {
+        setPlacePanel(panel);
+        setReturnToParty(false);
+        setPage('place');
     };
 
     // The hamburger toggles the overlay: it opens it (always from the
@@ -114,6 +149,15 @@ export function NewUiRouter() {
     );
 
     const openPage = (id: PageId) => {
+        // The main menu Missions entry always opens the board view.
+        if (id === 'missions') {
+            setMissionsTab('new');
+            setMissionsOwned(false);
+        }
+        setReturnToParty(false);
+        if (id === 'place') setPlacePanel('place');
+        // The map's Back returns to the page it was opened from.
+        if (id === 'worldmap') setPageBeforeMap(page);
         setPage(id);
         closeMenu();
     };
@@ -185,14 +229,56 @@ export function NewUiRouter() {
                     <CombatScreen battle={combat} onEnd={() => setCombat(null)} />
                 ) : (
                     <>
-                        {page === 'place' ? <PlacePage onOpenTeam={() => setPage('team')} /> : null}
-                        {page === 'team' ? <TeamPage onBack={() => setPage('place')} /> : null}
-                        {page === 'worldmap' ? <WorldMapScreen /> : null}
+                        {page === 'place' ? (
+                            <PlacePage
+                                onOpenTeam={(fromParty) => {
+                                    setReturnToParty(Boolean(fromParty));
+                                    setPage('team');
+                                }}
+                                onOpenMissions={(tab) => {
+                                    setMissionsTab(tab ?? 'new');
+                                    setMissionsOwned(tab === 'accepted');
+                                    setPage('missions');
+                                }}
+                                onOpenInventory={() => {
+                                    setReturnToParty(true);
+                                    setPage('inventory');
+                                }}
+                                panel={placePanel}
+                                onPanelChange={setPlacePanel}
+                                discovered={discovered}
+                                setDiscovered={setDiscovered}
+                            />
+                        ) : null}
+                        {page === 'team' ? (
+                            <TeamPage onBack={() => backToPlace(returnToParty ? 'party' : 'place')} />
+                        ) : null}
+                        {page === 'missions' ? (
+                            <MissionsPage
+                                initialTab={missionsTab}
+                                ownedOnly={missionsOwned}
+                                onBack={() => backToPlace(missionsOwned ? 'party' : 'place')}
+                            />
+                        ) : null}
+                        {page === 'inventory' ? (
+                            <InventoryPage onBack={() => backToPlace('party')} />
+                        ) : null}
+                        {page === 'worldmap' ? (
+                            <WorldMapScreen
+                                discovered={discovered}
+                                setDiscovered={setDiscovered}
+                                onBack={() => setPage(pageBeforeMap)}
+                            />
+                        ) : null}
                         {page === 'actions' ? <ActionBarTestScreen /> : null}
                         {page === 'stress' ? <StressFightScreen /> : null}
                         {page === 'fightgen' ? <FightGenScreen /> : null}
                         {page === 'damages' ? <DamagesScreen /> : null}
                         {page === 'dialogs' ? <DialogsScreen /> : null}
+                        {page === 'items' ? <ItemsScreen /> : null}
+                        {page === 'flags' ? (
+                            <FlagsScreen onBack={() => setPage('place')} />
+                        ) : null}
                     </>
                 )}
             </div>
@@ -249,7 +335,30 @@ export function NewUiRouter() {
                                 }, !atPlace)}
                             </>
                         ) : (
-                            DEV_PAGES.map((entry, index) => renderRow(entry, index, () => openPage(entry.id)))
+                            <>
+                                {DEV_PAGES.map((entry, index) => renderRow(entry, index, () => openPage(entry.id)))}
+                                {renderRow(
+                                    {
+                                        id: 'reset',
+                                        label: 'Reset Game',
+                                        symbol: 'restart_alt',
+                                        caption: 'Wipe the save and start a fresh world',
+                                    },
+                                    DEV_PAGES.length,
+                                    () => {
+                                        // A full reset: fresh session (save wiped),
+                                        // router state back to its defaults.
+                                        api.reset();
+                                        setCombat(null);
+                                        setMissionsTab('new');
+                                        setMissionsOwned(false);
+                                        setPlacePanel('place');
+                                        setDiscovered([REGION_IDS.fergel_este]);
+                                        setPage('place');
+                                        closeMenu();
+                                    },
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

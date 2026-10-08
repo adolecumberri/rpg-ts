@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { BattleTracker } from '@core';
+import type { BattleReport } from '@core';
 import { Battlefield } from './Battlefield';
 import { ActionsBattlefield } from './ActionsBattlefield';
+import { BattleReportPanel } from './BattleReportPanel';
+import type { BattleReportSide } from './BattleReportPanel';
 import { FloatingDamageLayer } from './FloatingDamage';
 import type { DamageKind, FloatingHit } from './FloatingDamage';
 import { OptionsBar } from './OptionsBar';
@@ -121,8 +125,32 @@ export function Fight({
         spawnHits(new Map([[targetId, amount]]), kind);
     };
 
+    // Text-only floating results: the evasion prototype's EVADE / MISS.
+    const spawnTexts = (targetIds: string[], text: 'evade' | 'miss') => {
+        const page = pageRef.current;
+        if (!page || targetIds.length === 0) return;
+        const pageRect = page.getBoundingClientRect();
+        const fresh: FloatingHit[] = [];
+        for (const targetId of targetIds) {
+            const cell = document.querySelector(`[data-unit-id="${targetId}"]`);
+            if (!cell) continue;
+            const rect = cell.getBoundingClientRect();
+            fresh.push({
+                id: ++hitIdRef.current,
+                text,
+                x: rect.left - pageRect.left + rect.width / 2,
+                y: rect.top - pageRect.top + 8,
+            });
+        }
+        if (fresh.length > 0) {
+            setHits((prev) => [...prev, ...fresh].slice(-40));
+        }
+    };
+
     // ---- shared: winner + rematch ------------------------------------
     const [winner, setWinner] = useState<'a' | 'b' | null>(null);
+    const [report, setReport] = useState<BattleReport | null>(null);
+    const trackerRef = useRef(new BattleTracker());
     const initialRef = useRef({ teamA, teamB });
 
     // ---- ticks engine -------------------------------------------------
@@ -162,7 +190,9 @@ export function Fight({
         setPhase('pick');
         setSelected([]);
         setWinner(null);
+        setReport(null);
         setHits([]);
+        trackerRef.current.reset();
     };
 
     useEffect(() => {
@@ -182,9 +212,26 @@ export function Fight({
 
             const damageA = new Map<string, number>();
             const damageB = new Map<string, number>();
+            const evadedA: string[] = [];
+            const evadedB: string[] = [];
             const attackersA: string[] = [];
             const attackersB: string[] = [];
+            // The last attacker per target: the one whose hit lands as
+            // the finishing blow, credited with the kill.
+            const killers = new Map<string, string>();
             for (const attack of due) {
+                // Evasion: the defender may dodge the attack entirely.
+                const defenders = attack.side === 'a' ? teamB : teamA;
+                const defender = defenders.find((unit) => unit.id === attack.targetId);
+                const evaded = Boolean(defender?.evasion) &&
+                    Math.random() * 100 < (defender?.evasion ?? 0);
+                if (evaded) {
+                    if (attack.side === 'a') evadedB.push(attack.targetId);
+                    else evadedA.push(attack.targetId);
+                    continue;
+                }
+                trackerRef.current.recordHit(attack.attackerId, attack.targetId, attack.power, { physical: attack.power });
+                killers.set(attack.targetId, attack.attackerId);
                 if (attack.side === 'a') {
                     damageB.set(attack.targetId, (damageB.get(attack.targetId) ?? 0) + attack.power);
                     attackersA.push(attack.attackerId);
@@ -200,6 +247,10 @@ export function Fight({
                 damage: Map<string, number>,
             ): FightUnit[] => units.map((unit) => {
                 const dealt = damage.get(unit.id) ?? 0;
+                if (dealt > 0 && unit.hp > 0 && unit.hp - dealt <= 0) {
+                    const killer = killers.get(unit.id);
+                    if (killer) trackerRef.current.recordKill(killer);
+                }
                 if (dealt > 0) return { ...unit, hp: Math.max(0, unit.hp - dealt), attacking: false };
                 if (attackers.indexOf(unit.id) !== -1) return { ...unit, attacking: false };
                 return unit;
@@ -207,9 +258,12 @@ export function Fight({
             teamA = resolveInto(teamA, attackersA, damageA);
             teamB = resolveInto(teamB, attackersB, damageB);
 
-            // 2) Floating numbers over the freshly damaged cards.
+            // 2) Floating numbers over the freshly damaged cards, and the
+            // EVADE text over the ones that dodged.
             spawnHits(damageA, 'physical');
             spawnHits(damageB, 'physical');
+            spawnTexts(evadedA, 'evade');
+            spawnTexts(evadedB, 'evade');
 
             // 3) Units whose interval arrived start a new attack: only
             // reach-valid targets of the other team, one random pick.
@@ -240,9 +294,11 @@ export function Fight({
 
             if (teamA.every((unit) => unit.hp <= 0)) {
                 setRunning(false);
+                setReport(trackerRef.current.report());
                 setWinner('b');
             } else if (teamB.every((unit) => unit.hp <= 0)) {
                 setRunning(false);
+                setReport(trackerRef.current.report());
                 setWinner('a');
             }
         }, TICK_MS);
@@ -269,15 +325,25 @@ export function Fight({
         const enemy = enemies.find((entry) => entry.id === enemyId);
         if (!enemy) return;
 
-        setEnemies((prev) => prev.map((entry) =>
-            entry.id === enemyId ? { ...entry, hp: Math.max(0, entry.hp - active.power) } : entry,
-        ));
-        spawnHit(enemyId, active.power, 'physical');
+        // Evasion: the enemy may dodge; the EVADE text floats instead
+        // of the damage number.
+        const enemyEvaded = enemy.evasion > 0 && Math.random() * 100 < enemy.evasion;
+        if (enemyEvaded) {
+            spawnTexts([enemyId], 'evade');
+        } else {
+            trackerRef.current.recordHit(active.id, enemyId, active.power, { physical: active.power });
+            if (enemy.hp - active.power <= 0) trackerRef.current.recordKill(active.id);
+            setEnemies((prev) => prev.map((entry) =>
+                entry.id === enemyId ? { ...entry, hp: Math.max(0, entry.hp - active.power) } : entry,
+            ));
+            spawnHit(enemyId, active.power, 'physical');
+        }
 
         const remaining = enemies.filter((entry) =>
-            entry.id === enemyId ? enemy.hp - active.power > 0 : entry.hp > 0,
+            entry.id === enemyId ? enemyEvaded || enemy.hp - active.power > 0 : entry.hp > 0,
         );
         if (remaining.length === 0) {
+            setReport(trackerRef.current.report());
             setWinner('a');
             setPhase('pick');
             return;
@@ -286,15 +352,23 @@ export function Fight({
         const striker = remaining[Math.floor(Math.random() * remaining.length)];
         const targets = allies.filter((entry) => entry.hp > 0);
         const victim = targets[Math.floor(Math.random() * targets.length)];
-        setAllies((prev) => prev.map((entry) =>
-            entry.id === victim.id ? { ...entry, hp: Math.max(0, entry.hp - striker.power) } : entry,
-        ));
-        spawnHit(victim.id, striker.power, 'physical');
+        const victimEvaded = victim.evasion > 0 && Math.random() * 100 < victim.evasion;
+        if (victimEvaded) {
+            spawnTexts([victim.id], 'evade');
+        } else {
+            trackerRef.current.recordHit(striker.id, victim.id, striker.power, { physical: striker.power });
+            if (victim.hp - striker.power <= 0) trackerRef.current.recordKill(striker.id);
+            setAllies((prev) => prev.map((entry) =>
+                entry.id === victim.id ? { ...entry, hp: Math.max(0, entry.hp - striker.power) } : entry,
+            ));
+            spawnHit(victim.id, striker.power, 'physical');
+        }
 
         const survivors = allies.filter((entry) =>
-            entry.id === victim.id ? victim.hp - striker.power > 0 : entry.hp > 0,
+            entry.id === victim.id ? victimEvaded || victim.hp - striker.power > 0 : entry.hp > 0,
         );
         if (survivors.length === 0) {
+            setReport(trackerRef.current.report());
             setWinner('b');
             setPhase('pick');
             return;
@@ -305,14 +379,27 @@ export function Fight({
         setSelected([]);
     };
 
+    // The post-battle report: the tracker's ledger mapped onto the two
+    // teams, shown inside the winner overlay.
+    const nameById = new Map(
+        initialRef.current.teamA.concat(initialRef.current.teamB).map((unit) => [unit.id, unit.name]),
+    );
+    const reportSides: [BattleReportSide, BattleReportSide] = [
+        { name: labelA, ids: initialRef.current.teamA.map((unit) => unit.id) },
+        { name: labelB, ids: initialRef.current.teamB.map((unit) => unit.id) },
+    ];
+
     const winnerOverlay = winner ? (
         <div className="fight-overlay">
-            <div className="pixel-panel" style={{ textAlign: 'center', minWidth: 'var(--s36)' }}>
+            <div
+                className="pixel-panel"
+                style={{ textAlign: 'center', minWidth: 'var(--s36)', maxHeight: '80vh', overflowY: 'auto' }}
+            >
                 <div style={{ fontSize: 32, marginBottom: 8 }}>{winner === 'a' ? '🏆' : '💀'}</div>
                 <div className="pixel-title" style={{ borderBottom: 'none', marginBottom: 8 }}>
                     {winner === 'a' ? `${labelA} wins!` : `${labelB} wins!`}
                 </div>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: report ? 8 : 0 }}>
                     <button type="button" className="pixel-btn pixel-btn--primary" onClick={rematch}>
                         Rematch
                     </button>
@@ -320,6 +407,13 @@ export function Fight({
                         <button type="button" className="pixel-btn" onClick={onExit}>← Setup</button>
                     ) : null}
                 </div>
+                {report ? (
+                    <BattleReportPanel
+                        report={report}
+                        sides={reportSides}
+                        nameOf={(id) => nameById.get(id) ?? id}
+                    />
+                ) : null}
             </div>
         </div>
     ) : null;

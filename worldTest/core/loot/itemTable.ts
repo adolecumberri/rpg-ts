@@ -4,6 +4,7 @@ import type { ItemCategory, ItemEffect, ItemElement } from '../../../src/classes
 import type { EquipmentSlot } from '../../../src/classes/items/EquipmentManager';
 import type { ItemAttackContext, ItemHitContext } from '../damage/general';
 import type { DamageComponent } from '../damage/composer';
+import type { ImpactProc } from '../damage/impact';
 
 /**
  * Data-driven item definition. Items are created from these entries
@@ -42,6 +43,15 @@ export type ItemTableEntry = {
     onUnEquip?: (self: Item, target: Character) => void;
     // Bags add inventory slots to the party capacity.
     bagSlots?: number;
+    // Impact pipeline: damage added once per impact hit the bearer's
+    // attacks apply (Guinsoo: +6 physical / +6 magical).
+    impactBonus?: { physical?: number; magical?: number };
+    // Impact pipeline: counter-driven effects the bearer's hits run
+    // while the item is equipped (Guinsoo's phantom procs).
+    impactProcs?: ImpactProc[];
+    // The skills the item carries (the inventory's data panel shows
+    // them, LoL-tooltip style): declarative display data.
+    skills?: Array<{ name: string; description: string }>;
     buyValue?: number;
     sellValue?: number;
     onUse?: (self: Item, target: Character) => boolean;

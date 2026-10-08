@@ -15,6 +15,7 @@ import { FATIGUE } from './combat/fatigue';
 import { heldJobOf } from './constants/jobs';
 import type { DamageComponent } from './damage/composer';
 import type { ConditionInput } from './combat/conditions';
+import type { ImpactProc } from './damage/impact';
 import { addReaction, removeReaction } from './damage/reactions';
 import type { ReactionHandler } from './damage/reactions';
 
@@ -25,13 +26,20 @@ export type SkillTargeting = 'ENEMY' | 'ALLY' | 'ALL_ENEMIES' | 'ALL_ALLIES' | '
 export type ReactionSpec = {
     // Percent chance (0-100) the reaction triggers on being attacked.
     chance?: number;
-    // Fraction of the incoming damage reflected back at the attacker.
-    reflectPercent?: number;
-    // When true the defender takes no damage (parry); the attacker takes
-    // reflectPercent of the would-be damage instead.
+    // When true the defender takes no damage (Parry).
     negate?: boolean;
-    // When true the reflected damage bypasses all mitigation (true damage).
-    trueDamage?: boolean;
+    // Answer once per impact hit received instead of once per attack
+    // (Spike Shield builds one counter per impact hit).
+    perImpact?: boolean;
+    // The counter-attack the defender builds back at the attacker: a
+    // list of damage components, resolved as a real attack instance by
+    // whoever applies the hit (mitigated, crit-able, full pipeline).
+    counterComponents?: (context: {
+        // The would-be damage of the hit (before negation).
+        incomingDamage: number;
+        attacker: Character;
+        defender: Character;
+    }) => DamageComponent[];
 };
 
 // Who the planner prefers when a support skill needs targets.
@@ -125,23 +133,49 @@ export type SkillSpec = {
     reaction?: ReactionSpec;
     // Automatic use policy in the auto battles.
     auto?: AutoUsePolicy;
+    // Impact pipeline: counter-driven effects the bearer's hits run
+    // while the character knows this skill (Silver Bullets).
+    impactProcs?: ImpactProc[];
 };
 
-// General skills for autofights (not assigned to any character yet).
-export const SKILLS: Record<string, SkillSpec> = {
-    spikeShield: {
+// The global skill dictionary: EVERY skill that exists in the app is
+// declared here, once, keyed by its id (the key and the spec's id are
+// the same value). Content references skills only through ids; the
+// catalog resolves them in O(1).
+export const Skills: Record<string, SkillSpec> = {
+    spike_shield: {
         id: 'spike_shield',
         name: 'Spike Shield',
-        description: 'Returns 18% of the damage taken as true damage to the attacker.',
+        description:
+            'Answers every impact hit received with a counter-attack of 10 + 20% of your defence as physical damage.',
         targeting: 'SELF',
-        reaction: { chance: 100, reflectPercent: 0.18, trueDamage: true },
+        reaction: {
+            chance: 100,
+            perImpact: true,
+            counterComponents: ({ defender }) => [{
+                kind: 'physical',
+                element: 'physical',
+                amount: Math.round((10 + defender.getStat('defence') * 0.2) * 100) / 100,
+                label: 'Spike Shield',
+            }],
+        },
     },
     parry: {
         id: 'parry',
         name: 'Parry',
-        description: 'Negates the incoming attack and returns 70% of its damage to the attacker.',
+        description:
+            'Negates the incoming attack and answers with a counter-attack of 70% of its damage as physical damage.',
         targeting: 'SELF',
-        reaction: { chance: 100, reflectPercent: 0.7, negate: true },
+        reaction: {
+            chance: 100,
+            negate: true,
+            counterComponents: ({ incomingDamage }) => [{
+                kind: 'physical',
+                element: 'physical',
+                amount: Math.round(incomingDamage * 0.7 * 100) / 100,
+                label: 'Parry',
+            }],
+        },
     },
     haste: {
         id: 'haste',
@@ -157,7 +191,7 @@ export const SKILLS: Record<string, SkillSpec> = {
         targeting: 'SELF',
         statusOnSelf: rageStatus(),
     },
-    fireBreath: {
+    fire_breath: {
         id: 'fire_breath',
         name: 'Fire Breath',
         description: 'Deals 20 + 30% of your attack as magical fire damage to every enemy.',
@@ -184,7 +218,7 @@ export const SKILLS: Record<string, SkillSpec> = {
         targeting: 'SELF',
         fatigueDelta: -20,
     },
-    openGate: {
+    open_gate: {
         id: 'open_gate',
         name: 'Open Gate',
         description: 'Awakens the Gate affinity: unlocks Fire Breath for the rest of the fight.',
@@ -192,7 +226,7 @@ export const SKILLS: Record<string, SkillSpec> = {
         statusOnSelf: gateOpenedStatus(),
         hideWhenStatus: 'Gate Opened',
     },
-    bossRegen: {
+    boss_regen: {
         id: 'boss_regen',
         name: 'Regeneration',
         description: 'The chief closes its wounds: heals 25 hp.',
@@ -204,7 +238,7 @@ export const SKILLS: Record<string, SkillSpec> = {
             conditions: [{ subject: 'self', stat: 'hp', compare: 'below', value: 50, valueType: 'percent' }],
         },
     },
-    bossBerserk: {
+    boss_berserk: {
         id: 'boss_berserk',
         name: 'Berserk',
         description: 'The chief flies into a rage: stronger but reckless for 3 actions.',
@@ -212,14 +246,14 @@ export const SKILLS: Record<string, SkillSpec> = {
         statusOnSelf: berserkStatus(),
         auto: { chancePercent: 100, cooldownActions: 5 },
     },
-    fastDraw: {
+    fast_draw: {
         id: 'fast_draw',
         name: 'Fast Draw',
         description: 'Speed +8 for 3 turns.',
         targeting: 'SELF',
         statusOnSelf: fastDrawStatus(),
     },
-    weakPoint: {
+    weak_point: {
         id: 'weak_point',
         name: 'Weak Point',
         description: 'The enemy\'s attack -40% for 2 turns and defence -40% for 1 turn.',
@@ -272,6 +306,17 @@ export const SKILLS: Record<string, SkillSpec> = {
         numberOfTargets: 1,
         healFor: (actor, target) =>
             Math.min(40, Math.round(target.getStat('totalHp') * 0.6 * 100) / 100),
+        // The healer answers wounds: whenever the most hurt ally drops
+        // below 30% hp, Cure locks on the lowest-hp ally. The shared
+        // cooldown keeps a whole line of mages from over-healing the
+        // same wound at once.
+        auto: {
+            conditions: [{ ref: 'lowestAllyHpBelow30' }],
+            chancePercent: 100,
+            cooldownActions: 2,
+            sharedCooldown: true,
+            target: { side: 'ally', prefer: 'lowest_hp' },
+        },
     },
     impetu: {
         id: 'impetu',
@@ -280,7 +325,7 @@ export const SKILLS: Record<string, SkillSpec> = {
         targeting: 'SELF',
         statusOnSelf: impetuStatus(),
     },
-    firstAid: {
+    first_aid: {
         id: 'first_aid',
         name: 'First Aid',
         description: 'Heals a target for 40% of the user\'s attack.',
@@ -296,6 +341,31 @@ export const SKILLS: Record<string, SkillSpec> = {
         targeting: 'ALLY',
         numberOfTargets: 1,
         cover: { percent: 60 },
+    },
+    silver_bolts: {
+        id: 'silver_bolts',
+        name: 'Silver Bolts',
+        description:
+            'Passive: every 3rd hit against the same enemy deals 10% of its max hp as true damage.',
+        targeting: 'ENEMY',
+        impactProcs: [
+            {
+                id: 'silver_bolts',
+                moment: 'hit',
+                // TEMP (stress test true-damage visibility): every hit
+                // instead of every 3rd. REVERT TO 3.
+                every: 1,
+                perTarget: true,
+                onTrigger: (ctx) => {
+                    ctx.components.push({
+                        kind: 'true',
+                        element: 'true',
+                        amount: Math.round(ctx.defender.getStat('totalHp') * 0.1 * 100) / 100,
+                        label: 'Silver Bolts',
+                    });
+                },
+            },
+        ],
     },
 };
 
@@ -316,12 +386,12 @@ export const CHARACTER_SKILLS: Record<string, string[]> = {
     // The lord's son awakens his Gate affinity first: Fire Breath comes
     // from the awakened status, not from the base kit.
     lord_son: ['open_gate'],
-    // The goblin chief heals when wounded and rages every few actions.
-    hay_boss_goblin: ['boss_regen', 'boss_berserk'],
 };
 
 export function skillIdsOf(character: Character): string[] {
-    return CHARACTER_SKILLS[character.id] ?? heldJobOf(character)?.skillIds ?? [];
+    // The generator's explicit kit wins over the content map, which
+    // wins over the held job's kit.
+    return character.skillIds ?? CHARACTER_SKILLS[character.id] ?? heldJobOf(character)?.skillIds ?? [];
 }
 
 /** Whether the character carries a status with the given name. */
@@ -367,7 +437,7 @@ export function battleSkillSpecs(character: Character, base: SkillSpec[]): Skill
 }
 
 export function specOf(skillId: string): SkillSpec | undefined {
-    return allSkillSpecs().find((spec) => spec.id === skillId);
+    return Skills[skillId];
 }
 
 /**
@@ -375,7 +445,7 @@ export function specOf(skillId: string): SkillSpec | undefined {
  * catalog view consumes this.
  */
 export function allSkillSpecs(): SkillSpec[] {
-    return Object.values(SKILLS);
+    return Object.values(Skills);
 }
 
 // ---------------------------------------------------------------------------
@@ -392,17 +462,26 @@ export function reactionHandlerFromSpec(spec: SkillSpec): ReactionHandler | unde
     const reaction = spec.reaction;
     if (!reaction) return undefined;
 
-    return ({ incomingDamage, random }) => {
+    return ({ incomingDamage, impactHits, attacker, defender, random }) => {
         // A 100% chance always triggers; anything below rolls the RNG.
         if (reaction.chance !== undefined && reaction.chance < 100 && random() * 100 >= reaction.chance) {
             return null;
         }
 
-        const reflect = Math.round(incomingDamage * (reaction.reflectPercent ?? 0) * 100) / 100;
-        if (reaction.negate) {
-            return { damage: 0, reflect, note: 'parried!' };
+        // Answer once per attack, or once per impact hit received (the
+        // Spike Shield builds one counter per impact).
+        const answers = reaction.perImpact ? Math.max(1, impactHits) : 1;
+        const counter: DamageComponent[] = [];
+        for (let answer = 0; answer < answers; answer++) {
+            const built = reaction.counterComponents?.({ incomingDamage, attacker, defender }) ?? [];
+            counter.push(...built);
         }
-        return { damage: incomingDamage, reflect, note: reaction.trueDamage ? 'spiked true' : 'spiked' };
+
+        return {
+            damage: reaction.negate ? 0 : incomingDamage,
+            counter: counter.length > 0 ? counter : undefined,
+            note: reaction.negate ? 'parried!' : counter.length > 0 ? 'spiked' : undefined,
+        };
     };
 }
 

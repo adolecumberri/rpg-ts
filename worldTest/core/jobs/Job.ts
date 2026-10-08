@@ -1,9 +1,11 @@
 // ---------------------------------------------------------------------------
 // The Job: the generic core class that owns a character's identity as a
 // fighter — its title, the skills it knows, the weapon types it may
-// wield and the stat bonuses it applies while held. Concrete jobs are
-// defined as constants (one file per job).
+// wield, the stat bonuses it applies while held and its growth profile.
+// Concrete jobs are defined as constants (one file per job).
 // ---------------------------------------------------------------------------
+
+import type { GrowthProfile } from '../config/growth';
 
 // The weapon triangle for now; armors and other slots will join later.
 export type WeaponType = 'sword' | 'bow' | 'staff';
@@ -33,6 +35,10 @@ export class Job {
         readonly statBonuses: JobStatBonuses = {},
         // Whether the job may carry a shield in the offhand.
         readonly canShield: boolean = false,
+        // The job's growth profile (level-1 bases + optional max/rate).
+        // Without one, the default growth applies (60% of the generic
+        // maximums).
+        readonly growth?: GrowthProfile,
     ) {}
 
     /** Whether the job may wield a weapon of the given type. Untyped

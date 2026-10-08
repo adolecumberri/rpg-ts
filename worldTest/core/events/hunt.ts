@@ -6,7 +6,7 @@ export type HuntEncounter = {
     label: string;
     // Current chance (0-100) of hitting this encounter per iteration.
     chancePercent: number;
-    // How much the chance grows after every iteration (cow: +5).
+    // How much the chance grows after every iteration (the target: +5).
     growPercent?: number;
     // Upper bound for the grown chance (defaults to 100).
     capPercent?: number;

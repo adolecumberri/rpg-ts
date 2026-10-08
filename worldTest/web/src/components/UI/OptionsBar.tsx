@@ -15,6 +15,10 @@ export type OptionSpec = {
     disabledReason?: string;
     // The muted sub-label under the label.
     sub?: string;
+    // The grid slot (1-based) and whether the option spans the whole
+    // row — screens pin their buttons to fixed places.
+    slot?: number;
+    wide?: boolean;
     onClick?: () => void;
 };
 
@@ -28,14 +32,18 @@ export function OptionsBar({
     back,
     pinLast = false,
     banner,
+    fixedRows = false,
 }: {
     options: OptionSpec[];
     size?: ActionBarSize;
-    back?: { label?: string; icon?: ActionIcon; onClick: () => void };
+    back?: { label?: string; icon?: ActionIcon; wide?: boolean; onClick: () => void };
     // The last option is pinned to the final grid slot (6 in lg).
     pinLast?: boolean;
     // A text banner spanning the first two slots of the first page.
     banner?: string;
+    // The grid keeps its fixed row heights even for empty rows (a
+    // button pinned to a lower row stays at the bottom of the bar).
+    fixedRows?: boolean;
 }) {
     const cells: ActionBarCell[] = options.map((option) => ({
         id: option.id,
@@ -45,6 +53,8 @@ export function OptionsBar({
         disabled: option.disabled,
         disabledReason: option.disabledReason,
         sub: option.sub,
+        slot: option.slot,
+        wide: option.wide,
         onClick: option.onClick,
     }));
 
@@ -55,6 +65,7 @@ export function OptionsBar({
             back={back}
             pinLast={pinLast}
             banner={banner}
+            fixedRows={fixedRows}
         />
     );
 }

@@ -124,7 +124,7 @@ describe('session loot', () => {
 
         expect(result.drops).toEqual([]);
         expect(session.team.inventory.getAllItems().length).toBe(before);
-        expect(session.currentPlaceId).toBe('farm');
+        expect(session.currentPlaceId).toBe('camp');
     });
 
     it('grants no drops on group victories without a configured table', () => {

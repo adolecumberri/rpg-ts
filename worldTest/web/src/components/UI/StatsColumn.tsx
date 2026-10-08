@@ -17,7 +17,7 @@ export type StatRow = {
 export function StatsColumn({ rows, title }: { rows: StatRow[]; title?: string }) {
     return (
         <div className="team-data-stats">
-            {title ? <div className="team-data-stats-title">{title}</div> : null}
+            {/* {title ? <div className="team-data-stats-title">{title}</div> : null} */}
             {rows.map((row) => (
                 <div key={row.label} className="team-stat-line">
                     <span className="team-stat-icon">

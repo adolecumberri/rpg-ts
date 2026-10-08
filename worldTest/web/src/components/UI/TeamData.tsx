@@ -1,6 +1,6 @@
 import type { Character, Item } from '@rpg';
 import { heldJobOf, loadoutOf } from '@core';
-import { portraitUrl } from '../../constants/portraits';
+import { portraitIdOf, portraitUrl } from '../../constants/portraits';
 import { Icon } from './Icon';
 import { StatsColumn } from './StatsColumn';
 import type { StatRow } from './StatsColumn';
@@ -36,7 +36,7 @@ export function TeamData({ character }: { character: Character }) {
             <div className="team-data-head">
                 <div className="team-data-portrait-wrap">
                     <span className="team-data-portrait-name">{character.name}</span>
-                    <img className="team-data-portrait" src={portraitUrl()} alt={character.name} />
+                    <img className="team-data-portrait" src={portraitUrl(portraitIdOf(character))} alt={character.name} />
                 </div>
                 <div className="team-data-identity">
                     <div style={{ fontSize: 'var(--s3)' }}>

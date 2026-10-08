@@ -1,6 +1,6 @@
 import type { Character } from '@rpg';
 import { JOB_ICONS, heldJobOf } from '@core';
-import { SPRITES, spriteRoleOfJob } from '../../assets/sprites';
+import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 
 /**
  * One squad card on the team page: the character's idle sprite, name
@@ -16,7 +16,7 @@ export function TeamCard({
     onClick?: () => void;
 }) {
     const job = heldJobOf(character);
-    const role = spriteRoleOfJob(job?.id);
+    const role = spriteRoleOf(character);
     const idle = role ? SPRITES[role].idle : undefined;
     const jobLine = job ? `${JOB_ICONS[job.id] ?? ''} ${job.title}` : 'The Player';
 

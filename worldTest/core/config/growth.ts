@@ -1,120 +1,147 @@
 import type { Character } from '../../../src';
 
-// Fixed values of the level growth system (deterministic: stats are a
-// pure function of the character's level and job).
+// ---------------------------------------------------------------------------
+// The growth system (deterministic): stats are a pure function of the
+// character's level, its base values and its per-stat ratios.
 //
-// stat(level) = base + (cap × ratio − base) × (level − 1) / (levelCap − 1)
+//   stat(level) = base + (level − 1) × gain(stat)
+//   gain(stat)  = DEFAULT_MAX[stat] × DEFAULT_GROWTH_RATE / LEVEL_CAP × ratio[stat]
 //
-// Items stack on top through their own modifier sources, so they are
-// never capped by this table.
+// DEFAULT_MAX holds the theoretical absolute values a stat may reach.
+// A leveling character gains 60% of that value spread over the levels
+// (ratio 1 ≈ 60% of DEFAULT_MAX at the cap). Every job and every
+// creature only alters the growth through its per-stat ratios
+// (soldiers gain more hp/attack per level, less magic...). Items stack
+// on top through their own modifier sources, so they are never capped
+// by this system.
+// ---------------------------------------------------------------------------
 
-export const GROWTH = {
-    levelCap: 100,
-    // Placeholder jobs until the real per-race jobs exist: one profile
-    // per current character plus a default for recruited npcs.
-    jobs: {
-        hero: {
-            name: 'Soldier',
-            bases: { attack: 10, defence: 5, magicDefence: 4, speed: 8, hp: 50, totalHp: 100 },
-            caps: { attack: 200, defence: 80, magicDefence: 80, speed: 50, totalHp: 1000 },
-            ratios: { attack: 1, defence: 0.55, magicDefence: 0.5, speed: 0.75, totalHp: 1 },
-        },
-        companion: {
-            name: 'Ranger',
-            bases: { attack: 8, defence: 4, magicDefence: 3, speed: 6, hp: 40, totalHp: 80 },
-            caps: { attack: 150, defence: 80, magicDefence: 80, speed: 50, totalHp: 850 },
-            ratios: { attack: 0.9, defence: 0.7, magicDefence: 0.55, speed: 1, totalHp: 1 },
-        },
-        ember: {
-            name: 'Spellblade',
-            bases: { attack: 9, defence: 3, magicDefence: 5, speed: 5, hp: 45, totalHp: 90 },
-            caps: { attack: 140, defence: 80, magicDefence: 90, speed: 50, totalHp: 900 },
-            ratios: { attack: 0.85, defence: 0.5, magicDefence: 1, speed: 0.9, totalHp: 1 },
-        },
-        default: {
-            name: 'Adventurer',
-            bases: { attack: 5, defence: 1, magicDefence: 0, speed: 6, hp: 20, totalHp: 20 },
-            caps: { attack: 120, defence: 60, magicDefence: 60, speed: 40, totalHp: 600 },
-            ratios: { attack: 0.8, defence: 0.8, magicDefence: 0.8, speed: 0.8, totalHp: 0.8 },
-        },
-    },
-} as const;
+export const LEVEL_CAP = 100;
 
-export type GrowthStats = 'attack' | 'defence' | 'magicDefence' | 'speed' | 'totalHp';
+// Every stat the growth system may grow. Add a new stat here (and its
+// generic base/max values below) and every profile can grow it.
+export type StatKey =
+    | 'hp'
+    | 'totalHp'
+    | 'attack'
+    | 'defence'
+    | 'magicDefence'
+    | 'magic'
+    | 'speed'
+    | 'critChance'
+    | 'critMultiplier';
 
-export type GrowthJob = {
-    name: string;
-    bases: Record<GrowthStats | 'hp', number>;
-    caps: Record<GrowthStats, number>;
-    ratios: Record<GrowthStats, number>;
+export const STAT_KEYS: StatKey[] = [
+    'hp',
+    'totalHp',
+    'attack',
+    'defence',
+    'magicDefence',
+    'magic',
+    'speed',
+    'critChance',
+    'critMultiplier',
+];
+
+// A block of stat values: profiles declare the stats they care about;
+// the missing ones inherit the generic values.
+export type StatBlock = Partial<Record<StatKey, number>>;
+
+// The theoretical absolute values a stat may reach (the reference the
+// per-level gains are computed from).
+export const DEFAULT_MAX: Record<StatKey, number> = {
+    hp: 800,
+    totalHp: 800,
+    attack: 300,
+    defence: 200,
+    magicDefence: 200,
+    magic: 450,
+    speed: 40,
+    critChance: 40,
+    critMultiplier: 2,
 };
 
-export function jobOf(jobId: string): GrowthJob {
-    const jobs = GROWTH.jobs as Record<string, GrowthJob>;
-    return jobs[jobId] ?? jobs.default;
-}
+// The share of the theoretical maximums a leveling character gains in
+// total (60%): the per-level gain is this share divided by LEVEL_CAP.
+export const DEFAULT_GROWTH_RATE = 0.6;
+
+// The generic level-1 values (a character without creature or job
+// profile grows from here).
+export const DEFAULT_BASE: Record<StatKey, number> = {
+    hp: 100,
+    totalHp: 100,
+    attack: 10,
+    defence: 4,
+    magicDefence: 2,
+    magic: 8,
+    speed: 6,
+    critChance: 4,
+    critMultiplier: 2,
+};
+
+export type GrowthProfile = {
+    // The level-1 values (missing stats inherit the generic bases).
+    base: StatBlock;
+    // The per-stat growth alteration: a multiplier over the default
+    // per-level gain (1 = default, >1 improves, <1 worsens, 0 freezes).
+    // Missing stats use 1.
+    ratios?: StatBlock;
+};
+
+export type ResolvedGrowth = {
+    base: Record<StatKey, number>;
+    gainPerLevel: Record<StatKey, number>;
+};
 
 /**
- * The stats a character of the job has at the given level (clamped to
- * [1, levelCap]). Purely deterministic.
+ * A growth profile without its base: creatures and jobs declare their
+ * own level-1 bases separately, so their growth is only the optional
+ * per-stat `ratios`.
  */
-export function statsAtLevel(jobId: string, level: number): Record<GrowthStats, number> {
-    const job = jobOf(jobId);
-    const clamped = Math.min(GROWTH.levelCap, Math.max(1, level));
-    const progress = (clamped - 1) / (GROWTH.levelCap - 1);
+export type GrowthOptions = Pick<GrowthProfile, 'ratios'>;
 
-    const compute = (stat: GrowthStats): number => {
-        const base = job.bases[stat];
-        const target = job.caps[stat] * job.ratios[stat];
-        return Math.round((base + (target - base) * progress) * 100) / 100;
-    };
+/** Fills the profile's gaps: bases from the generic bases, ratios from
+ *  the default (1). The per-level gain of a stat is the 60% share of
+ *  its theoretical maximum spread over the level cap, times the ratio. */
+export function resolveGrowth(profile: GrowthProfile): ResolvedGrowth {
+    const ratios = profile.ratios ?? {};
+    const base = {} as Record<StatKey, number>;
+    const gainPerLevel = {} as Record<StatKey, number>;
+    for (const stat of STAT_KEYS) {
+        base[stat] = profile.base[stat] ?? DEFAULT_BASE[stat];
+        gainPerLevel[stat] = (DEFAULT_MAX[stat] * DEFAULT_GROWTH_RATE / LEVEL_CAP) * (ratios[stat] ?? 1);
+    }
+    return { base, gainPerLevel };
+}
 
-    return {
-        attack: compute('attack'),
-        defence: compute('defence'),
-        magicDefence: compute('magicDefence'),
-        speed: compute('speed'),
-        totalHp: compute('totalHp'),
-    };
+/** One stat at the given level (clamped to [1, LEVEL_CAP]). hp mirrors
+ *  totalHp (a character is always at full life when it levels). */
+export function statAtLevelValue(profile: GrowthProfile, level: number, stat: StatKey): number {
+    const resolved = resolveGrowth(profile);
+    if (stat === 'hp') return statAtLevelValue(profile, level, 'totalHp');
+    const clamped = Math.min(LEVEL_CAP, Math.max(1, level));
+    const value = resolved.base[stat] + (clamped - 1) * resolved.gainPerLevel[stat];
+    return Math.round(value * 100) / 100;
+}
+
+/** The full stat block at the given level. */
+export function statBlockAtLevel(profile: GrowthProfile, level: number): Record<StatKey, number> {
+    const stats = {} as Record<StatKey, number>;
+    for (const stat of STAT_KEYS) {
+        stats[stat] = statAtLevelValue(profile, level, stat);
+    }
+    return stats;
 }
 
 /**
  * Rewrites the character's base stats to their level values. With
  * `heal` (default) the character also returns to full hp.
  */
-export function applyGrowthAtLevel(character: Character, jobId: string, level: number, heal = true): void {
-    const stats = statsAtLevel(jobId, level);
-    Object.assign(character.stats, {
-        attack: stats.attack,
-        defence: stats.defence,
-        magicDefence: stats.magicDefence,
-        speed: stats.speed,
-        totalHp: stats.totalHp,
-    });
+export function applyGrowthProfile(character: Character, profile: GrowthProfile, level: number, heal = true): void {
+    const stats = statBlockAtLevel(profile, level);
+    Object.assign(character.stats, stats);
     if (heal) {
         character.stats.hp = character.stats.totalHp;
         character.stats.isAlive = 1;
     }
-}
-
-/**
- * Attaches the job's growth to the character's level-up events.
- */
-export function wireGrowth(character: Character, jobId: string): void {
-    character.experience.onLevelUpHandler = () => applyGrowthAtLevel(character, jobId, character.experience.level);
-}
-
-// Which job each known character grows with (recruits use 'default').
-export const CHARACTER_JOBS: Record<string, string> = {
-    hero: 'hero',
-    companion: 'companion',
-    ember: 'ember',
-};
-
-export function jobIdOf(characterId: string): string {
-    return CHARACTER_JOBS[characterId] ?? 'default';
-}
-
-export function jobNameOf(jobId: string): string {
-    return jobOf(jobId).name;
 }

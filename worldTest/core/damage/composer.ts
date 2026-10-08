@@ -39,6 +39,13 @@ export type DamageResult = {
 
 export type ResolveOptions = {
     breakdown?: boolean;
+    // Counter-attack resolution: skips the impact phase, the accuracy
+    // roll, the item onAttack pass and the reaction loop (counters
+    // never chain into counters).
+    isCounter?: boolean;
+    // The hit's base components (the counter-attack's payload): when
+    // given, they replace the attacker's own attack components.
+    components?: DamageComponent[];
 };
 
 // Multiplicative mitigation a kind suffers before elemental layers:

@@ -1,11 +1,8 @@
 import { WorldSession } from '../worldTest/core/session';
 import type { Mission } from '../worldTest/core/missions/mission';
-import { winHayFieldBattles } from './support/hayField';
-
-// The sickles mission requires a sickle: grant it before accepting.
-function giveSickle(session: WorldSession): void {
-    session.team.inventory.addItem(session.itemTable.createItem('sickle'));
-}
+import { MissionManager } from '../worldTest/core/missions/missionManager';
+import { CALENDAR } from '../worldTest/core/config/calendar';
+import { FLAGS } from '../worldTest/core/constants/flags';
 
 function multiMission(id: string, placeId: string): Mission {
     return {
@@ -14,6 +11,17 @@ function multiMission(id: string, placeId: string): Mission {
         steps: [
             { id: 'go', kind: 'travel', placeId },
             { id: 'done', kind: 'reward', flags: [`${id}_done`] },
+        ],
+    };
+}
+
+function taskMission(): Mission {
+    return {
+        id: 'wood_run',
+        title: 'Wood Run',
+        steps: [
+            { id: 'gather', kind: 'task', taskId: 'test_task', placeId: 'farm' },
+            { id: 'done', kind: 'reward', flags: ['wood_run_done'] },
         ],
     };
 }
@@ -29,138 +37,148 @@ function lockedRouteMission(): Mission {
     };
 }
 
+describe('mission display conditions', () => {
+    it('hides missions whose month condition does not match the calendar', () => {
+        let month = 0;
+        const manager = new MissionManager(
+            () => 0.5,
+            undefined,
+            () => 0,
+            () => month,
+        );
+        manager.register({
+            id: 'seasonal',
+            title: 'Seasonal',
+            availableMonths: [5, 6, 7],
+            steps: [{ id: 'done', kind: 'reward' }],
+        });
+
+        expect(manager.availableMissions()).toEqual([]); // month 0
+
+        month = 6;
+        expect(manager.availableMissions().map((mission) => mission.id)).toEqual(['seasonal']);
+    });
+
+    it('keeps every available mission in Nuevas (reviewing does not move them)', () => {
+        const manager = new MissionManager(() => 0.5, undefined, () => 0, () => 0);
+        manager.register({
+            id: 'fresh',
+            title: 'Fresh',
+            steps: [{ id: 'done', kind: 'reward' }],
+        });
+
+        // Nuevas holds every mission currently available; nothing else
+        // is shown anywhere.
+        expect(manager.newMissions().map((mission) => mission.id)).toEqual(['fresh']);
+        expect(manager.otherMissions()).toEqual([]);
+    });
+
+    it('lists out-of-season missions in Otras with the days left until they return', () => {
+        let day = 0;
+        const manager = new MissionManager(
+            () => 0.5,
+            undefined,
+            () => day,
+            () => Math.floor(day / CALENDAR.daysPerMonth) % CALENDAR.months.length,
+        );
+        manager.register({
+            id: 'seasonal',
+            title: 'Seasonal',
+            availableMonths: [6, 7, 8],
+            steps: [{ id: 'done', kind: 'reward' }],
+        });
+
+        // Day 0 (primavera): not acceptable yet, the autumn months
+        // start on day 6 × 20 = 120.
+        expect(manager.newMissions()).toEqual([]);
+        expect(manager.otherMissions().map((mission) => mission.id)).toEqual(['seasonal']);
+        expect(manager.daysUntilAvailable('seasonal')).toBe(6 * CALENDAR.daysPerMonth);
+
+        // Late verano: five days left.
+        day = 115;
+        expect(manager.daysUntilAvailable('seasonal')).toBe(5);
+
+        // In season the mission leaves Otras for Nuevas.
+        day = 130;
+        expect(manager.otherMissions()).toEqual([]);
+        expect(manager.newMissions().map((mission) => mission.id)).toEqual(['seasonal']);
+    });
+});
+
 describe('mission board', () => {
-    it('offers nothing first: the sickles mission is parked and chop wood waits for it', () => {
+    it('offers the seasonal encargo and the free test mission first', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        // The sickles mission is hidden (parked during the Order camp
-        // shift), so the board starts empty.
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([]);
-        expect(session.hasFlag('sickles_delivered')).toBe(false);
-        expect(session.missionIsComplete('sickles_to_hay')).toBe(false);
+        // Month 0 is primavera: the spring encargo is in season and the
+        // test mission is always open.
+        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([
+            'spring_sowing', 'test_mission',
+        ]);
+        expect(session.hasFlag('east_field_unlocked')).toBe(false);
+    });
+
+    it('shows the out-of-season encargos in Otras and refuses to accept them', () => {
+        const session = new WorldSession({ random: () => 0.5 });
+
+        // Month 0 is primavera: the summer and autumn encargos wait in
+        // Otras with their countdowns, and the gate refuses them.
+        expect(session.missions.otherMissions('farm').map((mission) => mission.id)).toEqual([
+            'summer_fishing', 'autumn_harvest',
+        ]);
+        expect(session.missions.daysUntilAvailable('summer_fishing')).toBe(3 * CALENDAR.daysPerMonth);
+        expect(session.missions.daysUntilAvailable('autumn_harvest')).toBe(6 * CALENDAR.daysPerMonth);
+
+        for (const mission of session.missions.otherMissions('farm')) {
+            expect(session.missionAcceptGate(mission.id).ok).toBe(false);
+        }
+        expect(session.startMission('summer_fishing')).toBe(false);
+        expect(session.missions.activeMissions()).toEqual([]);
     });
 
     it('removes an accepted mission from the available list', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.missions.start('sickles_to_hay');
+        session.missions.start('test_mission');
 
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([]);
+        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([
+            'spring_sowing',
+        ]);
         expect(session.missions.activeMissions().map((runner) => runner.missionId())).toEqual([
-            'sickles_to_hay',
+            'test_mission',
         ]);
     });
 
     it('cancelling a mission returns it to the board and closes its route again', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        giveSickle(session);
-        session.startMission('sickles_to_hay');
+        session.startMission('test_mission');
         expect(session.missions.activeMissions()).toHaveLength(1);
 
-        expect(session.cancelMission('sickles_to_hay')).toBe(true);
+        expect(session.cancelMission('test_mission')).toBe(true);
         expect(session.missions.activeMissions()).toEqual([]);
-        // The mission is parked (hidden), so it never reappears on the
-        // board — but it is startable again.
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([]);
-        expect(session.travel('hay_field').ok).toBe(false); // route closed again
+        // The mission returns to the board.
+        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([
+            'spring_sowing', 'test_mission',
+        ]);
 
-        expect(session.cancelMission('sickles_to_hay')).toBe(false); // not accepted anymore
-        expect(session.cancelMission('cow_hunt')).toBe(false); // never accepted
+        expect(session.cancelMission('test_mission')).toBe(false); // not accepted anymore
+        expect(session.cancelMission('no_such_mission')).toBe(false); // never accepted
     });
 
-    it('offers the missions on the farm board only, in order', () => {
+    it('walks a travel mission to completion', () => {
         const session = new WorldSession({ random: () => 0.5 });
-
-        // another place's board shows none of the farm missions
-        expect(session.missions.availableMissions('hay_field')).toEqual([]);
-
-        // sickles -> chop wood -> cow, each gated by the previous one
-        session.missions.start('sickles_to_hay');
-        session.travel('hay_field');
-        winHayFieldBattles(session);
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual(['chop_wood']);
-
-        session.missions.start('chop_wood');
-        session.doTask({ id: 'chop_wood', itemId: 'wood', quantity: 1 });
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual(['cow_hunt']);
-    });
-
-    it('walks the sickles mission: three battles, two story beats, then complete', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-        const runner = session.missions.start('sickles_to_hay')!;
+        const runner = session.missions.start('test_mission')!;
         expect(runner.acceptedBy()).toBe('player');
 
-        // go_hay: the map marks the hay field
+        // The first step is the travel to the camp.
         expect(runner.current()?.kind).toBe('travel');
-        expect(session.activeMissionsAt('hay_field').map((mission) => mission.missionId)).toEqual([
-            'sickles_to_hay',
+        expect(session.activeMissionsAt('camp').map((mission) => mission.missionId)).toEqual([
+            'test_mission',
         ]);
-        expect(session.activeMissionsAt('farm')).toEqual([]);
 
-        // arriving: the story lines play, the first goblin battle is
-        // queued, and the travel step completes into the wait_battle step
-        const arrival = session.travel('hay_field');
+        // Arriving completes the travel step into the reward step.
+        const arrival = session.travel('camp');
         expect(arrival.ok).toBe(true);
-        expect(arrival.arrival).toBe(true);
-        expect(runner.current()?.id).toBe('fight_one');
-        expect(session.messages.peek()?.speaker).toBe('Federico');
-        expect(session.pendingBattle()).toEqual({
-            fightId: 'hay_goblins',
-            placeId: 'hay_field',
-            missionId: 'sickles_to_hay',
-        });
-        session.messages.clear(); // the UI reads the thanks lines before the battle
-
-        // winning the skirmish does NOT end the mission: the rally
-        // lines play and the second battle queues.
-        const first = session.finishCombat('won', { placeId: 'hay_field', fightId: 'hay_goblins', missionId: 'sickles_to_hay' });
-        expect(first.message).toContain('Victory');
-        expect(runner.isComplete()).toBe(false);
-        expect(runner.current()?.id).toBe('fight_two');
-        expect(session.messages.peek()?.text).toContain('More of them are coming');
-        expect(session.pendingBattle()).toEqual({
-            fightId: 'hay_goblins_2',
-            placeId: 'hay_field',
-            missionId: 'sickles_to_hay',
-        });
-        session.messages.clear(); // rally lines read before battle two
-
-        // the united farmers battle: the boss beat follows.
-        const second = session.finishCombat('won', { placeId: 'hay_field', fightId: 'hay_goblins_2', missionId: 'sickles_to_hay' });
-        expect(second.message).toContain('Victory');
-        expect(runner.isComplete()).toBe(false);
-        expect(runner.current()?.id).toBe('boss_fight');
-        expect(session.messages.peek()?.speaker).toBe('Federico');
-        expect(session.pendingBattle()).toEqual({
-            fightId: 'hay_boss',
-            placeId: 'hay_field',
-            missionId: 'sickles_to_hay',
-        });
-
-        // the goblin chief falls: the mission completes and reports it
-        const end = session.finishCombat('won', { placeId: 'hay_field', fightId: 'hay_boss', missionId: 'sickles_to_hay' });
-        expect(end.message).toContain('Mission complete: Sickles to the Hay Field');
         expect(runner.isComplete()).toBe(true);
-        expect(session.hasFlag('sickles_delivered')).toBe(true);
-        expect(session.missions.availableMissions().map((mission) => mission.id)).toEqual([
-            'chop_wood', 'renegade_league',
-        ]);
-    });
-
-    it('locks the hay field until the sickles mission is accepted', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-
-        // no mission yet: the road to the hay field is closed
-        expect(session.travel('hay_field').ok).toBe(false);
-
-        session.missions.start('sickles_to_hay');
-        expect(session.travel('hay_field').ok).toBe(true);
-
-        // the way home stays open, and once the mission completes the
-        // road out closes again (nothing to do in the hay field)
-        winHayFieldBattles(session);
-        expect(session.travel('farm').ok).toBe(true);
-        expect(session.travel('hay_field').ok).toBe(false);
     });
 
     it('picks several missions at once and marks all their targets', () => {
@@ -175,46 +193,36 @@ describe('mission board', () => {
         expect(session.activeMissionsAt('farm').map((mission) => mission.missionId)).toEqual(['m_a', 'm_b']);
     });
 
-    it('completes chopping wood by doing the farm task', () => {
+    it('completes a task mission by doing its task', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.missions.register(taskMission());
 
-        // offered only after the sickles mission
-        session.missions.start('sickles_to_hay');
-        session.travel('hay_field');
-        winHayFieldBattles(session);
-        expect(session.missions.availableMissions().map((mission) => mission.id)).toEqual([
-            'chop_wood', 'renegade_league',
-        ]);
-
-        const runner = session.missions.start('chop_wood')!;
+        const runner = session.missions.start('wood_run')!;
         expect(runner.current()?.kind).toBe('task');
-        expect(session.activeMissionsAt('farm').map((mission) => mission.missionId)).toEqual(['chop_wood']);
+        expect(session.activeMissionsAt('farm').map((mission) => mission.missionId)).toEqual(['wood_run']);
 
-        // the farm task completes it and the session reports it
-        const result = session.doTask({ id: 'chop_wood', itemId: 'wood', quantity: 1 });
+        const result = session.doTask({ id: 'test_task', itemId: 'wood', quantity: 1 });
         expect(result.ok).toBe(true);
-        expect(result.message).toBe('You gathered 1 Wood. Mission complete: Chopping Wood');
+        expect(result.message).toBe('You gathered 1 Wood. Mission complete: Wood Run');
         expect(runner.isComplete()).toBe(true);
-        expect(session.hasFlag('wood_chopped')).toBe(true);
+        expect(session.hasFlag('wood_run_done')).toBe(true);
     });
 
-    it('does not complete the wood mission from a different task', () => {
+    it('does not complete a task mission from a different task', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.missions.start('sickles_to_hay');
-        session.travel('hay_field');
-        winHayFieldBattles(session);
-        const runner = session.missions.start('chop_wood')!;
+        session.missions.register(taskMission());
+        const runner = session.missions.start('wood_run')!;
 
-        const result = session.doTask({ id: 'collect_hay', itemId: 'hay', quantity: 1 });
+        const result = session.doTask({ id: 'other_task', itemId: 'hay', quantity: 1 });
         expect(result.ok).toBe(true);
         expect(result.message).toBe('You gathered 1 Hay.'); // no mission text
         expect(runner.isComplete()).toBe(false);
-        expect(session.hasFlag('wood_chopped')).toBe(false);
+        expect(session.hasFlag('wood_run_done')).toBe(false);
     });
 
     it('travel whitelists still lock routes for missions that declare them', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.missions.start('sickles_to_hay'); // opens the road to the hay field
+        session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED);
         session.missions.register(lockedRouteMission());
         const runner = session.missions.start('locked_route')!;
 
@@ -225,13 +233,12 @@ describe('mission board', () => {
 
     it('exposes the precise game-state queries', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        giveSickle(session);
-        session.startMission('sickles_to_hay', 'player');
+        session.startMission('test_mission', 'player');
 
-        expect(session.missionIsActive('sickles_to_hay')).toBe(true);
-        expect(session.missionStepOf('sickles_to_hay')?.id).toBe('go_hay');
-        expect(session.missionStepOf('chop_wood')).toBeUndefined();
-        expect(session.hasFlag('wood_chopped')).toBe(false);
-        expect(session.missions.runner('sickles_to_hay')?.acceptedBy()).toBe('player');
+        expect(session.missionIsActive('test_mission')).toBe(true);
+        expect(session.missionStepOf('test_mission')?.id).toBe('go');
+        expect(session.missionStepOf('winter_stock')).toBeUndefined();
+        expect(session.hasFlag('east_field_unlocked')).toBe(false);
+        expect(session.missions.runner('test_mission')?.acceptedBy()).toBe('player');
     });
 });

@@ -1,5 +1,6 @@
 import type { Character } from '../../src';
 import type { StatusDefinition } from '../../src/classes/StatusInstance';
+import type { ImpactHitContext } from './damage/impact';
 
 export function burnStatus(): StatusDefinition {
     return {
@@ -400,6 +401,55 @@ export function removeStatusesByPolarity(
 }
 
 /**
+ * Sheen Ready: a one-shot charge consumed by the bearer's next impact
+ * hit, which then deals +50% of the bearer's attack as extra physical
+ * damage (its own component, so it reads as a second attack instance).
+ */
+export function sheenReadyStatus(): StatusDefinition {
+    return {
+        name: 'Sheen Ready',
+        polarity: 'positive',
+        description: 'Your next impact hit deals +50% of your attack as physical damage.',
+        applyOn: 'impact_hit',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        statsAffected: [],
+        consumedOnImpactHit: true,
+        onImpactHit: (character, payload) => {
+            const ctx = payload as ImpactHitContext;
+            ctx.components.push({
+                kind: 'physical',
+                element: 'physical',
+                amount: Math.round(character.getStat('attack') * 0.5 * 100) / 100,
+                label: 'Sheen',
+            });
+        },
+    };
+}
+
+/**
+ * Phantom Strike: a one-shot charge consumed by the bearer's next
+ * impact hit, which then applies 2 extra impact hits (each re-runs the
+ * on-impact pipeline: item bonuses, statuses and counters).
+ */
+export function phantomStrikeStatus(): StatusDefinition {
+    return {
+        name: 'Phantom Strike',
+        polarity: 'positive',
+        description: 'Your next impact hit applies 2 extra impact hits.',
+        applyOn: 'impact_hit',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        statsAffected: [],
+        consumedOnImpactHit: true,
+        onImpactHit: (character, payload) => {
+            const ctx = payload as ImpactHitContext;
+            ctx.impactHits += 2;
+        },
+    };
+}
+
+/**
  * Human tooltip for a status: its description plus a summary of the
  * modifiers it carries (stat changes, final damage variation, granted
  * skills), so statuses without a hand-written description still explain
@@ -415,9 +465,9 @@ export function statusTooltip(definition: StatusDefinition): string {
             modifier.typeOfModification === 'DEBUFF_PERCENTAGE';
         const sign =
             modifier.typeOfModification === 'DEBUFF_FIXED' ||
-            modifier.typeOfModification === 'DEBUFF_PERCENTAGE'
-                ? '-'
-                : '+';
+            modifier.typeOfModification === 'DEBUFF_PERCENTAGE' ?
+                '-' :
+                '+';
         parts.push(`${modifier.to} ${sign}${modifier.value}${percentage ? '%' : ''}`);
     }
 

@@ -1,12 +1,14 @@
 import { WorldSession } from '../worldTest/core/session';
 import { FAINT } from '../worldTest/core/fainting';
+import { FLAGS } from '../worldTest/core/constants/flags';
 import { clearStatuses } from '../worldTest/core/statuses';
 import { hasStatusNamed } from '../worldTest/core/skills';
 
 function battleSession(): WorldSession {
+    // The six-person squad limit lets the party travel with recruits.
+    // The farm is locked by default: unlock it for the corpse flows.
     const session = new WorldSession({ random: () => 0.5 });
-    // The renegade league squad limit lets us travel with recruits.
-    session.missions.start('renegade_league');
+    session.unlocked.add(FLAGS.FARM_UNLOCKED);
     return session;
 }
 
@@ -61,6 +63,7 @@ describe('fainting', () => {
         session.setActiveParty(['player', 'soldier_0']);
         down(session, 'soldier_0');
         session.finishCombat('won', { placeId: 'farm' });
+        session.travel('farm'); // the player starts at the camp now
 
         const player = session.team.getCharacter('player')!;
         const result = session.pickUpCorpse('soldier_0', 'player');
@@ -87,6 +90,7 @@ describe('fainting', () => {
         down(session, 'soldier_0');
         down(session, 'archer_0');
         session.finishCombat('won', { placeId: 'farm' });
+        session.travel('farm'); // the player starts at the camp now
 
         expect(session.pickUpCorpse('soldier_0', 'player').ok).toBe(true);
         const second = session.pickUpCorpse('archer_0', 'player');
@@ -99,6 +103,7 @@ describe('fainting', () => {
         session.setActiveParty(['player', 'soldier_0', 'archer_0']);
         down(session, 'soldier_0');
         session.finishCombat('won', { placeId: 'farm' });
+        session.travel('farm'); // the player starts at the camp now
         session.pickUpCorpse('soldier_0', 'archer_0');
 
         // The archer falls in the next battle: both corpses lie here.
@@ -116,6 +121,7 @@ describe('fainting', () => {
         session.setActiveParty(['player', 'soldier_0']);
         down(session, 'soldier_0');
         session.finishCombat('won', { placeId: 'farm' });
+        session.travel('farm'); // the player starts at the camp now
         session.pickUpCorpse('soldier_0', 'player');
 
         // Travel to the camp with the corpse.
@@ -179,6 +185,7 @@ describe('fainting', () => {
         session.setActiveParty(['player', 'soldier_0']);
         down(session, 'soldier_0');
         session.finishCombat('won', { placeId: 'farm' });
+        session.travel('farm'); // the player starts at the camp now
         session.pickUpCorpse('soldier_0', 'player');
 
         session.calendar.skip(FAINT.corpseDays);
@@ -194,6 +201,7 @@ describe('fainting', () => {
         session.setActiveParty(['player', 'soldier_0']);
         down(session, 'soldier_0');
         session.finishCombat('won', { placeId: 'farm' });
+        session.travel('farm'); // the player starts at the camp now
         session.pickUpCorpse('soldier_0', 'player');
 
         const saved = session.exportSave();

@@ -50,14 +50,19 @@ export class StatusManager {
         this.statuses.delete(id);
     }
 
-    trigger(moment: EventMoment) {
+    trigger(moment: EventMoment, payload?: unknown) {
         // limpiamos expirados antes de activar
         this.cleanup();
 
-        for (const status of this.statuses.values()) {
-            if (status.definition.applyOn === moment) {
-                status.triggerInstances(this.character.stats);
-                status.definition.onTrigger?.(this.character);
+        // Snapshot: hooks may remove statuses (one-shot charges consume
+        // themselves) while the loop runs.
+        for (const status of Array.from(this.statuses.values())) {
+            if (status.definition.applyOn !== moment) continue;
+            status.triggerInstances(this.character.stats);
+            status.definition.onTrigger?.(this.character);
+            status.definition.onImpactHit?.(this.character, payload);
+            if (status.definition.consumedOnImpactHit) {
+                this.removeStatusInstance(status.id);
             }
         }
 

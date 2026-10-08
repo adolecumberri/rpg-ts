@@ -44,7 +44,7 @@ describe('combat flows', () => {
 
         expect(goblin.character.stats.hp).toBe(goblin.character.stats.totalHp);
         expect(goblin.character.stats.isAlive).toBe(1);
-        expect(session.currentPlaceId).toBe('farm');
+        expect(session.currentPlaceId).toBe('camp');
     });
 
     it('defeated grunt npcs respawn at full hp for the next fight', () => {
@@ -78,7 +78,7 @@ describe('combat flows', () => {
         expect(result.leveled).toBe(false);
         expect(session.team.gold).toBe(goldBefore);
         expect(session.team.getCharacter('hero')!.experience.currentXp).toBe(xpBefore);
-        expect(session.currentPlaceId).toBe('farm');
+        expect(session.currentPlaceId).toBe('camp');
         expect(result.message).toBe('You fled the battle.');
     });
 });

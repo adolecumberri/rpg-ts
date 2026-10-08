@@ -1,18 +1,14 @@
 import { Character, Stats, Team } from '../../src';
-import type { NPC, NPCDefinition, Place } from './types';
+import type { NPC, NPCDefinition, NPCStats, Place } from './types';
 import type { Mission } from './missions';
+import type { Job } from './jobs';
 import {
     ACT1,
     buildPlayerFarmer,
-    chopWoodMission,
-    cowMission,
-    farmerBossMission,
-    hayFieldArrival,
-    renegadeArrival,
-    renegadeLeagueMission,
-    sicklesMission,
 } from './config/act1';
 import { DEFAULT_ITEM_TABLE } from './items';
+import { FLAGS } from './constants/flags';
+import { Missions } from './constants/missions';
 import { farmerNameFor } from './names';
 import { applyJobBonuses, jobOfCharacter } from './constants/jobs';
 import { equipInto, migrateLegacyEquipment } from './equipment/loadout';
@@ -50,13 +46,25 @@ const HOUSEHOLD_NPCS: NPCDefinition[] = ACT1.household.map((member) => ({
 // The Order Army recruits: the twelve farmers were recruited and now
 // serve as 4 archers, 2 healers (Arturo among them) and 6 soldiers.
 // They live in the camp and are the player's roster. Each class wears
-// its weapon.
+// its weapon; its stats come from the job's growth bases.
+const recruitStats = (job: Job): NPCStats => {
+    const base = job.growth?.base ?? {};
+    return {
+        hp: base.hp ?? 20,
+        totalHp: base.totalHp ?? 20,
+        attack: base.attack ?? 5,
+        defence: base.defence ?? 1,
+        magicDefence: base.magicDefence,
+        speed: base.speed ?? 6,
+    };
+};
+
 const RECRUIT_NPCS: NPCDefinition[] = [
     {
         id: ACT1.farmers.arturoId,
         name: ACT1.farmers.arturoName,
         talk: '"The Order needs steady hands."',
-        stats: ACT1.recruits.healer,
+        stats: recruitStats(ACT1.recruits.healer),
         group: 'The Order',
         inRoster: true,
         equipment: ['staff'],
@@ -67,7 +75,7 @@ const RECRUIT_NPCS: NPCDefinition[] = [
             id,
             name: farmerNameFor(id, index % 2 === 0 ? 'male' : 'female'),
             talk: '"My bow is ready."',
-            stats: ACT1.recruits.archer,
+            stats: recruitStats(ACT1.recruits.archer),
             group: 'The Order',
             inRoster: true,
             equipment: ['bow'],
@@ -77,7 +85,7 @@ const RECRUIT_NPCS: NPCDefinition[] = [
         id: 'healer_0',
         name: farmerNameFor('healer_0', 'female'),
         talk: '"Hold still, I will patch you up."',
-        stats: ACT1.recruits.healer,
+        stats: recruitStats(ACT1.recruits.healer),
         group: 'The Order',
         inRoster: true,
         equipment: ['staff'],
@@ -88,7 +96,7 @@ const RECRUIT_NPCS: NPCDefinition[] = [
             id,
             name: farmerNameFor(id, index % 2 === 0 ? 'male' : 'female'),
             talk: '"For the Order!"',
-            stats: ACT1.recruits.soldier,
+            stats: recruitStats(ACT1.recruits.soldier),
             group: 'The Order',
             inRoster: true,
             equipment: ['sword'],
@@ -100,25 +108,11 @@ const RECRUIT_NPCS: NPCDefinition[] = [
 const GENERAL_NPC: NPCDefinition = {
     id: 'general',
     name: 'General Roderick',
-    talk: '"The renegade league blames the lord for their lost lands. Deal with them."',
+    talk: '"Report to the board for your orders."',
     stats: { hp: 60, totalHp: 60, attack: 10, defence: 4, speed: 6 },
     group: 'The Command',
     respawns: true,
 };
-
-// The renegade farmers league: four farmers still loyal to their old
-// lands, armed with sickles and holding the lord's farm.
-const RENEGADE_NPCS: NPCDefinition[] = Array.from({ length: 4 }, (_, index) => {
-    const id = `renegade_${index}`;
-    return {
-        id,
-        name: farmerNameFor(id, index % 2 === 0 ? 'male' : 'female'),
-        talk: '"These lands are ours!"',
-        stats: ACT1.farmers.stats,
-        group: 'The Renegade League',
-        equipment: ['sickle'],
-    };
-});
 
 export const PLACES: Place[] = [
     {
@@ -134,38 +128,29 @@ export const PLACES: Place[] = [
             { id: 'camp_fountain', label: 'Fountain', kind: 'fountain', icon: '' },
             { id: 'camp_look', label: 'Look around', kind: 'look_around', icon: '' },
         ],
-        connections: [{ label: "The Lord's Farm", to: ACT1.startPlaceId, icon: '' }],
+        connections: [{ label: "The Lord's Farm", to: 'farm', icon: '' }],
         npcs: [GENERAL_NPC, ...RECRUIT_NPCS],
     },
     {
-        id: ACT1.startPlaceId,
+        id: 'farm',
         name: "The Lord's Farm",
         emoji: '',
         subtitle: 'Barony Domain',
         description: 'A farm in El Fergel, a southern country. You were bought by the lord and work his land.',
         regionId: 'fergel_este',
         position: { x: 300, y: 260 },
+        // Locked by default: its own flag opens it (the story's).
+        lockedByFlag: FLAGS.FARM_UNLOCKED,
         actions: [
             { id: 'mission_board', label: 'Mission Board', kind: 'mission_board', icon: '' },
             { id: 'farm_shop', label: 'Farm Shop', kind: 'shop', shopId: 'farm_shop', icon: '' },
             { id: 'farm_look', label: 'Look around', kind: 'look_around', icon: '' },
-            ...ACT1.tasks.map((task) => ({
-                id: task.id,
-                label: task.label,
-                kind: 'task' as const,
-                itemId: task.itemId,
-                quantity: task.quantity,
-                icon: task.icon,
-            })),
         ],
         connections: [
-            { label: 'Hay Field', to: 'hay_field', icon: '🌾', requiredMissionId: 'sickles_to_hay' },
+            { label: 'Hay Field', to: 'hay_field', icon: '🌾' },
             { label: 'Order Camp', to: 'camp', icon: '🏕️' },
         ],
-        npcs: [...HOUSEHOLD_NPCS, ...RENEGADE_NPCS],
-        // Arriving while the renegade mission waits for the battle
-        // plays the ambush chat and starts the fight.
-        arrival: renegadeArrival(),
+        npcs: [...HOUSEHOLD_NPCS],
     },
     {
         id: 'hay_field',
@@ -173,25 +158,18 @@ export const PLACES: Place[] = [
         emoji: '',
         description: 'Golden fields where the hay grows. Arturo works here.',
         regionId: 'fergel_este',
-        // The place itself opens only while the sickles mission runs
-        // (the road lock is the map view's mirror of this gate).
-        lockedByMission: 'sickles_to_hay',
-        lockedMessage: 'The hay field is closed until the mission.',
         position: { x: 600, y: 260 },
+        // Locked by default: its own flag opens it.
+        lockedByFlag: FLAGS.HAY_FIELD_UNLOCKED,
         actions: [{ id: 'hay_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
-        connections: [{ label: "The Lord's Farm", to: ACT1.startPlaceId, icon: '' }],
+        connections: [{ label: "The Lord's Farm", to: 'farm', icon: '' }],
         npcs: [],
-        // No menu here: arriving plays the sickles story (thanks, then
-        // goblins), the battle decides the mission, and the player goes
-        // back to the map.
         menu: false,
-        arrival: hayFieldArrival(),
     },
     // ------------------------------------------------------------------
-    // The rest of Fergel Este: general locations of the region. Open
-    // places need no road (same-region travel is free); the east field
-    // is a locked place and the faro a hidden one (discovered by the
-    // sickles flag). The faro is the future border crossing to Islas.
+    // The rest of Fergel Este: general locations of the region. Each
+    // place carries its OWN unlock flag (the story opens them one by
+    // one); the faro is the future border crossing to Islas.
     // ------------------------------------------------------------------
     {
         id: 'fergel_north_settlement',
@@ -199,6 +177,7 @@ export const PLACES: Place[] = [
         emoji: '🏘️',
         description: 'The northern settlement of El Fergel.',
         regionId: 'fergel_este',
+        lockedByFlag: FLAGS.NORTH_SETTLEMENT_UNLOCKED,
         actions: [{ id: 'ns_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
         connections: [],
         npcs: [],
@@ -209,6 +188,8 @@ export const PLACES: Place[] = [
         emoji: '🏖️',
         description: 'The southern beach of the region.',
         regionId: 'fergel_este',
+        // Locked by default: its own flag opens it.
+        lockedByFlag: FLAGS.SOUTH_BEACH_UNLOCKED,
         actions: [{ id: 'playa_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
         connections: [],
         npcs: [],
@@ -221,8 +202,7 @@ export const PLACES: Place[] = [
         regionId: 'fergel_este',
         // The combat end already flips this flag ("the east road is
         // now open"): a locked place, visible but closed until then.
-        lockedByFlag: 'east_unlocked',
-        lockedMessage: 'The east road opens when the villages unite.',
+        lockedByFlag: FLAGS.EAST_FIELD_UNLOCKED,
         actions: [{ id: 'east_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
         connections: [],
         npcs: [],
@@ -233,9 +213,9 @@ export const PLACES: Place[] = [
         emoji: '🗼',
         description: 'The lighthouse on the region border. Ships leave from here.',
         regionId: 'fergel_este',
-        // A hidden place: not drawn on the map until the east road
-        // opens. The future border crossing to the islands.
-        hiddenUntilFlag: 'east_unlocked',
+        // A locked place: visible on the map but closed until its own
+        // flag opens it. The future border crossing to the islands.
+        lockedByFlag: FLAGS.FARO_UNLOCKED,
         actions: [{ id: 'faro_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
         connections: [],
         npcs: [],
@@ -273,7 +253,12 @@ export function buildNpcsFromPlaces(places: Place[]): {
                 character.jobId = defaultJob.id;
                 applyJobBonuses(character, defaultJob);
             }
-            // Starting equipment (the farmers wear their sickles).
+            // The picture override: stamped once at world build, never
+            // re-derived from the job.
+            if (def.portrait) {
+                character.portraitId = def.portrait;
+            }
+            // Starting equipment (the recruits wear their class weapons).
             for (const itemId of def.equipment ?? []) {
                 if (!DEFAULT_ITEM_TABLE.has(itemId)) continue;
                 character.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem(itemId), character);
@@ -338,10 +323,10 @@ export function createInitialWorld(): {
 }
 
 /**
- * The missions of the current world: the camp board offers the renegade
- * league orders; the hall board keeps its parked chain (sickles, wood,
- * cow).
+ * The missions of the current world: the global mission dictionary
+ * (constants/missions.ts) — the single source of truth. The boards
+ * offer the seasonal encargos and the free test mission.
  */
 export function createInitialMissions(): Mission[] {
-    return [sicklesMission(), chopWoodMission(), cowMission(), renegadeLeagueMission(), farmerBossMission()];
+    return Object.values(Missions);
 }

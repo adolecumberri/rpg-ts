@@ -1,6 +1,14 @@
 import { MissionRunner } from './mission';
 import type { Mission, MissionSnapshot } from './mission';
 import type { BattleOutcome } from './mission';
+import { CALENDAR } from '../config/calendar';
+
+// The board-side state of one mission (survives runners: a failed or
+// completed runner is dropped, this entry is not).
+export type MissionBoardEntry = {
+    timesAccepted: number;
+    timesCompleted: number;
+};
 
 /**
  * Owns the mission catalog and the runners in progress / finished.
@@ -14,10 +22,24 @@ export class MissionManager {
     private random: () => number;
     // Sink for flags taken by reward steps (the session's registry).
     private flagSink?: (flags: string[]) => void;
+    // The board-side state per mission (the accept/complete counters).
+    private board = new Map<string, MissionBoardEntry>();
+    // The story day provider (the session's calendar).
+    private dayOfStory: () => number;
+    // The current month of the year (0-11): some missions only appear
+    // during certain months.
+    private monthOfStory: () => number;
 
-    constructor(random: () => number = Math.random, flagSink?: (flags: string[]) => void) {
+    constructor(
+        random: () => number = Math.random,
+        flagSink?: (flags: string[]) => void,
+        dayOfStory: () => number = () => 0,
+        monthOfStory: () => number = () => 0,
+    ) {
         this.random = random;
         this.flagSink = flagSink;
+        this.dayOfStory = dayOfStory;
+        this.monthOfStory = monthOfStory;
     }
 
     register(mission: Mission): void {
@@ -52,7 +74,8 @@ export class MissionManager {
 
     /**
      * Starts (or restarts) a registered mission, recording which
-     * character accepted it. Restarting clears a previous failure.
+     * character accepted it and the deadline when the mission declares
+     * daysAvailable. Restarting clears a previous failure.
      */
     start(missionId: string, acceptedBy: string = 'player'): MissionRunner | undefined {
         const mission = this.missions.get(missionId);
@@ -63,8 +86,13 @@ export class MissionManager {
             acceptedBy,
             onFlagsTaken: this.flagSink,
         });
+        if (mission.daysAvailable !== undefined) {
+            runner.deadlineDay = this.dayOfStory() + mission.daysAvailable;
+        }
         this.runners.set(missionId, runner);
         this.completed = this.completed.filter((id) => id !== missionId);
+        const entry = this.boardEntry(missionId);
+        entry.timesAccepted += 1;
         return runner;
     }
 
@@ -172,14 +200,20 @@ export class MissionManager {
      * query (the session asks on every arrival, so a move re-evaluates
      * it for the new place): the mission must not be accepted or
      * completed, its requirements must be met, and when it declares
-     * places it is only displayed on their boards.
+     * places it is only displayed on their boards. Repeatable missions
+     * reappear once completed.
      */
     availableMissions(placeId?: string): Mission[] {
         const available: Mission[] = [];
         for (const mission of this.missions.values()) {
             if (mission.hidden) continue; // parked content
-            if (this.completed.indexOf(mission.id) !== -1) continue;
-            if (this.runners.has(mission.id)) continue; // accepted: in progress
+            if (!this.monthAllows(mission)) continue; // not the season
+            const entry = this.boardEntry(mission.id);
+            const repeatable = Boolean(mission.repeatable);
+            const accepted = this.runners.has(mission.id);
+            const completedBefore = this.completed.indexOf(mission.id) !== -1;
+            if (accepted) continue;
+            if (completedBefore && !repeatable) continue;
             const requires = mission.requires ?? [];
             const met = requires.every((id) => this.completed.indexOf(id) !== -1);
             if (!met) continue;
@@ -187,6 +221,104 @@ export class MissionManager {
             available.push(mission);
         }
         return available;
+    }
+
+    /** Whether the mission's time-of-year condition allows it now. */
+    private monthAllows(mission: Mission): boolean {
+        if (!mission.availableMonths) return true;
+        return mission.availableMonths.indexOf(this.monthOfStory()) !== -1;
+    }
+
+    /** The board entry of a mission (created on first query). */
+    boardEntry(missionId: string): MissionBoardEntry {
+        let entry = this.board.get(missionId);
+        if (!entry) {
+            entry = {
+                timesAccepted: 0,
+                timesCompleted: 0,
+            };
+            this.board.set(missionId, entry);
+        }
+        return entry;
+    }
+
+    /**
+     * The Nuevas tab: every mission currently available on the board
+     * (in season, requirements met, not accepted or completed).
+     */
+    newMissions(placeId?: string): Mission[] {
+        return this.availableMissions(placeId);
+    }
+
+    /**
+     * The Otras tab: the known seasonal missions that are OUT of
+     * season right now. They cannot be accepted (the accept gate
+     * refuses them); the Days column shows the countdown to their
+     * next available month.
+     */
+    otherMissions(placeId?: string): Mission[] {
+        return Array.from(this.missions.values()).filter((mission) => {
+            if (mission.hidden) return false;
+            if (!mission.availableMonths) return false; // only seasonal content
+            if (this.monthAllows(mission)) return false; // in season: Nuevas
+            if (this.runners.has(mission.id)) return false;
+            const completedBefore = this.completed.indexOf(mission.id) !== -1;
+            if (completedBefore && !mission.repeatable) return false;
+            const requires = mission.requires ?? [];
+            if (!requires.every((id) => this.completed.indexOf(id) !== -1)) return false;
+            if (placeId && mission.availableAt && mission.availableAt.indexOf(placeId) === -1) return false;
+            return true;
+        });
+    }
+
+    /**
+     * Days until the mission becomes available again: the countdown to
+     * the start of its next in-season month (the Otras Days cell).
+     * Undefined for missions without a time-of-year window.
+     */
+    daysUntilAvailable(missionId: string): number | undefined {
+        const mission = this.missions.get(missionId);
+        if (!mission?.availableMonths || mission.availableMonths.length === 0) return undefined;
+        const today = this.dayOfStory();
+        const daysPerMonth = CALENDAR.daysPerMonth;
+        const yearDays = CALENDAR.months.length * daysPerMonth;
+        let soonest = Number.POSITIVE_INFINITY;
+        for (const month of mission.availableMonths) {
+            let start = month * daysPerMonth;
+            while (start <= today) start += yearDays;
+            if (start < soonest) soonest = start;
+        }
+        return soonest - today;
+    }
+
+    /**
+     * The player's owned missions (the Aceptadas tab): the accepted
+     * runners still in progress.
+     */
+    ownedMissions(): MissionRunner[] {
+        return this.activeMissions();
+    }
+
+    /** How many times the mission has been completed (0 = never). */
+    timesCompleted(missionId: string): number {
+        return this.board.get(missionId)?.timesCompleted ?? 0;
+    }
+
+    /**
+     * Passes a story day: every accepted mission whose deadline has
+     * passed fails automatically. Returns the failed mission titles.
+     */
+    onDayPassed(): string[] {
+        const today = this.dayOfStory();
+        const failed: string[] = [];
+        for (const [missionId, runner] of this.runners) {
+            if (runner.deadlineDay === undefined) continue;
+            if (today <= runner.deadlineDay) continue;
+            runner.fail();
+            this.runners.delete(missionId);
+            failed.push(runner.title());
+        }
+        return failed;
     }
 
     /**
@@ -223,11 +355,31 @@ export class MissionManager {
     checkFinished(runner: MissionRunner): void {
         if (runner.isComplete() && this.completed.indexOf(runner.missionId()) === -1) {
             this.completed.push(runner.missionId());
+            const entry = this.boardEntry(runner.missionId());
+            entry.timesCompleted += 1;
         }
     }
 
     serialize(): MissionSnapshot[] {
         return Array.from(this.runners.values()).map((runner) => runner.snapshot());
+    }
+
+    /** The board-side state as save entries. */
+    serializeBoard(): Array<MissionBoardEntry & { missionId: string }> {
+        return Array.from(this.board.entries()).map(([missionId, entry]) => ({
+            missionId,
+            ...entry,
+        }));
+    }
+
+    loadBoard(entries: Array<Partial<MissionBoardEntry> & { missionId: string }>): void {
+        this.board.clear();
+        for (const entry of entries) {
+            this.board.set(entry.missionId, {
+                timesAccepted: entry.timesAccepted ?? 0,
+                timesCompleted: entry.timesCompleted ?? 0,
+            });
+        }
     }
 
     load(snapshots: MissionSnapshot[]): void {

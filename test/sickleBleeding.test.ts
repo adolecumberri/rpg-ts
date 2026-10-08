@@ -41,7 +41,7 @@ describe('the sickle weapon', () => {
     it('a parry that zeroes the damage skips the bleeding entirely', () => {
         const attacker = sickleFarmer();
         const defender = character('goblin', { hp: 100, totalHp: 100, defence: 0, magicDefence: 0, speed: 5 });
-        addReaction(defender, () => ({ damage: 0, reflect: 0, note: 'parried!' }));
+        addReaction(defender, () => ({ damage: 0, note: 'parried!' }));
 
         const outcome = resolveGeneralAttack(attacker, defender, noCrit);
         expect(outcome.damage).toBe(0);

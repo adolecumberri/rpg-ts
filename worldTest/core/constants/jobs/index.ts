@@ -1,5 +1,7 @@
 import type { Character } from '../../../../src';
 import type { Job, JobStatKey } from '../../jobs/Job';
+import type { GrowthProfile } from '../../config/growth';
+import { DEFAULT_BASE, STAT_KEYS, resolveGrowth } from '../../config/growth';
 // The merged Character.jobId field and the widened Statistics shape
 // (magic, speed...) must be visible here for the bonus helpers.
 import '../../config/damage';
@@ -52,6 +54,44 @@ export function jobOfCharacter(characterId: string): Job | undefined {
     if (characterId.indexOf('archer_') === 0) return ARCHER_JOB;
     if (characterId.indexOf('soldier_') === 0) return SOLDIER_JOB;
     return undefined;
+}
+
+/**
+ * The growth profile the character levels with: the HELD job's (so
+ * switching jobs switches the future gains), the one the generator
+ * attached at creation, or the generic default.
+ */
+export function growthProfileOf(character: Character): GrowthProfile {
+    return heldJobOf(character)?.growth ?? character.growthProfile ?? { base: DEFAULT_BASE };
+}
+
+/**
+ * Adds `levels` level-ups to the character: each one applies the
+ * current job's per-level gains on top of the character's own stats.
+ * The base never rebases; switching jobs only changes the FUTURE
+ * gains. The stats keep their decimals (floats), so the fractional
+ * progress of every level carries itself into the next one.
+ */
+export function applyGrowthLevels(character: Character, levels: number, heal = true): void {
+    const resolved = resolveGrowth(growthProfileOf(character));
+    for (const stat of STAT_KEYS) {
+        if (stat === 'hp') continue;
+        character.stats[stat] = (character.stats[stat] ?? DEFAULT_BASE[stat])
+            + levels * resolved.gainPerLevel[stat];
+    }
+    if (heal) {
+        character.stats.hp = character.stats.totalHp;
+        character.stats.isAlive = 1;
+    }
+}
+
+/**
+ * Wires the live level-up handler: every level adds the CURRENT job's
+ * gains (resolved at level-up time, so a job change takes effect from
+ * the next level).
+ */
+export function wireCharacterGrowth(character: Character): void {
+    character.experience.onLevelUpHandler = () => applyGrowthLevels(character, 1);
 }
 
 /** The job with the given id, if it exists. */

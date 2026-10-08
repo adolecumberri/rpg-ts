@@ -47,7 +47,7 @@ export function createHeroTree(): SkillTree {
                 { stat: 'attack', value: 5 },
                 { stat: 'totalHp', value: 10 },
             ],
-            conditions: [new QuestFlagCondition('east_unlocked')],
+            conditions: [new QuestFlagCondition('east_field_unlocked')],
         },
     ]);
 }

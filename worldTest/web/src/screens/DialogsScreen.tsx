@@ -284,7 +284,7 @@ export function DialogsScreen() {
             options={[{
                 id: 'new',
                 label: 'Nuevo',
-                icon: { symbol: 'add', color: '#f2ca50' },
+                icon: { symbol: 'add', color: 'var(--accent)' },
                 tone: 'primary',
                 onClick: newDraft,
             }]}
@@ -295,20 +295,20 @@ export function DialogsScreen() {
                 {
                     id: 'add-line',
                     label: '＋ Línea',
-                    icon: { symbol: 'add', color: '#f2ca50' },
+                    icon: { symbol: 'add', color: 'var(--accent)' },
                     onClick: addLine,
                 },
                 {
                     id: 'save',
                     label: 'Guardar',
-                    icon: { symbol: 'save', color: '#f2ca50' },
+                    icon: { symbol: 'save', color: 'var(--accent)' },
                     tone: 'primary',
                     onClick: saveDraft,
                 },
                 {
                     id: 'play',
                     label: 'Probar',
-                    icon: { symbol: 'play_arrow', color: '#f2ca50' },
+                    icon: { symbol: 'play_arrow', color: 'var(--accent)' },
                     onClick: () => draft ? startPlay(draft, 'edit') : undefined,
                 },
             ]}
@@ -326,14 +326,14 @@ export function DialogsScreen() {
                 {
                     id: 'restart',
                     label: 'Reiniciar',
-                    icon: { symbol: 'replay', color: '#f2ca50' },
+                    icon: { symbol: 'replay', color: 'var(--accent)' },
                     disabled: lineIndex === 0,
                     onClick: () => setLineIndex(0),
                 },
                 ...(lineIndex < playing.dialog.lines.length ? [{
                     id: 'next',
                     label: 'Siguiente',
-                    icon: { symbol: 'arrow_forward', color: '#f2ca50' },
+                    icon: { symbol: 'arrow_forward', color: 'var(--accent)' },
                     tone: 'primary' as const,
                     onClick: () => setLineIndex((index) => index + 1),
                 }] : []),
@@ -343,7 +343,7 @@ export function DialogsScreen() {
                     // would land on the combat screen).
                     id: 'push',
                     label: 'Al juego',
-                    icon: { symbol: 'call', color: '#f2ca50' },
+                    icon: { symbol: 'call', color: 'var(--accent)' },
                     onClick: () => {
                         api.session.messages.push(
                             playing.dialog.lines.map((entry) => ({ ...entry })),

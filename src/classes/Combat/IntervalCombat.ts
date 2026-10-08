@@ -48,6 +48,24 @@ export type IntervalCombatOptions = {
     // engine's random source so crits (or any variance) stay
     // deterministic under injected randomness.
     damageResolver?: IntervalDamageResolver;
+    // Optional observer: fires once per resolved hit (and per self-heal
+    // action) with the applied numbers — battle trackers attach here.
+    onAction?: (record: IntervalActionRecord) => void;
+};
+
+// One resolved action of the tick engine as reported to the observer.
+export type IntervalActionRecord = {
+    tick: number;
+    actorId: string;
+    targetId: string;
+    damage: number;
+    damageByKind?: IntervalDamage['byKind'];
+    // The self-heal the action applied before hitting (healSelf).
+    healSelf?: number;
+    // Counter-attack damage the defender answered with (the reflect).
+    reflect?: number;
+    reflectByKind?: IntervalDamage['byKind'];
+    note?: string;
 };
 
 // The outcome of resolving one hit through a damage resolver.
@@ -56,9 +74,15 @@ export type IntervalDamage = {
     damage: number;
     // Optional flavour shown in logs, e.g. 'crit ×2' or 'parried!'.
     note?: string;
-    // Damage reflected back to the attacker (reactions like Parry or
-    // Spike Shield). Applied after the hit resolves.
+    // Counter-attack damage applied back to the attacker (reactions like
+    // Parry or Spike Shield, already resolved by the resolver).
     reflect?: number;
+    // Post-mitigation damage split by kind (physical/magical/true) —
+    // filled by resolvers that know the breakdown; battle trackers
+    // consume it for per-kind reports.
+    byKind?: { physical?: number; magical?: number; true?: number };
+    // The counter-attack's split by kind (the reflect).
+    reflectByKind?: { physical?: number; magical?: number; true?: number };
 };
 
 export type IntervalDamageResolver = (
@@ -99,8 +123,11 @@ export type IntervalActionResolver = (
     context: IntervalActionContext,
 ) => IntervalAction | null;
 
-type IntervalBaseOptions = Omit<IntervalCombatOptions, 'damageResolver'>;
-type ResolvedOptions = Required<IntervalBaseOptions> & { damageResolver?: IntervalDamageResolver };
+type IntervalBaseOptions = Omit<IntervalCombatOptions, 'damageResolver' | 'onAction'>;
+type ResolvedOptions = Required<IntervalBaseOptions> & {
+    damageResolver?: IntervalDamageResolver;
+    onAction?: (record: IntervalActionRecord) => void;
+};
 
 const DEFAULT_OPTIONS: Required<IntervalBaseOptions> = {
     maxTicks: 1000,
@@ -193,6 +220,13 @@ export class IntervalCombat {
                         actor.character.stats.hp + action.healSelf,
                     );
                     actor.character.stats.isAlive = 1;
+                    config.onAction?.({
+                        tick,
+                        actorId: actor.character.id,
+                        targetId: actor.character.id,
+                        damage: 0,
+                        healSelf: action.healSelf,
+                    });
                 }
 
                 const targets = action ? action.targets : actor.hits ?? 1;
@@ -212,6 +246,17 @@ export class IntervalCombat {
                         damageApplied: resolved.damage,
                         targetHpAfter: target.character.stats.hp,
                         targetAlive: target.character.stats.hp > 0,
+                        note: resolved.note,
+                    });
+
+                    config.onAction?.({
+                        tick,
+                        actorId: actor.character.id,
+                        targetId: target.character.id,
+                        damage: resolved.damage,
+                        damageByKind: resolved.byKind,
+                        reflect: resolved.reflect,
+                        reflectByKind: resolved.reflectByKind,
                         note: resolved.note,
                     });
                 }
@@ -246,11 +291,15 @@ export class IntervalCombat {
         overrideResolver?: IntervalDamageResolver,
         actionNote?: string,
     ): IntervalDamage {
-        const resolved = overrideResolver ?
-            overrideResolver(attacker, defender, config.random) :
-            config.damageResolver ?
-                config.damageResolver(attacker, defender, config.random) :
-                { damage: this.resolveAttack(attacker, defender) };
+        let resolved: IntervalDamage;
+        if (overrideResolver) {
+            resolved = overrideResolver(attacker, defender, config.random);
+        } else if (config.damageResolver) {
+            resolved = config.damageResolver(attacker, defender, config.random);
+        } else {
+            const damage = this.resolveAttack(attacker, defender);
+            resolved = { damage, byKind: { physical: damage } };
+        }
 
         defender.stats.hp = Math.max(0, defender.stats.hp - resolved.damage);
         defender.stats.isAlive = defender.stats.hp > 0 ? 1 : 0;

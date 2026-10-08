@@ -9,7 +9,6 @@ import {
 import { jobOfCharacter } from '../worldTest/core/constants/jobs';
 import { equippedItemsOf } from '../worldTest/core/equipment/loadout';
 import { DEFAULT_ITEM_TABLE } from '../worldTest/core/items';
-import { FIGHTS } from '../worldTest/core/config/fights';
 
 function character(id: string, stats: Partial<import('../src').Statistics>): Character {
     return new Character({ id, name: id, stats: new Stats(stats) });
@@ -96,22 +95,14 @@ describe('weapon reach and gear', () => {
 });
 
 describe('the squad', () => {
-    it('holds the player plus five more while the renegade mission is active', () => {
+    it('holds the player plus up to five more (the six-person squad)', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        expect(session.squadLimit()).toBe(1); // only the player by default
-
-        session.missions.start('renegade_league');
-        expect(session.squadLimit()).toBe(6); // the camp lets you pick 5 more
+        expect(session.squadLimit()).toBe(6);
 
         const ids = ['player', 'arturo', 'archer_0', 'soldier_0', 'soldier_1', 'healer_0'];
         const result = session.setActiveParty(ids);
         expect(result.ok).toBe(true);
         expect(session.roster.activeIds()).toEqual(ids);
-
-        // Outside the mission the party trims back to the player alone.
-        session.missions.cancel('renegade_league');
-        session.setActiveParty(ids);
-        expect(session.roster.activeIds()).toEqual(['player']);
     });
 
     it('classifies the recruits for the camp roster', () => {
@@ -128,86 +119,9 @@ describe('the squad', () => {
     });
 });
 
-describe('the renegade league mission', () => {
-    it('registers the general, the four sickle farmers and the fight', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-        expect(session.findNpc('general')?.character.name).toBe('General Roderick');
-        const renegades = session.npcsAt('farm').filter((npc) => npc.group === 'The Renegade League');
-        expect(renegades).toHaveLength(4);
-        for (const npc of renegades) {
-            expect(npc.character.equipment.get('weapon')?.id).toBe('sickle');
-        }
-        expect(session.missions.mission('renegade_league')).toBeDefined();
-
-        const fight = FIGHTS.renegades_fight;
-        expect(fight.mode).toBe('turn');
-        expect(fight.placeId).toBe('farm');
-        const enemies = fight.enemies();
-        expect(enemies).toHaveLength(4);
-        expect(enemies[0].equipment.get('weapon')?.id).toBe('sickle');
-    });
-
-    it('offers on the camp board, plays the orders and fights at the farm on arrival', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-        session.travel('camp'); // the world starts at the farm
-        expect(session.missions.availableMissions('camp').map((mission) => mission.id)).toEqual([
-            'renegade_league',
-        ]);
-
-        // Accepting plays the commander's orders; no battle yet.
-        expect(session.startMission('renegade_league')).toBe(true);
-        expect(session.messages.peek()?.speaker).toBe('General Roderick');
-        session.messages.next();
-        expect(session.messages.peek()?.text).toContain('Form a squad');
-        expect(session.pendingBattle()).toBeNull();
-        expect(session.squadLimit()).toBe(6); // pick 5 more
-
-        // Marching to the farm starts the fight.
-        session.messages.clear();
-        const arrival = session.travel('farm');
-        expect(arrival.arrival).toBe(true);
-        expect(session.pendingBattle()).toEqual({
-            fightId: 'renegades_fight',
-            placeId: 'farm',
-            missionId: 'renegade_league',
-        });
-
-        // Winning the farm battle starts the league's counter-attack.
-        session.messages.clear();
-        session.finishCombat('won', {
-            placeId: 'farm',
-            fightId: 'renegades_fight',
-            missionId: 'renegade_league',
-        });
-        expect(session.missionIsComplete('renegade_league')).toBe(false);
-        expect(session.messages.peek()?.text).toContain('at our gates');
-        expect(session.pendingBattle()).toEqual({
-            fightId: 'renegades_fight_2',
-            placeId: 'camp',
-            missionId: 'renegade_league',
-        });
-
-        // Winning the second battle completes the mission and leaves
-        // the flag, and the Farmer King mission opens on the board.
-        session.messages.clear();
-        const end = session.finishCombat('won', {
-            placeId: 'camp',
-            fightId: 'renegades_fight_2',
-            missionId: 'renegade_league',
-        });
-        expect(end.message).toContain('Mission complete: The Renegade League');
-        expect(session.missionIsComplete('renegade_league')).toBe(true);
-        expect(session.hasFlag('renegades_scattered')).toBe(true);
-        expect(session.missions.availableMissions('camp').map((mission) => mission.id)).toEqual([
-            'farmer_boss',
-        ]);
-    });
-});
-
 describe('auto formation rows', () => {
     it('places recruits in the row their weapon belongs to when added', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.missions.start('renegade_league');
         session.setActiveParty(['player', 'archer_0', 'arturo', 'soldier_0']);
 
         expect(session.roster.character('archer_0')!.position).toBe('back'); // bow: 'all'
@@ -218,7 +132,6 @@ describe('auto formation rows', () => {
 
     it('only re-rows when a character is added to the team', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.missions.start('renegade_league');
         session.setActiveParty(['player', 'soldier_0']);
         const soldier = session.roster.character('soldier_0')!;
         expect(soldier.position).toBe('front'); // the sword
@@ -238,7 +151,6 @@ describe('auto formation rows', () => {
 
     it('a manual formation choice stands until the weapon changes', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.missions.start('renegade_league');
         session.setActiveParty(['player', 'archer_0']);
         const archer = session.roster.character('archer_0')!;
         expect(archer.position).toBe('back');

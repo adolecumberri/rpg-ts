@@ -478,6 +478,8 @@ export type WorldMapProps = {
     reachablePlaceIds?: Set<string> | null;
     // Hidden places (not discovered yet): not drawn and not clickable.
     hiddenPlaceIds?: Set<string> | null;
+    // Dev panel action: reveals every region on the map.
+    onRevealAllRegions?: () => void;
     // Clicking an undiscovered target: 'ignore' (default) does nothing;
     // 'select' selects it but keeps its info hidden.
     undiscovered?: 'ignore' | 'select';
@@ -502,6 +504,7 @@ export function WorldMap({
     currentLocationId = null,
     reachablePlaceIds = null,
     hiddenPlaceIds = null,
+    onRevealAllRegions,
     undiscovered = 'ignore',
 }: WorldMapProps) {
     const [mask, setMask] = useState<MaskData | null>(null);
@@ -1264,6 +1267,16 @@ export function WorldMap({
                         >
                             {copied ? '✓ copied' : '📋 Copy coords'}
                         </button>
+                        {onRevealAllRegions ? (
+                            <button
+                                type="button"
+                                className="pixel-btn"
+                                style={{ height: 'var(--s8)' }}
+                                onClick={onRevealAllRegions}
+                            >
+                                🗺️ Reveal all regions
+                            </button>
+                        ) : null}
                         <div className="worldmap-dev-toggles">
                             {devToggles.map((toggle) => (
                                 <button

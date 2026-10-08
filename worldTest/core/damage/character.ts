@@ -91,18 +91,33 @@ export function applyDamageResult(character: Character, result: DamageResult): v
  * Full general resolution of a basic attack and its application. By
  * default no crit is ever rolled (the injected random returns 1) so
  * plain attacks stay deterministic; pass a `random` source to enable
- * crits.
+ * crits. The defender's counter-attack (Parry, Spike Shield) is
+ * resolved against the attacker as a real hit and applied on top.
  */
 export function resolveBasicAttack(
     attacker: Character,
     defender: Character,
     options: ResolveOptions & { random?: () => number } = {},
 ): DamageResult {
-    const outcome = resolveGeneralAttack(attacker, defender, options.random ?? (() => 1), options);
+    const random = options.random ?? (() => 1);
+    const outcome = resolveGeneralAttack(attacker, defender, random, options);
     const result: DamageResult = {
         total: outcome.damage,
         breakdown: outcome.breakdown ?? [],
     };
     applyDamageResult(defender, result);
+
+    if (outcome.counter) {
+        const counter = resolveGeneralAttack(defender, attacker, random, {
+            ...options,
+            isCounter: true,
+            components: outcome.counter.components,
+        });
+        applyDamageResult(attacker, {
+            total: counter.damage,
+            breakdown: counter.breakdown ?? [],
+        });
+    }
+
     return result;
 }

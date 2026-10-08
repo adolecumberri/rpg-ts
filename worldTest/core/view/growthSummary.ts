@@ -1,53 +1,60 @@
-import { GROWTH, jobOf } from '../config/growth';
-import type { GrowthStats } from '../config/growth';
+import type { GrowthProfile } from '../config/growth';
+import { DEFAULT_MAX, LEVEL_CAP, resolveGrowth } from '../config/growth';
+
+export type GrowthRowStat = 'attack' | 'defence' | 'magicDefence' | 'magic' | 'speed' | 'totalHp';
 
 export type GrowthRow = {
-    stat: GrowthStats;
+    stat: GrowthRowStat;
     icon: string;
     // Level-1 value.
     base: number;
-    // Value at the level cap: cap × ratio.
+    // Value at the level cap: base + (cap − 1) × gain.
     target: number;
-    // How much of the job's cap the character reaches (percent).
+    // The per-stat growth ratio (percent): 100 = the default gains.
     ratioPercent: number;
+    // The theoretical absolute maximum the gains are computed from.
     cap: number;
 };
 
-const GROWTH_ICONS: Record<GrowthStats, string> = {
+const GROWTH_ICONS: Record<GrowthRowStat, string> = {
     attack: '⚔️',
     defence: '🛡️',
     magicDefence: '🔮',
+    magic: '✨',
     speed: '⚡',
     totalHp: '❤️',
 };
 
-export const GROWTH_STAT_LABELS: Record<GrowthStats, string> = {
+export const GROWTH_STAT_LABELS: Record<GrowthRowStat, string> = {
     attack: 'Atq. físico',
     defence: 'Def. física',
     magicDefence: 'Def. mágica',
+    magic: 'Poder mágico',
     speed: 'Rapidez',
     totalHp: 'Max HP',
 };
 
 /**
- * The growth profile of a job, one row per growing stat: where it
- * starts, where it ends at the level cap, and the ratio of the cap it
- * reaches. Used by the character details view.
+ * The growth profile as display rows, one per growing stat: where it
+ * starts, where it ends at the level cap, the per-stat ratio and the
+ * theoretical maximum. Used by the character details view.
  */
-export function growthRowsOf(jobId: string): GrowthRow[] {
-    const job = jobOf(jobId);
-    const stats = Object.keys(job.caps) as GrowthStats[];
+export function growthRowsOf(profile: GrowthProfile): GrowthRow[] {
+    const resolved = resolveGrowth(profile);
+    const stats: GrowthRowStat[] = ['attack', 'defence', 'magicDefence', 'magic', 'speed', 'totalHp'];
 
     return stats.map((stat) => ({
         stat,
         icon: GROWTH_ICONS[stat],
-        base: job.bases[stat],
-        target: Math.round(job.caps[stat] * job.ratios[stat] * 100) / 100,
-        ratioPercent: Math.round(job.ratios[stat] * 100),
-        cap: job.caps[stat],
+        base: resolved.base[stat],
+        target: Math.round(
+            (resolved.base[stat] + (LEVEL_CAP - 1) * resolved.gainPerLevel[stat]) * 100,
+        ) / 100,
+        ratioPercent: Math.round((profile.ratios?.[stat] ?? 1) * 100),
+        cap: DEFAULT_MAX[stat],
     }));
 }
 
 export function levelCap(): number {
-    return GROWTH.levelCap;
+    return LEVEL_CAP;
 }

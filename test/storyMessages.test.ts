@@ -1,15 +1,10 @@
 import { WorldSession } from '../worldTest/core/session';
 import { MessageQueue } from '../worldTest/core/messages';
-import { CHATS } from '../worldTest/core/config/chats';
 import { FIGHTS } from '../worldTest/core/config/fights';
 import { characterGenerator } from '../worldTest/core/generators/characterGenerator';
-import { PLACES_BY_ID } from '../worldTest/core/world';
-import { winHayFieldBattles } from './support/hayField';
-
-// The sickles mission requires a sickle: grant it before accepting.
-function giveSickle(session: WorldSession): void {
-    session.team.inventory.addItem(session.itemTable.createItem('sickle'));
-}
+import { Creatures } from '../worldTest/core/constants/creatures';
+import { Items } from '../worldTest/core/constants/items';
+import { DEFAULT_GROWTH_RATE, DEFAULT_MAX, LEVEL_CAP } from '../worldTest/core/config/growth';
 
 describe('global message queue', () => {
     it('peeks and advances lines one at a time', () => {
@@ -37,64 +32,44 @@ describe('global message queue', () => {
 });
 
 describe('character generator', () => {
-    it('builds a goblin from its preset, scaling stats by level', () => {
-        const level1 = characterGenerator('goblin', 1, { id: 'goblin_a' });
+    it('builds a goblin from its creature constant, scaling stats by level', () => {
+        const level1 = characterGenerator({ creature: Creatures.goblin, level: 1, id: 'goblin_a' });
         expect(level1.name).toBe('Goblin');
         expect(level1.stats.hp).toBe(10);
         expect(level1.stats.attack).toBe(2);
-        expect(level1.speciesId).toBe('goblin'); // reference to the generic preset
+        expect(level1.speciesId).toBe('goblin'); // reference to the generic constant
 
-        const level3 = characterGenerator('goblin', 3, { id: 'goblin_b' });
-        expect(level3.stats.hp).toBe(14); // 10 + 2*2
-        expect(level3.stats.attack).toBe(4); // 2 + 1*2
+        const hpGain = DEFAULT_MAX.hp * DEFAULT_GROWTH_RATE / LEVEL_CAP * 0.5;
+        const attackGain = DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP * 0.8;
+        const level3 = characterGenerator({ creature: Creatures.goblin, level: 3, id: 'goblin_b' });
+        expect(level3.stats.hp).toBe(Math.round((10 + 2 * hpGain) * 100) / 100);
+        expect(level3.stats.attack).toBe(Math.round((2 + 2 * attackGain) * 100) / 100);
     });
 
     it('accepts stat overrides and custom names', () => {
-        const boss = characterGenerator('goblin', 1, { id: 'boss', name: 'Goblin Boss', stats: { hp: 30, attack: 6 } });
+        const boss = characterGenerator({
+            creature: Creatures.goblin,
+            level: 1,
+            id: 'boss',
+            name: 'Goblin Boss',
+            stats: { hp: 30, attack: 6 },
+            portrait: 'goblin',
+        });
         expect(boss.name).toBe('Goblin Boss');
         expect(boss.stats.hp).toBe(30);
         expect(boss.stats.attack).toBe(6);
+        // The picture override is stamped on the character at creation.
+        expect(boss.portraitId).toBe('goblin');
     });
 
-    it('rejects unknown species', () => {
-        expect(() => characterGenerator('dragon', 1)).toThrow('Unknown species: dragon');
+    it('rejects a config without creature, job or profile', () => {
+        expect(() => characterGenerator({ level: 1 })).toThrow(
+            'characterGenerator needs a creature, a job or a profile.',
+        );
     });
 });
 
 describe('fights as constants', () => {
-    it('the hay field story defines its three battles', () => {
-        const first = FIGHTS.hay_goblins;
-        expect(first.mode).toBe('hybrid');
-        expect(first.placeId).toBe('hay_field');
-        expect(first.enemies().map((character) => character.id)).toEqual([
-            'hay_goblin_a', 'hay_goblin_b', 'hay_goblin_c',
-        ]);
-        // The recruits fight the first skirmish automatically.
-        expect(first.allyIds).toEqual(['arturo', 'soldier_0']);
-
-        const second = FIGHTS.hay_goblins_2;
-        expect(second.enemies()).toHaveLength(9);
-        expect(second.allyIds).toEqual(['arturo', 'archer_0', 'archer_1', 'soldier_0', 'soldier_1']);
-
-        const boss = FIGHTS.hay_boss;
-        expect(boss.manualId).toBe('lord_son');
-        expect(boss.enemies()).toHaveLength(9); // the chief + 8 goblins
-        const chief = boss.enemies()[0];
-        expect(chief.name).toBe('Goblin Chief');
-        expect(chief.stats.hp).toBe(220);
-        expect(chief.stats.attack).toBe(12);
-        expect(chief.stats.defence).toBe(6);
-    });
-
-    it('fleeing its battle fails the mission that triggered it', () => {
-        const fight = FIGHTS.hay_goblins;
-        const session = new WorldSession({ random: () => 0.5 });
-        const runner = session.missions.start('sickles_to_hay')!;
-
-        fight.onFlee?.(runner);
-        expect(runner.isFailed()).toBe(true);
-    });
-
     it('the dev training dummy is a damage sponge that never fights back', () => {
         const fight = FIGHTS.dev_dummy;
         expect(fight.mode).toBe('turn');
@@ -107,122 +82,13 @@ describe('fights as constants', () => {
     });
 });
 
-describe('arrival events', () => {
-    it('plays the hay field chat only while the sickles mission is active', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-
-        session.missions.start('sickles_to_hay');
-        const arrival = session.travel('hay_field');
-
-        expect(arrival.ok).toBe(true);
-        expect(arrival.arrival).toBe(true);
-        expect(session.messages.peek()?.speaker).toBe(CHATS.hay_thanks.lines[0].speaker);
-        session.messages.next();
-        expect(session.messages.peek()?.speaker).toBe(CHATS.hay_thanks.lines[1].speaker);
-        session.messages.next();
-        expect(session.messages.hasPending()).toBe(false);
-    });
-
-    it('queues the goblin fight with its mission and consumes it once', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-
-        session.missions.start('sickles_to_hay');
-        expect(session.pendingBattle()).toBeNull();
-
-        session.travel('hay_field');
-        expect(session.pendingBattle()).toEqual({
-            fightId: 'hay_goblins',
-            placeId: 'hay_field',
-            missionId: 'sickles_to_hay',
-        });
-
-        expect(session.consumePendingBattle()).toEqual({
-            fightId: 'hay_goblins',
-            placeId: 'hay_field',
-            missionId: 'sickles_to_hay',
-        });
-        expect(session.consumePendingBattle()).toBeNull();
-        expect(session.pendingBattle()).toBeNull();
-    });
-
-    it('closes the hay field road once the mission is complete', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-
-        session.missions.start('sickles_to_hay');
-        session.travel('hay_field');
-        session.messages.clear();
-        winHayFieldBattles(session);
-
-        // the way home stays open, the road out closes again
-        expect(session.travel('farm').ok).toBe(true);
-        const again = session.travel('hay_field');
-        expect(again.ok).toBe(false);
-        expect(session.messages.hasPending()).toBe(false);
-        expect(session.pendingBattle()).toBeNull();
-    });
-
-    it('moves the lord son and Arturo to the hay field when accepted, and back on cancel', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-
-        expect(session.npcsAt('hay_field')).toEqual([]);
-
-        giveSickle(session);
-        session.startMission('sickles_to_hay');
-        // The lord's son travels by name; Arturo (a camp recruit) joins
-        // too. The farmers group no longer exists, so no group moves.
-        const atHay = session.npcsAt('hay_field').map((npc) => npc.id);
-        expect(atHay).toEqual(['lord_son', 'arturo']);
-        expect(session.findNpc('lord_son')).toBeDefined();
-
-        session.cancelMission('sickles_to_hay');
-        expect(session.npcsAt('hay_field')).toEqual([]);
-        // Declining (cancelling) sends everyone home: the lord's son to
-        // the farm, Arturo back to the Order camp.
-        expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('lord_son');
-        expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
-        expect(session.pendingBattle()).toBeNull();
-    });
-
-    it('keeps the mission npc moves across a save and load', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-        giveSickle(session);
-        session.startMission('sickles_to_hay');
-
-        const restored = WorldSession.fromSave(session.exportSave());
-        const atHay = restored.npcsAt('hay_field').map((npc) => npc.id);
-        expect(atHay).toEqual(['lord_son', 'arturo']);
-        expect(restored.missionIsActive('sickles_to_hay')).toBe(true);
-    });
-
-    it('failing the fight moves the mission people back to the farm', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-        giveSickle(session);
-        session.startMission('sickles_to_hay');
-        session.travel('hay_field');
-        session.consumePendingBattle();
-
-        const end = session.finishCombat('fled', { placeId: 'hay_field', fightId: 'hay_goblins', missionId: 'sickles_to_hay' });
-        expect(end.message).toContain('Mission failed: Sickles to the Hay Field');
-        expect(session.npcsAt('hay_field')).toEqual([]);
-        expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('lord_son');
-        expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
-
-        // A failed mission returns to being startable: there is no
-        // failed status to keep around (it stays hidden on the board).
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([]);
-        expect(session.missionIsActive('sickles_to_hay')).toBe(false);
-        expect(session.startMission('sickles_to_hay')).toBe(true);
-        expect(session.missions.activeMissions().map((runner) => runner.missionId())).toEqual([
-            'sickles_to_hay',
-        ]);
-    });
-
+describe('character kits', () => {
     it('goblins carry their sticks and the recruits carry their class kits', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        const goblin = characterGenerator('goblin', 1, { id: 'goblin_gear' });
+        const goblin = characterGenerator({ creature: Creatures.goblin, level: 1, id: 'goblin_gear', hand: Items.stick });
         expect(goblin.equipment.get('weapon')?.id).toBe('stick');
-        expect(goblin.stats.attack).toBe(2); // raw preset unchanged
+        expect(goblin.stats.attack).toBe(2); // raw constant unchanged
         expect(goblin.getStat('attack')).toBe(3); // +1 from the stick
 
         // The Order Army classes: archers harass, healers support,
@@ -243,15 +109,5 @@ describe('arrival events', () => {
         expect(player.equipment.get('bag')?.id).toBe('sack');
         expect(player.loadout?.holes?.[0]?.id).toBe('sword');
         expect(player.loadout?.holes?.[1]?.id).toBe('farmer_outfit');
-    });
-});
-
-describe('place declarations', () => {
-    it('declares the hay field as a story place with chat and fight', () => {
-        const place = PLACES_BY_ID['hay_field'];
-        expect(place.menu).toBe(false);
-        expect(place.arrival?.missionId).toBe('sickles_to_hay');
-        expect(place.arrival?.chatId).toBe('hay_thanks');
-        expect(place.arrival?.fightId).toBe('hay_goblins');
     });
 });

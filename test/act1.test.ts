@@ -6,11 +6,11 @@ import { inventoryCapacity } from '../worldTest/core/inventory';
 import { farmerNameFor } from '../worldTest/core/names';
 
 describe('act 1 world', () => {
-    it('starts the bought farmer on the lord farm with sack and outfit', () => {
+    it('starts the bought farmer at the order camp with sack and outfit', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        expect(session.currentPlaceId).toBe('farm');
-        expect(session.currentPlace.name).toBe("The Lord's Farm");
+        expect(session.currentPlaceId).toBe('camp');
+        expect(session.currentPlace.name).toBe('Order Camp');
 
         const player = session.team.getCharacter('player')!;
         expect(player.name).toBe('Player');
@@ -24,9 +24,9 @@ describe('act 1 world', () => {
 
     it('stores its people as data inside the place', () => {
         const farm = PLACES.find((place) => place.id === 'farm')!;
-        expect(farm.npcs).toHaveLength(10); // the household + 4 renegades
+        expect(farm.npcs).toHaveLength(6); // the lord's household
         expect(farm.npcs.find((npc) => npc.id === 'lord')?.name).toBe('Lord Alvaro');
-        expect(farm.npcs.filter((npc) => npc.group === 'The Renegade League')).toHaveLength(4);
+        expect(farm.npcs.filter((npc) => npc.group === "The Lord's Household")).toHaveLength(6);
 
         // The twelve farmers were recruited by the Order: they live in
         // the camp as 4 archers, 2 healers and 6 soldiers.
@@ -42,7 +42,7 @@ describe('act 1 world', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
         const farmNpcs = session.npcsAt('farm');
-        expect(farmNpcs).toHaveLength(10); // the household + 4 renegades
+        expect(farmNpcs).toHaveLength(6); // the lord's household
 
         expect(session.findNpc('lord')).toBeDefined();
         expect(session.findNpc('lord_son')).toBeDefined();
@@ -74,7 +74,7 @@ describe('act 1 world', () => {
         expect(archer.name).not.toBe(archer.id);
     });
 
-    it('offers the farm tasks and respects the inventory capacity', () => {
+    it('performs gathering tasks and respects the inventory capacity', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
         expect(session.doTask({ itemId: 'wood', quantity: 1 }).ok).toBe(true);
@@ -101,12 +101,14 @@ describe('act 1 world', () => {
         expect(session.doTask({ itemId: 'stone', quantity: 1 }).ok).toBe(false);
     });
 
-    it('registers the hall missions and their places', () => {
+    it('registers the current missions and their places', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        expect(session.missions.mission('sickles_to_hay')).toBeDefined();
-        expect(session.missions.mission('chop_wood')).toBeDefined();
-        expect(session.missions.mission('cow_hunt')).toBeDefined();
+        expect(session.missions.mission('spring_sowing')).toBeDefined();
+        expect(session.missions.mission('summer_fishing')).toBeDefined();
+        expect(session.missions.mission('autumn_harvest')).toBeDefined();
+        expect(session.missions.mission('winter_stock')).toBeDefined();
+        expect(session.missions.mission('test_mission')).toBeDefined();
 
         const placeIds = PLACES.map((place) => place.id);
         expect(placeIds).toEqual([
@@ -118,6 +120,6 @@ describe('act 1 world', () => {
             'east_field',
             'fergel_faro',
         ]);
-        expect(ACT1.startPlaceId).toBe('farm');
+        expect(ACT1.startPlaceId).toBe('camp');
     });
 });

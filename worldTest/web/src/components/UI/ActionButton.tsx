@@ -37,6 +37,7 @@ export function ActionButton({
     selected,
     mark,
     slot,
+    wide,
     sub,
     onClick,
 }: {
@@ -53,6 +54,8 @@ export function ActionButton({
     // The grid slot (1-based): row 3 col 2 for slot 6, etc. Keeps the
     // page controls pinned to their slots on short pages.
     slot?: number;
+    // The cell spans the whole row (both grid columns).
+    wide?: boolean;
     // The muted sub-label under the main label (the design's buttons:
     // icon slot + text + subtext).
     sub?: string;
@@ -63,7 +66,10 @@ export function ActionButton({
         tone === 'danger' ? 'pixel-btn--danger' : '';
 
     const style: CSSProperties | undefined = slot ?
-        { gridRow: Math.ceil(slot / 2), gridColumn: ((slot - 1) % 2) + 1 } :
+        {
+            gridRow: Math.ceil(slot / 2),
+            gridColumn: wide ? '1 / span 2' : ((slot - 1) % 2) + 1,
+        } :
         undefined;
 
     let iconNode: ReactNode = null;

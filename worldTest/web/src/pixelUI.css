@@ -65,6 +65,8 @@
 #CACAAA
 #EEC584
 #C8AB83
+
+f2ca50 // acento
     */
 
     --bg-lighter: #DA7E6C;
@@ -75,20 +77,34 @@
     --card: #4c1a12;
     --card-2: #5f2525;
     --border: #100604;
+    --border-light: #403229;
     --text: #e8eaf2;
     --muted: #9aa1b5;
-    --accent: #f5b942;
+    --accent: #f2ca50;
     --accent-2: #7f8cff;
     --danger: #ef5350;
     --heal: #66bb6a;
     --hp: #ef5350;
     --xp: #7f8cff;
     --gold: #f5b942;
+    /* The definition mark-language schema (item/skill descriptions):
+       [impact] yellow, [physical] red, [magical] blue-purple,
+       [true] white, [gold] amber. */
+    --def-impact: #f2ca50;
+    --def-physical: #ef5350;
+    --def-magical: #7f8cff;
+    --def-true: #ffffff;
+    --def-gold: #fde68a;
     --radius: 14px;
     --shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
 
 
     --font-pixel: 'FFTA2', 'FFTA', ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
+}
+
+* {
+    box-sizing: border-box;
+
 }
 
 /* ---------------------------------------------------------------------------
@@ -184,10 +200,10 @@
     padding: calc(var(--s1) / 2) var(--s2);
 }
 
-.pixel-btn:hover:not(:disabled) {
+/* .pixel-btn:hover:not(:disabled) {
     background: #462222;
     border-color: #723c3c;
-}
+} */
 
 .pixel-btn:active:not(:disabled) {
     background: #251010;
@@ -697,6 +713,14 @@
 
 }
 
+/* The fixed-row variant: empty rows keep their height, so a button
+   pinned to a lower slot (the mission page's wide Atrás on slot 5)
+   stays at the bottom of the bar instead of closing up against the
+   row above. */
+.action-bar-grid--fixed-rows {
+    grid-auto-rows: var(--bar-row, var(--s12));
+}
+
 /* The banner: a text spanning the first two slots of the first page
    (the world map place name lives there). */
 .action-bar-banner {
@@ -932,6 +956,13 @@
     filter: drop-shadow(calc(var(--s1) / 2) calc(var(--s1) / 2) 0 #000);
 }
 
+/* Text-only results: the evasion/accuracy prototype's EVADE / MISS. */
+.floating-damage--text {
+    color: #cfd8e3;
+    font-style: italic;
+    letter-spacing: 0.08em;
+}
+
 .floating-damage-crit,
 .floating-damage-glyph {
     font-size: var(--s3);
@@ -1006,6 +1037,15 @@
     justify-content: center;
     background: rgba(0, 0, 0, 0.45);
     z-index: 10;
+}
+
+/* A viewport-fixed overlay for pages taller than the canvas (the
+   stress fight's report modal): anchors to the window instead of the
+   page, so the modal always sits over the battlefields, wherever the
+   user has scrolled. */
+.report-modal-overlay {
+    position: fixed;
+    z-index: 60;
 }
 
 .pixel-input {
@@ -1206,7 +1246,7 @@
     font-size: 12px;
     font-size-adjust: none;
     letter-spacing: 0.05em;
-    color: #f2ca50;
+    color: var(--accent);
     text-shadow: none;
     white-space: nowrap;
     overflow: hidden;
@@ -1254,12 +1294,13 @@
     padding: 0;
     border: none;
     background: #2a1d15;
-    color: #f2ca50;
+    color: var(--accent);
     font-size: 14px;
     line-height: 1;
     font-family: inherit;
     box-shadow: 2px 2px 0 #403229;
     cursor: pointer;
+    margin-right: var(--s1);
 }
 
 .tactical-back-btn:active {
@@ -1301,7 +1342,7 @@
 }
 
 .tactical-menu-row:active {
-    background: #f2ca50;
+    background: var(--accent);
 }
 
 /* Locked rows (Save/Load away from a place): muted ink, no hover or
@@ -1329,7 +1370,7 @@
     place-items: center;
     background: var(--bg-darker);
     box-shadow: inset 1px 1px 0 #000;
-    color: #f2ca50;
+    color: var(--accent);
     /* The glyph fills the 26px frame (the design's 13px glyph left the
        box half empty). */
     font-size: calc(var(--u) * 5);
@@ -1356,7 +1397,7 @@
     font-size: 12px;
     font-size-adjust: none;
     letter-spacing: 0.025em;
-    color: #f2ca50;
+    color: var(--accent);
     text-shadow: none;
     white-space: nowrap;
     overflow: hidden;
@@ -1463,8 +1504,8 @@
 
 /* The picked card keeps its bevels under a gold ring. */
 .team-card.pixel-cell--selected {
-    border-color: #f2ca50;
-    box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512, inset 0 0 0 2px #f2ca50;
+    border-color: var(--accent);
+    box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512, inset 0 0 0 2px var(--accent);
 }
 
 .team-card-name {
@@ -1502,23 +1543,29 @@
 .team-data-head {
     display: flex;
     gap: var(--s2);
-    align-items: center;
     margin-bottom: var(--s1);
 }
 
 /* The portrait column: the name sits above the image in normal flow
-   (it takes real space and pushes the UI down a bit). */
+   (it takes real space and pushes the UI down a bit). It wears the
+   squad card's frame: the same border and inset bevel. */
 .team-data-portrait-wrap {
     flex: none;
-    width: var(--s24);
+    width: var(--s32);
     display: flex;
     flex-direction: column;
+    /* padding: var(--s1); */
+    margin: 0px var(--s3);
+    box-sizing: border-box;
+    background: #552723;
+    border: 2px solid #180908;
+    box-shadow: inset 2px 2px 0 #703631, inset -2px 0px 0 #311512;
 }
 
 .team-data-portrait {
     display: block;
     width: 100%;
-    height: var(--s24);
+    height: var(--s32);
     object-fit: cover;
     image-rendering: pixelated;
 }
@@ -1544,7 +1591,7 @@
     justify-content: space-between;
     background: var(--card-2);
     padding: var(--s2);
-    box-shadow: inset 2px 2px 0 0 rgba(255, 200, 160, 0.28), inset -2px -2px 0 0 rgba(0, 0, 0, 0.75), inset 4px 4px 0 0 rgba(255, 255, 255, 0.1), inset -4px -4px 0 0 rgba(10, 2, 2, 0.9), 0 0 0 2px #000000;
+    box-shadow: inset 2px 2px 0 0 rgba(255, 200, 160, 0.28), inset -2px -2px 0 0 rgba(0, 0, 0, 0.75), inset 4px 4px 0 0 rgba(255, 255, 255, 0.1), inset -2px -2px 0 0 rgba(10, 2, 2, 0.9);
     border: 0px solid black;
 }
 
@@ -1555,6 +1602,7 @@
     flex-direction: column;
     gap: var(--s1);
     color: var(--text);
+    margin-top: var(--s3);
 }
 
 .team-data-lv {
@@ -1621,7 +1669,7 @@
     text-align: right;
     font-weight: 700;
     font-size: calc(var(--u) * 2.75);
-    color: #f2ca50;
+    color: var(--accent);
 }
 
 /* A stat the item does not change reads flat/muted. */
@@ -1680,7 +1728,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 700;
-    color: #f2ca50;
+    color: var(--accent);
 }
 
 .equip-line-empty {
@@ -1828,6 +1876,78 @@
     box-sizing: border-box;
 }
 
+/* The inventory page (party → Inventory): the picker takes the top
+   half of the page; the bottom half is the data display — the stats
+   ledger on the left half and the item's skills on the right half. */
+.inventory-page {
+    overflow: hidden;
+}
+
+.inventory-picker {
+    flex: none;
+    height: 50%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.inventory-data {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: var(--s2);
+}
+
+.inventory-data .team-data-stats {
+    width: 50%;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.inventory-data-hint {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--s3);
+    color: var(--muted);
+    text-align: center;
+}
+
+.inventory-skills {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    padding: var(--s2);
+    background: var(--bg-darker);
+    box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 #35271f;
+    overflow-y: auto;
+}
+
+.inventory-skill {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.inventory-skill-name {
+    font-size: var(--s3);
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.inventory-skill-desc {
+    font-size: var(--s3);
+    color: #d0c5af;
+}
+
+.inventory-skill-empty {
+    font-size: var(--s3);
+    color: var(--muted);
+}
+
 .equip-picker {
     flex: 1;
     min-height: 0;
@@ -1850,7 +1970,7 @@
 .equip-picker .pixel-modal-title {
     font-size: calc(var(--u) * 2.75);
     letter-spacing: 0.05em;
-    color: #f2ca50;
+    color: var(--accent);
     text-transform: uppercase;
 }
 
@@ -1869,13 +1989,13 @@
 }
 
 .equip-picker .inv-tab:hover {
-    color: #f2ca50;
+    color: var(--accent);
 }
 
 .equip-picker .inv-tab.pixel-btn--primary {
     background: #35271f;
-    color: #f2ca50;
-    box-shadow: inset 1px 1px 0 #f2ca50;
+    color: var(--accent);
+    box-shadow: inset 1px 1px 0 var(--accent);
 }
 
 /* The item table scrolls inside the picker: many items never push the
@@ -1916,8 +2036,8 @@
 }
 
 .equip-actions .equip-go {
-    background: #f2ca50;
-    border-color: #f2ca50;
+    background: var(--accent);
+    border-color: var(--accent);
     color: #3c2f00;
     font-weight: 700;
     box-shadow: inset 1px 1px 0 #ffe088, inset -1px -1px 0 #554300;
@@ -1963,7 +2083,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 700;
-    color: #f2ca50;
+    color: var(--accent);
 }
 
 /* A row the character cannot equip: icon and text read with the same
@@ -2051,7 +2171,7 @@
 }
 
 .dev-input:focus {
-    border-color: #f2ca50;
+    border-color: var(--accent);
 }
 
 .dev-input::placeholder {
@@ -2071,7 +2191,7 @@
     font-family: 'VT323', var(--font-pixel, monospace);
     font-size: 15px;
     font-size-adjust: none;
-    color: #f2ca50;
+    color: var(--accent);
     text-shadow: none;
     white-space: nowrap;
     overflow: hidden;
@@ -2087,6 +2207,303 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    box-shadow: inset 2px 2px 0 0 rgba(255, 200, 160, 0.28), inset -2px -2px 0 0 rgba(0, 0, 0, 0.75), inset 4px 4px 0 0 rgba(255, 255, 255, 0.1), inset -2px -2px 0 0 rgba(10, 2, 2, 0.9), 0 0 0 2px #000000;
+    border: 0px solid #000;
+}
+
+/* The dev items page: one row per catalog item (icon frame, name,
+   description and the compact stat line), grouped by category. */
+.item-page-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+    margin: 0 0 var(--s1);
+    padding: var(--s1);
+    box-sizing: border-box;
+    background: #2a1d15;
+    box-shadow: inset 1px 1px 0 #45362d, inset -1px -1px 0 #170c05;
+    text-align: left;
+    font-family: inherit;
+}
+
+.item-page-row:last-child {
+    margin-bottom: 0;
+}
+
+.item-page-icon {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    background: #170c05;
+    box-shadow: inset 1px 1px 0 #000;
+    color: var(--accent);
+    font-size: var(--s4);
+}
+
+.item-page-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.item-page-name {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    color: var(--accent);
+    text-shadow: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-page-desc {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    color: #d0c5af;
+    text-shadow: none;
+}
+
+/* The definition mark-language colors (LoL-style item text):
+   [impact] yellow, [physical] red, [magical] blue-purple, [true]
+   white, [gold] amber. */
+.def-color--impact {
+    color: var(--def-impact);
+}
+
+.def-color--physical {
+    color: var(--def-physical);
+}
+
+.def-color--magical {
+    color: var(--def-magical);
+}
+
+.def-color--true {
+    color: var(--def-true);
+}
+
+.def-color--gold {
+    color: var(--def-gold);
+}
+
+.item-page-stats {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 10px;
+    font-size-adjust: none;
+    color: #99907c;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: none;
+}
+
+/* The mission page: the three tabs and the mission table (Title, Lvl,
+   Days, Comis). */
+.mission-tabs {
+    display: flex;
+    gap: var(--s1);
+    margin-bottom: var(--s2);
+}
+
+.mission-tabs .pixel-btn {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+    /* The white design text on the beveled buttons. */
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    color: #f7e6d4;
+    letter-spacing: 0.05em;
+    text-shadow: none;
+}
+
+.mission-table {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+}
+
+.mission-table-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 36px 60px 48px;
+    gap: var(--s1);
+    padding: 0 var(--s1);
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    color: #99907c;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: none;
+}
+
+.mission-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 36px 60px 48px;
+    gap: var(--s1);
+    align-items: center;
+    width: 100%;
+    margin: 0;
+    padding: var(--s1);
+    box-sizing: border-box;
+    border: none;
+    background: #2a1d15;
+    box-shadow: inset 1px 1px 0 #45362d, inset -1px -1px 0 #170c05;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.mission-row:hover {
+    background: #35271f;
+}
+
+.mission-row:active {
+    background: #f2ca50;
+}
+
+.mission-cell {
+    min-width: 0;
+}
+
+.mission-cell--title {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    color: #f2ca50;
+    text-shadow: none;
+}
+
+.mission-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mission-check {
+    flex: none;
+    color: #f2ca50;
+}
+
+.mission-cell--num {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 13px;
+    font-size-adjust: none;
+    color: #eedbcc;
+    text-shadow: none;
+    text-align: right;
+}
+
+.mission-cell--gold {
+    color: #f2ca50;
+}
+
+.mission-table-empty {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 13px;
+    font-size-adjust: none;
+    color: #99907c;
+    text-shadow: none;
+    padding: var(--s2) var(--s1);
+}
+
+/* The mission details view: the wrapped description, the labeled
+   sections (required items, reward, expedition, cancellation, place)
+   and the expedition member icons. */
+.mission-detail-desc {
+    margin-bottom: var(--s2);
+}
+
+.mission-detail-line {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 14px;
+    font-size-adjust: none;
+    line-height: 1.2;
+    color: #eedbcc;
+    text-shadow: none;
+}
+
+.mission-detail-section {
+    margin-bottom: var(--s2);
+}
+
+.mission-detail-label {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    color: #99907c;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: none;
+    margin-bottom: 2px;
+}
+
+.mission-detail-item {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 14px;
+    font-size-adjust: none;
+    color: #eedbcc;
+    text-shadow: none;
+}
+
+.mission-detail-gold {
+    color: #f2ca50;
+}
+
+.mission-detail-text {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 13px;
+    font-size-adjust: none;
+    color: #d0c5af;
+    text-shadow: none;
+    margin-bottom: var(--s1);
+}
+
+.mission-detail-season {
+    color: #f2ca50;
+}
+
+.mission-detail-place {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+}
+
+.mission-detail-place-name {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    color: #f2ca50;
+    text-shadow: none;
+}
+
+.mission-members {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.mission-member-icon {
+    color: #f2ca50;
+    font-size: 14px;
+}
+
+.mission-members-count {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 14px;
+    font-size-adjust: none;
+    color: #f2ca50;
+    text-shadow: none;
 }
 
 /* One editable line: side toggle + text row, img row under it. */
@@ -2184,10 +2601,7 @@
        (half in, half out), anchored left or right by the side class. */
     position: absolute;
     /* top: 0; */
-
-    /* fixed dimension, don´t know*/
-    top: -31px;
-    /* transform: translateY(-50%); */
+    bottom: 0px;
     width: calc(var(--s24) + var(--s2));
     height: calc(var(--s24) + var(--s2));
     object-fit: cover;
@@ -2219,7 +2633,7 @@
 .messagebox-portrait--empty {
     display: grid;
     place-items: center;
-    color: #f2ca50;
+    color: var(--accent);
     font-size: var(--s5);
 }
 
@@ -2243,7 +2657,7 @@
     font-family: 'VT323', var(--font-pixel, monospace);
     font-size: 11px;
     font-size-adjust: none;
-    color: #f2ca50;
+    color: var(--accent);
     letter-spacing: 0.05em;
     text-transform: uppercase;
     text-shadow: none;
@@ -2269,7 +2683,7 @@
 }
 
 .messagebox-next {
-    color: #f2ca50;
+    color: var(--accent);
     font-size: var(--s4);
 }
 
@@ -2358,7 +2772,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #f2ca50;
+    background: var(--accent);
     border: none;
     border-radius: 0;
 }
@@ -2371,7 +2785,7 @@
 @supports not selector(::-webkit-scrollbar) {
     * {
         scrollbar-width: thin;
-        scrollbar-color: #f2ca50 var(--bg-darker);
+        scrollbar-color: var(--accent) var(--bg-darker);
     }
 }
 
@@ -2382,4 +2796,127 @@
     flex: none;
     vertical-align: middle;
     image-rendering: pixelated;
+}
+
+/* The post-battle report (BattleReportPanel), tabbed so it fits the
+   screen: one tab per team, one tab per section (dealt / healing /
+   taken), and clickable fighter rows that open a detail grid. */
+.report-panel {
+    text-align: left;
+    border: none;
+}
+
+.report-panel * {
+    border: none;
+}
+
+.report-tabs {
+    display: flex;
+    gap: var(--s1);
+    margin-bottom: var(--s1);
+}
+
+.report-tabs .pixel-btn {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px var(--s2);
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 13px;
+    font-size-adjust: none;
+    color: #f7e6d4;
+    letter-spacing: 0.05em;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.report-tab--section {
+    font-size: 11px !important;
+    letter-spacing: 0.03em !important;
+    color: #d0c5af !important;
+}
+
+/* The active team's totals, under the team tabs. */
+.report-side-total {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 12px;
+    font-size-adjust: none;
+    color: #99907c;
+    letter-spacing: 0.02em;
+    text-align: right;
+    white-space: nowrap;
+    margin-bottom: var(--s1);
+}
+
+.report-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--s2);
+    align-items: center;
+    width: 100%;
+    padding: 2px var(--s1);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    box-sizing: border-box;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 12px;
+    font-size-adjust: none;
+    color: #d0c5af;
+    text-shadow: none;
+    box-shadow: 0 1px 0 0 #251911;
+}
+
+.report-row:hover {
+    background: var(--bg-darker);
+}
+
+.report-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.report-cell {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.report-kinds {
+    display: inline-flex;
+    gap: var(--s1);
+}
+
+.report-detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px var(--s2);
+    margin: 2px 0 var(--s1);
+    padding: var(--s1) var(--s2);
+    background: var(--bg-darker);
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    color: #99907c;
+    text-shadow: none;
+}
+
+.report-detail-label {
+    color: #6f6657;
+}
+
+.report-detail> :not(.report-detail-label) {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.report-empty {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 12px;
+    font-size-adjust: none;
+    color: #6f6657;
+    padding: 2px var(--s1);
 }

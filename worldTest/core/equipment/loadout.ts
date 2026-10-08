@@ -1,6 +1,8 @@
 import type { Character, Item, Team } from '../../../src';
 import { Item as ItemClass } from '../../../src';
 import type { EquipmentSlot } from '../../../src/classes/items/EquipmentManager';
+import { WEAPON_TYPES } from '../constants/weaponTypes';
+import { LOADOUT_SLOTS } from '../constants/loadoutSlots';
 import { heldJobOf } from '../constants/jobs';
 import type { WeaponType } from '../jobs/Job';
 
@@ -146,14 +148,14 @@ export function equippedItemsOf(character: Character): Item[] {
 /** The tab section an item belongs to, if any. */
 export function sectionOfItem(item: Item): EquipmentSection | undefined {
     const type = item.definition.weaponType;
-    if (type === 'sword') return 'espadas';
-    if (type === 'bow') return 'arcos';
-    if (type === 'staff') return 'varas';
+    if (type === WEAPON_TYPES.sword) return 'espadas';
+    if (type === WEAPON_TYPES.bow) return 'arcos';
+    if (type === WEAPON_TYPES.staff) return 'varas';
     const slot = item.definition.loadoutSlot;
-    if (slot === 'offhand') return 'escudos';
-    if (slot === 'helmet') return 'cascos';
-    if (slot === 'clothes') return 'ropa';
-    if (slot === 'accessory') return 'accesorios';
+    if (slot === LOADOUT_SLOTS.offhand) return 'escudos';
+    if (slot === LOADOUT_SLOTS.helmet) return 'cascos';
+    if (slot === LOADOUT_SLOTS.clothes) return 'ropa';
+    if (slot === LOADOUT_SLOTS.accessory) return 'accesorios';
     return undefined;
 }
 

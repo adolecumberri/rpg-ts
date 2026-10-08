@@ -15,6 +15,11 @@ export class FlagRegistry {
         return this.flags.has(flag);
     }
 
+    /** Clears a flag (idempotent). */
+    remove(flag: string): void {
+        this.flags.delete(flag);
+    }
+
     all(): string[] {
         return Array.from(this.flags);
     }

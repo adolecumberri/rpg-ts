@@ -1,255 +1,335 @@
 import { useEffect, useRef, useState } from 'react';
+import type { Character } from '@rpg';
+import {
+    ARCHER_JOB,
+    BattleTracker,
+    HEALER_JOB,
+    HybridCombat,
+    Items,
+    SOLDIER_JOB,
+    characterGenerator,
+    intervalFromSpeed,
+    skillIdsOf,
+    specOf,
+    trackHybridEvent,
+} from '@core';
+import type { BattleReport, HybridAutoEvent, HybridEvent, SkillSpec } from '@core';
 import { Battlefield } from '../components/UI/Battlefield';
 import type { BattleUnit } from '../components/UI/Battlefield';
+import { BattleReportPanel } from '../components/UI/BattleReportPanel';
 import { FloatingDamageLayer } from '../components/UI/FloatingDamage';
-import type { DamageKind, FloatingHit } from '../components/UI/FloatingDamage';
+import type { DamagePart, FloatingHit } from '../components/UI/FloatingDamage';
 import { SPRITES } from '../assets/sprites';
 import type { SpriteRole } from '../assets/sprites';
 
 const TICK_MS = 120;
-// The attack window: the one-shot swing runs 600ms (4 frames x 150ms);
-// the damage resolves after 6 ticks (720ms), so the animation always
-// ends at least once before the card returns to idle — never chopped.
-const ATTACK_TICKS = 6;
+// Actions resolved per UI tick: the real engine runs one action per
+// next() call, so the interval loop consumes several to keep pace.
+const ACTIONS_PER_TICK = 8;
 
-const ROLE_INFO: Record<SpriteRole, {
-    row: 'front' | 'center' | 'back';
-    power: number;
-    // Ticks between attacks (the attack interval, like the dev
-    // autofight): warriors swing slower, archers harass faster.
-    interval: number;
-    reach: 'short' | 'long' | 'all';
-}> = {
-    warrior: { row: 'front', power: 4, interval: 6, reach: 'short' },
-    mage: { row: 'center', power: 3, interval: 5, reach: 'long' },
-    archer: { row: 'back', power: 2, interval: 4, reach: 'all' },
-};
-
-type StressUnit = BattleUnit & {
+type ArmyEntry = {
+    character: Character;
     role: SpriteRole;
-    power: number;
-    interval: number;
-    reach: 'short' | 'long' | 'all';
+    row: 'front' | 'center' | 'back';
 };
 
-type PendingAttack = {
-    attackerId: string;
-    targetId: string;
-    power: number;
-    side: 'ally' | 'enemy';
-    resolveTick: number;
-};
-
-type BattleState = { allies: StressUnit[]; enemies: StressUnit[] };
-
-// 80 units per team: the role decides the row — warriors front, mages
-// center, archers back — and each unit carries its own sprite set.
-function buildTeam(prefix: string): StressUnit[] {
-    const roles: SpriteRole[] = ['warrior', 'mage', 'archer'];
-    const units: StressUnit[] = [];
+// 80 units per team, built with the real character generator: one
+// third soldiers (front, Silver Bolts passive), one third archers
+// (back, 25% evasion) and one third healers/mages (center, 10%
+// evasion, auto Cure below 30% hp). Each carries its class weapon.
+function buildArmy(prefix: string): ArmyEntry[] {
+    const kinds = [
+        {
+            job: SOLDIER_JOB,
+            role: 'warrior' as SpriteRole,
+            row: 'front' as const,
+            evasion: 0,
+            hand: Items.sword,
+            // Silver Bullets: every 3rd hit against the same enemy
+            // deals 10% of its max hp as true damage.
+            skills: ['silver_bolts'],
+        },
+        {
+            job: ARCHER_JOB,
+            role: 'archer' as SpriteRole,
+            row: 'back' as const,
+            evasion: 25,
+            hand: Items.bow,
+        },
+        {
+            job: HEALER_JOB,
+            role: 'mage' as SpriteRole,
+            row: 'center' as const,
+            evasion: 10,
+            hand: Items.staff,
+        },
+    ];
+    const army: ArmyEntry[] = [];
     for (let index = 0; index < 80; index++) {
-        const role = roles[index % roles.length];
-        const info = ROLE_INFO[role];
-        units.push({
-            id: `${prefix}_${index}`,
-            name: `${role} ${index + 1}`,
-            row: info.row,
-            hp: 40,
-            maxHp: 40,
+        const kind = kinds[index % kinds.length];
+        const character = characterGenerator({
+            job: kind.job,
             level: 1 + (index % 3),
-            sprite: SPRITES[role],
-            role,
-            power: info.power,
-            interval: info.interval,
-            reach: info.reach,
+            id: `${prefix}_${index}`,
+            hand: kind.hand,
+            skills: (kind as { skills?: string[] }).skills,
         });
+        character.stats.evasion = kind.evasion;
+        army.push({ character, role: kind.role, row: kind.row });
     }
-    return units;
+    return army;
+}
+
+/** The specs the auto planner may use for a generated fighter. */
+function battleSpecsOf(character: Character): SkillSpec[] {
+    return skillIdsOf(character)
+        .map((id) => specOf(id))
+        .filter((spec): spec is SkillSpec => Boolean(spec));
+}
+
+/** The battlefield card snapshot of a live character. */
+function unitOf(entry: ArmyEntry): BattleUnit {
+    return {
+        id: entry.character.id,
+        name: entry.character.name,
+        sprite: SPRITES[entry.role],
+        row: entry.row,
+        hp: Math.round(entry.character.stats.hp),
+        maxHp: Math.round(entry.character.stats.totalHp),
+        level: entry.character.experience.level,
+    };
 }
 
 /**
- * The stress fight with the real autofight loop: one shared tick
- * advances the battle. Each unit acts on its own attack interval,
- * picks a VALID target of the other team (by its reach), swaps to the
- * one-shot attack animation, and the damage lands when the animation
- * window resolves — then the card returns to idle.
+ * The stress fight, now driven by the REAL combat system: both armies
+ * are generated characters (the generator + the Order jobs) and the
+ * battle runs on the HybridCombat engine with the general attack
+ * resolver — real damage math, evasion, counters and status moments.
+ * The UI only projects the engine's state and its event stream.
  */
 export function StressFightScreen() {
-    const [battle, setBattle] = useState<BattleState>(() => ({
-        allies: buildTeam('a'),
-        enemies: buildTeam('e'),
-    }));
+    const [units, setUnits] = useState<{ left: BattleUnit[]; right: BattleUnit[] }>(() => {
+        const left = buildArmy('a');
+        const right = buildArmy('e');
+        return { left: left.map(unitOf), right: right.map(unitOf) };
+    });
     const [running, setRunning] = useState(false);
+    const [winner, setWinner] = useState<'left' | 'right' | 'draw' | null>(null);
     const [hits, setHits] = useState<FloatingHit[]>([]);
+    const [report, setReport] = useState<BattleReport | null>(null);
+    const [showReport, setShowReport] = useState(false);
 
-    const battleRef = useRef(battle);
-    const pendingRef = useRef<PendingAttack[]>([]);
-    const tickRef = useRef(0);
+    const combatRef = useRef<HybridCombat | null>(null);
+    const trackerRef = useRef<BattleTracker | null>(null);
+    const armiesRef = useRef<{ left: ArmyEntry[]; right: ArmyEntry[] }>({
+        left: [],
+        right: [],
+    });
     const pageRef = useRef<HTMLDivElement | null>(null);
     const hitIdRef = useRef(0);
 
     const removeHit = (id: number) => setHits((prev) => prev.filter((hit) => hit.id !== id));
 
-    // Spawns a rising number over every damaged unit's card, positioned
-    // relative to the page (the FloatingDamageLayer's box).
-    const spawnHits = (damage: Map<string, number>, kind: DamageKind) => {
+    // Floats one entry over a card (a damage composite, a heal or a
+    // text-only EVADE/MISS).
+    const spawnFloating = (
+        targetId: string,
+        parts: DamagePart[],
+        text?: 'evade' | 'miss',
+    ) => {
         const page = pageRef.current;
-        if (!page || damage.size === 0) return;
-        const pageRect = page.getBoundingClientRect();
-        const fresh: FloatingHit[] = [];
-        for (const [targetId, amount] of damage) {
-            const cell = document.querySelector(`[data-unit-id="${targetId}"]`);
-            if (!cell) continue;
-            const rect = cell.getBoundingClientRect();
-            fresh.push({
-                id: ++hitIdRef.current,
-                amount: Math.round(amount),
-                kind,
-                x: rect.left - pageRect.left + rect.width / 2,
-                y: rect.top - pageRect.top + 8,
-            });
-        }
-        if (fresh.length > 0) {
-            setHits((prev) => [...prev, ...fresh].slice(-40));
+        if (!page) return;
+        const cell = document.querySelector(`[data-unit-id="${targetId}"]`);
+        if (!cell) return;
+        const rect = cell.getBoundingClientRect();
+        setHits((prev) => [...prev, {
+            id: ++hitIdRef.current,
+            parts,
+            text,
+            x: rect.left - page.getBoundingClientRect().left + rect.width / 2,
+            y: rect.top - page.getBoundingClientRect().top + 8,
+        }].slice(-40));
+    };
+
+    // Projects one resolved engine event into the UI: hp numbers come
+    // from the live characters, the floats from the event's data. The
+    // same event feeds the battle tracker for the post-battle report.
+    const handleAction = (event: HybridAutoEvent) => {
+        if (trackerRef.current) trackHybridEvent(trackerRef.current, event);
+        if (event.note === 'evaded') {
+            spawnFloating(event.targetId, [], 'evade');
+        } else if (event.note === 'missed') {
+            spawnFloating(event.targetId, [], 'miss');
+        } else if (event.heal && event.heal > 0) {
+            spawnFloating(event.targetId, [{ element: 'heal', amount: Math.round(event.heal) }]);
+        } else if (event.damage > 0) {
+            const parts: DamagePart[] = [];
+            if (event.damageByKind?.physical) {
+                parts.push({ element: 'physical', amount: Math.round(event.damageByKind.physical) });
+            }
+            if (event.damageByKind?.magical) {
+                parts.push({ element: 'arcane', amount: Math.round(event.damageByKind.magical) });
+            }
+            if (event.damageByKind?.true) {
+                parts.push({ element: 'true', amount: Math.round(event.damageByKind.true) });
+            }
+            if (parts.length === 0) {
+                parts.push({ element: 'physical', amount: Math.round(event.damage) });
+            }
+            spawnFloating(event.targetId, parts);
         }
     };
 
-    const updateBattle = (next: BattleState) => {
-        battleRef.current = next;
-        setBattle(next);
+    const buildBattle = () => {
+        const left = buildArmy('a');
+        const right = buildArmy('e');
+        armiesRef.current = { left, right };
+        const combatants = [
+            ...left.map((entry) => ({
+                character: entry.character,
+                interval: intervalFromSpeed(entry.character.getStat('speed')),
+                side: 'left' as const,
+                skills: battleSpecsOf(entry.character),
+            })),
+            ...right.map((entry) => ({
+                character: entry.character,
+                interval: intervalFromSpeed(entry.character.getStat('speed')),
+                side: 'right' as const,
+                skills: battleSpecsOf(entry.character),
+            })),
+        ];
+        combatRef.current = new HybridCombat(combatants, {
+            maxTicks: 200000,
+            onAction: handleAction,
+        });
+        trackerRef.current = new BattleTracker();
+        setUnits({ left: left.map(unitOf), right: right.map(unitOf) });
     };
 
     const reset = () => {
         setRunning(false);
-        pendingRef.current = [];
-        tickRef.current = 0;
+        setWinner(null);
         setHits([]);
-        updateBattle({ allies: buildTeam('a'), enemies: buildTeam('e') });
+        setReport(null);
+        setShowReport(false);
+        buildBattle();
     };
 
     useEffect(() => {
         if (!running) return;
 
         const timer = window.setInterval(() => {
-            tickRef.current += 1;
-            const now = tickRef.current;
-            const current = battleRef.current;
-            let allies = current.allies;
-            let enemies = current.enemies;
+            const combat = combatRef.current;
+            if (!combat) return;
 
-            // 1) Resolve the attacks whose animation window ended: the
-            // damage lands now and the attacker returns to idle.
-            const due = pendingRef.current.filter((attack) => attack.resolveTick <= now);
-            pendingRef.current = pendingRef.current.filter((attack) => attack.resolveTick > now);
-
-            const allyDamage = new Map<string, number>();
-            const enemyDamage = new Map<string, number>();
-            const allyAttackers: string[] = [];
-            const enemyAttackers: string[] = [];
-            for (const attack of due) {
-                if (attack.side === 'ally') {
-                    enemyDamage.set(attack.targetId, (enemyDamage.get(attack.targetId) ?? 0) + attack.power);
-                    allyAttackers.push(attack.attackerId);
-                } else {
-                    allyDamage.set(attack.targetId, (allyDamage.get(attack.targetId) ?? 0) + attack.power);
-                    enemyAttackers.push(attack.attackerId);
+            let finished: 'left' | 'right' | 'draw' | null = null;
+            for (let step = 0; step < ACTIONS_PER_TICK; step++) {
+                const event: HybridEvent = combat.next();
+                if (event.kind === 'end') {
+                    finished = event.winner;
+                    break;
                 }
+                // 'auto' events are handled by the onAction observer.
             }
 
-            const resolveInto = (team: StressUnit[], attackers: string[], damage: Map<string, number>): StressUnit[] =>
-                team.map((unit) => {
-                    const dealt = damage.get(unit.id) ?? 0;
-                    if (dealt > 0) return { ...unit, hp: Math.max(0, unit.hp - dealt), attacking: false };
-                    if (attackers.indexOf(unit.id) !== -1) return { ...unit, attacking: false };
-                    return unit;
-                });
-            allies = resolveInto(allies, allyAttackers, allyDamage);
-            enemies = resolveInto(enemies, enemyAttackers, enemyDamage);
+            const armies = armiesRef.current;
+            setUnits({
+                left: armies.left.map(unitOf),
+                right: armies.right.map(unitOf),
+            });
 
-            // 2) Floating numbers over the freshly damaged cards.
-            spawnHits(allyDamage, 'physical');
-            spawnHits(enemyDamage, 'physical');
-
-            // 2) Units whose interval arrived start a new attack: only
-            // valid targets of the other team (reach), one random pick.
-            const startFor = (attackers: StressUnit[], defenders: StressUnit[], side: 'ally' | 'enemy'): StressUnit[] => {
-                const aliveDefenders = defenders.filter((unit) => unit.hp > 0);
-                if (aliveDefenders.length === 0) return attackers;
-                return attackers.map((unit) => {
-                    if (unit.hp <= 0 || unit.attacking) return unit;
-                    if (now % unit.interval !== 0) return unit;
-                    const reachable = reachableIdsOf(aliveDefenders, unit.reach);
-                    const options = aliveDefenders.filter((defender) => reachable.has(defender.id));
-                    if (options.length === 0) return unit;
-                    const target = options[Math.floor(Math.random() * options.length)];
-                    pendingRef.current.push({
-                        attackerId: unit.id,
-                        targetId: target.id,
-                        power: unit.power,
-                        side,
-                        resolveTick: now + ATTACK_TICKS,
-                    });
-                    return { ...unit, attacking: true };
-                });
-            };
-            allies = startFor(allies, enemies, 'ally');
-            enemies = startFor(enemies, allies, 'enemy');
-
-            updateBattle({ allies, enemies });
+            if (finished) {
+                setRunning(false);
+                setWinner(finished);
+                setReport(trackerRef.current ? trackerRef.current.report() : null);
+            }
         }, TICK_MS);
 
         return () => window.clearInterval(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [running]);
 
-    const aliveAllies = battle.allies.filter((unit) => unit.hp > 0).length;
-    const aliveEnemies = battle.enemies.filter((unit) => unit.hp > 0).length;
+    const aliveLeft = units.left.filter((unit) => unit.hp > 0).length;
+    const aliveRight = units.right.filter((unit) => unit.hp > 0).length;
 
     return (
         <div className="newui-page pixel-font" ref={pageRef} style={{ position: 'relative' }}>
             <FloatingDamageLayer hits={hits} onDone={removeHit} />
             <div className="pixel-panel">
-                <div className="pixel-title">Stress · 80 vs 80 · tick engine</div>
+                <div className="pixel-title">Stress · 80 vs 80 · hybrid engine</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                     <button
                         className={`pixel-btn${running ? ' pixel-btn--danger' : ' pixel-btn--primary'}`}
                         style={{ height: 'var(--s8)' }}
-                        onClick={() => setRunning((value) => !value)}
+                        onClick={() => {
+                            if (!combatRef.current) buildBattle();
+                            setRunning((value) => !value);
+                        }}
                     >
                         {running ? '⏸ Stop' : '▶ Auto fight'}
                     </button>
                     <button className="pixel-btn" style={{ height: 'var(--s8)' }} onClick={reset}>
                         ↺ Reset
                     </button>
+                    <button
+                        className="pixel-btn"
+                        style={{ height: 'var(--s8)' }}
+                        disabled={!report}
+                        onClick={() => setShowReport(true)}
+                    >
+                        📊 Report
+                    </button>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                    Allies alive: {aliveAllies}/80 · Enemies alive: {aliveEnemies}/80
+                    Allies alive: {aliveLeft}/80 · Enemies alive: {aliveRight}/80
+                    {winner ? ` · Winner: ${winner}` : ''}
                 </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'row' }}>
-                <Battlefield title="Enemies" units={battle.enemies} shrink side="left" />
-                <Battlefield title="Allies" units={battle.allies} shrink side="right" />
+                <Battlefield title="Enemies" units={units.right} shrink side="left" />
+                <Battlefield title="Allies" units={units.left} shrink side="right" />
             </div>
-        </div>
-    );
-}
 
-// Reach of a unit inside a team: closest filled row (short), that row
-// plus the next (long), every row (all).
-function reachableIdsOf(units: BattleUnit[], range: 'short' | 'long' | 'all'): Set<string> {
-    const rows: Array<'front' | 'center' | 'back'> = ['front', 'center', 'back'];
-    const occupied = rows.filter((row) => units.some((unit) => unit.row === row && unit.hp > 0));
-    const reachable: Array<'front' | 'center' | 'back'> = [];
-    if (range === 'all') {
-        reachable.push(...occupied);
-    } else if (occupied.length > 0) {
-        reachable.push(occupied[0]);
-        if (range === 'long' && occupied[1]) reachable.push(occupied[1]);
-    }
-    return new Set(
-        units
-            .filter((unit) => unit.hp > 0 && reachable.indexOf(unit.row) !== -1)
-            .map((unit) => unit.id),
+            {showReport && report ? (
+                <div className="fight-overlay report-modal-overlay">
+                    <div
+                        style={{
+                            minWidth: 'var(--s48)',
+                            maxWidth: '92%',
+                            maxHeight: '85vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                            <button
+                                type="button"
+                                className="pixel-btn"
+                                style={{ height: 'var(--s8)' }}
+                                onClick={() => setShowReport(false)}
+                            >
+                                ✕ Close
+                            </button>
+                        </div>
+                        <div style={{ overflowY: 'auto' }}>
+                            <BattleReportPanel
+                                report={report}
+                                nameOf={(id) => {
+                                    const entry = armiesRef.current.left
+                                        .concat(armiesRef.current.right)
+                                        .find((candidate) => candidate.character.id === id);
+                                    return entry ? entry.character.name : id;
+                                }}
+                                sides={[
+                                    { name: 'Allies', ids: armiesRef.current.left.map((entry) => entry.character.id) },
+                                    { name: 'Enemies', ids: armiesRef.current.right.map((entry) => entry.character.id) },
+                                ]}
+                            />
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+        </div>
     );
 }

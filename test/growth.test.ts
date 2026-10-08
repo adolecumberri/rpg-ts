@@ -1,7 +1,26 @@
-import { Item } from '../src';
+import { Character, Item } from '../src';
 import { WorldSession } from '../worldTest/core/session';
 import { buildCompanion, buildHero } from '../worldTest/core/config/characters';
-import { GROWTH, applyGrowthAtLevel, jobIdOf, jobNameOf, statsAtLevel, wireGrowth } from '../worldTest/core/config/growth';
+import {
+    DEFAULT_BASE,
+    DEFAULT_GROWTH_RATE,
+    DEFAULT_MAX,
+    LEVEL_CAP,
+    applyGrowthProfile,
+    resolveGrowth,
+    statBlockAtLevel,
+} from '../worldTest/core/config/growth';
+import type { GrowthProfile } from '../worldTest/core/config/growth';
+import {
+    HEALER_JOB,
+    SOLDIER_JOB,
+    applyGrowthLevels,
+    applyJobBonuses,
+    growthProfileOf,
+    removeJobBonuses,
+    wireCharacterGrowth,
+} from '../worldTest/core/constants/jobs';
+import { characterGenerator } from '../worldTest/core/generators/characterGenerator';
 import { growthRowsOf } from '../worldTest/core/view/growthSummary';
 
 function rustySword(): Item {
@@ -14,49 +33,56 @@ function rustySword(): Item {
     });
 }
 
+// The hero's profile (the deprecated builder keeps it; its ratios
+// reproduce the legacy base → target curve exactly).
+const HERO_PROFILE: GrowthProfile = {
+    base: { hp: 50, totalHp: 100, attack: 10, defence: 5, magicDefence: 4, speed: 8 },
+    ratios: {
+        attack: 190 / (99 * (DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP)),
+        defence: 39 / (99 * (DEFAULT_MAX.defence * DEFAULT_GROWTH_RATE / LEVEL_CAP)),
+        magicDefence: 36 / (99 * (DEFAULT_MAX.magicDefence * DEFAULT_GROWTH_RATE / LEVEL_CAP)),
+        speed: 29.5 / (99 * (DEFAULT_MAX.speed * DEFAULT_GROWTH_RATE / LEVEL_CAP)),
+        totalHp: 900 / (99 * (DEFAULT_MAX.totalHp * DEFAULT_GROWTH_RATE / LEVEL_CAP)),
+    },
+};
+
 describe('deterministic growth', () => {
     it('keeps the level-1 stats exactly at the configured bases', () => {
         const hero = buildHero();
 
-        expect(statsAtLevel('hero', 1)).toEqual({
-            attack: 10,
-            defence: 5,
-            magicDefence: 4,
-            speed: 8,
-            totalHp: 100,
-        });
+        expect(statBlockAtLevel(HERO_PROFILE, 1).attack).toBe(10);
         expect(hero.getStat('attack')).toBe(10);
         expect(hero.getStat('speed')).toBe(8);
     });
 
-    it('reaches cap × ratio at the level cap', () => {
-        const stats = statsAtLevel('hero', GROWTH.levelCap);
+    it('reaches the legacy targets at the level cap through its ratios', () => {
+        const stats = statBlockAtLevel(HERO_PROFILE, LEVEL_CAP);
 
-        expect(stats.attack).toBe(200); // cap 200 * ratio 1
-        expect(stats.defence).toBe(44); // cap 80 * ratio 0.55
-        expect(stats.speed).toBe(37.5); // cap 50 * ratio 0.75
-        expect(stats.magicDefence).toBe(40); // cap 80 * ratio 0.5
+        expect(stats.attack).toBe(200); // 10 + 99 * (190 / 99)
+        expect(stats.defence).toBe(44); // 5 + 99 * (39 / 99)
+        expect(stats.speed).toBe(37.5);
+        expect(stats.magicDefence).toBe(40);
         expect(stats.totalHp).toBe(1000);
     });
 
-    it('is linear between base and target', () => {
-        const level50 = statsAtLevel('hero', 50);
-        // progress = 49/99
+    it('gains a flat amount per level (linear)', () => {
+        const level50 = statBlockAtLevel(HERO_PROFILE, 50);
+        // progress = 49 levels
         const expectedAttack = 10 + (200 - 10) * (49 / 99);
 
         expect(level50.attack).toBeCloseTo(expectedAttack, 2);
     });
 
     it('clamps levels beyond the cap', () => {
-        expect(statsAtLevel('hero', 999)).toEqual(statsAtLevel('hero', GROWTH.levelCap));
+        expect(statBlockAtLevel(HERO_PROFILE, 999)).toEqual(statBlockAtLevel(HERO_PROFILE, LEVEL_CAP));
     });
 
-    it('applyGrowthAtLevel rewrites stats and heals to full', () => {
+    it('applyGrowthProfile rewrites stats and heals to full', () => {
         const hero = buildHero();
         hero.stats.hp = 1;
         hero.stats.isAlive = 0;
 
-        applyGrowthAtLevel(hero, 'hero', 50);
+        applyGrowthProfile(hero, HERO_PROFILE, 50);
 
         expect(hero.getStat('attack')).toBeCloseTo(10 + 190 * (49 / 99), 2);
         expect(hero.stats.hp).toBe(hero.stats.totalHp);
@@ -65,7 +91,7 @@ describe('deterministic growth', () => {
 
     it('levels up through the wired growth handler with flat 100 xp', () => {
         const hero = buildHero();
-        wireGrowth(hero, 'hero');
+        wireCharacterGrowth(hero);
         const attackBefore = hero.getStat('attack');
 
         hero.experience.gain(100);
@@ -88,33 +114,70 @@ describe('deterministic growth', () => {
 
     it('items stack on top of the grown (and capped) stats', () => {
         const hero = buildHero();
-        applyGrowthAtLevel(hero, 'hero', GROWTH.levelCap);
+        applyGrowthProfile(hero, HERO_PROFILE, LEVEL_CAP);
         hero.equipment.equipOrReplace(rustySword(), hero);
 
         expect(hero.getStat('attack')).toBe(202); // 200 cap + 2 item
     });
 
-    it('recruits fall back to the default job', () => {
-        expect(jobIdOf('north_resident')).toBe('default');
-        expect(statsAtLevel('north_resident', GROWTH.levelCap).attack).toBe(96); // 120 * 0.8
+    it('gains 60% of the theoretical maximums spread over the levels by default', () => {
+        const resolved = resolveGrowth({ base: DEFAULT_BASE });
+        // attack: DEFAULT_MAX.attack * 0.6 / 100 per level
+        expect(resolved.gainPerLevel.attack).toBe(DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP);
+        // totalHp: DEFAULT_MAX.totalHp * 0.6 / 100 per level
+        expect(resolved.gainPerLevel.totalHp).toBe(DEFAULT_MAX.totalHp * DEFAULT_GROWTH_RATE / LEVEL_CAP);
+
+        const atCap = statBlockAtLevel({ base: DEFAULT_BASE }, LEVEL_CAP);
+        const expectedAttack = Math.round(
+            (DEFAULT_BASE.attack + (LEVEL_CAP - 1) * resolved.gainPerLevel.attack) * 100,
+        ) / 100;
+        expect(atCap.attack).toBe(expectedAttack);
     });
 
-    it('exposes job names and growth rows for the details view', () => {
-        expect(jobNameOf('hero')).toBe('Soldier');
-        expect(jobNameOf('companion')).toBe('Ranger');
-        expect(jobNameOf('ember')).toBe('Spellblade');
-        expect(jobNameOf('north_resident')).toBe('Adventurer');
+    it('characters without a job or profile grow with the generic default', () => {
+        const profile = growthProfileOf(new Character({ id: 'north_resident' }));
+        const gain = DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP;
+        const expected = Math.round((DEFAULT_BASE.attack + (LEVEL_CAP - 1) * gain) * 100) / 100;
+        expect(statBlockAtLevel(profile, LEVEL_CAP).attack).toBe(expected);
+    });
 
-        const rows = growthRowsOf('hero');
-        expect(rows).toHaveLength(5);
-        expect(rows.find((row) => row.stat === 'attack')).toEqual({
-            stat: 'attack',
-            icon: '⚔️',
-            base: 10,
-            target: 200,
-            ratioPercent: 100,
-            cap: 200,
-        });
+    it('exposes growth rows for the details view', () => {
+        const rows = growthRowsOf(HERO_PROFILE);
+        expect(rows).toHaveLength(6);
+        const attack = rows.find((row) => row.stat === 'attack')!;
+        const ratio = HERO_PROFILE.ratios?.attack ?? 1;
+        expect(attack.base).toBe(10);
+        expect(attack.target).toBe(200);
+        expect(attack.ratioPercent).toBe(Math.round(ratio * 100));
+        expect(attack.cap).toBe(DEFAULT_MAX.attack);
+    });
+
+    it('the job constants carry their bases and ratios', () => {
+        expect(SOLDIER_JOB.growth?.base.attack).toBe(6);
+        expect(SOLDIER_JOB.growth?.ratios?.attack).toBe(1.2);
+    });
+});
+
+describe('the job career', () => {
+    it('accumulates the gains of every job the character leveled with', () => {
+        const character = characterGenerator({ job: SOLDIER_JOB, level: 1, id: 'career' });
+        const baseAttack = character.getStat('attack');
+        const soldierGain = DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP * 1.2; // 0.864
+
+        // 9 levels as a soldier.
+        applyGrowthLevels(character, 9);
+        expect(character.getStat('attack')).toBeCloseTo(baseAttack + 9 * soldierGain, 2);
+
+        // Switch to healer: the base and the accumulated soldier gains
+        // stay; only the future gains change.
+        removeJobBonuses(character, SOLDIER_JOB);
+        character.jobId = HEALER_JOB.id;
+        applyJobBonuses(character, HEALER_JOB);
+        const afterSwitch = character.getStat('attack');
+        const healerGain = DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP * 0.6; // 0.432
+
+        applyGrowthLevels(character, 20);
+        expect(character.getStat('attack')).toBeCloseTo(afterSwitch + 20 * healerGain, 2);
     });
 });
 
@@ -140,10 +203,11 @@ describe('growth training shortcut', () => {
         session.team.addCharacter(buildHero());
         const hero = session.team.getCharacter('hero')!;
         hero.experience.level = 95;
+        applyGrowthProfile(hero, HERO_PROFILE, 95); // the stats at 95
 
         session.train(10);
 
-        expect(hero.experience.level).toBe(GROWTH.levelCap);
+        expect(hero.experience.level).toBe(LEVEL_CAP);
         expect(hero.getStat('attack')).toBe(200);
     });
 });

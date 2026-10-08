@@ -16,19 +16,22 @@ import { EncounterTracker } from './encounters/encounterTracker';
 import { SPECIAL_ENCOUNTERS, buildSpecialNpc } from './encounters/specialEncounter';
 import { defaultSkillIds, skillIdsOf } from './skills';
 import {
+    applyGrowthLevels,
     applyJobBonuses,
     heldJobOf,
     jobById,
     jobOfCharacter,
     removeJobBonuses,
+    wireCharacterGrowth,
 } from './constants/jobs';
 import { FaintRegistry, applyCarryStatus, clearCarryStatus } from './fainting';
 import { syncPositionToWeapon } from './combat/range';
+import type { BattleReport, BattleTracker } from './combat/battleTracker';
 import { equipInto, equippedItemsOf, firstFreeHole, migrateLegacyEquipment, unequipHole } from './equipment/loadout';
 import type { CharacterLoadout } from './equipment/loadout';
 import { SkillTree } from './skillTree/skillTree';
 import { createCompanionTree, createHeroTree } from './skillTree/trees';
-import { GROWTH, applyGrowthAtLevel, jobIdOf, wireGrowth } from './config/growth';
+import { LEVEL_CAP } from './config/growth';
 import { Roster } from './roster';
 import { ROSTER } from './config/roster';
 import { addItemCapped, canAddItem } from './inventory';
@@ -38,8 +41,9 @@ import { ACT1 } from './config/act1';
 import { CHATS } from './config/chats';
 import { FIGHTS } from './config/fights';
 import { SHOPS } from './config/shops';
-import { GameCalendar } from './calendar';
+import { GameCalendar, seasonNameForMonth } from './calendar';
 import { FlagRegistry } from './flags';
+import { FLAGS } from './constants/flags';
 import { MessageQueue } from './messages';
 import type { NPC, Place, ShopEntry } from './types';
 
@@ -60,6 +64,10 @@ export type CombatEndContext = {
     // fought and the mission that triggered it (outcome hooks run).
     fightId?: string;
     missionId?: string;
+    // The battle tracker the fight was observed with: its report is
+    // carried into the result (damage dealt/received per kind, heals,
+    // kills — per fighter).
+    tracker?: BattleTracker;
 };
 export type CombatEndResult = {
     message: string;
@@ -67,6 +75,8 @@ export type CombatEndResult = {
     unlockedEast: boolean;
     drops: LootDrop[];
     specialSpawn?: { id: string; name: string } | null;
+    // The damage report of the battle, when a tracker was attached.
+    report?: BattleReport;
 };
 
 // One travel option the map renders: a hidden place is not drawn at
@@ -133,6 +143,8 @@ export class WorldSession {
             (flags) => {
                 for (const flag of flags) this.flags.set(flag);
             },
+            () => this.calendar.totalDays(),
+            () => this.calendar.monthIndex(),
         );
         for (const mission of createInitialMissions()) {
             this.missions.register(mission);
@@ -223,8 +235,10 @@ export class WorldSession {
         this.currentPlaceId = to;
         // Travel to another place takes a day.
         this.calendar.advance();
-        // A day passed: corpses left behind for a week are lost.
+        // A day passed: corpses left behind for a week are lost, and
+        // missions whose deadline passed fail automatically.
         const deathNews = this.expireCorpses();
+        const expired = this.missions.onDayPassed();
         const justCompleted = this.missions.reportArrival(to);
         const titles = justCompleted
             .map((missionId) => this.missions.mission(missionId)?.title)
@@ -252,7 +266,11 @@ export class WorldSession {
 
         return {
             ok: true,
-            message: [...(titles.length > 0 ? [`Mission complete: ${titles.join(', ')}`] : []), ...deathNews].join(' ') || undefined,
+            message: [
+                ...(expired.length > 0 ? [`Mission expired: ${expired.join(', ')}`] : []),
+                ...(titles.length > 0 ? [`Mission complete: ${titles.join(', ')}`] : []),
+                ...deathNews,
+            ].join(' ') || undefined,
             arrival,
         };
     }
@@ -300,14 +318,46 @@ export class WorldSession {
     }
 
     /**
+     * Whether the mission can be accepted right now: its requirements
+     * are owned AND the commission (the gold the mission costs) can be
+     * paid. The UI shows `reason` when it refuses.
+     */
+    missionAcceptGate(missionId: string): { ok: boolean; reason?: string } {
+        const mission = this.missions.mission(missionId);
+        if (!mission) return { ok: false, reason: 'Unknown mission.' };
+        // Seasonal missions only open during their season.
+        if (
+            mission.availableMonths
+            && mission.availableMonths.indexOf(this.calendar.monthIndex()) === -1
+        ) {
+            return {
+                ok: false,
+                reason: `Solo disponible en ${seasonNameForMonth(mission.availableMonths[0])}.`,
+            };
+        }
+        const met = this.missionRequirementsMet(missionId);
+        if (!met.ok) return met;
+        if (mission.commission && this.team.gold < mission.commission) {
+            return { ok: false, reason: `Need ${mission.commission} gold for the commission.` };
+        }
+        return { ok: true };
+    }
+
+    /**
      * Starts a registered mission on behalf of a character (the user's
      * party member that accepted it). Refused when its requirements
-     * (gold / items owned) are not met.
+     * (gold / items owned) are not met or the commission cannot be
+     * paid; the commission is spent on acceptance.
      */
     startMission(missionId: string, characterId: string = 'player'): boolean {
+        const gate = this.missionAcceptGate(missionId);
+        if (!gate.ok) return false;
         const mission = this.missions.mission(missionId);
-        const met = mission ? this.missionRequirementsMet(missionId) : { ok: false as const, reason: 'Unknown mission.' };
-        if (!met.ok) return false;
+
+        // The commission is spent the moment the mission is accepted.
+        if (mission?.commission) {
+            this.team.gold -= mission.commission;
+        }
 
         const runner = this.missions.start(missionId, characterId);
         if (runner && mission) {
@@ -504,14 +554,15 @@ export class WorldSession {
     train(levels: number): { message: string } {
         const summary: string[] = [];
         for (const member of this.team.getAll()) {
-            const next = Math.min(GROWTH.levelCap, member.experience.level + levels);
+            const next = Math.min(LEVEL_CAP, member.experience.level + levels);
             if (next === member.experience.level) {
-                summary.push(`${member.name} (max Lv ${GROWTH.levelCap})`);
+                summary.push(`${member.name} (max Lv ${LEVEL_CAP})`);
                 continue;
             }
+            const gained = next - member.experience.level;
             member.experience.level = next;
             member.experience.currentXp = 0;
-            applyGrowthAtLevel(member, jobIdOf(member.id), next);
+            applyGrowthLevels(member, gained);
             summary.push(`${member.name} Lv ${next}`);
         }
         return { message: `💪 ${summary.join(' · ')}` };
@@ -530,9 +581,8 @@ export class WorldSession {
     }
 
     /**
-     * Replaces the active party with the given roster ids. The camp's
-     * squad missions raise the limit: while the renegade league mission
-     * is active the player may pick 5 more characters (6 total).
+     * Replaces the active party with the given roster ids. The squad
+     * holds the player plus five more characters (six total).
      */
     setActiveParty(ids: string[]): { ok: boolean; message: string } {
         const before = new Set(this.roster.activeIds());
@@ -566,12 +616,10 @@ export class WorldSession {
     }
 
     /**
-     * How many characters the party may hold right now: the squad
-     * missions (the renegade league) let the player take 5 extra
-     * characters; everywhere else the regular limit applies.
+     * How many characters the party may hold: the six-person squad.
      */
     squadLimit(): number {
-        return this.missionIsActive('renegade_league') ? 6 : ROSTER.maxActiveParty;
+        return ROSTER.maxActiveParty;
     }
 
     /**
@@ -782,9 +830,9 @@ export class WorldSession {
     }
 
     /**
-     * Performs a place task (chopping wood, collecting hay...): adds the
-     * reward to the shared inventory when capacity allows, and reports
-     * the task to missions so matching steps complete.
+     * Performs a place task (gathering items...): adds the reward to
+     * the shared inventory when capacity allows, and reports the task
+     * to missions so matching steps complete.
      */
     doTask(task: { id?: string; itemId: string; quantity: number }): { ok: boolean; message: string } {
         if (!this.itemTable.has(task.itemId)) {
@@ -1036,6 +1084,8 @@ export class WorldSession {
             }
         }
         const failedMissionTitles = fightMission?.isFailed() ? [fightMission.title()] : [];
+        // The damage report the attached battle tracker carries out.
+        const report = context.tracker?.report();
 
         if (result === 'fled') {
             // Running away: no rewards, no punishment, the fought npc
@@ -1062,6 +1112,7 @@ export class WorldSession {
                 unlockedEast: false,
                 drops: [],
                 specialSpawn: null,
+                report,
             };
         }
 
@@ -1090,6 +1141,7 @@ export class WorldSession {
                 unlockedEast: false,
                 drops: [],
                 specialSpawn: null,
+                report,
             };
         }
 
@@ -1219,8 +1271,9 @@ export class WorldSession {
         const united = ['north_resident', 'south_resident'].every((id) =>
             this.team.getAll().some((c) => c.id === id),
         );
-        if (united && !this.unlocked.has('east_unlocked')) {
-            this.unlocked.add('east_unlocked');
+        if (united && !this.unlocked.has(FLAGS.EAST_FIELD_UNLOCKED)) {
+            this.unlocked.add(FLAGS.EAST_FIELD_UNLOCKED);
+            this.unlocked.add(FLAGS.FARO_UNLOCKED);
             unlockedEast = true;
             if (!specialSpawn) {
                 message = 'You united the villages! The east road is now open.';
@@ -1243,7 +1296,7 @@ export class WorldSession {
             message = `${message} ${fallen.join(', ')} ${fallen.length === 1 ? 'was' : 'were'} left behind.`;
         }
 
-        return { message, leveled, unlockedEast, drops, specialSpawn };
+        return { message, leveled, unlockedEast, drops, specialSpawn, report };
     }
 
     exportSave(): SaveData {
@@ -1314,6 +1367,7 @@ export class WorldSession {
                 learned: Array.from(tree.learned),
             })),
             missions: this.missions.serialize(),
+            missionBoard: this.missions.serializeBoard(),
             calendarDay: this.calendar.totalDays(),
             flags: this.flags.all(),
             shops: Array.from(this.shopStock).map(([shopId, remaining]) => ({ shopId, remaining })),
@@ -1337,6 +1391,7 @@ export class WorldSession {
             level: character.experience.level,
             currentXp: character.experience.currentXp,
             jobId: character.jobId,
+            portraitId: character.portraitId,
             // The worldTest stats are part of the enhanced Statistics:
             // read them straight from the stats object.
             extraStats: {
@@ -1367,10 +1422,6 @@ export class WorldSession {
 
         const restoreCharacter = (saved: SavedCharacter): Character => {
             const character = buildCharacterFromSave(saved);
-            // The saved stats are authoritative (content-defined
-            // characters keep their numbers): only the growth is
-            // reattached for future level-ups.
-            wireGrowth(character, jobIdOf(character.id));
             // The held job: new saves carry it and the saved stats
             // already include its bonuses. Old saves self-heal by
             // adopting the default job and applying its bonuses once.
@@ -1382,6 +1433,11 @@ export class WorldSession {
                 character.jobId = defaultJob.id;
                 applyJobBonuses(character, defaultJob);
             }
+            // The saved stats are authoritative (content-defined
+            // characters keep their numbers): only the growth is
+            // reattached for future level-ups — the live handler adds
+            // the CURRENT job's gains from here on.
+            wireCharacterGrowth(character);
             for (const equipment of saved.equipment) {
                 if (!session.itemTable.has(equipment.itemId)) continue;
                 const item = session.itemTable.createItem(equipment.itemId);
@@ -1580,6 +1636,9 @@ export class WorldSession {
         }
 
         session.missions.load(data.missions ?? []);
+        if (data.missionBoard && data.missionBoard.length > 0) {
+            session.missions.loadBoard(data.missionBoard);
+        }
         session.calendar.restore(data.calendarDay ?? 0);
 
         // Fainting: restore the fallen records, keep them out of the

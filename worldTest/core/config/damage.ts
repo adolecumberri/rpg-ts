@@ -3,6 +3,8 @@ import type { Character } from '../../../src';
 import type { ItemAttackContext, ItemHitContext } from '../damage/general';
 import type { DamageComponent } from '../damage/composer';
 import type { ReactionHandler } from '../damage/reactions';
+import type { ImpactProc } from '../damage/impact';
+import type { GrowthProfile } from './growth';
 
 // ---------------------------------------------------------------------------
 // Interface enhancement (type level only).
@@ -30,6 +32,9 @@ declare module '@rpg' {
         // Attack reach. 'short' hits only the closest filled enemy row,
         // 'long' that row plus the next, 'all' every row.
         rangeOf?: 'short' | 'long' | 'all';
+        // Percent chance (0-100) of dodging an incoming attack. Even a
+        // perfectly aimed hit (skills: 100% accuracy) can be evaded.
+        evasion?: number;
     }
 
     // The Stats class only declares the library fields; this merge makes
@@ -44,6 +49,7 @@ declare module '@rpg' {
         speed?: number;
         magic?: number;
         rangeOf?: 'short' | 'long' | 'all';
+        evasion?: number;
     }
 
     interface ItemDefinition {
@@ -65,6 +71,15 @@ declare module '@rpg' {
         weaponType?: 'sword' | 'bow' | 'staff';
         // Bags add inventory slots to the party capacity.
         bagSlots?: number;
+        // Impact pipeline: damage added once per impact hit the bearer's
+        // attacks apply (Guinsoo: +6 physical / +6 magical).
+        impactBonus?: { physical?: number; magical?: number };
+        // Impact pipeline: counter-driven effects the bearer's hits run
+        // while the item is equipped (Guinsoo's phantom procs).
+        impactProcs?: ImpactProc[];
+        // The skills the item carries (the inventory's data panel shows
+        // them, LoL-tooltip style): declarative display data.
+        skills?: Array<{ name: string; description: string }>;
     }
 
     interface Character {
@@ -80,6 +95,18 @@ declare module '@rpg' {
         // (its stat bonuses and skill kit). Undefined = the default job
         // derived from the character id.
         jobId?: string;
+        // worldTest extension: the growth profile the character levels
+        // with (set by the character generator; falls back to the held
+        // job's profile).
+        growthProfile?: GrowthProfile;
+        // worldTest extension: explicit per-character skill ids (set by
+        // the character generator's `skills` config; wins over the held
+        // job's kit).
+        skillIds?: string[];
+        // worldTest extension: the profile picture override stamped at
+        // creation. Special characters keep their own portrait and
+        // battle sprite forever; everyone else follows the held job's.
+        portraitId?: string;
     }
 }
 
@@ -94,6 +121,7 @@ Object.assign(DEFAULT_STATS, {
     speed: 5,
     magic: 0,
     rangeOf: 'short',
+    evasion: 0,
 });
 
 // ---------------------------------------------------------------------------

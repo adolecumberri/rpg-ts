@@ -1,12 +1,7 @@
 import { GameCalendar } from '../worldTest/core/calendar';
 import { CALENDAR } from '../worldTest/core/config/calendar';
 import { WorldSession } from '../worldTest/core/session';
-import { winHayFieldBattles } from './support/hayField';
-
-// The sickles mission requires a sickle: grant it before accepting.
-function giveSickle(session: WorldSession): void {
-    session.team.inventory.addItem(session.itemTable.createItem('sickle'));
-}
+import { FLAGS } from '../worldTest/core/constants/flags';
 
 describe('game calendar', () => {
     it('starts at day 1 of Verdarzo (month 0, primavera)', () => {
@@ -95,10 +90,9 @@ describe('game calendar', () => {
 describe('calendar in the session', () => {
     it('passes a day when travelling to another place', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED);
         expect(session.calendar.totalDays()).toBe(0);
 
-        giveSickle(session);
-        session.startMission('sickles_to_hay'); // accepting is free
         session.travel('hay_field'); // travel day
 
         expect(session.calendar.totalDays()).toBe(1);
@@ -109,11 +103,10 @@ describe('calendar in the session', () => {
     it('does not pass a day when accepting missions', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        // Several missions can be picked in a row for free.
-        giveSickle(session);
-        expect(session.startMission('sickles_to_hay')).toBe(true);
-        session.cancelMission('sickles_to_hay');
-        expect(session.startMission('sickles_to_hay')).toBe(true);
+        // The free test mission can be picked and cancelled for free.
+        expect(session.startMission('test_mission')).toBe(true);
+        session.cancelMission('test_mission');
+        expect(session.startMission('test_mission')).toBe(true);
         expect(session.calendar.totalDays()).toBe(0);
 
         expect(session.startMission('no_such_mission')).toBe(false); // unknown
@@ -123,18 +116,15 @@ describe('calendar in the session', () => {
     it('does not pass a day on a blocked travel', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        expect(session.travel('hay_field').ok).toBe(false); // mission locked
+        expect(session.travel('east_field').ok).toBe(false); // flag locked
         expect(session.calendar.totalDays()).toBe(0);
     });
 
     it('round-trips the elapsed days through the save', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        giveSickle(session);
-        session.startMission('sickles_to_hay');
+        session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED);
+        session.travel('camp');
         session.travel('hay_field');
-        winHayFieldBattles(session);
-        session.travel('farm');
-        session.startMission('chop_wood');
 
         const restored = WorldSession.fromSave(session.exportSave());
         expect(restored.calendar.totalDays()).toBe(session.calendar.totalDays());

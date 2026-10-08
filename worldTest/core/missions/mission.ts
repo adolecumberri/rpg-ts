@@ -49,7 +49,7 @@ export type MissionStep =
         id: string;
         kind: 'hunt';
         hunt: Hunt;
-        // The encounter that finishes the hunt (the cow).
+        // The encounter that finishes the hunt (the target).
         foundEncounterId: string;
         // The place the hunt happens in (drives the map marker).
         placeId?: string;
@@ -58,8 +58,8 @@ export type MissionStep =
     | {
         id: string;
         kind: 'task';
-        // The place task (chop wood, collect hay...) that completes
-        // this step when the player performs it.
+        // The place task (a gathering action...) that completes this
+        // step when the player performs it.
         taskId: string;
         // Where the task happens (drives the map marker).
         placeId: string;
@@ -74,6 +74,27 @@ export type MissionStep =
         battle?: BattleRef;
     }
     | { id: string; kind: 'reward'; flags?: string[]; markerPlaceId?: string; lines?: DialogueLine[] };
+
+// The detail-page payload of a mission: what the details screen shows
+// (description, required items, rewards, expedition and cancellation).
+export type MissionDetails = {
+    // The full description (the page wraps it to at most 8 rows of 50
+    // characters).
+    description: string;
+    // Items the player must provide (the accept gate's list).
+    requiredItems?: { itemId: string; quantity: number }[];
+    // The reward granted on completion: items plus gold.
+    rewards?: { itemId: string; quantity: number }[];
+    rewardGold?: number;
+    // The expedition the mission sends: how many characters it takes
+    // (0/undefined = the player goes personally, no expedition).
+    expedition?: { members: number };
+    // Whether the accepted mission can be cancelled (story missions
+    // cannot). Defaults to true when omitted.
+    cancelable?: boolean;
+    // The place the mission happens in (shown on the details page).
+    placeId?: string;
+};
 
 export type Mission = {
     id: string;
@@ -90,6 +111,21 @@ export type Mission = {
     // Hidden missions are registered (playable via direct start) but
     // never offered on any board: parked story content.
     hidden?: boolean;
+    // The suggested party level, shown on the board.
+    level?: number;
+    // Days the player has to complete the mission once accepted: the
+    // mission fails automatically when the deadline passes.
+    daysAvailable?: number;
+    // Gold the player PAYS to accept the mission (spent on acceptance;
+    // refused with a message when the player cannot afford it).
+    commission?: number;
+    // Completed missions with this flag stay on the board (the Otras
+    // tab, with a checkmark) and can be accepted again for more
+    // rewards.
+    repeatable?: boolean;
+    // The months of the year (0-11) the mission is offered. Undefined =
+    // available all year. A display condition, like `requires`.
+    availableMonths?: number[];
     // People that travel with the mission: when accepted the npcs move
     // to the target place (and move back when the mission is cancelled).
     npcMoves?: { npcId: string; fromPlaceId: string; toPlaceId: string }[];
@@ -104,6 +140,8 @@ export type Mission = {
         gold?: number;
         items?: { itemId: string; quantity: number }[];
     };
+    // The detail-page payload (description, rewards, expedition...).
+    details?: MissionDetails;
 };
 
 // Save shape of a mission in progress / finished / failed.
@@ -120,6 +158,9 @@ export type MissionSnapshot = {
     markers: { placeId: string; stepId: string }[];
     finished: boolean;
     failed: boolean;
+    // The story day the mission expires (optional: missions without a
+    // deadline, and saves made before it existed, load without one).
+    deadlineDay?: number;
 };
 
 /**
@@ -143,6 +184,8 @@ export class MissionRunner {
     // Called when a reward step takes flags, so the session's registry
     // (the story memory) learns about them.
     private onFlagsTaken?: (flags: string[]) => void;
+    // The story day the mission expires (auto-failed once passed).
+    deadlineDay?: number;
 
     constructor(
         mission: Mission,
@@ -323,6 +366,7 @@ export class MissionRunner {
             markers: [...this.markerList],
             finished: this.finished,
             failed: this.failed,
+            deadlineDay: this.deadlineDay,
         };
     }
 
@@ -335,6 +379,7 @@ export class MissionRunner {
         runner.markerList = [...snapshot.markers];
         runner.finished = snapshot.finished;
         runner.failed = snapshot.failed ?? false;
+        runner.deadlineDay = snapshot.deadlineDay;
 
         // A failed mission is terminal: skip the self-heal rewinds.
         if (runner.failed) return runner;

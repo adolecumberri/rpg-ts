@@ -2,6 +2,11 @@ import { Character, IntervalCombat, Stats } from '../src';
 import { StatusInstance } from '../src/classes/StatusInstance';
 import { WorldSession } from '../worldTest/core/session';
 import { FIGHTS } from '../worldTest/core/config/fights';
+import type { FightDefinition } from '../worldTest/core/config/fights';
+import { FLAGS } from '../worldTest/core/constants/flags';
+import { characterGenerator } from '../worldTest/core/generators/characterGenerator';
+import { Creatures } from '../worldTest/core/constants/creatures';
+import type { Mission } from '../worldTest/core/missions/mission';
 import { bleedingStatus } from '../worldTest/core/statuses';
 import { XP } from '../worldTest/core/xp/xpConfig';
 import {
@@ -9,26 +14,193 @@ import {
     buildHybridCombat,
 } from '../worldTest/core/combat/hybridCombat';
 import type { HybridEvent } from '../worldTest/core/combat/hybridCombat';
-import { winHayFieldBattles, winHayFight } from './support/hayField';
 
 function character(id: string, stats: Partial<import('../src').Statistics>): Character {
     return new Character({ id, name: id, stats: new Stats(stats) });
 }
 
+function goblin(id: string): Character {
+    return characterGenerator({ creature: Creatures.goblin, level: 1, id });
+}
+
+// The local battle chain the settlement tests run: the content fights
+// were removed, these fixtures exercise the same machinery (hybrid
+// battles, mission beats, XP and flee hooks) through the FIGHTS
+// registry, exactly like the content fights used to.
+const TEST_FIGHTS: Record<string, FightDefinition> = {
+    goblin_skirmish: {
+        id: 'goblin_skirmish',
+        mode: 'hybrid',
+        placeId: 'hay_field',
+        enemies: () => [goblin('goblin_a'), goblin('goblin_b'), goblin('goblin_c')],
+        allyIds: ['arturo', 'soldier_0'],
+        onFlee: (mission) => mission?.fail(),
+    },
+    goblin_rally: {
+        id: 'goblin_rally',
+        mode: 'hybrid',
+        placeId: 'hay_field',
+        enemies: () => [goblin('goblin_d'), goblin('goblin_e'), goblin('goblin_f')],
+        allyIds: ['arturo', 'soldier_0'],
+        onFlee: (mission) => mission?.fail(),
+    },
+    goblin_chief: {
+        id: 'goblin_chief',
+        mode: 'hybrid',
+        placeId: 'hay_field',
+        manualId: 'lord_son',
+        enemies: () => [
+            characterGenerator({
+                creature: Creatures.goblin,
+                level: 1,
+                id: 'goblin_chief',
+                name: 'Goblin Chief',
+                stats: { hp: 40, attack: 20 },
+                skills: ['boss_regen', 'boss_berserk'],
+            }),
+            goblin('goblin_1'),
+            goblin('goblin_2'),
+            goblin('goblin_3'),
+            goblin('goblin_4'),
+            goblin('goblin_5'),
+            goblin('goblin_6'),
+            goblin('goblin_7'),
+            goblin('goblin_8'),
+        ],
+    },
+};
+Object.assign(FIGHTS, TEST_FIGHTS);
+
+// The mission that owns the chain: the opening dialogue queues the
+// skirmish battle, every victory queues the next beat, and the last
+// one completes the mission. The lord's son and two Order recruits
+// travel with it and return home when it ends.
+const BATTLE_CHAIN: Mission = {
+    id: 'test_battle_chain',
+    title: 'Goblin Chain',
+    steps: [
+        {
+            id: 'open',
+            kind: 'dialogue',
+            lines: [{ speaker: 'General', text: 'Goblins hold the hay field.' }],
+            battle: { fightId: 'goblin_skirmish', placeId: 'hay_field' },
+        },
+        {
+            id: 'skirmish',
+            kind: 'wait_battle',
+            completeOn: ['won'],
+            battle: { fightId: 'goblin_skirmish', placeId: 'hay_field' },
+        },
+        {
+            id: 'rally',
+            kind: 'dialogue',
+            lines: [
+                { speaker: 'Arturo', text: 'More of them are coming from the field!' },
+                { speaker: 'General', text: 'UNITE!' },
+            ],
+            battle: { fightId: 'goblin_rally', placeId: 'hay_field' },
+        },
+        {
+            id: 'rally_battle',
+            kind: 'wait_battle',
+            completeOn: ['won'],
+            battle: { fightId: 'goblin_rally', placeId: 'hay_field' },
+        },
+        {
+            id: 'boss_call',
+            kind: 'dialogue',
+            lines: [{ speaker: 'Federico', text: 'The chief shows itself!' }],
+            battle: { fightId: 'goblin_chief', placeId: 'hay_field' },
+        },
+        {
+            id: 'boss_battle',
+            kind: 'wait_battle',
+            completeOn: ['won'],
+            battle: { fightId: 'goblin_chief', placeId: 'hay_field' },
+        },
+        { id: 'reward', kind: 'reward', flags: ['chain_done'] },
+    ],
+    npcMoves: [
+        { npcId: 'lord_son', fromPlaceId: 'farm', toPlaceId: 'hay_field' },
+        { npcId: 'arturo', fromPlaceId: 'camp', toPlaceId: 'hay_field' },
+        { npcId: 'soldier_0', fromPlaceId: 'camp', toPlaceId: 'hay_field' },
+    ],
+};
+
 // Drives a hybrid battle to the end, answering every manual prompt with
-// the first offered target (like an impatient player).
-function driveToEnd(combat: HybridCombat): HybridEvent[] {
+// the first offered target (like an impatient player). With
+// preferSkills the player casts instead: the boss battle awakens the
+// Gate affinity first, then keeps breathing fire.
+function driveToEnd(combat: HybridCombat, preferSkills = false): HybridEvent[] {
     const events: HybridEvent[] = [];
-    for (let guard = 0; guard < 1000; guard++) {
+    for (let guard = 0; guard < 4000; guard++) {
         const event = combat.next();
         events.push(event);
         if (event.kind === 'end') return events;
         if (event.kind === 'manual') {
+            if (preferSkills && event.skills && event.skills.length > 0) {
+                const preferred = event.skills.indexOf('fire_breath') !== -1 ?
+                    'fire_breath' :
+                    event.skills.indexOf('open_gate') !== -1 ?
+                        'open_gate' :
+                        event.skills[0];
+                const cast = combat.resolveManualSkill(preferred);
+                if (cast) events.push(cast);
+                continue;
+            }
             const attack = combat.resolveManual(event.targets[0]);
             if (attack) events.push(attack);
         }
     }
     throw new Error('battle did not end within the guard');
+}
+
+// Every enemy kill the events recorded, for the battle-end settlement.
+function collectKills(events: HybridEvent[], enemyIds: Set<string>): { enemyId: string; killerId: string }[] {
+    const kills: { enemyId: string; killerId: string }[] = [];
+    for (const event of events) {
+        if (event.kind !== 'auto') continue;
+        if (event.kills && event.kills.length > 0) {
+            for (const kill of event.kills) {
+                if (enemyIds.has(kill.targetId)) {
+                    kills.push({ enemyId: kill.targetId, killerId: kill.killerId });
+                }
+            }
+        } else if (!event.targetAlive && enemyIds.has(event.targetId)) {
+            kills.push({ enemyId: event.targetId, killerId: event.actorId });
+        }
+    }
+    return kills;
+}
+
+// Runs the pending battle of the chain to the end and settles it as a
+// victory (the story lines between beats are read by clearing them).
+function winChainFight(
+    session: WorldSession,
+    fightId: string,
+    preferSkills = false,
+): ReturnType<WorldSession['finishCombat']> {
+    const pending = session.consumePendingBattle();
+    session.messages.clear();
+    const setup = buildHybridCombat(session, FIGHTS[fightId], { random: () => 0.5 });
+    const enemyIds = new Set(setup.enemies.map((enemy) => enemy.id));
+    const kills = collectKills(driveToEnd(setup.combat, preferSkills), enemyIds);
+    const fighters = setup.allies.filter((ally) => !session.team.getCharacter(ally.id));
+    return session.finishCombat('won', {
+        placeId: pending?.placeId ?? 'hay_field',
+        fightId,
+        missionId: pending?.missionId ?? 'test_battle_chain',
+        kills,
+        fighters,
+        participants: setup.allies,
+    });
+}
+
+/** Wins the whole chain: the skirmish, the rally and the chief. */
+function winChainBattles(session: WorldSession): void {
+    winChainFight(session, 'goblin_skirmish');
+    winChainFight(session, 'goblin_rally');
+    winChainFight(session, 'goblin_chief', true);
 }
 
 describe('hybrid combat engine', () => {
@@ -113,10 +285,10 @@ describe('hybrid combat engine', () => {
 describe('buildHybridCombat', () => {
     it('pairs the manual player with the automatic recruits', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const setup = buildHybridCombat(session, FIGHTS.hay_goblins, { random: () => 0.5 });
+        const setup = buildHybridCombat(session, FIGHTS.goblin_skirmish, { random: () => 0.5 });
 
         expect(setup.allies.map((ally) => ally.id)).toEqual(['player', 'arturo', 'soldier_0']);
-        expect(setup.enemies.map((enemy) => enemy.id)).toEqual(['hay_goblin_a', 'hay_goblin_b', 'hay_goblin_c']);
+        expect(setup.enemies.map((enemy) => enemy.id)).toEqual(['goblin_a', 'goblin_b', 'goblin_c']);
 
         const combatants = setup.combat.allCombatants();
         const manualIds = combatants.filter((entry) => entry.manual).map((entry) => entry.character.id);
@@ -127,7 +299,7 @@ describe('buildHybridCombat', () => {
 
     it('the boss battle hands the player the lord\'s son with his fire breath', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const setup = buildHybridCombat(session, FIGHTS.hay_boss, { random: () => 0.9 });
+        const setup = buildHybridCombat(session, FIGHTS.goblin_chief, { random: () => 0.9 });
 
         expect(setup.allies.map((ally) => ally.id)).toEqual(['lord_son']);
         expect(setup.enemies).toHaveLength(9); // the chief + 8 goblins
@@ -146,7 +318,7 @@ describe('buildHybridCombat', () => {
 
         // The chief fights with its regeneration and berserk AI.
         const chief = setup.combat.allCombatants()
-            .find((entry) => entry.character.id === 'hay_boss_goblin');
+            .find((entry) => entry.character.id === 'goblin_chief');
         expect((chief?.skills ?? []).map((spec) => spec.id)).toEqual([
             'defend', 'boss_regen', 'boss_berserk',
         ]);
@@ -155,46 +327,47 @@ describe('buildHybridCombat', () => {
     });
 });
 
-describe('the hay field story battles', () => {
+describe('the battle chain through the session', () => {
     it('the first fight grants XP to the recruits without ending the mission', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.team.inventory.addItem(session.itemTable.createItem('sickle'));
-        session.startMission('sickles_to_hay');
+        session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED); // the hay field is locked by default
+        session.missions.register(BATTLE_CHAIN);
+        session.startMission('test_battle_chain');
+        session.messages.clear(); // the opening lines were read
         session.travel('hay_field');
-        session.consumePendingBattle();
-        session.messages.clear(); // the thanks lines were read
-        expect(session.npcsAt('hay_field').map((npc) => npc.id)).toEqual(['lord_son', 'arturo']);
+        expect(session.npcsAt('hay_field').map((npc) => npc.id)).toEqual([
+            'lord_son', 'arturo', 'soldier_0',
+        ]);
+        expect(session.pendingBattle()).toEqual({
+            fightId: 'goblin_skirmish',
+            placeId: 'hay_field',
+            missionId: 'test_battle_chain',
+        });
 
         // Fight it to the end with deterministic randomness (0.5: no
         // crits, no misses).
-        const setup = buildHybridCombat(session, FIGHTS.hay_goblins, { random: () => 0.5 });
+        const setup = buildHybridCombat(session, FIGHTS.goblin_skirmish, { random: () => 0.5 });
         const enemyIds = new Set(setup.enemies.map((enemy) => enemy.id));
-        const kills: { enemyId: string; killerId: string }[] = [];
-        const events = driveToEnd(setup.combat);
-        for (const event of events) {
-            if (event.kind === 'auto' && !event.targetAlive && enemyIds.has(event.targetId)) {
-                kills.push({ enemyId: event.targetId, killerId: event.actorId });
-            }
-        }
+        const kills = collectKills(driveToEnd(setup.combat), enemyIds);
         expect(kills).toHaveLength(3);
 
         const fighters = setup.allies.filter((ally) => !session.team.getCharacter(ally.id));
         const end = session.finishCombat('won', {
             placeId: 'hay_field',
-            fightId: 'hay_goblins',
-            missionId: 'sickles_to_hay',
+            fightId: 'goblin_skirmish',
+            missionId: 'test_battle_chain',
             kills,
             fighters,
             participants: setup.allies,
         });
 
         // The mission is NOT over: the rally beat is queued.
-        expect(session.missionIsComplete('sickles_to_hay')).toBe(false);
-        expect(session.missionIsActive('sickles_to_hay')).toBe(true);
+        expect(session.missionIsComplete('test_battle_chain')).toBe(false);
+        expect(session.missionIsActive('test_battle_chain')).toBe(true);
         expect(session.pendingBattle()).toEqual({
-            fightId: 'hay_goblins_2',
+            fightId: 'goblin_rally',
             placeId: 'hay_field',
-            missionId: 'sickles_to_hay',
+            missionId: 'test_battle_chain',
         });
         expect(session.messages.peek()?.text).toBe('More of them are coming from the field!');
         session.messages.next();
@@ -212,41 +385,40 @@ describe('the hay field story battles', () => {
 
     it('the full chain completes the mission and sends everyone home', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.team.inventory.addItem(session.itemTable.createItem('sickle'));
-        session.startMission('sickles_to_hay');
+        session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED); // the hay field is locked by default
+        session.missions.register(BATTLE_CHAIN);
+        session.startMission('test_battle_chain');
+        session.messages.clear();
         session.travel('hay_field');
 
-        winHayFieldBattles(session);
+        winChainBattles(session);
 
-        expect(session.missionIsComplete('sickles_to_hay')).toBe(true);
-        expect(session.hasFlag('sickles_delivered')).toBe(true);
+        expect(session.missionIsComplete('test_battle_chain')).toBe(true);
+        expect(session.hasFlag('chain_done')).toBe(true);
         // The people that travelled with the mission returned home.
         expect(session.npcsAt('hay_field')).toEqual([]);
         expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('lord_son');
         expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
+        expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('soldier_0');
         // Federico fought the chief personally: the battle hurt him.
         expect(session.findNpc('lord_son')!.character.stats.hp).toBeLessThan(130);
     });
 
     it('the boss battle grants XP only to the lord\'s son', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.team.inventory.addItem(session.itemTable.createItem('sickle'));
-        session.startMission('sickles_to_hay');
+        session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED); // the hay field is locked by default
+        session.missions.register(BATTLE_CHAIN);
+        session.startMission('test_battle_chain');
+        session.messages.clear();
         session.travel('hay_field');
-        session.consumePendingBattle();
-        session.messages.clear();
 
-        winHayFight(session, 'hay_goblins');
-        session.consumePendingBattle();
-        session.messages.clear();
-        winHayFight(session, 'hay_goblins_2');
-        session.consumePendingBattle();
-        session.messages.clear();
+        winChainFight(session, 'goblin_skirmish');
+        winChainFight(session, 'goblin_rally');
 
         // The player's party sits the boss battle out (Federico fights),
         // so the player must not earn anything from it.
         const playerXpBefore = session.team.getCharacter('player')!.experience.currentXp;
-        const end = winHayFight(session, 'hay_boss', true);
+        const end = winChainFight(session, 'goblin_chief', true);
 
         const federico = session.findNpc('lord_son')!.character;
         expect(federico.experience.currentXp).toBe(90); // 9 kills × 10, no assists
@@ -256,27 +428,22 @@ describe('the hay field story battles', () => {
         expect(end.message).toContain('90 XP total');
     });
 
-    it('persists the farmers\' battle damage and XP in the save', () => {
+    it('persists the fighters\' battle damage and XP in the save', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.team.inventory.addItem(session.itemTable.createItem('sickle'));
-        session.startMission('sickles_to_hay');
+        session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED); // the hay field is locked by default
+        session.missions.register(BATTLE_CHAIN);
+        session.startMission('test_battle_chain');
+        session.messages.clear();
         session.travel('hay_field');
-        session.consumePendingBattle();
 
-        const setup = buildHybridCombat(session, FIGHTS.hay_goblins, { random: () => 0.5 });
+        const setup = buildHybridCombat(session, FIGHTS.goblin_skirmish, { random: () => 0.5 });
         const enemyIds = new Set(setup.enemies.map((enemy) => enemy.id));
-        const kills: { enemyId: string; killerId: string }[] = [];
-        const events = driveToEnd(setup.combat);
-        for (const event of events) {
-            if (event.kind === 'auto' && !event.targetAlive && enemyIds.has(event.targetId)) {
-                kills.push({ enemyId: event.targetId, killerId: event.actorId });
-            }
-        }
+        const kills = collectKills(driveToEnd(setup.combat), enemyIds);
         const fighters = setup.allies.filter((ally) => !session.team.getCharacter(ally.id));
         session.finishCombat('won', {
             placeId: 'hay_field',
-            fightId: 'hay_goblins',
-            missionId: 'sickles_to_hay',
+            fightId: 'goblin_skirmish',
+            missionId: 'test_battle_chain',
             kills,
             fighters,
             participants: setup.allies,
@@ -304,23 +471,26 @@ describe('the hay field story battles', () => {
 
     it('fleeing the battle fails the mission and moves the people back', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.team.inventory.addItem(session.itemTable.createItem('sickle'));
-        session.startMission('sickles_to_hay');
+        session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED); // the hay field is locked by default
+        session.missions.register(BATTLE_CHAIN);
+        session.startMission('test_battle_chain');
+        session.messages.clear();
         session.travel('hay_field');
         session.consumePendingBattle();
 
-        const setup = buildHybridCombat(session, FIGHTS.hay_goblins, { random: () => 0.9 });
+        const setup = buildHybridCombat(session, FIGHTS.goblin_skirmish, { random: () => 0.9 });
         const fighters = setup.allies.filter((ally) => !session.team.getCharacter(ally.id));
         const end = session.finishCombat('fled', {
             placeId: 'hay_field',
-            fightId: 'hay_goblins',
-            missionId: 'sickles_to_hay',
+            fightId: 'goblin_skirmish',
+            missionId: 'test_battle_chain',
             fighters,
         });
 
         expect(end.message).toContain('Mission failed');
         expect(session.npcsAt('hay_field')).toEqual([]);
         expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('lord_son');
+        expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
     });
 });
 

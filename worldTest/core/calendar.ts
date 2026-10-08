@@ -59,3 +59,9 @@ export class GameCalendar {
         this.dayIndex = Math.max(0, dayIndex);
     }
 }
+
+/** The name of the season a month belongs to (e.g. 'Verano'). */
+export function seasonNameForMonth(monthIndex: number): string {
+    const found = CALENDAR.seasons.find((entry) => entry.months.indexOf(monthIndex) !== -1);
+    return (found ?? CALENDAR.seasons[0]).name;
+}

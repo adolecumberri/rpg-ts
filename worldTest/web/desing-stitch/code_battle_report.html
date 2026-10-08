@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>RPG-TS · Battle Damage Report</title>
+<!-- Google Fonts: Space Mono, VT323 & Press Start 2P for authentic tactical RPG UI -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;family=Space+Mono:wght@400;700&amp;family=VT323&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script data-purpose="tailwind-config" id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'rpg-bg': '#170c05',
+            'rpg-dark': '#1e0e0a',
+            'rpg-card': '#2f1515',
+            'rpg-inner': '#220e0e',
+            'rpg-border-outer': '#4d1e1e',
+            'rpg-border-inner': '#120505',
+            'rpg-gold': '#f5a623',
+            'rpg-gold-light': '#ffcf5c',
+            'rpg-green-btn': '#345e28',
+            'rpg-green-border': '#598f45',
+            'rpg-wine-btn': '#3a1a1a',
+            'rpg-wine-border': '#5c2a2a',
+            'rpg-phys': '#ef4444',
+            'rpg-mag': '#60a5fa',
+            'rpg-true': '#ffffff',
+            'rpg-tan': '#c8a882',
+            'rpg-sub': '#d4b483',
+          },
+          fontFamily: {
+            'pixel': ['"Press Start 2P"', 'monospace'],
+            'mono': ['"Space Mono"', 'monospace'],
+            'term': ['"VT323"', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    * {
+      box-sizing: border-box;
+      image-rendering: pixelated;
+      user-select: none;
+      -webkit-font-smoothing: none;
+    }
+
+    body {
+      background-color: #0b0503;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Space Mono', monospace;
+      color: #f5a623;
+    }
+
+    /* Target 320x640 Fixed Viewport Frame */
+    .screen-viewport {
+      width: 320px;
+      height: 640px;
+      max-width: 320px;
+      max-height: 640px;
+      background-color: #170c05;
+      overflow: hidden;
+      position: relative;
+      border: 2px solid #3c1a14;
+      box-shadow: 0 0 28px rgba(0, 0, 0, 0.95);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* FFTA2 Tactile Bevel Utilities */
+    .bevel-subtle {
+      border-top: 1px solid #5a2e2e;
+      border-left: 1px solid #5a2e2e;
+      border-right: 1px solid #140606;
+      border-bottom: 1px solid #140606;
+    }
+
+    .bevel-btn-green {
+      background: #355e2b;
+      border-top: 2px solid #5f9948;
+      border-left: 2px solid #5f9948;
+      border-right: 2px solid #162a12;
+      border-bottom: 2px solid #162a12;
+      color: #f0fdf4;
+      text-shadow: 0 1px 1px #0f1c0c;
+    }
+
+    .bevel-btn-inactive {
+      background: #341818;
+      border-top: 2px solid #542727;
+      border-left: 2px solid #542727;
+      border-right: 1px solid #140606;
+      border-bottom: 1px solid #140606;
+      color: #a88d8d;
+    }
+
+    .bevel-btn-inactive:active,
+    .bevel-btn-green:active {
+      transform: translateY(1px);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #170909;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #4a2222;
+      border: 1px solid #230c0c;
+    }
+  </style>
+</head>
+<body>
+<div class="screen-viewport" data-purpose="rpg-viewport">
+<!-- BEGIN: TopHeader (Strict 48px) -->
+<header class="h-[48px] w-full bg-[#200e0e] border-b-2 border-[#120505] px-2.5 flex items-center justify-between shrink-0 select-none z-10" data-purpose="top-header">
+<!-- Hamburger Menu Button (30x30) -->
+<button aria-label="Open menu" class="w-[30px] h-[30px] bg-[#2d1313] bevel-subtle flex flex-col items-center justify-center gap-[3px] active:translate-y-[1px]">
+<span class="w-[16px] h-[2px] bg-[#f5a623] block shadow-[0_1px_0_#000]"></span>
+<span class="w-[16px] h-[2px] bg-[#f5a623] block shadow-[0_1px_0_#000]"></span>
+<span class="w-[16px] h-[2px] bg-[#f5a623] block shadow-[0_1px_0_#000]"></span>
+</button>
+<!-- Center Title & Status Indicators -->
+<div class="flex flex-col items-center justify-center leading-tight text-center">
+<div class="flex items-center gap-1.5">
+<span class="text-[10px] tracking-wider text-[#f5a623] font-pixel drop-shadow-[0_1px_0_#000]">EL FERGEL</span>
+<span class="bg-[#8b2525] border border-[#521313] text-[#ffe0e0] text-[7px] px-1 py-[0.5px] font-pixel tracking-wide">ESTE</span>
+</div>
+<div class="flex items-center gap-1 text-[#e2932a] text-[11px] font-term tracking-widest mt-[2px]">
+<span>● DAY 2</span>
+<span class="text-[#6d4141]">|</span>
+<span>G 10</span>
+<span class="text-[#6d4141]">|</span>
+<span class="text-[10px]" title="Sprout">🌱</span>
+</div>
+</div>
+<!-- Right Engine / Save Indicators -->
+<div class="flex flex-col items-end justify-center text-right leading-none">
+<span class="text-[7.5px] text-[#f5a623] font-pixel tracking-tight">RPG-TS</span>
+<div class="flex items-center gap-1 mt-1 font-pixel text-[6.5px]">
+<span class="text-[#a46328]">SAVE:</span>
+<span class="text-[#4ade80]">OK</span>
+</div>
+</div>
+</header>
+<!-- END: TopHeader -->
+<!-- BEGIN: Main Battle Report Area (Strictly matching reference card) -->
+<main class="flex-1 bg-[#140807] p-2 overflow-hidden flex flex-col justify-start select-none">
+<!-- Tactile Grimoire Outer Box -->
+<div class="w-full h-full bg-[#2f1414] border-2 border-[#522020] shadow-[0_0_8px_rgba(0,0,0,0.85)] flex flex-col p-2 overflow-hidden">
+<!-- Card Title matching Image 4 -->
+<div class="shrink-0 mb-1.5">
+<h1 class="text-[10px] font-pixel text-[#f5a623] tracking-wide drop-shadow-[0_1px_0_#000]">BATTLE REPORT</h1>
+<!-- Subtle Horizontal Divider -->
+<div class="h-[2px] w-full bg-[#160606] border-b border-[#4d2222] mt-1.5"></div>
+</div>
+<!-- Primary Tabs: Allies vs Enemies -->
+<div class="grid grid-cols-2 gap-1.5 shrink-0 my-1">
+<button class="bevel-btn-green py-1 px-2 font-pixel text-[8px] tracking-wider flex items-center justify-center transition-all" id="tab-allies">
+          Allies
+        </button>
+<button class="bevel-btn-inactive py-1 px-2 font-pixel text-[8px] tracking-wider flex items-center justify-center transition-all" id="tab-enemies">
+          Enemies
+        </button>
+</div>
+<!-- Global Summary Stat Line matching reference -->
+<div class="shrink-0 text-center py-1 bg-[#1c0a0a] border border-[#3e1616] my-1">
+<p class="font-term text-[14px] leading-tight tracking-wider text-[#d4b483]">
+          dealt <span class="text-[#ef4444] font-bold" id="stat-phys">6094</span> <span class="text-[#60a5fa] font-bold" id="stat-mag">4456</span> <span class="text-[#ffffff] font-bold" id="stat-true">120</span>
+<span class="text-[#6b3a3a] mx-0.5">•</span> rec <span class="text-[#d4b483]" id="stat-rec">8614</span>
+<span class="text-[#6b3a3a] mx-0.5">•</span> heals <span class="text-[#4ade80]" id="stat-heals">1400</span>
+<span class="text-[#6b3a3a] mx-0.5">•</span> kills <span class="text-[#ffcf5c]" id="stat-kills">12</span>
+</p>
+</div>
+<!-- Secondary Tabs: Dealt | Healing | Taken -->
+<div class="grid grid-cols-3 gap-1 shrink-0 my-1">
+<button class="sec-tab bevel-btn-green py-1 font-pixel text-[7px] text-center" data-cat="dealt">
+          Dealt
+        </button>
+<button class="sec-tab bevel-btn-inactive py-1 font-pixel text-[7px] text-center" data-cat="healing">
+          Healing
+        </button>
+<button class="sec-tab bevel-btn-inactive py-1 font-pixel text-[7px] text-center" data-cat="taken">
+          Taken
+        </button>
+</div>
+<!-- Table Column Headers -->
+<div class="shrink-0 flex items-center justify-between px-1.5 py-1 text-[8px] font-pixel text-[#9e7a60] border-b border-[#3e1616] mt-1 bg-[#260f0f]">
+<div class="flex items-center gap-1 w-[124px]">
+<span>COMBATANT</span>
+</div>
+<div class="flex items-center justify-end gap-3 text-right flex-1 pr-1" id="column-legend">
+<span class="text-[#ef4444] w-[26px]">PHYS</span>
+<span class="text-[#60a5fa] w-[26px]">MAG</span>
+<span class="text-[#ffffff] w-[22px]">TRUE</span>
+</div>
+</div>
+<!-- Visual Combatant Breakdown List (Scrollable, perfectly balanced, zero overlap) -->
+<div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col divide-y divide-[#260e0e] bg-[#1e0a0a]" id="roster-list">
+<!-- Dynamic Rows Rendered by JS -->
+</div>
+<!-- Tactical Roster Aggregate Bottom Strip -->
+<div class="shrink-0 bg-[#250d0d] border-t border-[#441a1a] px-1.5 py-1 flex items-center justify-between text-[8px] font-pixel text-[#f5a623] mt-1">
+<span class="text-[#b48c68] flex items-center gap-1">TOTAL</span>
+<div class="flex items-center justify-end gap-3 font-mono text-[9px] pr-1">
+<span class="text-[#ef4444] w-[26px] text-right font-bold" id="total-col-1">2695</span>
+<span class="text-[#60a5fa] w-[26px] text-right font-bold" id="total-col-2">1845</span>
+<span class="text-[#ffffff] w-[22px] text-right font-bold" id="total-col-3">52</span>
+</div>
+</div>
+</div>
+</main>
+<!-- END: Main Battle Report Area -->
+<!-- BEGIN: BottomTacticalTray (Strict 56px) -->
+<footer class="h-[56px] w-full bg-[#200e0e] border-t-2 border-[#120505] px-2.5 flex items-center justify-between shrink-0 select-none z-10" data-purpose="bottom-tray">
+<!-- Back / Close Button -->
+<button class="bg-[#2d1313] bevel-subtle h-[32px] px-3 flex items-center gap-1.5 active:translate-y-[1px] hover:bg-[#381818] transition-colors" data-purpose="back-action">
+<span class="text-[9px] text-[#f87171] font-pixel">✕</span>
+<span class="text-[8px] text-[#f5a623] font-pixel tracking-wider">Cerrar</span>
+</button>
+<!-- Engine Telemetry Bar -->
+<div class="flex items-center gap-1.5 font-mono text-[9px] text-[#4ade80] tracking-tight bg-[#140707] px-2 py-1.5 border border-[#301212]" data-purpose="engine-diagnostics">
+<span class="text-[#a47b53]">TICK:</span>
+<span class="text-white font-bold" id="tick-val">142</span>
+<span class="text-[#4b2828]">|</span>
+<span class="text-[#a47b53]">DPS:</span>
+<span class="text-[#4ade80] font-bold" id="dps-val">310</span>
+<span class="text-[#4b2828]">|</span>
+<span class="text-[#a3e635] font-bold">60FPS</span>
+</div>
+</footer>
+<!-- END: BottomTacticalTray -->
+</div>
+<!-- Interactive Logic for State Switching & Telemetry -->
+<script>
+  (function() {
+    const dataStore = {
+      allies: {
+        summary: {
+          dealt: { phys: 6094, mag: 4456, trueDmg: 120, rec: 8614, heals: 1400, kills: 12 },
+          healing: { phys: 0, mag: 1400, trueDmg: 0, rec: 3210, heals: 1400, kills: 12 },
+          taken: { phys: 5410, mag: 3084, trueDmg: 120, rec: 8614, heals: 1400, kills: 12 }
+        },
+        dealt: [
+          { name: "Naoufal Prieto", role: "Archer", icon: "🏹", c1: 520, c2: 405, c3: 0, max: 1200 },
+          { name: "Roma Perez", role: "Knight", icon: "🛡️", c1: 640, c2: 520, c3: 12, max: 1200 },
+          { name: "Archer Alpha", role: "Archer", icon: "🏹", c1: 480, c2: 100, c3: 0, max: 1200 },
+          { name: "Soldier Vorn", role: "Soldier", icon: "⚔️", c1: 510, c2: 105, c3: 40, max: 1200 },
+          { name: "Elysia Rose", role: "Healer", icon: "✨", c1: 85, c2: 620, c3: 0, max: 1200 },
+          { name: "Archer Beta", role: "Archer", icon: "🏹", c1: 460, c2: 95, c3: 0, max: 1200 }
+        ],
+        healing: [
+          { name: "Elysia Rose", role: "Healer", icon: "✨", c1: 0, c2: 980, c3: 0, max: 1000 },
+          { name: "Roma Perez", role: "Knight", icon: "🛡️", c1: 0, c2: 240, c3: 0, max: 1000 },
+          { name: "Soldier Vorn", role: "Soldier", icon: "⚔️", c1: 0, c2: 110, c3: 0, max: 1000 },
+          { name: "Naoufal Prieto", role: "Archer", icon: "🏹", c1: 0, c2: 40, c3: 0, max: 1000 },
+          { name: "Archer Alpha", role: "Archer", icon: "🏹", c1: 0, c2: 20, c3: 0, max: 1000 },
+          { name: "Archer Beta", role: "Archer", icon: "🏹", c1: 0, c2: 10, c3: 0, max: 1000 }
+        ],
+        taken: [
+          { name: "Roma Perez", role: "Knight", icon: "🛡️", c1: 1820, c2: 740, c3: 40, max: 2600 },
+          { name: "Soldier Vorn", role: "Soldier", icon: "⚔️", c1: 1340, c2: 490, c3: 20, max: 2600 },
+          { name: "Naoufal Prieto", role: "Archer", icon: "🏹", c1: 610, c2: 320, c3: 10, max: 2600 },
+          { name: "Archer Alpha", role: "Archer", icon: "🏹", c1: 540, c2: 280, c3: 0, max: 2600 },
+          { name: "Archer Beta", role: "Archer", icon: "🏹", c1: 590, c2: 260, c3: 0, max: 2600 },
+          { name: "Elysia Rose", role: "Healer", icon: "✨", c1: 510, c2: 994, c3: 50, max: 2600 }
+        ]
+      },
+      enemies: {
+        summary: {
+          dealt: { phys: 5410, mag: 3084, trueDmg: 120, rec: 10670, heals: 380, kills: 0 },
+          healing: { phys: 0, mag: 380, trueDmg: 0, rec: 10670, heals: 380, kills: 0 },
+          taken: { phys: 6094, mag: 4456, trueDmg: 120, rec: 10670, heals: 380, kills: 0 }
+        },
+        dealt: [
+          { name: "Orc Berserker", role: "Warrior", icon: "🪓", c1: 890, c2: 40, c3: 30, max: 1200 },
+          { name: "Dark Sorcerer", role: "Mage", icon: "🔮", c1: 70, c2: 850, c3: 40, max: 1200 },
+          { name: "Goblin Raider", role: "Scout", icon: "👺", c1: 510, c2: 60, c3: 10, max: 1200 },
+          { name: "Crypt Skeleton", role: "Soldier", icon: "💀", c1: 490, c2: 120, c3: 15, max: 1200 },
+          { name: "Orc Sharpshooter", role: "Archer", icon: "🏹", c1: 530, c2: 90, c3: 10, max: 1200 },
+          { name: "Shadow Imp", role: "Rogue", icon: "🦇", c1: 380, c2: 290, c3: 15, max: 1200 }
+        ],
+        healing: [
+          { name: "Dark Sorcerer", role: "Mage", icon: "🔮", c1: 0, c2: 260, c3: 0, max: 1000 },
+          { name: "Shadow Imp", role: "Rogue", icon: "🦇", c1: 0, c2: 80, c3: 0, max: 1000 },
+          { name: "Orc Berserker", role: "Warrior", icon: "🪓", c1: 0, c2: 40, c3: 0, max: 1000 },
+          { name: "Goblin Raider", role: "Scout", icon: "👺", c1: 0, c2: 0, c3: 0, max: 1000 },
+          { name: "Crypt Skeleton", role: "Soldier", icon: "💀", c1: 0, c2: 0, c3: 0, max: 1000 },
+          { name: "Orc Sharpshooter", role: "Archer", icon: "🏹", c1: 0, c2: 0, c3: 0, max: 1000 }
+        ],
+        taken: [
+          { name: "Orc Berserker", role: "Warrior", icon: "🪓", c1: 1420, c2: 910, c3: 40, max: 2600 },
+          { name: "Crypt Skeleton", role: "Soldier", icon: "💀", c1: 1120, c2: 780, c3: 20, max: 2600 },
+          { name: "Goblin Raider", role: "Scout", icon: "👺", c1: 940, c2: 680, c3: 20, max: 2600 },
+          { name: "Orc Sharpshooter", role: "Archer", icon: "🏹", c1: 890, c2: 610, c3: 10, max: 2600 },
+          { name: "Shadow Imp", role: "Rogue", icon: "🦇", c1: 720, c2: 540, c3: 10, max: 2600 },
+          { name: "Dark Sorcerer", role: "Mage", icon: "🔮", c1: 1004, c2: 936, c3: 20, max: 2600 }
+        ]
+      }
+    };
+
+    let activeSide = 'allies';
+    let activeCategory = 'dealt';
+
+    const tabAllies = document.getElementById('tab-allies');
+    const tabEnemies = document.getElementById('tab-enemies');
+    const secTabs = document.querySelectorAll('.sec-tab');
+    const rosterList = document.getElementById('roster-list');
+    const columnLegend = document.getElementById('column-legend');
+
+    const statPhys = document.getElementById('stat-phys');
+    const statMag = document.getElementById('stat-mag');
+    const statTrue = document.getElementById('stat-true');
+    const statRec = document.getElementById('stat-rec');
+    const statHeals = document.getElementById('stat-heals');
+    const statKills = document.getElementById('stat-kills');
+
+    const totCol1 = document.getElementById('total-col-1');
+    const totCol2 = document.getElementById('total-col-2');
+    const totCol3 = document.getElementById('total-col-3');
+
+    function updateSummary() {
+      const s = dataStore[activeSide].summary[activeCategory];
+      statPhys.textContent = s.phys;
+      statMag.textContent = s.mag;
+      statTrue.textContent = s.trueDmg;
+      statRec.textContent = s.rec;
+      statHeals.textContent = s.heals;
+      statKills.textContent = s.kills;
+    }
+
+    function renderRoster() {
+      updateSummary();
+      const rows = dataStore[activeSide][activeCategory];
+      rosterList.innerHTML = '';
+
+      let sum1 = 0, sum2 = 0, sum3 = 0;
+
+      if (activeCategory === 'healing') {
+        columnLegend.innerHTML = `
+          <span class="text-[#4ade80] w-[26px]">CAST</span>
+          <span class="text-[#60a5fa] w-[26px]">SELF</span>
+          <span class="text-[#ffffff] w-[22px]">-</span>
+        `;
+      } else {
+        columnLegend.innerHTML = `
+          <span class="text-[#ef4444] w-[26px]">PHYS</span>
+          <span class="text-[#60a5fa] w-[26px]">MAG</span>
+          <span class="text-[#ffffff] w-[22px]">TRUE</span>
+        `;
+      }
+
+      rows.forEach((r, idx) => {
+        sum1 += r.c1;
+        sum2 += r.c2;
+        sum3 += r.c3;
+
+        const totalUnitVal = r.c1 + r.c2 + r.c3;
+        const pPhys = Math.min(100, Math.round((r.c1 / (totalUnitVal || 1)) * 100));
+        const pMag = Math.min(100, Math.round((r.c2 / (totalUnitVal || 1)) * 100));
+        const pTrue = 100 - (pPhys + pMag);
+
+        const rowDiv = document.createElement('div');
+        rowDiv.className = `px-2 py-1.5 flex flex-col justify-center gap-1 ${idx % 2 === 0 ? 'bg-[#1b0909]' : 'bg-[#220d0d]'} hover:bg-[#2b1212] transition-colors`;
+        
+        rowDiv.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 overflow-hidden max-w-[140px]">
+              <span class="text-[11px] leading-none shrink-0">${r.icon}</span>
+              <span class="font-mono text-[10px] text-[#e8c69c] truncate tracking-tight font-bold">${r.name}</span>
+            </div>
+            <div class="flex items-center justify-end gap-3 font-mono text-[10px] text-right shrink-0">
+              <span class="${activeCategory === 'healing' ? 'text-[#4ade80]' : 'text-[#ef4444]'} w-[26px]">${r.c1}</span>
+              <span class="text-[#60a5fa] w-[26px]">${r.c2}</span>
+              <span class="text-[#ffffff] w-[22px]">${r.c3}</span>
+            </div>
+          </div>
+          <!-- Micro Damage/Share Distribution Bar -->
+          <div class="w-full h-[2px] bg-[#100404] flex overflow-hidden rounded-[1px]">
+            <div style="width: ${pPhys}%;" class="${activeCategory === 'healing' ? 'bg-[#4ade80]' : 'bg-[#ef4444]'}"></div>
+            <div style="width: ${pMag}%;" class="bg-[#60a5fa]"></div>
+            <div style="width: ${pTrue}%;" class="bg-[#ffffff]"></div>
+          </div>
+        `;
+        rosterList.appendChild(rowDiv);
+      });
+
+      totCol1.textContent = sum1;
+      totCol2.textContent = sum2;
+      totCol3.textContent = sum3;
+      totCol1.className = activeCategory === 'healing' ? 'text-[#4ade80] w-[26px] text-right font-bold' : 'text-[#ef4444] w-[26px] text-right font-bold';
+    }
+
+    tabAllies.addEventListener('click', () => {
+      activeSide = 'allies';
+      tabAllies.className = 'bevel-btn-green py-1 px-2 font-pixel text-[8px] tracking-wider flex items-center justify-center transition-all';
+      tabEnemies.className = 'bevel-btn-inactive py-1 px-2 font-pixel text-[8px] tracking-wider flex items-center justify-center transition-all';
+      renderRoster();
+    });
+
+    tabEnemies.addEventListener('click', () => {
+      activeSide = 'enemies';
+      tabEnemies.className = 'bevel-btn-green py-1 px-2 font-pixel text-[8px] tracking-wider flex items-center justify-center transition-all';
+      tabAllies.className = 'bevel-btn-inactive py-1 px-2 font-pixel text-[8px] tracking-wider flex items-center justify-center transition-all';
+      renderRoster();
+    });
+
+    secTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        secTabs.forEach(t => {
+          t.className = 'sec-tab bevel-btn-inactive py-1 font-pixel text-[7px] text-center';
+        });
+        tab.className = 'sec-tab bevel-btn-green py-1 font-pixel text-[7px] text-center';
+        activeCategory = tab.dataset.cat;
+        renderRoster();
+      });
+    });
+
+    // Initial render
+    renderRoster();
+
+    // Subtle Engine Diagnostics Ticker
+    let ticks = 142;
+    const tickElem = document.getElementById('tick-val');
+    const dpsElem = document.getElementById('dps-val');
+
+    setInterval(() => {
+      ticks += 1;
+      if (tickElem) tickElem.textContent = ticks;
+      if (dpsElem && ticks % 2 === 0) {
+        dpsElem.textContent = 300 + Math.floor(Math.sin(ticks * 0.1) * 20);
+      }
+    }, 450);
+  })();
+</script>
+</body></html>

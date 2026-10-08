@@ -24,6 +24,8 @@ export function buildCharacterFromSave(saved: SavedCharacter): Character {
     character.stats.fatigue = saved.fatigue ?? 0;
     character.experience.level = saved.level;
     character.experience.currentXp = saved.currentXp;
+    // The picture override: special characters keep their own portrait.
+    if (saved.portraitId) character.portraitId = saved.portraitId;
     // The worldTest stats the historic fields don't cover (speed,
     // magic...): saves made before them load at the seeded defaults.
     // Typed directly through the enhanced Statistics.

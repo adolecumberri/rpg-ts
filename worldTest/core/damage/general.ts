@@ -2,7 +2,10 @@ import type { Character, IntervalDamage, IntervalDamageResolver, Item } from '..
 import { DamageComposer } from './composer';
 import type { ComponentLine, DamageComponent, KindMultiplier, ResolveOptions } from './composer';
 import { attackComponentsOf, defenceLayersOf } from './character';
+import { resolveImpactHits } from './impact';
 import { reactionsOf } from './reactions';
+import { kindTotalsOfBreakdown } from '../combat/battleTracker';
+import type { DamageKindTotals } from '../combat/battleTracker';
 import { DAMAGE_TYPES, MITIGATION } from '../config/damage';
 import { FATIGUE, gainFatigue } from '../combat/fatigue';
 import { rampGatePower } from '../combat/ramp';
@@ -14,9 +17,13 @@ export type GeneralAttackOutcome = {
     // Flavour for logs, e.g. 'crit ×2'.
     note?: string;
     breakdown?: ComponentLine[];
-    // Damage reflected back to the attacker by reactive skills (Parry,
-    // Spike Shield). Applied by whoever owns the hit application.
-    reflect?: number;
+    // The counter-attack the defender's reaction built back at the
+    // attacker: an attack instance the applier resolves as a real hit
+    // (mitigated by the attacker's defence, crit-able).
+    counter?: { components: DamageComponent[] };
+    // The hit's assembled components (post impact phase, pre merge):
+    // each instance reads separately (Attack, Sheen, Impact...).
+    components?: DamageComponent[];
 };
 
 /**
@@ -59,11 +66,11 @@ export function kindMultiplierFor(defender: Character): KindMultiplier {
 
     return (kind) => {
         if (kind === DAMAGE_TYPES.TRUE) return 1; // true damage ignores everything
-        const base = kind === DAMAGE_TYPES.PHYSICAL
-            ? MITIGATION.constant / (MITIGATION.constant + defender.getStat('defence'))
-            : kind === DAMAGE_TYPES.MAGICAL
-                ? MITIGATION.constant / (MITIGATION.constant + defender.getStat('magicDefence'))
-                : 1;
+        const base = kind === DAMAGE_TYPES.PHYSICAL ?
+            MITIGATION.constant / (MITIGATION.constant + defender.getStat('defence')) :
+            kind === DAMAGE_TYPES.MAGICAL ?
+                MITIGATION.constant / (MITIGATION.constant + defender.getStat('magicDefence')) :
+                1;
         return base * finalMultiplier;
     };
 }
@@ -175,13 +182,26 @@ export function resolveGeneralAttack(
     random: () => number,
     options: ResolveOptions = {},
 ): GeneralAttackOutcome {
-    let components = attackComponentsOf(attacker);
+    // The base components: the attacker's own attack, or the payload a
+    // reaction built (the counter-attack's components).
+    let components = options.components ?? attackComponentsOf(attacker);
 
-    for (const item of equippedItemsOf(attacker)) {
-        const hook = item.definition.onAttack;
-        if (hook) {
-            components = hook({ attacker, defender, item, components });
+    if (!options.components) {
+        for (const item of equippedItemsOf(attacker)) {
+            const hook = item.definition.onAttack;
+            if (hook) {
+                components = hook({ attacker, defender, item, components });
+            }
         }
+    }
+
+    // Impact hits: a basic attack applies exactly one. The bearer's
+    // impact statuses (Sheen, Phantom Strike), per-impact item bonuses
+    // (Guinsoo) and counter procs (Silver Bullets) react inside this
+    // phase, before the components merge. Counter-attacks carry none.
+    let appliedImpacts = 1;
+    if (!options.isCounter) {
+        appliedImpacts = resolveImpactHits({ attacker, defender, impactHits: 1, components, random });
     }
 
     const merged = mergeComponents(components);
@@ -189,10 +209,18 @@ export function resolveGeneralAttack(
     // Accuracy: at less than 100 the attack rolls to hit. A miss
     // consumes one random call and deals nothing (no crit roll, no
     // on-hit effects, no reactions). At the default 100 every attack
-    // lands without consuming the roll.
+    // lands without consuming the roll. Counters always land.
     const accuracy = attacker.getStat('accuracy');
-    if (accuracy < 100 && random() * 100 >= accuracy) {
+    if (!options.isCounter && accuracy < 100 && random() * 100 >= accuracy) {
         return { damage: 0, note: 'missed' };
+    }
+
+    // Evasion: even a perfectly aimed attack (skills carry 100%
+    // accuracy) can be dodged by the defender. Counter-attacks always
+    // land.
+    const evasion = defender.getStat('evasion');
+    if (!options.isCounter && evasion > 0 && random() * 100 < evasion) {
+        return { damage: 0, note: 'evaded' };
     }
 
     const rolled = rollCrits(attacker, merged, random);
@@ -205,17 +233,29 @@ export function resolveGeneralAttack(
     );
 
     // Reactive pieces the defender carries fire when it is attacked.
-    // The first piece that triggers wins.
+    // The first piece that triggers wins; a triggered piece may negate
+    // the hit and/or build a counter-attack back at the attacker.
+    // Counters never trigger reactions themselves (no chains).
     let damage = result.total;
-    let reflect = 0;
+    let counter: GeneralAttackOutcome['counter'];
     const notes = [...rolled.notes];
-    for (const reaction of reactionsOf(defender)) {
-        const outcome = reaction({ attacker, defender, incomingDamage: damage, random });
-        if (!outcome) continue;
-        damage = outcome.damage;
-        reflect = outcome.reflect;
-        if (outcome.note) notes.push(outcome.note);
-        break;
+    if (!options.isCounter) {
+        for (const reaction of reactionsOf(defender)) {
+            const outcome = reaction({
+                attacker,
+                defender,
+                incomingDamage: damage,
+                impactHits: appliedImpacts,
+                random,
+            });
+            if (!outcome) continue;
+            damage = outcome.damage;
+            if (outcome.counter && outcome.counter.length > 0) {
+                counter = { components: outcome.counter };
+            }
+            if (outcome.note) notes.push(outcome.note);
+            break;
+        }
     }
 
     // On-hit effects (Bleeding...) only apply when the attack dealt
@@ -240,22 +280,51 @@ export function resolveGeneralAttack(
 
     return {
         damage,
-        reflect,
+        counter,
         breakdown: options.breakdown ? result.breakdown : undefined,
         note: notes.length > 0 ? notes.join(' ') : undefined,
+        // The assembled hit (post impact phase, pre merge): the tests
+        // and logs inspect the separate instances (Attack, Sheen...).
+        components: [...components],
     };
 }
 
 /**
  * Plugs the general attack into the interval engine: the engine applies
- * the returned damage to the defender (and the reflection to the
- * attacker) and shows the note in the log. Every basic attack tires the
- * attacker (+5 fatigue, penalties at thresholds, faint at 100).
+ * the returned damage to the defender (and the counter-attack damage to
+ * the attacker) and shows the note in the log. The defender's counter
+ * is resolved here as a real attack instance — mitigated by the
+ * attacker's defence, crit-able — and delivered through the numeric
+ * `reflect` seam the engines already apply. Every basic attack tires
+ * the attacker (+5 fatigue, penalties at thresholds, faint at 100).
  */
 export const generalAttackResolver: IntervalDamageResolver = (attacker, defender, random): IntervalDamage => {
-    const outcome = resolveGeneralAttack(attacker, defender, random);
+    const outcome = resolveGeneralAttack(attacker, defender, random, { breakdown: true });
     gainFatigue(attacker, FATIGUE.gainPerAttack);
     // The Gate ramps only when the bearer actually attacks.
     rampGatePower(attacker);
-    return { damage: outcome.damage, note: outcome.note, reflect: outcome.reflect };
+
+    // The defender's counter-attack instance (Parry, Spike Shield).
+    let reflect = 0;
+    let reflectByKind: Partial<DamageKindTotals> | undefined;
+    const notes: string[] = [];
+    if (outcome.note) notes.push(outcome.note);
+    if (outcome.counter) {
+        const counter = resolveGeneralAttack(defender, attacker, random, {
+            breakdown: true,
+            isCounter: true,
+            components: outcome.counter.components,
+        });
+        reflect = counter.damage;
+        reflectByKind = kindTotalsOfBreakdown(counter.breakdown ?? []);
+        if (counter.note) notes.push(counter.note);
+    }
+
+    return {
+        damage: outcome.damage,
+        byKind: kindTotalsOfBreakdown(outcome.breakdown ?? []),
+        note: notes.length > 0 ? notes.join(' ') : undefined,
+        reflect,
+        reflectByKind,
+    };
 };

@@ -101,6 +101,9 @@ export type NPCDefinition = {
     group?: string;
     // Item ids the character wears from the start (farmers carry sickles).
     equipment?: string[];
+    // The picture override: special characters keep their own profile
+    // portrait (and battle sprite) instead of the held job's.
+    portrait?: string;
     xpReward?: number;
     goldReward?: number;
     // Level of the creature (used by the individual XP rules).

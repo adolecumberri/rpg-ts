@@ -18,34 +18,13 @@ import { TeamCard } from '../components/UI/TeamCard';
 import { TeamData } from '../components/UI/TeamData';
 import { Icon } from '../components/UI/Icon';
 import { StatsColumn } from '../components/UI/StatsColumn';
-import type { IconId } from '../components/UI/Icon';
-
-// The bag modal shows every section as a tab page (one section each).
-const ALL_SECTIONS: EquipmentSection[] = [
-    'espadas',
-    'varas',
-    'arcos',
-    'cascos',
-    'ropa',
-    'escudos',
-    'accesorios',
-];
-
-const SECTION_META: Record<EquipmentSection, { label: string; icon: IconId }> = {
-    espadas: { label: 'Armas de filo', icon: 'espada' },
-    varas: { label: 'Armas contundentes', icon: 'vara' },
-    arcos: { label: 'Armas arrojadizas', icon: 'arco' },
-    cascos: { label: 'Protección cabeza', icon: 'casco' },
-    ropa: { label: 'Protección torso', icon: 'armadura' },
-    escudos: { label: 'Escudos', icon: 'escudo' },
-    accesorios: { label: 'Accesorios', icon: 'default' },
-};
+import { ALL_SECTIONS, EquipPicker, SECTION_META } from '../components/UI/EquipPicker';
 
 /**
  * The team page (new UI, FFT A2 style): the squad grid, the selected
  * character's data, and the equipment flow — Equipo opens the five-slot
  * view whose bar carries the slot options (back pinned at the 5th
- * place); picking a slot opens the item picker modal, one section per
+ * place); picking a slot opens the item picker, one section per
  * tab page, with the job/character restrictions applied.
  */
 export function TeamPage({ onBack }: { onBack?: () => void }) {
@@ -141,81 +120,53 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
         equipView ? (
             <div className="equip-view">
                 {selectedHole !== null ? (
-                    <div className="equip-picker">
-                        <div className="pixel-modal-header">
-                            <span className="pixel-modal-title">{SECTION_META[pickerSection].label}</span>
-                            <div className="inv-tabs">
-                                {ALL_SECTIONS.map((section) => {
-                                    const meta = SECTION_META[section];
-                                    return (
-                                        <button
-                                            key={section}
-                                            type="button"
-                                            title={meta.label}
-                                            aria-label={meta.label}
-                                            className={`inv-tab pixel-btn${pickerSection === section ? ' pixel-btn--primary' : ''}`}
-                                            onClick={() => setPickerSection(section)}
-                                        >
-                                            <Icon id={meta.icon} size={4} />
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        <div className="pixel-modal-body">
-                            {pickerSlots.length === 0 ? (
-                                <div style={{ fontSize: 'var(--s3)', color: 'var(--muted)' }}>
-                                    {EQUIP_MESSAGES['no-copies']}
+                    <EquipPicker
+                        title={SECTION_META[pickerSection].label}
+                        sections={ALL_SECTIONS}
+                        sectionMeta={SECTION_META}
+                        activeSection={pickerSection}
+                        onSectionChange={setPickerSection}
+                        emptyText={EQUIP_MESSAGES['no-copies']}
+                        rows={pickerSlots.map((slot) => {
+                            const allowed = selected ?
+                                canEquipItem(selected, slot.item) :
+                                { ok: false, message: '' };
+                            const inUse = slot.totalQuantity - slot.quantity;
+                            const isPreview = previewItem !== null && previewItem.id === slot.item.id;
+                            const rowClass = [
+                                'inv-item-row',
+                                allowed.ok ? '' : 'inv-item-row--disabled',
+                                isPreview ? 'inv-item-row--preview' : '',
+                            ].join(' ');
+                            return (
+                                <div
+                                    key={slot.id}
+                                    className={rowClass}
+                                    onClick={() => setPreviewItem(slot.item)}
+                                >
+                                    <span className="inv-item-icon">
+                                        <Icon id={slot.item.definition.icon ?? 'default'} size={4} />
+                                    </span>
+                                    <span className="inv-item-info">
+                                        <span className="inv-item-name">{slot.item.name}</span>
+                                    </span>
+                                    <span className="inv-count">{inUse}</span>
+                                    <span className="inv-count">{slot.totalQuantity}</span>
                                 </div>
-                            ) : (
-                                <div>
-                                    <div className="inv-table-head">
-                                        <span className="inv-head-spacer" />
-                                        <span className="inv-head-name">nombre</span>
-                                        <span className="inv-head-count">en uso</span>
-                                        <span className="inv-head-count">total</span>
-                                    </div>
-                                    {pickerSlots.map((slot) => {
-                                        const allowed = selected ?
-                                            canEquipItem(selected, slot.item) :
-                                            { ok: false, message: '' };
-                                        const inUse = slot.totalQuantity - slot.quantity;
-                                        const isPreview = previewItem !== null && previewItem.id === slot.item.id;
-                                        const rowClass = [
-                                            'inv-item-row',
-                                            allowed.ok ? '' : 'inv-item-row--disabled',
-                                            isPreview ? 'inv-item-row--preview' : '',
-                                        ].join(' ');
-                                        return (
-                                            <div
-                                                key={slot.id}
-                                                className={rowClass}
-                                                onClick={() => setPreviewItem(slot.item)}
-                                            >
-                                                <span className="inv-item-icon">
-                                                    <Icon id={slot.item.definition.icon ?? 'default'} size={4} />
-                                                </span>
-                                                <span className="inv-item-info">
-                                                    <span className="inv-item-name">{slot.item.name}</span>
-                                                </span>
-                                                <span className="inv-count">{inUse}</span>
-                                                <span className="inv-count">{slot.totalQuantity}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                        <div className="equip-actions">
+                            );
+                        })}
+                        actions={[
                             <button
+                                key="unequip"
                                 type="button"
                                 className="pixel-btn pixel-btn--danger"
                                 disabled={!slotHasItem}
                                 onClick={unequipCurrent}
                             >
                                 Unequip
-                            </button>
+                            </button>,
                             <button
+                                key="equip"
                                 type="button"
                                 className="pixel-btn equip-go"
                                 disabled={!previewSlot}
@@ -224,9 +175,9 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                                 }}
                             >
                                 Equip
-                            </button>
-                        </div>
-                    </div>
+                            </button>,
+                        ]}
+                    />
                 ) : (
                     <div className="pixel-panel">
                         <div className="pixel-title">Equipo · {selected.name}</div>
@@ -275,19 +226,19 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                 {
                     id: 'equipment',
                     label: 'Equipo',
-                    icon: { symbol: 'backpack', color: '#f2ca50' },
+                    icon: { symbol: 'backpack', color: 'var(--accent)' },
                     onClick: () => setEquipView(true),
                 },
                 {
                     id: 'status',
                     label: 'Estatus',
-                    icon: { symbol: 'auto_awesome', color: '#f2ca50' },
+                    icon: { symbol: 'auto_awesome', color: 'var(--accent)' },
                     onClick: () => setStatusModal(true),
                 },
                 {
                     id: 'job',
                     label: 'Oficio',
-                    icon: { symbol: 'person', color: '#f2ca50' },
+                    icon: { symbol: 'person', color: 'var(--accent)' },
                     onClick: () => api.showToast('The Jobs page is coming soon.'),
                 },
             ]}
