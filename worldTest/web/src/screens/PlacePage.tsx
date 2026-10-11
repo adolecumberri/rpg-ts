@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FLAGS } from '@core';
 import { useGame } from '../game/GameContext';
 import { OptionsBar } from '../components/UI/OptionsBar';
 import type { OptionSpec } from '../components/UI/OptionsBar';
@@ -37,7 +38,7 @@ export function PlacePage({
     const api = useGame();
     const [view, setView] = useState<'place' | 'map'>('place');
 
-    if (view === 'map') {
+    if (view === 'map' && api.session.hasFlag(FLAGS.MAP_UNLOCKED)) {
         return (
             <WorldMapScreen
                 onBack={() => setView('place')}
@@ -62,8 +63,11 @@ export function PlacePage({
 
     // Always first: the map stays on the first page of the bar, and
     // Party right after it (the place actions fill the rest, so Party
-    // never hides behind the bar's pagination).
-    options.push({ id: 'map', label: 'Map', icon: ACTION_ICONS.map, sub: 'Region', onClick: () => setView('map') });
+    // never hides behind the bar's pagination). The map option only
+    // exists once the training has proven the recruit.
+    if (api.session.hasFlag(FLAGS.MAP_UNLOCKED)) {
+        options.push({ id: 'map', label: 'Map', icon: ACTION_ICONS.map, sub: 'Region', onClick: () => setView('map') });
+    }
     options.push({
         id: 'party',
         label: 'Party',
@@ -176,6 +180,20 @@ export function PlacePage({
                         const runner = api.session.missions.start(action.missionId);
                         api.refresh();
                         api.showToast(runner ? `${runner.title()} started.` : 'Unknown mission.');
+                    },
+                });
+            } else if (action.kind === 'mission_battle') {
+                // Only while the mission's current beat waits for its
+                // battle here (the training's "start the match").
+                if (!api.session.missionBattleReady(action.missionId, place.id)) continue;
+                options.push({
+                    id: action.id,
+                    label: action.label,
+                    icon: action.icon ?? { symbol: 'swords', color: 'var(--accent)' },
+                    tone: 'danger',
+                    onClick: () => {
+                        api.session.startMissionBattle(action.missionId);
+                        api.refresh();
                     },
                 });
             } else if (action.kind === 'mission_board') {

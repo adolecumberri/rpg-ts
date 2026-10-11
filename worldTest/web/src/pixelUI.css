@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------------
-   pixelUI.css — the pixel-art design system.
+   pixelUI.css â€” the pixel-art design system.
    Everything here is designed against the fixed 320x640 canvas and sized
    in UI units: 1 unit (--u) = 4 canvas pixels, and the whole canvas is
    multiplied by the live --ui-scale. Imported AFTER index.css so it
@@ -337,7 +337,7 @@ f2ca50 // acento
    Fixed pixels in the keyframes (no var/calc): interpolating values
    that depend on CSS variables can silently drop the steps() easing
    and tween the slide instead of jumping between frames. The sprite
-   plays as two stacked layers — idle below, attack above — so both
+   plays as two stacked layers â€” idle below, attack above â€” so both
    sheets load once and the swing only flips opacity. */
 .battle-card-sprite {
     position: relative;
@@ -714,7 +714,7 @@ f2ca50 // acento
 }
 
 /* The fixed-row variant: empty rows keep their height, so a button
-   pinned to a lower slot (the mission page's wide Atrás on slot 5)
+   pinned to a lower slot (the mission page's wide AtrÃ¡s on slot 5)
    stays at the bottom of the bar instead of closing up against the
    row above. */
 .action-bar-grid--fixed-rows {
@@ -741,6 +741,24 @@ f2ca50 // acento
     text-overflow: ellipsis;
 }
 
+/* A node banner (a card, an item): the node owns the full slot, so it
+   renders edge-to-edge and its own chrome aligns with the buttons. */
+.action-bar-banner--node {
+    padding: 0;
+    background: transparent;
+    overflow: visible;
+}
+
+/* A static cell (the forecast's combatant cards): the same grid slot
+   as a button, sized by the fixed row, no click behavior. */
+.action-bar-cell {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
 .action-btn {
     display: flex;
     align-items: center;
@@ -764,6 +782,42 @@ f2ca50 // acento
     font-size: var(--s5);
     /* No fixed height: the grid rows size the buttons (the design's
        tray lets the row own the height). */
+}
+
+/* The shared hover tooltip: floats over its anchor's top edge (action
+   buttons show skill stat changes; the arena status chips show the
+   same text). Disabled buttons show it too. */
+.ui-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%) translateY(2px);
+    max-width: 200px;
+    background: #17100a;
+    border: 1px solid var(--gold);
+    padding: var(--s1) var(--s2);
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: calc(var(--u) * 3);
+    line-height: 1.15;
+    text-align: center;
+    color: var(--gold-bright, #ffd966);
+    white-space: normal;
+    text-transform: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s;
+    z-index: 40;
+}
+
+.action-btn:hover .ui-tooltip,
+.action-btn:focus-visible .ui-tooltip {
+    opacity: 1;
+}
+
+/* The arena's single overlay instance: positioned by inline styles,
+   never inside a tier-scaled entity, so it always reads undistorted. */
+.ui-tooltip--shown {
+    opacity: 1;
 }
 
 /* The boxed icon slot (google-stitch): a dark inset square holding the
@@ -866,7 +920,7 @@ f2ca50 // acento
     font-size: calc(var(--u) * 2.25);
 }
 
-/* The icon box: a fixed 1em square so characters (emoji, ‹, ›) and
+/* The icon box: a fixed 1em square so characters (emoji, â€¹, â€º) and
    future sprite images share the same centered baseline and never
    overflow the button vertically. */
 .action-btn-icon {
@@ -1095,7 +1149,7 @@ f2ca50 // acento
     box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s1) var(--s1) 0 rgba(0, 0, 0, 0.55);
 }
 
-/* The sprite plays as two stacked layers — idle below, attack above —
+/* The sprite plays as two stacked layers â€” idle below, attack above â€”
    so both sheets load once and the swing only flips opacity. No
    background-image swap per attack, so no reload flicker mid-fight. */
 .battle-card-sprite-layer {
@@ -1138,7 +1192,7 @@ f2ca50 // acento
 }
 
 /* The place artwork: full width (320px, no crop) and a proportional
-   height — tweak --place-art-height on demand (default: auto). The
+   height â€” tweak --place-art-height on demand (default: auto). The
    name/description caption sits right below the art. */
 .place-view {
     flex: 1;
@@ -1876,8 +1930,8 @@ f2ca50 // acento
     box-sizing: border-box;
 }
 
-/* The inventory page (party → Inventory): the picker takes the top
-   half of the page; the bottom half is the data display — the stats
+/* The inventory page (party â†’ Inventory): the picker takes the top
+   half of the page; the bottom half is the data display â€” the stats
    ledger on the left half and the item's skills on the right half. */
 .inventory-page {
     overflow: hidden;
@@ -2141,7 +2195,7 @@ f2ca50 // acento
 
 /* Numbers-only experiment: Zilvertype covers the digit and numeric
    symbol glyphs of the FFTA family (unicode-range splicing), so
-   numbers render in Zilvertype while letters keep FFTA — no markup
+   numbers render in Zilvertype while letters keep FFTA â€” no markup
    changes needed. Remove this block to revert. */
 @font-face {
     font-family: 'FFTA';
@@ -2755,7 +2809,7 @@ f2ca50 // acento
    dark track, filling the track's full width. No arrows, no rounding.
    NOTE: Chrome 121+ prioritizes the standard scrollbar-width/color
    properties OVER ::-webkit-scrollbar, so the standard pair below
-   must NOT apply to Chrome — Firefox only. */
+   must NOT apply to Chrome â€” Firefox only. */
 ::-webkit-scrollbar {
     width: var(--s1);
     height: var(--s1);
@@ -2798,16 +2852,53 @@ f2ca50 // acento
     image-rendering: pixelated;
 }
 
-/* The post-battle report (BattleReportPanel), tabbed so it fits the
-   screen: one tab per team, one tab per section (dealt / healing /
-   taken), and clickable fighter rows that open a detail grid. */
+/* The post-battle report (BattleReportPanel), styled after the
+   design-stitch battle report card: title + close in one header with
+   a subtle divider, tabbed teams and sections with fixed button
+   heights, column headers, a damage-kind distribution bar under every
+   row and a TOTAL strip under the table. */
 .report-panel {
     text-align: left;
-    border: none;
 }
 
-.report-panel * {
-    border: none;
+/* Header: the title and the close button, split by a subtle divider
+   (no thick black line). */
+.report-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s2);
+    padding-bottom: var(--s1);
+    margin-bottom: var(--s1);
+    border-bottom: 2px solid #160606;
+    box-shadow: 0 1px 0 0 #4d2222;
+}
+
+.report-title {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.report-close {
+    flex: none;
+    width: var(--s6);
+    height: var(--s6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: #2d1313;
+    border: 1px solid #5a2e2e;
+    box-shadow: inset 0 1px 0 0 #542727, inset 0 -1px 0 0 #140606;
+    color: #f87171;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 14px;
+    font-size-adjust: none;
+    cursor: pointer;
 }
 
 .report-tabs {
@@ -2816,15 +2907,17 @@ f2ca50 // acento
     margin-bottom: var(--s1);
 }
 
+/* The design's button heights: 20px team tabs, 16px section tabs. */
 .report-tabs .pixel-btn {
     flex: 1;
     min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2px var(--s2);
+    height: var(--s5);
+    padding: 0 var(--s2);
     font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 13px;
+    font-size: 12px;
     font-size-adjust: none;
     color: #f7e6d4;
     letter-spacing: 0.05em;
@@ -2832,10 +2925,11 @@ f2ca50 // acento
     white-space: nowrap;
 }
 
-.report-tab--section {
-    font-size: 11px !important;
-    letter-spacing: 0.03em !important;
-    color: #d0c5af !important;
+.report-tabs--sections .pixel-btn {
+    height: var(--s4);
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    color: #d0c5af;
 }
 
 /* The active team's totals, under the team tabs. */
@@ -2850,28 +2944,59 @@ f2ca50 // acento
     margin-bottom: var(--s1);
 }
 
-.report-row {
+/* The table: headers, rows and the TOTAL strip share the grid. */
+.report-columns,
+.report-row,
+.report-total {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: var(--s2);
+    gap: var(--s3);
     align-items: center;
-    width: 100%;
+}
+
+.report-columns {
     padding: 2px var(--s1);
+    background: #260f0f;
+    border-bottom: 1px solid #3e1616;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 9px;
+    font-size-adjust: none;
+    color: #9e7a60;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.report-cells {
+    display: inline-flex;
+    gap: var(--s3);
+}
+
+.report-col {
+    min-width: 26px;
+    text-align: right;
+    white-space: nowrap;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 12px;
+    font-size-adjust: none;
+}
+
+.report-row {
+    width: 100%;
+    padding: 3px var(--s1) 1px;
     background: none;
     border: none;
     cursor: pointer;
     text-align: left;
     box-sizing: border-box;
     font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 12px;
+    font-size: 13px;
     font-size-adjust: none;
-    color: #d0c5af;
+    color: #e8c69c;
     text-shadow: none;
-    box-shadow: 0 1px 0 0 #251911;
 }
 
 .report-row:hover {
-    background: var(--bg-darker);
+    background: #2b1212;
 }
 
 .report-name {
@@ -2880,9 +3005,71 @@ f2ca50 // acento
     white-space: nowrap;
 }
 
-.report-cell {
-    text-align: right;
-    white-space: nowrap;
+/* The damage-type distribution bar under every row. */
+.report-bar {
+    display: flex;
+    height: 2px;
+    background: #100404;
+    margin: 0 var(--s1) 3px;
+    overflow: hidden;
+}
+
+.report-bar span {
+    display: block;
+    height: 100%;
+}
+
+.report-bar--physical {
+    background: #ef4444;
+}
+
+.report-bar--magical {
+    background: #60a5fa;
+}
+
+.report-bar--true {
+    background: #ffffff;
+}
+
+.report-bar--heal {
+    background: #4ade80;
+}
+
+/* The column value colors. */
+.report-phys {
+    color: #ef4444;
+}
+
+.report-mag {
+    color: #60a5fa;
+}
+
+.report-true {
+    color: #ffffff;
+}
+
+.report-heal {
+    color: #4ade80;
+}
+
+.report-total {
+    margin-top: var(--s1);
+    padding: var(--s1);
+    background: #250d0d;
+    border-top: 1px solid #441a1a;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+}
+
+.report-total .report-col {
+    font-weight: 700;
+}
+
+.report-total-label {
+    color: #b48c68;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
 .report-kinds {
@@ -2919,4 +3106,524 @@ f2ca50 // acento
     font-size-adjust: none;
     color: #6f6657;
     padding: 2px var(--s1);
+}
+
+/* Story dialogue choices: the prompt and its option buttons, shown by
+   the message box when the current line carries choices. */
+.messagebox-choice-box {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s3);
+    background: var(--card-2);
+    border: var(--s1) solid #000;
+    box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s1) var(--s1) 0 rgba(0, 0, 0, 0.55);
+}
+
+.messagebox-choice-speaker {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 12px;
+    font-size-adjust: none;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.messagebox-choice-prompt {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 15px;
+    font-size-adjust: none;
+    color: #f7e6d4;
+    line-height: 1.35;
+    text-shadow: none;
+}
+
+.messagebox-choices {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+}
+
+.messagebox-choices .pixel-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--s1) var(--s2);
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 14px;
+    font-size-adjust: none;
+    color: #f7e6d4;
+    letter-spacing: 0.04em;
+}
+
+/* ---------------------------------------------------------------------------
+   The JRPG pseudo-3D tactical arena (the small-battle view, adapted from
+   the design-stitch code_fight reference): tilted FFTA2-grid floor, three
+   depth tiers for the combatant sprites, micro hp bars, the active-turn
+   cursor, the turn-order strip and the 2x2 tactical command tray.
+--------------------------------------------------------------------------- */
+.jrpg-fight .floating-damage-layer {
+    z-index: 45;
+}
+
+.jrpg-combat {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #0c0604;
+    overflow: hidden;
+}
+
+.jrpg-arena {
+    position: relative;
+    flex: 1;
+    min-height: var(--s100);
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 30%, #2a150c 0%, #120904 65%, #080302 100%);
+    perspective: 500px;
+    perspective-origin: 50% 25%;
+}
+
+.jrpg-backdrop-wall {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--s48);
+    background:
+        radial-gradient(circle at 20% 40%, rgba(229, 155, 35, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
+        linear-gradient(to bottom, #110804 0%, #1a0e07 60%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.jrpg-ember {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: #ffb703;
+    box-shadow: 0 0 4px #fb8500;
+    opacity: 0.8;
+    pointer-events: none;
+    animation: jrpg-ember-float 6s infinite linear;
+}
+
+@keyframes jrpg-ember-float {
+    0% {
+        transform: translateY(180px) translateX(0);
+        opacity: 0;
+    }
+
+    30% {
+        opacity: 0.8;
+    }
+
+    80% {
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: translateY(-20px) translateX(25px);
+        opacity: 0;
+    }
+}
+
+.jrpg-ground {
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    left: -30px;
+    top: 50px;
+    transform: rotateX(60deg) translateZ(0);
+    transform-origin: 50% 65%;
+    background:
+        repeating-linear-gradient(0deg, rgba(70, 38, 20, 0.85) 0px, rgba(70, 38, 20, 0.85) 24px, rgba(50, 26, 13, 0.85) 24px, rgba(50, 26, 13, 0.85) 48px),
+        repeating-linear-gradient(90deg, rgba(212, 175, 55, 0.08) 0px, rgba(212, 175, 55, 0.08) 1px, transparent 1px, transparent 24px);
+    border: 2px solid #5a3016;
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8), 0 15px 30px rgba(0, 0, 0, 0.9);
+}
+
+.jrpg-skirmish-line {
+    position: absolute;
+    width: 2px;
+    height: 100%;
+    left: 50%;
+    background: linear-gradient(to bottom, transparent, rgba(212, 175, 55, 0.4) 30%, rgba(255, 217, 102, 0.8) 50%, rgba(212, 175, 55, 0.4) 70%, transparent);
+    box-shadow: 0 0 6px rgba(255, 217, 102, 0.5);
+}
+
+.jrpg-sprites-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.jrpg-active-tile {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    /* The tile lies on the tilted ground (rotateX 60deg squashes the
+       vertical axis by cos60 = 0.5); centered on the unit's feet. */
+    transform: translate(-50%, -50%) scaleY(0.5);
+    border: 2px solid #ffd966;
+    background: rgba(212, 175, 55, 0.25);
+    box-shadow: 0 0 10px rgba(255, 217, 102, 0.5);
+    animation: jrpg-tile-pulse 1.6s infinite ease-in-out;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* The actor tile's spot is set inline from the unit's real arena
+   position (tier fan included), so it always sits under the acting
+   character's feet. */
+.jrpg-active-tile--actor {
+}
+
+.jrpg-active-tile--target {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.25);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes jrpg-tile-pulse {
+
+    0%,
+    100% {
+        border-color: rgba(255, 217, 102, 0.9);
+    }
+
+    50% {
+        border-color: rgba(255, 217, 102, 0.4);
+    }
+}
+
+.jrpg-entity {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s;
+}
+
+.jrpg-depth-far {
+    transform: translate(-50%, -100%) scale(1.0);
+    z-index: 12;
+    filter: brightness(0.85) contrast(0.95);
+}
+
+.jrpg-depth-mid {
+    transform: translate(-50%, -100%) scale(1.25);
+    z-index: 15;
+    filter: brightness(0.95);
+}
+
+.jrpg-depth-front {
+    transform: translate(-50%, -100%) scale(1.55);
+    z-index: 20;
+    filter: brightness(1.1);
+}
+
+.jrpg-entity--active {
+    filter: drop-shadow(0 0 6px #ffe066) brightness(1.2);
+}
+
+.jrpg-entity--targeted {
+    filter: drop-shadow(0 0 6px #ff5a5a) brightness(1.1);
+}
+
+.jrpg-entity--dead {
+    filter: grayscale(1) brightness(0.55);
+    pointer-events: none;
+}
+
+.jrpg-entity-shadow {
+    position: absolute;
+    bottom: -3px;
+    width: 22px;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 50%;
+    filter: blur(1px);
+    z-index: 1;
+}
+
+.jrpg-cursor-arrow {
+    position: absolute;
+    top: -18px;
+    width: 10px;
+    height: 10px;
+    clip-path: polygon(50% 100%, 0 20%, 100% 20%);
+    background: #ffd966;
+    animation: jrpg-cursor-bounce 0.8s infinite alternate ease-in-out;
+    z-index: 10;
+}
+
+/* The red marker over the SELECTED enemy's head (the target pick). */
+.jrpg-target-arrow {
+    position: absolute;
+    top: -18px;
+    width: 10px;
+    height: 10px;
+    clip-path: polygon(50% 100%, 0 20%, 100% 20%);
+    background: #ef4444;
+    filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.9));
+    animation: jrpg-cursor-bounce 0.8s infinite alternate ease-in-out;
+    z-index: 10;
+}
+
+@keyframes jrpg-cursor-bounce {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-4px);
+    }
+}
+
+.jrpg-micro-hp {
+    width: 24px;
+    height: 3px;
+    background: #1a0a05;
+    border: 1px solid #36170c;
+    margin-bottom: 2px;
+    position: relative;
+    z-index: 5;
+}
+
+.jrpg-micro-hp-fill {
+    height: 100%;
+    background: #22c55e;
+    box-shadow: 0 0 3px rgba(34, 197, 94, 0.8);
+}
+
+.jrpg-enemy-side .jrpg-micro-hp-fill {
+    background: #ef4444;
+    box-shadow: 0 0 3px rgba(239, 68, 68, 0.8);
+}
+
+.jrpg-sprite-box {
+    position: relative;
+    z-index: 3;
+    width: 16px;
+    height: 16px;
+    background-size: 64px 16px;
+    background-position: 0 0;
+    image-rendering: pixelated;
+    animation: jrpg-idle-breathe 1.8s infinite ease-in-out;
+}
+
+.jrpg-enemy-side .jrpg-sprite-box {
+    transform: scaleX(-1);
+}
+
+@keyframes jrpg-idle-breathe {
+
+    0%,
+    100% {
+        transform: translateY(0) scaleY(1);
+    }
+
+    50% {
+        transform: translateY(-1.5px) scaleY(1.03);
+    }
+}
+
+.jrpg-arena-vignette {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: linear-gradient(to bottom, transparent 0%, rgba(12, 6, 4, 0.7) 60%, #120905 100%);
+    pointer-events: none;
+    z-index: 22;
+}
+
+.jrpg-turn-order-strip {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 3px;
+    background: rgba(22, 11, 6, 0.85);
+    border: 1px solid #5a3016;
+    padding: 2px 4px;
+    z-index: 28;
+}
+
+.jrpg-order-chip {
+    width: 14px;
+    height: 14px;
+    border: 1px solid #733c1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-family: 'Space Mono', monospace;
+    background: #1c0e07;
+    color: #d4af37;
+}
+
+.jrpg-order-chip--enemy {
+    border-color: #991b1b;
+    background: #450a0a;
+    color: #fca5a5;
+}
+
+.jrpg-order-chip--current {
+    border-color: #ffd966;
+    background: #543315;
+    color: #fff;
+    box-shadow: 0 0 4px #ffd966;
+}
+
+/* The battle header: the acting character's info plus the battle menu
+   (Huir). Replaces the app header while a fight is on. */
+.jrpg-header {
+    flex: none;
+    height: 48px;
+    background: #190e08;
+    border-bottom: 2px solid #381e10;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 30;
+}
+
+.jrpg-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.jrpg-menu-wrap {
+    position: relative;
+}
+
+.jrpg-menu-btn {
+    width: 32px;
+    height: 32px;
+    background: #2b180d;
+    border: 2px solid #5a341b;
+    border-top-color: #7b4725;
+    border-left-color: #7b4725;
+    border-bottom-color: #150a04;
+    border-right-color: #150a04;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+}
+
+.jrpg-menu-btn span {
+    width: 16px;
+    height: 2px;
+    background: #d4af37;
+    display: block;
+}
+
+.jrpg-menu {
+    position: absolute;
+    top: 36px;
+    right: 0;
+    background: #190e08;
+    border: 1px solid #542d17;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 60;
+}
+
+.jrpg-menu .pixel-btn {
+    white-space: nowrap;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 14px;
+    font-size-adjust: none;
+}
+
+.jrpg-turn-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.jrpg-turn-avatar {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    background: #140904;
+    background-size: 88px 22px;
+    background-position: 0 0;
+    image-rendering: pixelated;
+    border: 1px solid #7c4420;
+}
+
+.jrpg-turn-name-group {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.jrpg-turn-name {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 14px;
+    font-size-adjust: none;
+    color: #ffd966;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    text-shadow: none;
+}
+
+.jrpg-turn-tag {
+    color: #22c55e;
+    font-size: 11px;
+}
+
+.jrpg-info-tag {
+    color: #ffd966;
+    font-size: 11px;
+}
+
+.jrpg-turn-class {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    color: #e59b23;
+    text-shadow: none;
+}
+
+.jrpg-turn-stats {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.jrpg-stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+}
+
+.jrpg-stat-pill--hp {
+    color: #4ade80;
+}
+
+.jrpg-stat-pill--mana {
+    color: #60a5fa;
 }

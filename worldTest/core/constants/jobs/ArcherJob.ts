@@ -6,7 +6,7 @@ import { WEAPON_TYPES } from '../weaponTypes';
 export const ARCHER_JOB = new Job(
     'archer',
     'Archer',
-    ['fast_draw', 'weak_point'],
+    ['fast_draw', 'weak_point', 'perception'],
     [WEAPON_TYPES.bow],
     { attack: 2, speed: 2 },
     false,

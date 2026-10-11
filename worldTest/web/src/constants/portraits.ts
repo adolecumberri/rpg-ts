@@ -6,11 +6,14 @@ import { heldJobOf } from '@core';
 import archerPortrait from '../../../assets/portraits/archer.webp';
 import magePortrait from '../../../assets/portraits/mage.webp';
 import soldierPortrait from '../../../assets/portraits/soldier.webp';
+import captainPortrait from '../../../assets/portraits/captain_camp.webp';
 
 export const PORTRAIT_URLS: Record<string, string> = {
     warrior: soldierPortrait,
     archer: archerPortrait,
     mage: magePortrait,
+    // Captain Rodrigo, the camp's commanding officer.
+    captain: captainPortrait,
 };
 
 export function portraitUrl(id?: string): string {

@@ -105,6 +105,10 @@ export type Mission = {
     // Mission ids that must be completed before this one is offered on
     // the board (the hall unlocks missions in order).
     requires?: string[];
+    // Story flags that must exist in the session before this mission
+    // is offered anywhere (a flag flipped by an earlier mission or a
+    // dialogue choice unlocks the follow-up on the board).
+    requiredFlags?: string[];
     // The places whose board offers this mission. Undefined = offered
     // everywhere (a board in another city does not show farm missions).
     availableAt?: string[];
@@ -201,9 +205,9 @@ export class MissionRunner {
         this.acceptedByCharacter = options.acceptedBy ?? 'player';
         this.onFlagsTaken = options.onFlagsTaken;
         this.steps = mission.steps.map((step) =>
-            step.kind === 'hunt'
-                ? { ...step, hunt: new Hunt(step.hunt.encountersOf(), this.random) }
-                : { ...step },
+            step.kind === 'hunt' ?
+                { ...step, hunt: new Hunt(step.hunt.encountersOf(), this.random) } :
+                { ...step },
         );
         if (!options.skipEntry) this.enter(this.current());
     }
@@ -282,6 +286,16 @@ export class MissionRunner {
 
     flagsTaken(): string[] {
         return [...this.flags];
+    }
+
+    /**
+     * Leaves a story flag from a battle outcome hook (the training
+     * fights record each won sparring match). The session's registry
+     * learns about it through the same sink the reward steps use.
+     */
+    takeFlag(flag: string): void {
+        if (this.flags.indexOf(flag) === -1) this.flags.push(flag);
+        this.onFlagsTaken?.([flag]);
     }
 
     markers(): { placeId: string; stepId: string }[] {

@@ -1,4 +1,4 @@
-import type { MessageLine } from '@core';
+import type { DialogueChoice, MessageLine } from '@core';
 import { useGame } from '../../game/GameContext';
 import { PORTRAIT_URLS } from '../../constants/portraits';
 
@@ -92,28 +92,64 @@ export function MessageBox({ onBattle }: { onBattle?: (battle: PendingBattle) =>
 
     const remaining = api.session.messages.remaining();
 
+    const finishQueue = () => {
+        const battle = api.session.consumePendingBattle();
+        if (battle) onBattle?.(battle);
+    };
+
     const advance = () => {
         const next = api.session.messages.next();
         api.refresh();
-        if (!next) {
-            const battle = api.session.consumePendingBattle();
-            if (battle) onBattle?.(battle);
-        }
+        if (!next) finishQueue();
     };
+
+    // A choice line: picking an option applies its story effects and
+    // consumes the line (a choice may queue a battle through its
+    // effects — it fires once the queue empties, like any dialogue).
+    const choose = (choice: DialogueChoice) => {
+        for (const effect of choice.effects) {
+            api.session.applyStoryEffect(effect);
+        }
+        const next = api.session.messages.next();
+        api.refresh();
+        if (!next) finishQueue();
+    };
+
+    const hasChoices = Boolean(line.choices && line.choices.length > 0);
 
     return (
         <>
             {/* The dialog is modal: this layer covers the whole canvas,
-                so nothing behind the story lines can be clicked. */}
-            <div className="messagebox-overlay" onClick={advance} />
+                so nothing behind the story lines can be clicked. Choice
+                lines must be answered explicitly: their layer is inert. */}
+            <div className="messagebox-overlay" onClick={hasChoices ? undefined : advance} />
             {/* The global box floats above the bottom action tray (the
                 design's 48u tray), so it never covers the buttons. */}
             <div className="messagebox-global">
-                <MessageLineView
-                    line={line}
-                    counter={remaining > 1 ? String(remaining) : undefined}
-                    onAdvance={advance}
-                />
+                {hasChoices ? (
+                    <div className="messagebox-choice-box">
+                        <div className="messagebox-choice-speaker">{line.speaker ?? ''}</div>
+                        <div className="messagebox-choice-prompt">{line.text}</div>
+                        <div className="messagebox-choices">
+                            {line.choices!.map((choice, index) => (
+                                <button
+                                    key={index}
+                                    type="button"
+                                    className="pixel-btn"
+                                    onClick={() => choose(choice)}
+                                >
+                                    {choice.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <MessageLineView
+                        line={line}
+                        counter={remaining > 1 ? String(remaining) : undefined}
+                        onAdvance={advance}
+                    />
+                )}
             </div>
         </>
     );

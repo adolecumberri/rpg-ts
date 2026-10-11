@@ -115,7 +115,7 @@ describe('the squad', () => {
         expect(jobOfCharacter('player')?.title).toBe('Soldier');
         // The camp roster never includes the player.
         const roster = session.roster.all().filter((character) => character.id !== 'player');
-        expect(roster).toHaveLength(12);
+        expect(roster).toHaveLength(15);
     });
 });
 

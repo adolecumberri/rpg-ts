@@ -248,6 +248,26 @@ export function fastDrawStatus(): StatusDefinition {
 }
 
 /**
+ * Perception (archers): +20 evasion and +3% crit chance for 2 turns.
+ * The crit bonus is 3 points of the percent stat, not 3% of it.
+ */
+export function perceptionStatus(): StatusDefinition {
+    return {
+        name: 'Perception',
+        polarity: 'positive',
+        description: 'Evasion +20 and crit chance +3% for 2 turns.',
+        applyOn: 'on_turn',
+        duration: { type: 'TEMPORAL', value: 3 },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [
+            { from: 'evasion', to: 'evasion', value: 20, typeOfModification: 'BUFF_FIXED' },
+            { from: 'critChance', to: 'critChance', value: 3, typeOfModification: 'BUFF_FIXED' },
+        ],
+    };
+}
+
+/**
  * Weak Point (archers): the enemy's attack -40% for 2 turns...
  */
 export function weakPointAttackStatus(): StatusDefinition {
@@ -450,15 +470,12 @@ export function phantomStrikeStatus(): StatusDefinition {
 }
 
 /**
- * Human tooltip for a status: its description plus a summary of the
- * modifiers it carries (stat changes, final damage variation, granted
- * skills), so statuses without a hand-written description still explain
- * themselves.
+ * The human summary of a status's stat modifiers only: one entry per
+ * stat change ('evasion +20', 'critChance +3%', 'attack −20%'), with
+ * no name or description. Statuses without modifiers yield nothing.
  */
-export function statusTooltip(definition: StatusDefinition): string {
+export function statusModifierSummary(definition: StatusDefinition): string[] {
     const parts: string[] = [];
-    if (definition.description) parts.push(definition.description);
-
     for (const modifier of definition.statsAffected) {
         const percentage =
             modifier.typeOfModification === 'BUFF_PERCENTAGE' ||
@@ -468,8 +485,24 @@ export function statusTooltip(definition: StatusDefinition): string {
             modifier.typeOfModification === 'DEBUFF_PERCENTAGE' ?
                 '-' :
                 '+';
-        parts.push(`${modifier.to} ${sign}${modifier.value}${percentage ? '%' : ''}`);
+        // critChance is a percent-valued stat: a fixed +3 reads +3%.
+        const showsPercent = percentage || modifier.to === 'critChance';
+        parts.push(`${modifier.to} ${sign}${modifier.value}${showsPercent ? '%' : ''}`);
     }
+    return parts;
+}
+
+/**
+ * Human tooltip for a status: its description plus a summary of the
+ * modifiers it carries (stat changes, final damage variation, granted
+ * skills), so statuses without a hand-written description still explain
+ * themselves.
+ */
+export function statusTooltip(definition: StatusDefinition): string {
+    const parts: string[] = [];
+    if (definition.description) parts.push(definition.description);
+
+    parts.push(...statusModifierSummary(definition));
 
     if (definition.finalDamageVariation) {
         const percent = definition.finalDamageVariation.percent;

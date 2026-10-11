@@ -38,6 +38,7 @@ describe('skill catalog', () => {
             'boss_regen',
             'boss_berserk',
             'fast_draw',
+            'perception',
             'weak_point',
             'dispel',
             'cure',

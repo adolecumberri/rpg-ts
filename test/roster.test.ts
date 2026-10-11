@@ -77,7 +77,7 @@ describe('roster', () => {
         session.addRosterCharacter(farmer('f3'));
 
         // Adding to the roster activates while the squad has room.
-        expect(session.roster.all()).toHaveLength(17);
+        expect(session.roster.all()).toHaveLength(20);
         expect(session.roster.activeIds()).toEqual(['player', 'hero', 'f1', 'f2', 'f3']);
 
         session.setActiveParty(['hero', 'arturo', 'f3']);
@@ -85,7 +85,7 @@ describe('roster', () => {
         session.roster.character('hero')!.portraitId = 'mage';
         const restored = WorldSession.fromSave(session.exportSave());
 
-        expect(restored.roster.all()).toHaveLength(17);
+        expect(restored.roster.all()).toHaveLength(20);
         expect(restored.roster.activeIds()).toEqual(['hero', 'arturo', 'f3']);
         expect(restored.team.getAll().map((character) => character.id)).toEqual(['hero', 'arturo', 'f3']);
         expect(restored.roster.character('hero')!.portraitId).toBe('mage');
@@ -112,7 +112,7 @@ describe('roster', () => {
 
         const restored = WorldSession.fromSave(session.exportSave());
 
-        expect(restored.roster.all()).toHaveLength(14); // act 1 pool (13) + hero
+        expect(restored.roster.all()).toHaveLength(17); // act 1 pool (16) + hero
         expect(restored.roster.activeIds()).toEqual(['player', 'hero']);
         expect(restored.team.getAll().map((character) => character.id)).toEqual(['player', 'hero']);
     });

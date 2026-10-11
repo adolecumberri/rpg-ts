@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>status visuals — ideas</title>
+<style>
+  :root {
+    --c-bg: #0c0604;
+    --c-frame: #1b1009;
+    --c-panel: #27170e;
+    --c-panel-light: #3d2417;
+    --c-gold: #d4af37;
+    --c-gold-bright: #ffd966;
+    --c-red-glow: #ef4444;
+    --c-green-hp: #22c55e;
+    --c-blue-mp: #3b82f6;
+    --c-text-white: #f5f5f5;
+    --c-text-dim: #9ca3af;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #050302;
+    font-family: 'Courier New', monospace;
+    color: var(--c-text-white);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .note { color: var(--c-text-dim); font-size: 12px; max-width: 900px; line-height: 1.5; }
+  .note b { color: var(--c-gold-bright); }
+
+  /* --- the arena stage shared by the three options --- */
+  .stage {
+    position: relative;
+    width: 460px;
+    height: 190px;
+    background: linear-gradient(#140a06, #1e1008 55%, #241309);
+    border: 2px solid #3d2417;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .stage .ground {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 74px;
+    background:
+      repeating-linear-gradient(0deg, rgba(70,38,20,.85) 0 24px, rgba(50,26,13,.85) 24px 48px),
+      repeating-linear-gradient(90deg, rgba(212,175,55,.08) 0 1px, transparent 1px 24px);
+    border-top: 2px solid #5a3016;
+    transform: perspective(300px) rotateX(55deg);
+    transform-origin: 50% 100%;
+  }
+  .stage .caption {
+    position: absolute;
+    top: 8px; left: 12px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--c-gold);
+    text-transform: uppercase;
+  }
+
+  /* --- one unit --- */
+  .unit {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translate(-50%, -100%);
+    z-index: 5;
+  }
+  .unit .sprite {
+    width: 40px;
+    height: 48px;
+    image-rendering: pixelated;
+    background:
+      linear-gradient(#7c5a3a 0 6px, transparent 6px),
+      linear-gradient(#33507a 8px 22px, transparent 22px),
+      linear-gradient(#4a3620 24px 34px, transparent 34px),
+      linear-gradient(#2b2015 36px 48px, transparent 48px);
+    clip-path: polygon(8px 0, 32px 0, 36px 4px, 36px 8px, 28px 12px, 28px 44px, 34px 48px, 6px 48px, 12px 44px, 12px 12px, 4px 8px, 4px 4px);
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.35);
+  }
+  .unit .hp {
+    width: 26px;
+    height: 3px;
+    background: #1a0a05;
+    border: 1px solid #36170c;
+    margin-bottom: 3px;
+    position: relative;
+  }
+  .unit .hp i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--c-green-hp);
+  }
+  .unit .shadow {
+    width: 24px; height: 7px;
+    background: rgba(0,0,0,.6);
+    border-radius: 50%;
+    filter: blur(1px);
+  }
+
+  /* =================================================================
+     OPTION A — status chip row over the unit (recommended)
+     one tiny pixel chip per status: buffs green, debuffs red,
+     letter = the status's initial; hover shows the full tooltip.
+     ================================================================= */
+  .chips {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 2px;
+    z-index: 9;
+  }
+  .chip {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    font-weight: bold;
+    border: 1px solid #000;
+    cursor: help;
+  }
+  .chip.buff {
+    color: #eafff0;
+    background: linear-gradient(#2f7a3a, #1d5427);
+    border-color: #0f2a12;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,.35), inset -1px -1px 0 rgba(0,0,0,.5), 0 0 3px rgba(34,197,94,.7);
+  }
+  .chip.debuff {
+    color: #fff0ee;
+    background: linear-gradient(#8a2f2f, #5c1c1c);
+    border-color: #2b0d0d;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,.3), inset -1px -1px 0 rgba(0,0,0,.5), 0 0 3px rgba(239,68,68,.7);
+  }
+  .chip .turns {
+    position: absolute;
+    right: -2px;
+    bottom: -3px;
+    font-size: 5px;
+    color: #ffe9a8;
+    text-shadow: 1px 1px 0 #000;
+    line-height: 1;
+  }
+  .chip .tip {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%) translateY(2px);
+    white-space: nowrap;
+    background: #17100a;
+    border: 1px solid var(--c-gold);
+    padding: 3px 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    color: var(--c-gold-bright);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .12s;
+    z-index: 30;
+  }
+  .chip:hover .tip { opacity: 1; }
+
+  /* =================================================================
+     OPTION B — polarity aura (no per-status info, pure glow)
+     ================================================================= */
+  .aura .unit { filter: drop-shadow(0 0 6px rgba(34,197,94,.85)); }
+  .aura .unit.bad  { filter: drop-shadow(0 0 6px rgba(239,68,68,.85)); }
+  .aura .unit.mixed { filter: drop-shadow(0 0 5px rgba(34,197,94,.7)) drop-shadow(0 0 5px rgba(239,68,68,.7)); }
+  .aura .badge {
+    position: absolute;
+    top: 4px;
+    right: -6px;
+    min-width: 11px;
+    height: 11px;
+    border-radius: 6px;
+    font-size: 7px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 11px;
+    border: 1px solid #000;
+    z-index: 9;
+  }
+  .aura .badge.good { background: #166534; color: #bbf7d0; }
+  .aura .badge.bad  { background: #7f1d1d; color: #fecaca; }
+
+  /* =================================================================
+     OPTION C — full chips in the banner + card (names & turns fit)
+     ================================================================= */
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(#2a1a10, #1c1109);
+    border: 2px solid #3d2417;
+    padding: 8px 10px;
+    border-radius: 6px;
+    width: 460px;
+  }
+  .banner .portrait {
+    width: 34px; height: 34px;
+    border: 1px solid var(--c-gold);
+    background: #33507a;
+  }
+  .banner .who { flex: 1; }
+  .banner .who .name { color: var(--c-gold-bright); font-size: 12px; }
+  .banner .who .sub { color: var(--c-text-dim); font-size: 10px; }
+  .banner .status-row { display: flex; gap: 3px; }
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 9px;
+    padding: 1px 5px;
+    border: 1px solid #000;
+    text-transform: uppercase;
+  }
+  .pill.buff   { background: #1d5427; color: #d1fae5; border-color: #0f2a12; }
+  .pill.debuff { background: #5c1c1c; color: #fecaca; border-color: #2b0d0d; }
+  .pill .n { color: #ffe9a8; }
+
+  .cards {
+    display: flex;
+    gap: 8px;
+  }
+  .card {
+    width: 226px;
+    background: #251911;
+    border: 2px solid #3d2417;
+    padding: 6px 8px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card .row1 { display: flex; justify-content: space-between; font-size: 10px; color: #f3e7be; }
+  .card .gauges { display: flex; gap: 4px; }
+  .card .g {
+    flex: 1;
+    height: 8px;
+    background: #0d0705;
+    border: 1px solid #000;
+    position: relative;
+    overflow: hidden;
+  }
+  .card .g i { position: absolute; inset: 0 auto 0 0; background: var(--c-green-hp); }
+  .card .g.mp i { background: var(--c-blue-mp); }
+  .card .status-row { justify-content: flex-end; }
+
+  .label {
+    font-size: 11px;
+    color: var(--c-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .row3 { display: flex; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+  <div class="note">
+    <b>status visuals — 3 directions.</b>
+    The engine already knows every live status: <b>name</b>, <b>polarity</b> (buff/debuff),
+    <b>description</b>, <b>turns remaining</b> and <b>stacks</b> (e.g. Gate Opened).
+    Hover any chip below for its tooltip.
+  </div>
+
+  <!-- ================= OPTION A ================= -->
+  <div class="label">option A — pixel chip row over each unit (recommended)</div>
+  <div class="stage">
+    <div class="caption">A · chip row</div>
+    <div class="ground"></div>
+
+    <div class="unit" style="left: 110px; top: 148px;">
+      <div class="chips">
+        <span class="chip buff">A<span class="turns">2</span><span class="tip">Attack Up · attack +10 · 2 turns</span></span>
+        <span class="chip buff">H<span class="turns">3</span><span class="tip">Haste · speed +8 · 3 turns</span></span>
+      </div>
+      <div class="hp"><i style="width:82%"></i></div>
+      <div class="sprite"></div>
+      <div class="shadow"></div>
+    </div>
+
+    <div class="unit" style="left: 230px; top: 148px;">
+      <div class="chips">
+        <span class="chip debuff">P<span class="turns">2</span><span class="tip">Poison · loses 6 hp per turn · 2 turns</span></span>
+        <span class="chip debuff">W<span class="turns">1</span><span class="tip">Weaken · attack -6 · 1 turn</span></span>
+        <span class="chip debuff">B<span class="turns">3</span><span class="tip">Bleeding · loses 1 hp per turn · 3 turns</span></span>
+      </div>
+      <div class="hp"><i style="width:46%; background:var(--c-red-glow)"></i></div>
+      <div class="sprite"></div>
+      <div class="shadow"></div>
+    </div>
+
+    <div class="unit" style="left: 350px; top: 132px;">
+      <div class="chips">
+        <span class="chip debuff">F<span class="turns">1</span><span class="tip">Faint · skips 2 of their own turns</span></span>
+      </div>
+      <div class="hp"><i style="width:18%; background:var(--c-red-glow)"></i></div>
+      <div class="sprite"></div>
+      <div class="shadow"></div>
+    </div>
+  </div>
+
+  <!-- ================= OPTION B ================= -->
+  <div class="label">option B — polarity aura + count badge (no per-status info)</div>
+  <div class="stage aura">
+    <div class="caption">B · aura</div>
+    <div class="ground"></div>
+
+    <div class="unit" style="left: 110px; top: 148px;">
+      <span class="badge good">2</span>
+      <div class="hp"><i style="width:82%"></i></div>
+      <div class="sprite"></div>
+      <div class="shadow"></div>
+    </div>
+
+    <div class="unit bad" style="left: 230px; top: 148px;">
+      <span class="badge bad">3</span>
+      <div class="hp"><i style="width:46%; background:var(--c-red-glow)"></i></div>
+      <div class="sprite"></div>
+      <div class="shadow"></div>
+    </div>
+
+    <div class="unit mixed" style="left: 350px; top: 132px;">
+      <span class="badge good">1</span><span class="badge bad" style="right:8px">1</span>
+      <div class="hp"><i style="width:60%"></i></div>
+      <div class="sprite"></div>
+      <div class="shadow"></div>
+    </div>
+  </div>
+
+  <!-- ================= OPTION C ================= -->
+  <div class="label">option C — named pills in the turn banner and the combatant cards</div>
+  <div class="row3">
+    <div class="banner">
+      <div class="portrait"></div>
+      <div class="who">
+        <div class="name">Player <span style="color:var(--c-gold)">[TURN]</span></div>
+        <div class="sub">LV. 5 · Soldier</div>
+      </div>
+      <div class="status-row">
+        <span class="pill buff">Attack Up <span class="n">2</span></span>
+        <span class="pill buff">Haste <span class="n">3</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="row1"><span>● Player</span><span>Lv.5</span></div>
+      <div class="gauges"><div class="g"><i style="width:82%"></i></div><div class="g mp"><i style="width:60%"></i></div></div>
+      <div class="status-row">
+        <span class="pill buff">Atk Up <span class="n">2</span></span>
+        <span class="pill buff">Haste <span class="n">3</span></span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row1"><span>● Bandit</span><span>Lv.3</span></div>
+      <div class="gauges"><div class="g"><i style="width:46%; background:var(--c-red-glow)"></i></div><div class="g mp"><i style="width:20%"></i></div></div>
+      <div class="status-row">
+        <span class="pill debuff">Poison <span class="n">2</span></span>
+        <span class="pill debuff">Weaken <span class="n">1</span></span>
+        <span class="pill debuff">Bleed <span class="n">3</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>recommendation:</b> A on the field + C in the header/cards (the defender card of the
+    forecast shows what the target is suffering BEFORE you accept). B only as an extra
+    "all-buffs / all-debuffs" glow. Status ticks (poison -6, regen +8) can reuse the floating
+    damage popups in green/red.
+  </div>
+
+</body>
+</html>

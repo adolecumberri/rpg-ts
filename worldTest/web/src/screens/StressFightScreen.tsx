@@ -302,16 +302,6 @@ export function StressFightScreen() {
                             flexDirection: 'column',
                         }}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                            <button
-                                type="button"
-                                className="pixel-btn"
-                                style={{ height: 'var(--s8)' }}
-                                onClick={() => setShowReport(false)}
-                            >
-                                ✕ Close
-                            </button>
-                        </div>
                         <div style={{ overflowY: 'auto' }}>
                             <BattleReportPanel
                                 report={report}
@@ -325,6 +315,7 @@ export function StressFightScreen() {
                                     { name: 'Allies', ids: armiesRef.current.left.map((entry) => entry.character.id) },
                                     { name: 'Enemies', ids: armiesRef.current.right.map((entry) => entry.character.id) },
                                 ]}
+                                onClose={() => setShowReport(false)}
                             />
                         </div>
                     </div>

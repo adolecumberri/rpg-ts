@@ -29,17 +29,22 @@ export class MissionManager {
     // The current month of the year (0-11): some missions only appear
     // during certain months.
     private monthOfStory: () => number;
+    // The story memory provider: missions gated by flags are offered
+    // only once those flags exist (the session supplies it).
+    private hasFlag: (flag: string) => boolean;
 
     constructor(
         random: () => number = Math.random,
         flagSink?: (flags: string[]) => void,
         dayOfStory: () => number = () => 0,
         monthOfStory: () => number = () => 0,
+        hasFlag: (flag: string) => boolean = () => true,
     ) {
         this.random = random;
         this.flagSink = flagSink;
         this.dayOfStory = dayOfStory;
         this.monthOfStory = monthOfStory;
+        this.hasFlag = hasFlag;
     }
 
     register(mission: Mission): void {
@@ -217,6 +222,7 @@ export class MissionManager {
             const requires = mission.requires ?? [];
             const met = requires.every((id) => this.completed.indexOf(id) !== -1);
             if (!met) continue;
+            if (mission.requiredFlags && !mission.requiredFlags.every((flag) => this.hasFlag(flag))) continue;
             if (placeId && mission.availableAt && mission.availableAt.indexOf(placeId) === -1) continue;
             available.push(mission);
         }
@@ -266,6 +272,7 @@ export class MissionManager {
             if (completedBefore && !mission.repeatable) return false;
             const requires = mission.requires ?? [];
             if (!requires.every((id) => this.completed.indexOf(id) !== -1)) return false;
+            if (mission.requiredFlags && !mission.requiredFlags.every((flag) => this.hasFlag(flag))) return false;
             if (placeId && mission.availableAt && mission.availableAt.indexOf(placeId) === -1) return false;
             return true;
         });

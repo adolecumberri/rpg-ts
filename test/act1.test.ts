@@ -6,7 +6,7 @@ import { inventoryCapacity } from '../worldTest/core/inventory';
 import { farmerNameFor } from '../worldTest/core/names';
 
 describe('act 1 world', () => {
-    it('starts the bought farmer at the order camp with sack and outfit', () => {
+    it('starts the recruit at the order camp with sack and outfit', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
         expect(session.currentPlaceId).toBe('camp');
@@ -23,43 +23,63 @@ describe('act 1 world', () => {
     });
 
     it('stores its people as data inside the place', () => {
+        // The old farm content (the lord's household) was removed: the
+        // farm is an empty shell until its act content returns.
         const farm = PLACES.find((place) => place.id === 'farm')!;
-        expect(farm.npcs).toHaveLength(6); // the lord's household
-        expect(farm.npcs.find((npc) => npc.id === 'lord')?.name).toBe('Lord Alvaro');
-        expect(farm.npcs.filter((npc) => npc.group === "The Lord's Household")).toHaveLength(6);
+        expect(farm.npcs).toEqual([]);
+        expect(farm.actions).toEqual([]);
 
-        // The twelve farmers were recruited by the Order: they live in
-        // the camp as 4 archers, 2 healers and 6 soldiers.
+        // The camp roster has a CONSTANT class composition, declared in
+        // ACT1.roster: archers + healers (Arturo among them) + soldiers.
+        const recruits = ACT1.roster.archers + ACT1.roster.healers + ACT1.roster.soldiers;
         const camp = PLACES.find((place) => place.id === 'camp')!;
-        expect(camp.npcs).toHaveLength(13); // the general + 12 recruits
-        expect(camp.npcs.find((npc) => npc.id === 'general')?.name).toBe('General Roderick');
+        expect(camp.npcs).toHaveLength(recruits + 1); // the captain + the recruits
+        expect(camp.npcs.find((npc) => npc.id === 'general')?.name).toBe('Captain Rodrigo');
         expect(camp.npcs.find((npc) => npc.id === 'arturo')?.inRoster).toBe(true);
-        expect(camp.npcs.filter((npc) => npc.inRoster)).toHaveLength(12);
+        expect(camp.npcs.filter((npc) => npc.inRoster)).toHaveLength(recruits + 1);
         expect(PLACES.find((place) => place.id === 'hay_field')!.npcs).toEqual([]);
     });
 
-    it('tracks the household and the twelve Order recruits', () => {
+    it('keeps the camp roster composition constant', () => {
+        const session = new WorldSession({ random: () => 0.5 });
+        const camp = session.npcsAt('camp');
+
+        const classOf = (id: string): string => {
+            if (id.indexOf('archer_') === 0) return 'archer';
+            if (id.indexOf('healer_') === 0 || id === 'arturo') return 'healer';
+            if (id.indexOf('soldier_') === 0) return 'soldier';
+            return 'other';
+        };
+
+        const counts: Record<string, number> = { archer: 0, healer: 0, soldier: 0, other: 0 };
+        for (const npc of camp) {
+            counts[classOf(npc.id)]++;
+        }
+        expect(counts.archer).toBe(ACT1.roster.archers);
+        expect(counts.healer).toBe(ACT1.roster.healers);
+        expect(counts.soldier).toBe(ACT1.roster.soldiers);
+        expect(counts.other).toBe(1); // the captain
+    });
+
+    it('tracks the camp recruits and their roster', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        const farmNpcs = session.npcsAt('farm');
-        expect(farmNpcs).toHaveLength(6); // the lord's household
+        // The farm's old household content is gone.
+        expect(session.npcsAt('farm')).toEqual([]);
 
-        expect(session.findNpc('lord')).toBeDefined();
-        expect(session.findNpc('lord_son')).toBeDefined();
-        for (let index = 1; index <= 4; index++) {
-            expect(session.findNpc(`familiar_${index}`)).toBeDefined();
-        }
-
-        // the camp holds the general and the recruits: archers, healers
-        // and soldiers
-        expect(session.npcsAt('camp')).toHaveLength(13);
+        // the camp holds the captain and the recruits: archers, healers
+        // and soldiers (the constant ACT1.roster composition)
+        const recruits = ACT1.roster.archers + ACT1.roster.healers + ACT1.roster.soldiers;
+        expect(session.npcsAt('camp')).toHaveLength(recruits + 1);
         expect(session.findNpc('general')).toBeDefined();
         expect(session.findNpc('archer_3')).toBeDefined();
         expect(session.findNpc('healer_0')).toBeDefined();
         expect(session.findNpc('soldier_5')).toBeDefined();
+        expect(session.findNpc('soldier_7')).toBeDefined();
 
-        // the roster owns the player + the 12 recruits, only the player is active
-        expect(session.roster.all()).toHaveLength(13);
+        // the roster owns the player + the recruits + the captain,
+        // only the player is active
+        expect(session.roster.all()).toHaveLength(recruits + 2);
         expect(session.roster.activeIds()).toEqual(['player']);
         expect(session.roster.has('arturo')).toBe(true);
     });
@@ -77,26 +97,31 @@ describe('act 1 world', () => {
     it('performs gathering tasks and respects the inventory capacity', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
+        // The recruit starts with an EMPTY bag: 10 slots (5 base + the
+        // sack's 5).
+        expect(session.team.inventory.getAllItems()).toHaveLength(0);
+
         expect(session.doTask({ itemId: 'wood', quantity: 1 }).ok).toBe(true);
         expect(session.doTask({ itemId: 'hay', quantity: 1 }).ok).toBe(true);
         expect(session.team.inventory.getItemSlotByItemId('wood')?.totalQuantity).toBe(1);
 
-        // 10 slots: the seeded test bag takes 7 (sword, bow, staff,
-        // outfit, helmet, necklace, shield) plus wood and hay — one free
-        // slot left; a second new item type is refused.
-        session.itemTable.register({ id: 'filler_0', name: 'Filler 0', category: 'utility' });
-        expect(session.doTask({ itemId: 'filler_0', quantity: 1 }).ok).toBe(true);
+        // Stacking always fits: wood and hay grow inside their slots.
+        expect(session.doTask({ itemId: 'wood', quantity: 1 }).ok).toBe(true);
+        expect(session.doTask({ itemId: 'hay', quantity: 1 }).ok).toBe(true);
+        expect(session.team.inventory.getAllItems()).toHaveLength(2);
 
-        const full = session.doTask({ itemId: 'wood', quantity: 1 });
-        expect(full.ok).toBe(true); // wood stacks into its existing slot
-
+        // Fill the remaining 8 slots with brand-new item types.
+        for (let index = 0; index < 8; index++) {
+            session.itemTable.register({
+                id: `filler_${index}`,
+                name: `Filler ${index}`,
+                category: 'utility',
+            });
+            expect(session.doTask({ itemId: `filler_${index}`, quantity: 1 }).ok).toBe(true);
+        }
         expect(session.team.inventory.getAllItems()).toHaveLength(10);
-        expect(session.doTask({ itemId: 'hay', quantity: 1 }).ok).toBe(true); // hay stacks too
 
-        const overflow = session.doTask({ itemId: 'wood', quantity: 1 });
-        expect(overflow.ok).toBe(true); // stacking always fits
-
-        // a brand-new item type at full capacity is refused
+        // A brand-new item type at full capacity is refused.
         session.itemTable.register({ id: 'stone', name: 'Stone', category: 'utility' });
         expect(session.doTask({ itemId: 'stone', quantity: 1 }).ok).toBe(false);
     });
@@ -104,11 +129,12 @@ describe('act 1 world', () => {
     it('registers the current missions and their places', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
-        expect(session.missions.mission('spring_sowing')).toBeDefined();
-        expect(session.missions.mission('summer_fishing')).toBeDefined();
-        expect(session.missions.mission('autumn_harvest')).toBeDefined();
-        expect(session.missions.mission('winter_stock')).toBeDefined();
-        expect(session.missions.mission('test_mission')).toBeDefined();
+        // The old farm-era encargos were removed: only the act-1 story
+        // missions remain.
+        expect(session.missions.mission('training')).toBeDefined();
+        expect(session.missions.mission('caza_menor')).toBeDefined();
+        expect(session.missions.mission('spring_sowing')).toBeUndefined();
+        expect(session.missions.mission('test_mission')).toBeUndefined();
 
         const placeIds = PLACES.map((place) => place.id);
         expect(placeIds).toEqual([

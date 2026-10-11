@@ -5,7 +5,6 @@ import { TeamPage } from './TeamPage';
 import { WorldMapScreen } from './WorldMapScreen';
 import { ActionBarTestScreen } from './ActionBarTestScreen';
 import { StressFightScreen } from './StressFightScreen';
-import { FightGenScreen } from './FightGenScreen';
 import { DamagesScreen } from './DamagesScreen';
 import { DialogsScreen } from './DialogsScreen';
 import { ItemsScreen } from './ItemsScreen';
@@ -21,6 +20,7 @@ import { REGION_BY_ID } from '../components/WorldMap/regions';
 import { REGION_IDS } from '../components/WorldMap/ids';
 import type { RegionId } from '../components/WorldMap/ids';
 import { COUNTRY_BY_ID, countryOfRegion } from '../components/WorldMap/countries';
+import { FLAGS } from '@core';
 
 /**
  * The main UI router: a clean-room shell for the pixel-art design. It
@@ -50,7 +50,6 @@ const MAIN_PAGES = [
 const DEV_PAGES = [
     { id: 'actions', label: 'Actions', symbol: 'ads_click', caption: 'Action Bar Showcase' },
     { id: 'stress', label: 'Stress 80v80', symbol: 'swords', caption: 'Mass Battle Stress Test' },
-    { id: 'fightgen', label: 'Fight Gen', symbol: 'casino', caption: 'Random Fight Generator' },
     { id: 'damages', label: 'Damages', symbol: 'bolt', caption: 'Damage Numbers Demo' },
     { id: 'dialogs', label: 'Dialogs', symbol: 'forum', caption: 'Dialog editor & player' },
     { id: 'items', label: 'Items', symbol: 'inventory_2', caption: 'Every item in the game' },
@@ -62,7 +61,7 @@ const DEV_TOOLS_ENTRY: MenuEntry = {
     id: 'dev',
     label: 'Dev Tools',
     symbol: 'build',
-    caption: 'Actions · Stress · Fight Gen · Damages',
+    caption: 'Actions · Stress · Damages',
 };
 
 const PAGES = [...MAIN_PAGES, ...DEV_PAGES] as const;
@@ -149,6 +148,8 @@ export function NewUiRouter() {
     );
 
     const openPage = (id: PageId) => {
+        // The map is locked until the training proves the recruit.
+        if (id === 'worldmap' && !api.session.hasFlag(FLAGS.MAP_UNLOCKED)) return;
         // The main menu Missions entry always opens the board view.
         if (id === 'missions') {
             setMissionsTab('new');
@@ -190,39 +191,44 @@ export function NewUiRouter() {
 
     return (
         <div className="newui-shell pixel-font" style={{ position: 'relative' }}>
-            <div className="newui-header">
-                <button
-                    type="button"
-                    className="newui-header-menu pixel-btn"
-                    aria-label="Menu"
-                    aria-expanded={menuOpen}
-                    onClick={toggleMenu}
-                >
-                    <span className="newui-header-menu-bar" />
-                    <span className="newui-header-menu-bar" />
-                    <span className="newui-header-menu-bar" />
-                </button>
-                <div className="newui-header-context">
-                    <div className="newui-header-region-row">
-                        <span className="newui-header-region">{countryLabel}</span>
-                        {zoneLabel ? <span className="newui-header-zone">{zoneLabel}</span> : null}
+            {/* The battle screen brings its own header (the acting
+                character + the battle menu), so the app header hides
+                while a fight is on. */}
+            {!combat ? (
+                <div className="newui-header">
+                    <button
+                        type="button"
+                        className="newui-header-menu pixel-btn"
+                        aria-label="Menu"
+                        aria-expanded={menuOpen}
+                        onClick={toggleMenu}
+                    >
+                        <span className="newui-header-menu-bar" />
+                        <span className="newui-header-menu-bar" />
+                        <span className="newui-header-menu-bar" />
+                    </button>
+                    <div className="newui-header-context">
+                        <div className="newui-header-region-row">
+                            <span className="newui-header-region">{countryLabel}</span>
+                            {zoneLabel ? <span className="newui-header-zone">{zoneLabel}</span> : null}
+                        </div>
+                        <div className="newui-header-stats">
+                            <span className="newui-header-day">
+                                <span className="newui-header-dot" />
+                                DAY {api.session.calendar.dayOfMonth()}
+                            </span>
+                            <span className="newui-header-sep">|</span>
+                            <span className="newui-header-gold">G {api.team.gold}</span>
+                            <span className="newui-header-sep">|</span>
+                            <span className="newui-header-season">{api.session.calendar.season().icon}</span>
+                        </div>
                     </div>
-                    <div className="newui-header-stats">
-                        <span className="newui-header-day">
-                            <span className="newui-header-dot" />
-                            DAY {api.session.calendar.dayOfMonth()}
-                        </span>
-                        <span className="newui-header-sep">|</span>
-                        <span className="newui-header-gold">G {api.team.gold}</span>
-                        <span className="newui-header-sep">|</span>
-                        <span className="newui-header-season">{api.session.calendar.season().icon}</span>
+                    <div className="newui-header-logo">
+                        <span className="newui-header-logo-name">RPG-TS</span>
+                        <span className="newui-header-save">SAVE: OK</span>
                     </div>
                 </div>
-                <div className="newui-header-logo">
-                    <span className="newui-header-logo-name">RPG-TS</span>
-                    <span className="newui-header-save">SAVE: OK</span>
-                </div>
-            </div>
+            ) : null}
 
             <div className="newui-body">
                 {combat ? (
@@ -272,7 +278,6 @@ export function NewUiRouter() {
                         ) : null}
                         {page === 'actions' ? <ActionBarTestScreen /> : null}
                         {page === 'stress' ? <StressFightScreen /> : null}
-                        {page === 'fightgen' ? <FightGenScreen /> : null}
                         {page === 'damages' ? <DamagesScreen /> : null}
                         {page === 'dialogs' ? <DialogsScreen /> : null}
                         {page === 'items' ? <ItemsScreen /> : null}
@@ -322,7 +327,16 @@ export function NewUiRouter() {
                     <div className="menu-overlay-list">
                         {menuView === 'main' ? (
                             <>
-                                {MAIN_PAGES.map((entry, index) => renderRow(entry, index, () => openPage(entry.id)))}
+                                {MAIN_PAGES.map((entry, index) => {
+                                    const lockedMap = entry.id === 'worldmap' &&
+                                        !api.session.hasFlag(FLAGS.MAP_UNLOCKED);
+                                    return renderRow(
+                                        lockedMap ? { ...entry, caption: 'Locked: finish your training' } : entry,
+                                        index,
+                                        () => openPage(entry.id),
+                                        lockedMap,
+                                    );
+                                })}
                                 {renderRow(DEV_TOOLS_ENTRY, MAIN_PAGES.length, () => setMenuView('dev'))}
                                 {renderRow(saveEntry, MAIN_PAGES.length + 1, () => {
                                     api.save();

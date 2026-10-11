@@ -33,18 +33,23 @@ export function ActionButton({
     icon,
     size = 'lg',
     tone = 'default',
+    accent,
     disabled,
     selected,
     mark,
     slot,
     wide,
     sub,
+    tip,
     onClick,
 }: {
     label: string;
     icon?: ActionIcon;
     size?: 'sm' | 'md' | 'lg';
     tone?: 'default' | 'primary' | 'danger';
+    // The left border accent color (the battle commands: attack red,
+    // skill blue, defend yellow, flee red).
+    accent?: string;
     disabled?: boolean;
     // Multi-target picking: the cell shows the selected state.
     selected?: boolean;
@@ -59,18 +64,23 @@ export function ActionButton({
     // The muted sub-label under the main label (the design's buttons:
     // icon slot + text + subtext).
     sub?: string;
+    // The hover tooltip: shown over the button (skills show only their
+    // stat changes here — the label already carries the name).
+    tip?: string;
     onClick?: () => void;
 }) {
     const toneClass = tone === 'primary' ?
         'pixel-btn--primary' :
         tone === 'danger' ? 'pixel-btn--danger' : '';
 
-    const style: CSSProperties | undefined = slot ?
-        {
-            gridRow: Math.ceil(slot / 2),
-            gridColumn: wide ? '1 / span 2' : ((slot - 1) % 2) + 1,
-        } :
-        undefined;
+    const style: CSSProperties = {};
+    if (slot) {
+        style.gridRow = Math.ceil(slot / 2);
+        style.gridColumn = wide ? '1 / span 2' : ((slot - 1) % 2) + 1;
+    }
+    if (accent) {
+        style.borderLeft = `3px solid ${accent}`;
+    }
 
     let iconNode: ReactNode = null;
     if (icon) {
@@ -141,6 +151,7 @@ export function ActionButton({
                 </span>
                 {sub ? <span className="action-btn-caption">{sub}</span> : null}
             </span>
+            {tip ? <span className="ui-tooltip">{tip}</span> : null}
         </button>
     );
 }

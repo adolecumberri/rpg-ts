@@ -1,0 +1,69 @@
+/* ---------------------------------------------------------------------------
+   StatusChips — the ONLY css for this component (option A of the
+   design-stitch code_status_chips reference): the pixel chip row over
+   an arena combatant's head. One chip per live status: green bevel =
+   buff, red bevel = debuff. Each chip shows the status initial, its
+   remaining turns, and the full tooltip on hover.
+--------------------------------------------------------------------------- */
+
+/* The tray over the unit: max 3 chips per row (12px + 2px gaps =
+   40px wide), 2 rows max — extra chips stay visible through
+   inspection instead of piling up. */
+.sc-chips {
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 40px;
+    gap: 2px;
+    z-index: 9;
+}
+
+.sc-chip {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 6px;
+    font-weight: bold;
+    border: 1px solid #000;
+    cursor: help;
+}
+
+.sc-chip--buff {
+    color: #eafff0;
+    background: linear-gradient(#2f7a3a, #1d5427);
+    border-color: #0f2a12;
+    box-shadow:
+        inset 1px 1px 0 rgba(255, 255, 255, 0.35),
+        inset -1px -1px 0 rgba(0, 0, 0, 0.5),
+        0 0 3px rgba(34, 197, 94, 0.7);
+}
+
+.sc-chip--debuff {
+    color: #fff0ee;
+    background: linear-gradient(#8a2f2f, #5c1c1c);
+    border-color: #2b0d0d;
+    box-shadow:
+        inset 1px 1px 0 rgba(255, 255, 255, 0.3),
+        inset -1px -1px 0 rgba(0, 0, 0, 0.5),
+        0 0 3px rgba(239, 68, 68, 0.7);
+}
+
+/* The remaining-turns counter, tucked into the chip's corner. */
+.sc-chip-turns {
+    position: absolute;
+    right: -2px;
+    bottom: -3px;
+    font-family: 'Space Mono', monospace;
+    font-size: 5px;
+    line-height: 1;
+    color: #ffe9a8;
+    text-shadow: 1px 1px 0 #000;
+}

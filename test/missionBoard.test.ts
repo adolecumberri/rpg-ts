@@ -37,6 +37,30 @@ function lockedRouteMission(): Mission {
     };
 }
 
+// The farm-era encargos were removed from the world: the board tests
+// exercise the same machinery with local fixtures on the camp board.
+function boardMission(): Mission {
+    return {
+        id: 'board_mission',
+        title: 'Board Mission',
+        availableAt: ['camp'],
+        steps: [
+            { id: 'go', kind: 'travel', placeId: 'camp' },
+            { id: 'done', kind: 'reward', flags: ['board_mission_done'] },
+        ],
+    };
+}
+
+function seasonalMission(id: string, months: number[]): Mission {
+    return {
+        id,
+        title: `Seasonal ${id}`,
+        availableAt: ['camp'],
+        availableMonths: months,
+        steps: [{ id: 'done', kind: 'reward' }],
+    };
+}
+
 describe('mission display conditions', () => {
     it('hides missions whose month condition does not match the calendar', () => {
         let month = 0;
@@ -106,73 +130,82 @@ describe('mission display conditions', () => {
 });
 
 describe('mission board', () => {
-    it('offers the seasonal encargo and the free test mission first', () => {
+    it('offers the free mission and the in-season encargo at the camp board', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.missions.register(boardMission());
+        session.missions.register(seasonalMission('spring_seasonal', [0, 1, 2]));
 
         // Month 0 is primavera: the spring encargo is in season and the
-        // test mission is always open.
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([
-            'spring_sowing', 'test_mission',
+        // free mission is always open.
+        expect(session.missions.availableMissions('camp').map((mission) => mission.id)).toEqual([
+            'board_mission', 'spring_seasonal',
         ]);
         expect(session.hasFlag('east_field_unlocked')).toBe(false);
     });
 
     it('shows the out-of-season encargos in Otras and refuses to accept them', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.missions.register(seasonalMission('summer_seasonal', [3, 4, 5]));
+        session.missions.register(seasonalMission('autumn_seasonal', [6, 7, 8]));
 
         // Month 0 is primavera: the summer and autumn encargos wait in
         // Otras with their countdowns, and the gate refuses them.
-        expect(session.missions.otherMissions('farm').map((mission) => mission.id)).toEqual([
-            'summer_fishing', 'autumn_harvest',
+        expect(session.missions.otherMissions('camp').map((mission) => mission.id)).toEqual([
+            'summer_seasonal', 'autumn_seasonal',
         ]);
-        expect(session.missions.daysUntilAvailable('summer_fishing')).toBe(3 * CALENDAR.daysPerMonth);
-        expect(session.missions.daysUntilAvailable('autumn_harvest')).toBe(6 * CALENDAR.daysPerMonth);
+        expect(session.missions.daysUntilAvailable('summer_seasonal')).toBe(3 * CALENDAR.daysPerMonth);
+        expect(session.missions.daysUntilAvailable('autumn_seasonal')).toBe(6 * CALENDAR.daysPerMonth);
 
-        for (const mission of session.missions.otherMissions('farm')) {
+        for (const mission of session.missions.otherMissions('camp')) {
             expect(session.missionAcceptGate(mission.id).ok).toBe(false);
         }
-        expect(session.startMission('summer_fishing')).toBe(false);
+        expect(session.startMission('summer_seasonal')).toBe(false);
         expect(session.missions.activeMissions()).toEqual([]);
     });
 
     it('removes an accepted mission from the available list', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.missions.start('test_mission');
+        session.missions.register(boardMission());
+        session.missions.register(seasonalMission('spring_seasonal', [0, 1, 2]));
+        session.missions.start('board_mission');
 
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([
-            'spring_sowing',
+        expect(session.missions.availableMissions('camp').map((mission) => mission.id)).toEqual([
+            'spring_seasonal',
         ]);
         expect(session.missions.activeMissions().map((runner) => runner.missionId())).toEqual([
-            'test_mission',
+            'board_mission',
         ]);
     });
 
     it('cancelling a mission returns it to the board and closes its route again', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.missions.register(boardMission());
+        session.missions.register(seasonalMission('spring_seasonal', [0, 1, 2]));
 
-        session.startMission('test_mission');
+        session.startMission('board_mission');
         expect(session.missions.activeMissions()).toHaveLength(1);
 
-        expect(session.cancelMission('test_mission')).toBe(true);
+        expect(session.cancelMission('board_mission')).toBe(true);
         expect(session.missions.activeMissions()).toEqual([]);
         // The mission returns to the board.
-        expect(session.missions.availableMissions('farm').map((mission) => mission.id)).toEqual([
-            'spring_sowing', 'test_mission',
+        expect(session.missions.availableMissions('camp').map((mission) => mission.id)).toEqual([
+            'board_mission', 'spring_seasonal',
         ]);
 
-        expect(session.cancelMission('test_mission')).toBe(false); // not accepted anymore
+        expect(session.cancelMission('board_mission')).toBe(false); // not accepted anymore
         expect(session.cancelMission('no_such_mission')).toBe(false); // never accepted
     });
 
     it('walks a travel mission to completion', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const runner = session.missions.start('test_mission')!;
+        session.missions.register(boardMission());
+        const runner = session.missions.start('board_mission')!;
         expect(runner.acceptedBy()).toBe('player');
 
         // The first step is the travel to the camp.
         expect(runner.current()?.kind).toBe('travel');
         expect(session.activeMissionsAt('camp').map((mission) => mission.missionId)).toEqual([
-            'test_mission',
+            'board_mission',
         ]);
 
         // Arriving completes the travel step into the reward step.
@@ -233,12 +266,13 @@ describe('mission board', () => {
 
     it('exposes the precise game-state queries', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        session.startMission('test_mission', 'player');
+        session.missions.register(boardMission());
+        session.startMission('board_mission', 'player');
 
-        expect(session.missionIsActive('test_mission')).toBe(true);
-        expect(session.missionStepOf('test_mission')?.id).toBe('go');
-        expect(session.missionStepOf('winter_stock')).toBeUndefined();
+        expect(session.missionIsActive('board_mission')).toBe(true);
+        expect(session.missionStepOf('board_mission')?.id).toBe('go');
+        expect(session.missionStepOf('caza_menor')).toBeUndefined();
         expect(session.hasFlag('east_field_unlocked')).toBe(false);
-        expect(session.missions.runner('test_mission')?.acceptedBy()).toBe('player');
+        expect(session.missions.runner('board_mission')?.acceptedBy()).toBe('player');
     });
 });

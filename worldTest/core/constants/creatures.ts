@@ -55,6 +55,29 @@ export const Creatures = {
             },
         },
     },
+    // The east field's game: tough, charging and territorial. The caza
+    // menor hunts them in packs.
+    boar: {
+        id: 'boar',
+        name: 'Boar',
+        icon: '🐗',
+        base: { hp: 60, totalHp: 60, attack: 12, defence: 2, magicDefence: 0, speed: 5 },
+        growth: {
+            ratios: { hp: 0.7, totalHp: 0.7, attack: 0.9, defence: 0.6, magicDefence: 0.3, magic: 0.1, speed: 0.6 },
+        },
+    },
+    // The doomed hunt: the spectral boar is a fight the recruits are
+    // NOT meant to win — its numbers overwhelm a fresh squad, so the
+    // correct call is to retreat (or never engage).
+    spectral_boar: {
+        id: 'spectral_boar',
+        name: 'Spectral Boar',
+        icon: '👻',
+        base: { hp: 1500, totalHp: 1500, attack: 90, defence: 15, magicDefence: 15, speed: 3 },
+        growth: {
+            ratios: { hp: 0.3, totalHp: 0.3, attack: 0.4, defence: 0.3, magicDefence: 0.3, magic: 0.3, speed: 0.2 },
+        },
+    },
 } as const satisfies Record<string, CreatureDefinition>;
 
 /** The growth profile of a creature constant. */

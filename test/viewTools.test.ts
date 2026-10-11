@@ -127,14 +127,28 @@ describe('travel graph', () => {
 describe('mission view', () => {
     it('names the places a mission happens in from its steps', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        const winter = session.missions.mission('winter_stock')!;
-        expect(missionPlaceNames(winter)).toEqual(['Order Camp']);
+        session.missions.register({
+            id: 'camp_run',
+            title: 'Camp Run',
+            steps: [
+                { id: 'go', kind: 'travel', placeId: 'camp' },
+                { id: 'done', kind: 'reward' },
+            ],
+        });
+        expect(missionPlaceNames(session.missions.mission('camp_run')!)).toEqual(['Order Camp']);
     });
 
     it('ignores places that do not exist in the world', () => {
-        const summer = new WorldSession({ random: () => 0.5 }).missions.mission('summer_fishing')!;
-        // The beach exists, so the place shows.
-        expect(missionPlaceNames(summer)).toEqual(['Playa Sur']);
+        const session = new WorldSession({ random: () => 0.5 });
+        session.missions.register({
+            id: 'nowhere_run',
+            title: 'Nowhere Run',
+            steps: [
+                { id: 'go', kind: 'travel', placeId: 'atlantis' },
+                { id: 'done', kind: 'reward' },
+            ],
+        });
+        expect(missionPlaceNames(session.missions.mission('nowhere_run')!)).toEqual([]);
     });
 });
 

@@ -2,51 +2,22 @@ import { Character, Stats, Team } from '../../src';
 import type { NPC, NPCDefinition, NPCStats, Place } from './types';
 import type { Mission } from './missions';
 import type { Job } from './jobs';
-import {
-    ACT1,
-    buildPlayerFarmer,
-} from './config/act1';
+import { ACT1 } from './config/act1';
 import { DEFAULT_ITEM_TABLE } from './items';
 import { FLAGS } from './constants/flags';
 import { Missions } from './constants/missions';
 import { farmerNameFor } from './names';
 import { applyJobBonuses, jobOfCharacter } from './constants/jobs';
+import { characterGenerator } from './generators/characterGenerator';
 import { equipInto, migrateLegacyEquipment } from './equipment/loadout';
 
-// The test bag: two copies of every equipment section, seeded into a
-// fresh world and migrated into saves made before it existed.
-export const TEST_BAG_ITEMS = [
-    'sword',
-    'bow',
-    'staff',
-    'farmer_outfit',
-    'helmet',
-    'necklace',
-    'shield',
-];
 
-// ---------------------------------------------------------------------------
-// Act 1 world content: El Fergel, the lord's farm and the hay field.
-// The places own their people as data; live characters are built at load.
-// ---------------------------------------------------------------------------
 
-const HOUSEHOLD_NPCS: NPCDefinition[] = ACT1.household.map((member) => ({
-    id: member.id,
-    name: member.name,
-    talk: member.talk,
-    // The lord's son is the family's fighter: in the goblin chief
-    // battle the player controls him with these stats.
-    stats: member.id === 'lord_son'
-        ? { hp: 130, totalHp: 130, attack: 28, defence: 10, speed: 6 }
-        : { hp: 40, totalHp: 40, attack: 8, defence: 2, speed: 6 },
-    group: "The Lord's Household",
-    respawns: true,
-}));
-
-// The Order Army recruits: the twelve farmers were recruited and now
-// serve as 4 archers, 2 healers (Arturo among them) and 6 soldiers.
-// They live in the camp and are the player's roster. Each class wears
-// its weapon; its stats come from the job's growth bases.
+// The Order Army recruits: the fourteen farmers were recruited and now
+// serve with a CONSTANT class composition (ACT1.roster: 4 archers, 2
+// healers — Arturo among them — and 8 soldiers). They live in the camp
+// and are the player's roster. Each class wears its weapon; its stats
+// come from the job's growth bases.
 const recruitStats = (job: Job): NPCStats => {
     const base = job.growth?.base ?? {};
     return {
@@ -60,16 +31,29 @@ const recruitStats = (job: Job): NPCStats => {
 };
 
 const RECRUIT_NPCS: NPCDefinition[] = [
+    // The healers: Arturo leads them, the rest follow his count.
     {
-        id: ACT1.farmers.arturoId,
-        name: ACT1.farmers.arturoName,
+        id: 'arturo',
+        name: 'Arturo',
         talk: '"The Order needs steady hands."',
         stats: recruitStats(ACT1.recruits.healer),
         group: 'The Order',
         inRoster: true,
         equipment: ['staff'],
     },
-    ...Array.from({ length: 4 }, (_, index) => {
+    ...Array.from({ length: ACT1.roster.healers - 1 }, (_, index) => {
+        const id = `healer_${index}`;
+        return {
+            id,
+            name: farmerNameFor(id, 'female'),
+            talk: '"Hold still, I will patch you up."',
+            stats: recruitStats(ACT1.recruits.healer),
+            group: 'The Order',
+            inRoster: true,
+            equipment: ['staff'],
+        };
+    }),
+    ...Array.from({ length: ACT1.roster.archers }, (_, index) => {
         const id = `archer_${index}`;
         return {
             id,
@@ -81,16 +65,7 @@ const RECRUIT_NPCS: NPCDefinition[] = [
             equipment: ['bow'],
         };
     }),
-    {
-        id: 'healer_0',
-        name: farmerNameFor('healer_0', 'female'),
-        talk: '"Hold still, I will patch you up."',
-        stats: recruitStats(ACT1.recruits.healer),
-        group: 'The Order',
-        inRoster: true,
-        equipment: ['staff'],
-    },
-    ...Array.from({ length: 6 }, (_, index) => {
+    ...Array.from({ length: ACT1.roster.soldiers }, (_, index) => {
         const id = `soldier_${index}`;
         return {
             id,
@@ -104,13 +79,17 @@ const RECRUIT_NPCS: NPCDefinition[] = [
     }),
 ];
 
-// The camp's commanding officer: gives the missions and forms the squad.
+// The camp's commanding officer: gives the missions and forms the
+// squad. He is part of the roster — the captain the recruit spars
+// against in the training's final match.
 const GENERAL_NPC: NPCDefinition = {
     id: 'general',
-    name: 'General Roderick',
+    name: 'Captain Rodrigo',
     talk: '"Report to the board for your orders."',
-    stats: { hp: 60, totalHp: 60, attack: 10, defence: 4, speed: 6 },
+    stats: { hp: 100, totalHp: 100, attack: 12, defence: 6, speed: 6 },
     group: 'The Command',
+    portrait: 'captain',
+    inRoster: true,
     respawns: true,
 };
 
@@ -123,9 +102,14 @@ export const PLACES: Place[] = [
         regionId: 'fergel_este',
         position: { x: 120, y: 260 },
         actions: [
-            { id: 'squad', label: 'Form the Squad', kind: 'team', icon: '' },
             { id: 'camp_board', label: "The General's Orders", kind: 'mission_board', icon: '' },
-            { id: 'camp_fountain', label: 'Fountain', kind: 'fountain', icon: '' },
+            {
+                id: 'camp_training',
+                label: 'Start the training match',
+                kind: 'mission_battle',
+                missionId: 'training',
+                icon: '⚔️',
+            },
             { id: 'camp_look', label: 'Look around', kind: 'look_around', icon: '' },
         ],
         connections: [{ label: "The Lord's Farm", to: 'farm', icon: '' }],
@@ -141,16 +125,12 @@ export const PLACES: Place[] = [
         position: { x: 300, y: 260 },
         // Locked by default: its own flag opens it (the story's).
         lockedByFlag: FLAGS.FARM_UNLOCKED,
-        actions: [
-            { id: 'mission_board', label: 'Mission Board', kind: 'mission_board', icon: '' },
-            { id: 'farm_shop', label: 'Farm Shop', kind: 'shop', shopId: 'farm_shop', icon: '' },
-            { id: 'farm_look', label: 'Look around', kind: 'look_around', icon: '' },
-        ],
+        actions: [],
         connections: [
             { label: 'Hay Field', to: 'hay_field', icon: '🌾' },
             { label: 'Order Camp', to: 'camp', icon: '🏕️' },
         ],
-        npcs: [...HOUSEHOLD_NPCS],
+        npcs: [],
     },
     {
         id: 'hay_field',
@@ -200,12 +180,14 @@ export const PLACES: Place[] = [
         emoji: '🌾',
         description: 'The eastern fields, closed while the farm suffers.',
         regionId: 'fergel_este',
-        // The combat end already flips this flag ("the east road is
-        // now open"): a locked place, visible but closed until then.
+        // The training's reward opens it: a locked place, visible but
+        // closed until then.
         lockedByFlag: FLAGS.EAST_FIELD_UNLOCKED,
         actions: [{ id: 'east_look', label: 'Look around', kind: 'look_around', icon: '🔍' }],
         connections: [],
         npcs: [],
+        // The caza menor's first pack charges the squad on arrival.
+        arrival: { missionId: 'caza_menor', chatId: 'caza_arrival', fightId: 'boar_trio' },
     },
     {
         id: 'fergel_faro',
@@ -289,8 +271,9 @@ export function buildNpcsFromPlaces(places: Place[]): {
 }
 
 /**
- * A fresh Act 1 world: the player as an Order soldier (job bonuses,
- * sword, sack and outfit), the farm people, and the missions.
+ * A fresh Act 1 world: the recruit (generated with the soldier job at
+ * level 5 — the branch choice may re-job them), a sack and the outfit,
+ * no weapon and no items; the camp people and the missions.
  */
 export function createInitialWorld(): {
     team: Team;
@@ -298,24 +281,21 @@ export function createInitialWorld(): {
     roster: Character[];
 } {
     const team = new Team();
-    const player = buildPlayerFarmer();
+    // The player is a standard generated character: the soldier job at
+    // level 5 (job bonuses, growth profile and the level-up wiring all
+    // come from the generator).
+    const player = characterGenerator({
+        job: ACT1.recruits.soldier,
+        level: 5,
+        id: 'player',
+        name: 'Player',
+    });
     team.addCharacter(player);
-    // The player enlisted as a soldier: the job and its stat bonuses.
-    const defaultJob = jobOfCharacter(player.id);
-    if (defaultJob) {
-        player.jobId = defaultJob.id;
-        applyJobBonuses(player, defaultJob);
-    }
     player.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sack'), player);
-    // The player's starting loadout: the soldier sword and the farmer
-    // outfit. Their copies are counted as equipped from the seeded bag.
-    for (const itemId of TEST_BAG_ITEMS) {
-        team.inventory.addItem(DEFAULT_ITEM_TABLE.createItem(itemId), 2);
-    }
-    equipInto(player, 0, DEFAULT_ITEM_TABLE.createItem('sword'));
+    // The player's starting loadout: just the farmer outfit in the
+    // second hole. No weapon and no items — the branch choice grants
+    // the class weapon and the bag starts empty.
     equipInto(player, 1, DEFAULT_ITEM_TABLE.createItem('farmer_outfit'));
-    team.inventory.consumeAvailable('sword', 1);
-    team.inventory.consumeAvailable('farmer_outfit', 1);
     team.gold = 10;
 
     const { npcs, rosterCharacters } = buildNpcsFromPlaces(PLACES);
@@ -324,8 +304,8 @@ export function createInitialWorld(): {
 
 /**
  * The missions of the current world: the global mission dictionary
- * (constants/missions.ts) — the single source of truth. The boards
- * offer the seasonal encargos and the free test mission.
+ * (constants/missions.ts) — the single source of truth. The act-1
+ * story missions are offered on the camp board.
  */
 export function createInitialMissions(): Mission[] {
     return Object.values(Missions);

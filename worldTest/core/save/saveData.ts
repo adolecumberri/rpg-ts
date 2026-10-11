@@ -1,6 +1,7 @@
 import type { MissionSnapshot } from '../missions/mission';
 import type { TeamPosition } from '../../../src';
 import type { FaintedEntry } from '../fainting';
+import type { StorySnapshot } from '../story';
 
 export const SAVE_VERSION = 1;
 
@@ -35,6 +36,8 @@ export type SavedCharacter = {
         magicDefence?: number;
         critChance?: number;
         critMultiplier?: number;
+        mana?: number;
+        totalMana?: number;
     };
     equipment: { slot: string; itemId: string }[];
     // The five-hole loadout (optional: saves made before the loadout
@@ -106,6 +109,13 @@ export type SaveData = {
     // Story flags (optional: saves made before the registry existed
     // still load, rebuilding it from the mission snapshots).
     flags?: string[];
+    // Places the story events hid (optional: saves made before the
+    // story system existed load with none hidden).
+    storyHiddenPlaces?: string[];
+    // The story engine state: armed acts, completed acts and applied
+    // events (optional: saves made before it existed load with every
+    // event still pending).
+    story?: StorySnapshot;
     // Remaining shop stock per shop (optional: saves made before shops
     // existed still load, with every shop opening full).
     shops?: { shopId: string; remaining: string[] }[];
@@ -114,7 +124,4 @@ export type SaveData = {
     fainted?: FaintedEntry[];
     // Characters whose corpse waited too long: dead for good.
     deceased?: string[];
-    // The test bag was seeded (optional: saves made before it existed
-    // get it once on load).
-    testBag?: boolean;
 };

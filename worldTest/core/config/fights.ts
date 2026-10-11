@@ -5,6 +5,8 @@ import type { Character } from '../../../src';
 import type { MissionRunner } from '../missions';
 import { characterGenerator } from '../generators/characterGenerator';
 import { Creatures } from '../constants/creatures';
+import { ARCHER_JOB, HEALER_JOB, SOLDIER_JOB } from '../constants/jobs';
+import { FLAGS } from '../constants/flags';
 
 export type FightDefinition = {
     id: string;
@@ -18,6 +20,11 @@ export type FightDefinition = {
     placeId?: string;
     // Enemies, generated when the battle starts.
     enemies: () => Character[];
+    // World npc ids that fight as the enemies instead (the camp's own
+    // people in the sparring matches): resolved from the session's
+    // places when the battle starts. Non-lethal: the session restores
+    // their hp after the fight.
+    enemyIds?: string[];
     // Extra generated allies beyond the player's team (throwaways: they
     // fight once and their stats are not persisted).
     allies?: () => Character[];
@@ -46,5 +53,91 @@ export const FIGHTS: Record<string, FightDefinition> = {
         enemies: () => [
             characterGenerator({ creature: Creatures.dummy, level: 1, id: 'training_dummy' }),
         ],
+    },
+
+    // ------------------------------------------------------------------
+    // Act 1 · "Training to be worth it": three sparring matches and the
+    // captain. The opponents are the camp's own people (a soldier, a
+    // mage and an archer of the Order). Losing carries no penalty (the
+    // mission advances anyway); each WIN leaves its flag in the story
+    // memory. Sparring is non-lethal: the camp fighters recover after
+    // the match.
+    // ------------------------------------------------------------------
+    sparring_soldier: {
+        id: 'sparring_soldier',
+        mode: 'turn',
+        placeId: 'camp',
+        enemies: () => [
+            characterGenerator({ job: SOLDIER_JOB, level: 2, id: 'sparring_soldier', name: 'Order Soldier' }),
+        ],
+        enemyIds: ['soldier_0'],
+        onWin: (mission) => mission?.takeFlag(FLAGS.TRAINING_WON_SOLDIER),
+    },
+    sparring_mage: {
+        id: 'sparring_mage',
+        mode: 'turn',
+        placeId: 'camp',
+        enemies: () => [
+            characterGenerator({ job: HEALER_JOB, level: 2, id: 'sparring_mage', name: 'Order Mage' }),
+        ],
+        enemyIds: ['healer_0'],
+        onWin: (mission) => mission?.takeFlag(FLAGS.TRAINING_WON_MAGE),
+    },
+    sparring_archer: {
+        id: 'sparring_archer',
+        mode: 'turn',
+        placeId: 'camp',
+        enemies: () => [
+            characterGenerator({ job: ARCHER_JOB, level: 2, id: 'sparring_archer', name: 'Order Archer' }),
+        ],
+        enemyIds: ['archer_0'],
+        onWin: (mission) => mission?.takeFlag(FLAGS.TRAINING_WON_ARCHER),
+    },
+    sparring_captain: {
+        id: 'sparring_captain',
+        mode: 'turn',
+        placeId: 'camp',
+        enemies: () => [
+            characterGenerator({ job: SOLDIER_JOB, level: 4, id: 'sparring_captain', name: 'Captain Rodrigo' }),
+        ],
+        onWin: (mission) => mission?.takeFlag(FLAGS.TRAINING_WON_CAPTAIN),
+    },
+
+    // ------------------------------------------------------------------
+    // Act 1 · "Caza menor": the east field packs (3 boars, then 4 more
+    // with no healing between the hunts) and the spectral boar nobody
+    // should fight.
+    // ------------------------------------------------------------------
+    boar_trio: {
+        id: 'boar_trio',
+        mode: 'hybrid',
+        placeId: 'east_field',
+        enemies: () => [
+            characterGenerator({ creature: Creatures.boar, level: 1, id: 'boar_a' }),
+            characterGenerator({ creature: Creatures.boar, level: 2, id: 'boar_b' }),
+            characterGenerator({ creature: Creatures.boar, level: 2, id: 'boar_c' }),
+        ],
+    },
+    boar_four: {
+        id: 'boar_four',
+        mode: 'hybrid',
+        placeId: 'east_field',
+        enemies: () => [
+            characterGenerator({ creature: Creatures.boar, level: 2, id: 'boar_d' }),
+            characterGenerator({ creature: Creatures.boar, level: 2, id: 'boar_e' }),
+            characterGenerator({ creature: Creatures.boar, level: 3, id: 'boar_f' }),
+            characterGenerator({ creature: Creatures.boar, level: 3, id: 'boar_g' }),
+        ],
+    },
+    spectral_boar: {
+        id: 'spectral_boar',
+        mode: 'hybrid',
+        placeId: 'east_field',
+        enemies: () => [
+            characterGenerator({ creature: Creatures.spectral_boar, level: 2, id: 'spectral_boar' }),
+        ],
+        // The hunt is NOT winnable: engaging and losing fails the
+        // mission (fleeing is the victory the step waits for).
+        onLose: (mission) => mission?.fail(),
     },
 };

@@ -1,7 +1,7 @@
 import { Character, Item, Stats, Team } from '../../src';
 import type { InventorySlot, TeamPosition } from '../../src';
 import type { EquipmentSlot } from '../../src/classes/items/EquipmentManager';
-import { PLACES, PLACES_BY_ID, TEST_BAG_ITEMS, buildNpcsFromPlaces, createInitialMissions, createInitialWorld } from './world';
+import { PLACES, PLACES_BY_ID, buildNpcsFromPlaces, createInitialMissions, createInitialWorld } from './world';
 import { buyItem, sellItem } from './shop';
 import { equipToCharacter, unequipFromCharacter, useItemOn } from './inventory';
 import { grantCombatXp } from './xp/xpSystem';
@@ -36,7 +36,7 @@ import { Roster } from './roster';
 import { ROSTER } from './config/roster';
 import { addItemCapped, canAddItem } from './inventory';
 import { MissionManager } from './missions';
-import type { Mission, MissionStep } from './missions';
+import type { Mission, MissionRunner, MissionStep } from './missions';
 import { ACT1 } from './config/act1';
 import { CHATS } from './config/chats';
 import { FIGHTS } from './config/fights';
@@ -44,7 +44,11 @@ import { SHOPS } from './config/shops';
 import { GameCalendar, seasonNameForMonth } from './calendar';
 import { FlagRegistry } from './flags';
 import { FLAGS } from './constants/flags';
+import { ACTS } from './config/acts';
+import { StoryEngine, evaluateStoryCondition } from './story';
+import type { ActDefinition, StoryCondition, StoryContext, StoryEffect } from './story';
 import { MessageQueue } from './messages';
+import type { DialogueLine } from './dialogue';
 import type { NPC, Place, ShopEntry } from './types';
 
 export type CombatEndContext = {
@@ -128,8 +132,19 @@ export class WorldSession {
     // A battle an arrival event queued: it starts once the messages are
     // read. Consumed by the web; not part of the save.
     private pendingBattleRef: { fightId: string; placeId: string; missionId: string } | null = null;
+    // Places the story events hid (showPlace/hidePlace effects): they
+    // behave exactly like hiddenUntilFlag places until shown again.
+    // Persisted with the save.
+    private storyHidden = new Set<string>();
+    // The story spine: the registered acts and their one-shot events,
+    // re-evaluated after every session change that can move the story.
+    // Persisted (armed/completed/applied) with the save.
+    readonly story = new StoryEngine(
+        () => this.storyContext(),
+        (effect) => this.applyStoryEffectInternal(effect),
+    );
 
-    constructor(options: { random?: () => number } = {}) {
+    constructor(options: { random?: () => number; acts?: ActDefinition[] } = {}) {
         const initial = createInitialWorld();
         this.team = initial.team;
         this.npcs = initial.npcs;
@@ -145,15 +160,146 @@ export class WorldSession {
             },
             () => this.calendar.totalDays(),
             () => this.calendar.monthIndex(),
+            (flag) => this.flags.has(flag),
         );
         for (const mission of createInitialMissions()) {
             this.missions.register(mission);
         }
 
+        // The story spine: the registered acts (tests may inject their
+        // own catalog).
+        this.story.register(options.acts ?? ACTS);
+
         // Shops open with their full content stock.
         for (const shop of Object.values(SHOPS)) {
             this.shopStock.set(shop.id, shop.stock.map((entry) => entry.itemId));
         }
+    }
+
+    // ------------------------------------------------------------------
+    // The story engine: the session answers conditions and applies the
+    // effects the registered acts and dialogue choices declare.
+    // ------------------------------------------------------------------
+
+    /** The live story context the engine's conditions read. */
+    private storyContext(): StoryContext {
+        return {
+            hasFlag: (flag) => this.flags.has(flag),
+            missionState: (missionId) => {
+                const runner = this.missions.runner(missionId);
+                if (runner) {
+                    if (runner.isComplete()) return 'complete';
+                    if (runner.isFailed()) return 'failed';
+                    return 'active';
+                }
+                return this.missions.isCompleted(missionId) ? 'complete' : 'none';
+            },
+            day: this.calendar.totalDays(),
+        };
+    }
+
+    /** Whether a story condition holds right now (dialogue gating). */
+    private storyConditionHolds(condition: StoryCondition): boolean {
+        return evaluateStoryCondition(condition, this.storyContext());
+    }
+
+    /** The effect switch the story engine and the dialogue choices use. */
+    private applyStoryEffectInternal(effect: StoryEffect): void {
+        switch (effect.kind) {
+        case 'setFlag':
+            this.flags.set(effect.flag);
+            return;
+        case 'clearFlag':
+            this.flags.remove(effect.flag);
+            return;
+        case 'pushChat': {
+            const chat = CHATS[effect.chatId];
+            if (chat) this.pushStoryLines(chat.lines);
+            return;
+        }
+        case 'startMission':
+            // Story-forced starts skip gates and commissions.
+            this.activateMission(effect.missionId, 'player');
+            return;
+        case 'startFight':
+            this.pendingBattleRef = {
+                fightId: effect.fightId,
+                placeId: effect.placeId,
+                missionId: effect.missionId ?? '',
+            };
+            return;
+        case 'moveNpc':
+            this.moveNpc(effect.npcId, effect.toPlaceId);
+            return;
+        case 'showPlace':
+            this.storyHidden.delete(effect.placeId);
+            return;
+        case 'hidePlace':
+            this.storyHidden.add(effect.placeId);
+            return;
+        case 'setJob':
+            // The branch choice: the recruit re-jobs (bonuses applied,
+            // gear the new job cannot wield returns to the inventory)
+            // and receives their class weapon.
+            this.setJob(effect.characterId, effect.jobId);
+            if (effect.weaponItemId) this.grantWeapon(effect.characterId, effect.weaponItemId);
+            return;
+        case 'skipBattle':
+            // The vote's "leave": the current wait_battle step completes
+            // as a retreat, so the fight never happens.
+            this.retreatMissionBattle(effect.missionId);
+            return;
+        }
+    }
+
+    /**
+     * Completes the mission's current wait_battle step as a retreat
+     * (the spectral boar vote's "leave" option). A no-op when the
+     * current step is not a wait_battle or does not accept 'fled'.
+     */
+    private retreatMissionBattle(missionId: string): void {
+        const runner = this.missions.runner(missionId);
+        if (!runner || runner.isComplete() || runner.isFailed()) return;
+        const step = runner.current();
+        if (step?.kind !== 'wait_battle') return;
+        runner.reportBattle('fled');
+        this.missions.checkFinished(runner);
+        if (runner.isComplete()) this.revertMissionMoves(missionId);
+    }
+
+    /**
+     * Applies one story effect (dialogue choices call this) and then
+     * re-runs the story engine, so the choice's consequences (flag
+     * chains, follow-up events) resolve immediately.
+     */
+    applyStoryEffect(effect: StoryEffect): void {
+        this.applyStoryEffectInternal(effect);
+        this.story.evaluate();
+    }
+
+    /**
+     * Pushes story lines into the global message queue, hiding the
+     * lines whose `when` condition does not hold right now.
+     */
+    private pushStoryLines(lines: DialogueLine[] | undefined): void {
+        if (!lines || lines.length === 0) return;
+        const visible = lines.filter((line) => !line.when || this.storyConditionHolds(line.when));
+        if (visible.length > 0) this.messages.push(visible);
+    }
+
+    /** Re-evaluates the registered acts after a story-moving change. */
+    private evaluateStory(): void {
+        this.story.evaluate();
+    }
+
+    /**
+     * Boots the story for a NEW game: the act-1 opening fires (the
+     * captain's welcome and the branch choice). Called by the web when
+     * a fresh session starts — never on load, so a saved game never
+     * replays its opening.
+     */
+    beginStory(): void {
+        this.applyStoryEffect({ kind: 'setFlag', flag: FLAGS.NEW_GAME });
     }
 
     get currentPlace(): Place {
@@ -196,10 +342,19 @@ export class WorldSession {
         if (!target) {
             return { ok: false, message: 'You cannot travel there.' };
         }
-        if (target.hiddenUntilFlag && !this.unlocked.has(target.hiddenUntilFlag)) {
+        // A flag opens a place whether it lives in the legacy travel set
+        // or in the story memory (mission rewards and story events write
+        // the registry; dev tools and old saves write the set).
+        const flagOpen = (flag: string): boolean =>
+            this.unlocked.has(flag) || this.flags.has(flag);
+
+        if (target.hiddenUntilFlag && !flagOpen(target.hiddenUntilFlag)) {
             return { ok: false, message: 'You cannot travel there.' };
         }
-        if (target.lockedByFlag && !this.unlocked.has(target.lockedByFlag)) {
+        if (this.storyHidden.has(to)) {
+            return { ok: false, message: 'You cannot travel there.' };
+        }
+        if (target.lockedByFlag && !flagOpen(target.lockedByFlag)) {
             return { ok: false, message: target.lockedMessage ?? 'The way is closed.' };
         }
         if (target.lockedByMission && !this.missionIsActive(target.lockedByMission)) {
@@ -212,7 +367,7 @@ export class WorldSession {
             if (!connection) {
                 return { ok: false, message: 'You must cross at a border location.' };
             }
-            if (connection.requiredFlag && !this.unlocked.has(connection.requiredFlag)) {
+            if (connection.requiredFlag && !flagOpen(connection.requiredFlag)) {
                 return { ok: false, message: connection.lockedMessage ?? 'The way is closed.' };
             }
             if (connection.requiredMissionId
@@ -254,7 +409,7 @@ export class WorldSession {
             const stepBattle = step?.kind === 'wait_battle' ? step.battle : undefined;
             if (stepBattle && stepBattle.fightId === arrivalEvent.fightId) {
                 const chat = CHATS[arrivalEvent.chatId];
-                if (chat) this.messages.push(chat.lines);
+                if (chat) this.pushStoryLines(chat.lines);
                 this.pendingBattleRef = {
                     fightId: arrivalEvent.fightId,
                     placeId: to,
@@ -263,6 +418,8 @@ export class WorldSession {
                 arrival = true;
             }
         }
+
+        this.evaluateStory();
 
         return {
             ok: true,
@@ -283,8 +440,12 @@ export class WorldSession {
      * border connection from the current place.
      */
     travelTargets(): TravelTarget[] {
+        const flagOpen = (flag: string): boolean =>
+            this.unlocked.has(flag) || this.flags.has(flag);
         return PLACES.map((place) => {
-            if (place.hiddenUntilFlag && !this.unlocked.has(place.hiddenUntilFlag)) {
+            const hidden = (place.hiddenUntilFlag && !flagOpen(place.hiddenUntilFlag)) ||
+                this.storyHidden.has(place.id);
+            if (hidden) {
                 return {
                     placeId: place.id,
                     name: place.name,
@@ -325,6 +486,11 @@ export class WorldSession {
     missionAcceptGate(missionId: string): { ok: boolean; reason?: string } {
         const mission = this.missions.mission(missionId);
         if (!mission) return { ok: false, reason: 'Unknown mission.' };
+        // Story-gated missions: the board hides them until the flags
+        // exist; the gate refuses direct starts too.
+        if (mission.requiredFlags && !mission.requiredFlags.every((flag) => this.flags.has(flag))) {
+            return { ok: false, reason: 'The story does not offer this yet.' };
+        }
         // Seasonal missions only open during their season.
         if (
             mission.availableMonths
@@ -359,37 +525,124 @@ export class WorldSession {
             this.team.gold -= mission.commission;
         }
 
-        const runner = this.missions.start(missionId, characterId);
-        if (runner && mission) {
-            for (const move of mission.npcMoves ?? []) {
-                this.moveNpc(move.npcId, move.toPlaceId);
-            }
-            this.applyUnitMoves(mission);
-            this.applyUnitSpawns(mission);
+        const started = this.activateMission(missionId, characterId);
+        if (started) this.evaluateStory();
+        return started;
+    }
 
-            // A mission whose first step is a dialogue plays its lines
-            // right away (the commander's orders: form your team). When
-            // the dialogue also declares a battle it is queued once the
-            // lines are read; otherwise the battle waits for the story
-            // (the farm fight starts on arrival).
-            const first = runner.current();
-            if (first && first.kind === 'dialogue') {
-                if (first.lines && first.lines.length > 0) {
-                    this.messages.push(first.lines);
-                }
-                while (runner.current() === first && runner.dialogueLine()) {
-                    runner.advanceDialogue();
-                }
-                if (first.battle) {
-                    this.pendingBattleRef = {
-                        fightId: first.battle.fightId,
-                        placeId: first.battle.placeId,
-                        missionId,
-                    };
-                }
+    /**
+     * Starts a registered mission without gates or commissions (the
+     * story engine's startMission effect uses this): the runner starts,
+     * the people travel/spawn with it, and a first dialogue step plays
+     * its lines (queuing its battle once they are read).
+     */
+    private activateMission(missionId: string, characterId: string): boolean {
+        const mission = this.missions.mission(missionId);
+        const runner = this.missions.start(missionId, characterId);
+        if (!runner || !mission) return false;
+
+        for (const move of mission.npcMoves ?? []) {
+            this.moveNpc(move.npcId, move.toPlaceId);
+        }
+        this.applyUnitMoves(mission);
+        this.applyUnitSpawns(mission);
+
+        // A mission whose first step is a dialogue plays its lines
+        // right away (the commander's orders: form your team). When
+        // the dialogue also declares a battle it is queued once the
+        // lines are read; otherwise the battle waits for the story
+        // (the farm fight starts on arrival).
+        const first = runner.current();
+        if (first && first.kind === 'dialogue') {
+            if (first.lines && first.lines.length > 0) {
+                this.pushStoryLines(first.lines);
+            }
+            while (runner.current() === first && runner.dialogueLine()) {
+                runner.advanceDialogue();
+            }
+            if (first.battle) {
+                this.pendingBattleRef = {
+                    fightId: first.battle.fightId,
+                    placeId: first.battle.placeId,
+                    missionId,
+                };
             }
         }
-        return Boolean(runner);
+        // A first wait_battle step is NOT queued here: its place offers
+        // the "start the mission" option (startMissionBattle) instead.
+        return true;
+    }
+
+    /**
+     * Whether the mission's current beat waits for a battle at the
+     * place (the gate of its "start the mission" place option).
+     */
+    missionBattleReady(missionId: string, placeId: string): boolean {
+        const runner = this.missions.runner(missionId);
+        if (!runner || runner.isComplete() || runner.isFailed()) return false;
+        const beat = runner.current();
+        if (beat?.kind !== 'wait_battle' || !beat.battle) return false;
+        return beat.battle.placeId === placeId;
+    }
+
+    /**
+     * Starts the mission's waiting battle from its place option: the
+     * beat's lines go to the message box and the fight queues behind
+     * them (it begins once the lines are read).
+     */
+    startMissionBattle(missionId: string): boolean {
+        const runner = this.missions.runner(missionId);
+        if (!runner || runner.isComplete() || runner.isFailed()) return false;
+        const beat = runner.current();
+        if (beat?.kind !== 'wait_battle' || !beat.battle) return false;
+        if (beat.lines && beat.lines.length > 0) {
+            this.pushStoryLines(beat.lines);
+        }
+        this.pendingBattleRef = {
+            fightId: beat.battle.fightId,
+            placeId: beat.battle.placeId,
+            missionId,
+        };
+        return true;
+    }
+
+    /**
+     * After a battle outcome advanced a mission, its next beat leads
+     * the flow: a dialogue beat pushes its lines (queuing its battle
+     * once they are read), a wait_battle beat queues its battle
+     * straight away. Runs for every outcome — a lost sparring match
+     * still leads to the next one.
+     */
+    private queueNextBeat(runner: MissionRunner | undefined): void {
+        if (!runner || runner.isComplete() || runner.isFailed()) return;
+        const beat = runner.current();
+        if (!beat) return;
+
+        if (beat.kind === 'dialogue') {
+            if (beat.lines && beat.lines.length > 0) {
+                this.pushStoryLines(beat.lines);
+            }
+            while (runner.current() === beat && runner.dialogueLine()) {
+                runner.advanceDialogue();
+            }
+            if (beat.battle) {
+                this.pendingBattleRef = {
+                    fightId: beat.battle.fightId,
+                    placeId: beat.battle.placeId,
+                    missionId: runner.missionId(),
+                };
+            }
+            return;
+        }
+
+        if (beat.kind === 'wait_battle' && beat.battle) {
+            // No dialogue between battles: queue it right away.
+            this.pendingBattleRef = {
+                fightId: beat.battle.fightId,
+                placeId: beat.battle.placeId,
+                missionId: runner.missionId(),
+            };
+        }
     }
 
     /**
@@ -427,6 +680,7 @@ export class WorldSession {
             this.revertMissionMoves(missionId);
             // The queued arrival battle belongs to the mission: drop it.
             this.pendingBattleRef = null;
+            this.evaluateStory();
         }
         return cancelled;
     }
@@ -852,6 +1106,7 @@ export class WorldSession {
                 missionMessage = ` Mission complete: ${titles.join(', ')}`;
             }
         }
+        this.evaluateStory();
         return { ok: true, message: `You gathered ${task.quantity} ${item.name}.${missionMessage}` };
     }
 
@@ -974,6 +1229,27 @@ export class WorldSession {
         return { ok: true, message: `${character.name} is now ${jobLabel}.${removedNote}` };
     }
 
+    /**
+     * Hands a character an item directly (the branch's class weapon):
+     * the instance is created from the catalog and equipped into the
+     * loadout, exactly like the character generator does — it never
+     * touches the shared inventory. Idempotent: a character already
+     * carrying the item keeps theirs.
+     */
+    private grantWeapon(characterId: string, itemId: string): void {
+        const character = this.team.getCharacter(characterId) ?? this.roster.character(characterId);
+        if (!character) return;
+        for (const item of equippedItemsOf(character)) {
+            if (item.id === itemId) return;
+        }
+        if (!this.itemTable.has(itemId)) return;
+        const item = this.itemTable.createItem(itemId);
+        const result = equipInto(character, firstFreeHole(character), item);
+        if (!result.ok && item.definition.slot) {
+            character.equipment.equipOrReplace(item, character);
+        }
+    }
+
     useOn(slot: InventorySlot, characterId: string): boolean {
         const character = this.team.getCharacter(characterId);
         if (!character) return false;
@@ -1083,6 +1359,17 @@ export class WorldSession {
                 this.missions.forgetFailure(fightMission.missionId());
             }
         }
+        // Sparring against the camp's own people is non-lethal: the
+        // camp fighters recover after the match, whatever its outcome.
+        if (fight?.enemyIds) {
+            for (const id of fight.enemyIds) {
+                const enemy = this.findNpc(id);
+                if (enemy) {
+                    enemy.character.stats.hp = enemy.character.stats.totalHp;
+                    enemy.character.stats.isAlive = 1;
+                }
+            }
+        }
         const failedMissionTitles = fightMission?.isFailed() ? [fightMission.title()] : [];
         // The damage report the attached battle tracker carries out.
         const report = context.tracker?.report();
@@ -1104,6 +1391,10 @@ export class WorldSession {
                 ? ` ${fallen.join(', ')} ${fallen.length === 1 ? 'was' : 'were'} left behind.`
                 : '';
             this.missions.reportBattle('fled');
+            // The mission may have advanced (the spectral boar retreat):
+            // queue its next beat like any other outcome.
+            this.queueNextBeat(fightMission);
+            this.evaluateStory();
             return {
                 message: failedMissionTitles.length > 0
                     ? `You fled the battle. Mission failed: ${failedMissionTitles.join(', ')}${leftBehind}`
@@ -1133,6 +1424,10 @@ export class WorldSession {
                 context.npc.character.stats.isAlive = 1;
             }
             this.missions.reportBattle('lost');
+            // A lost sparring match still leads to the next one: the
+            // beat queue follows every outcome.
+            this.queueNextBeat(fightMission);
+            this.evaluateStory();
             return {
                 message: failedMissionTitles.length > 0
                     ? `Your party was defeated. You wake up in Central Town. Mission failed: ${failedMissionTitles.join(', ')}`
@@ -1153,32 +1448,9 @@ export class WorldSession {
             this.revertMissionMoves(missionId);
         }
 
-        // A won battle can open the mission's next beat: mid-mission
-        // dialogue goes to the global message box, and the battle that
-        // follows is queued (it starts once the lines are read).
-        if (fightMission && !fightMission.isComplete() && !fightMission.isFailed()) {
-            const beat = fightMission.current();
-            if (beat && beat.kind === 'dialogue' && beat.battle) {
-                if (beat.lines && beat.lines.length > 0) {
-                    this.messages.push(beat.lines);
-                }
-                while (fightMission.current() === beat && fightMission.dialogueLine()) {
-                    fightMission.advanceDialogue();
-                }
-                this.pendingBattleRef = {
-                    fightId: beat.battle.fightId,
-                    placeId: beat.battle.placeId,
-                    missionId: fightMission.missionId(),
-                };
-            } else if (beat && beat.kind === 'wait_battle' && beat.battle) {
-                // No dialogue between battles: queue it right away.
-                this.pendingBattleRef = {
-                    fightId: beat.battle.fightId,
-                    placeId: beat.battle.placeId,
-                    missionId: fightMission.missionId(),
-                };
-            }
-        }
+        // A won battle can open the mission's next beat (dialogue
+        // and/or its battle). Handled by the shared beat queue.
+        this.queueNextBeat(fightMission);
 
         const { npc, placeId } = context;
         this.encounterTracker.recordVictory(placeId);
@@ -1296,6 +1568,8 @@ export class WorldSession {
             message = `${message} ${fallen.join(', ')} ${fallen.length === 1 ? 'was' : 'were'} left behind.`;
         }
 
+        this.evaluateStory();
+
         return { message, leveled, unlockedEast, drops, specialSpawn, report };
     }
 
@@ -1370,10 +1644,11 @@ export class WorldSession {
             missionBoard: this.missions.serializeBoard(),
             calendarDay: this.calendar.totalDays(),
             flags: this.flags.all(),
+            storyHiddenPlaces: Array.from(this.storyHidden),
+            story: this.story.snapshot(),
             shops: Array.from(this.shopStock).map(([shopId, remaining]) => ({ shopId, remaining })),
             fainted: this.faints.snapshot(),
             deceased: this.faints.deceasedIds(),
-            testBag: true,
         };
     }
 
@@ -1400,6 +1675,8 @@ export class WorldSession {
                 magicDefence: character.stats.magicDefence,
                 critChance: character.stats.critChance,
                 critMultiplier: character.stats.critMultiplier,
+                mana: character.stats.mana,
+                totalMana: character.stats.totalMana,
             },
             equipment: Object.entries(character.equipment.getAllSlots())
                 .filter(([, item]) => Boolean(item))
@@ -1508,6 +1785,11 @@ export class WorldSession {
         // back to the act start instead of crashing the UI.
         session.currentPlaceId = PLACES_BY_ID[data.currentPlaceId] ? data.currentPlaceId : ACT1.startPlaceId;
         session.unlocked = new Set(data.unlocked);
+
+        // The story spine: hidden places and the engine's memory
+        // (armed acts, completed acts, applied events).
+        session.storyHidden = new Set(data.storyHiddenPlaces ?? []);
+        if (data.story) session.story.restore(data.story);
 
         // npcs: the places define which npcs exist; the save only
         // carries their hp/alive state and which world npcs were
@@ -1701,15 +1983,8 @@ export class WorldSession {
             session.shopStock.set(saved.shopId, valid);
         }
 
-        // Saves made before the test bag existed get it seeded once
-        // (their next save carries the flag).
-        if (!data.testBag) {
-            for (const itemId of TEST_BAG_ITEMS) {
-                if (!session.itemTable.has(itemId)) continue;
-                session.team.inventory.addItem(session.itemTable.createItem(itemId), 2);
-            }
-        }
-
+        // Saves made before the test bag existed got it seeded once;
+        // the bag is gone now — new games start with an empty bag.
         return session;
     }
 }

@@ -1,6 +1,7 @@
 import type { Character, IntervalDamageResolver } from '../../../src';
 import { generalAttackResolver } from '../damage/general';
 import { intervalFromSpeed } from '../config/speed';
+import { MANA } from '../config/mana';
 import { planAutoAction } from './autoSkills';
 import type { AutoSkillCooldowns, AutoSkillMeters } from './autoSkills';
 import { syncAuras } from './aura';
@@ -125,6 +126,9 @@ export class HybridCombat {
             if (!Number.isFinite(combatant.interval) || combatant.interval < 1) {
                 throw new Error(`Invalid interval for ${combatant.character.name}: ${combatant.interval}.`);
             }
+            // Mana: every fighter starts the battle at startOfBattle.
+            const totalMana = combatant.character.stats.totalMana ?? 0;
+            combatant.character.stats.mana = Math.min(totalMana, MANA.startOfBattle);
         }
         this.combatants = combatants;
         this.maxTicks = options.maxTicks ?? 1000;
@@ -206,12 +210,21 @@ export class HybridCombat {
     }
 
     /**
-     * The skills a fighter may use right now: its base kit plus the
+     * The skills a fighter knows right now: its base kit plus the
      * skills granted by its live statuses (Open Gate unlocks Fire
      * Breath), hiding activation skills whose status is already active.
+     * Mana is NOT filtered here: the manual prompt lists every skill
+     * and lets the UI disable the unaffordable ones (they stay visible
+     * instead of disappearing).
      */
     private skillsOf(actor: HybridCombatant): SkillSpec[] {
         return battleSkillSpecs(actor.character, actor.skills ?? []);
+    }
+
+    /** The skills the fighter can pay for right now (auto planner). */
+    private affordableSkillsOf(actor: HybridCombatant): SkillSpec[] {
+        const mana = actor.character.stats.mana ?? 0;
+        return this.skillsOf(actor).filter((spec) => (spec.manaCost ?? 0) <= mana);
     }
 
     /**
@@ -253,6 +266,10 @@ export class HybridCombat {
         const actor = this.due.shift() as HybridCombatant;
         if (actor.character.stats.hp <= 0) return this.next();
 
+        // Turn start: the fighter regains mana (capped at the pool).
+        const totalMana = actor.character.stats.totalMana ?? 0;
+        actor.character.stats.mana = Math.min(totalMana, (actor.character.stats.mana ?? 0) + MANA.regenPerTurn);
+
         // Fainted fighters lose this action (their faint counts down).
         if (consumeFaintTurn(actor.character)) return this.next();
 
@@ -262,12 +279,13 @@ export class HybridCombat {
         }
 
         // Automatic fighter: the skill planner decides (skills first,
-        // basic attack as the fallback).
+        // basic attack as the fallback). Unaffordable skills never
+        // reach the planner: it may only pick what the fighter can pay.
         const plan = planAutoAction({
             actor: actor.character,
             allies: this.alliesOf(actor).map((entry) => entry.character),
             enemies: this.enemiesOf(actor).map((entry) => entry.character),
-            skills: this.skillsOf(actor),
+            skills: this.affordableSkillsOf(actor),
             cooldowns: this.cooldownsOf(actor.character.id),
             meters: this.metersOf(actor.character.id),
             sharedCooldowns: this.sharedCooldownsOf(actor.side),
@@ -302,22 +320,37 @@ export class HybridCombat {
 
     /**
      * The player answered the pending manual prompt: cast one of the
-     * fighter's skills (targets follow the spec's targeting). Manual
-     * skill use ignores auto policies and cooldowns: the player decides.
+     * fighter's skills. Without a targetId the engine plans the targets
+     * itself (the spec's targeting); with one, the player's pick is
+     * used (single-target skills). Manual skill use ignores auto
+     * policies and cooldowns: the player decides.
      */
-    resolveManualSkill(skillId: string): HybridAutoEvent | null {
+    resolveManualSkill(skillId: string, targetId?: string): HybridAutoEvent | null {
         if (!this.pendingManual) return null;
         const actor = this.pendingManual;
         const spec = this.skillsOf(actor).find((entry) => entry.id === skillId);
         if (!spec) return null;
+        // The fighter must be able to pay the cost (the UI disables the
+        // skill; this keeps the engine honest regardless).
+        if ((spec.manaCost ?? 0) > (actor.character.stats.mana ?? 0)) return null;
         this.pendingManual = null;
-        const targetIds = pickSkillTargets(
-            spec,
-            actor.character,
-            this.alliesOf(actor).map((entry) => entry.character),
-            this.enemiesOf(actor).map((entry) => entry.character),
-            this.random,
-        );
+        let targetIds: string[];
+        if (targetId) {
+            // The player's pick must be a living fighter of this battle.
+            const picked = this.combatants.find(
+                (entry) => entry.character.id === targetId && entry.character.stats.hp > 0,
+            );
+            if (!picked) return null;
+            targetIds = [targetId];
+        } else {
+            targetIds = pickSkillTargets(
+                spec,
+                actor.character,
+                this.alliesOf(actor).map((entry) => entry.character),
+                this.enemiesOf(actor).map((entry) => entry.character),
+                this.random,
+            );
+        }
         return this.performSkill(actor, spec, targetIds);
     }
 
@@ -364,6 +397,12 @@ export class HybridCombat {
         spec: SkillSpec,
         targetIds: string[],
     ): HybridAutoEvent {
+        // The skill spends its mana on cast (free skills cost nothing).
+        const cost = spec.manaCost ?? 0;
+        if (cost > 0) {
+            actor.character.stats.mana = Math.max(0, (actor.character.stats.mana ?? 0) - cost);
+        }
+
         const targets = targetIds
             .map((id) => this.combatants.find(
                 (entry) => entry.character.id === id && entry.character.stats.hp > 0,
@@ -461,9 +500,9 @@ export function buildHybridCombat(
 
     if (fight.manualId) {
         const manual =
-            session.team.getCharacter(fight.manualId)
-            ?? session.roster.character(fight.manualId)
-            ?? session.findNpc(fight.manualId)?.character;
+            session.team.getCharacter(fight.manualId) ??
+            session.roster.character(fight.manualId) ??
+            session.findNpc(fight.manualId)?.character;
         if (manual) {
             left.push({
                 character: manual,
@@ -508,8 +547,13 @@ export function buildHybridCombat(
         allies.push(ally);
     }
 
-    const enemies = fight.enemies();
-    const right: HybridCombatant[] = enemies.map((enemy) => ({
+    // The enemies: the camp's own people when the fight names them
+    // (the sparring matches), otherwise the generated roster.
+    const namedEnemies = (fight.enemyIds ?? [])
+        .map((id) => session.findNpc(id)?.character)
+        .filter((character): character is Character => Boolean(character));
+    const enemyPool = namedEnemies.length > 0 ? namedEnemies : fight.enemies();
+    const right: HybridCombatant[] = enemyPool.map((enemy) => ({
         character: enemy,
         interval: intervalFromSpeed(enemy.getStat('speed')),
         side: 'right',
@@ -519,6 +563,6 @@ export function buildHybridCombat(
     return {
         combat: new HybridCombat([...left, ...right], options),
         allies,
-        enemies,
+        enemies: enemyPool,
     };
 }

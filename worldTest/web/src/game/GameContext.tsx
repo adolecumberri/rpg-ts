@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import type { InventorySlot, Team, TeamPosition } from '@rpg';
-import { WorldSession, DEFAULT_ITEM_TABLE } from '@core';
+import { WorldSession } from '@core';
 import type { NPC, Place, SaveData, ShopEntry } from '@core';
 import { TOAST_MS } from '../constants/toast';
 
@@ -71,13 +71,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const sessionRef = useRef<WorldSession>();
     if (!sessionRef.current) {
         let session: WorldSession;
+        let freshGame = false;
         try {
             const saved = loadSave();
-            session = saved ? WorldSession.fromSave(saved) : new WorldSession();
+            if (saved) {
+                session = WorldSession.fromSave(saved);
+            } else {
+                session = new WorldSession();
+                freshGame = true;
+            }
         } catch {
             // A save referencing removed content (old worlds, wiped item
             // catalogs) cannot be restored: start fresh.
             session = new WorldSession();
+            freshGame = true;
             try {
                 window.localStorage.removeItem(SAVE_KEY);
             } catch {
@@ -86,16 +93,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
         sessionRef.current = session;
 
-        // Stress-test swords: web-only seed so the shop's sword section
-        // has enough rows to scroll. Never touches the engine's test bag
-        // (the engine tests stay green). Guards by POSITIVE quantity:
-        // an equipped (zero) copy still gets restocked.
-        const stressSwords = ['sword_1', 'sword_2', 'sword_3', 'sword_4'];
-        const bag = session.team.inventory.getAllItems();
-        for (const id of stressSwords) {
-            if (!bag.some((slot) => slot.item.id === id && slot.quantity > 0)) {
-                session.team.inventory.addItem(DEFAULT_ITEM_TABLE.createItem(id), 1);
-            }
+        // The act-1 opening (the captain's welcome and the branch
+        // choice) fires once per NEW game — never on load, so a saved
+        // game never replays its opening.
+        if (freshGame) {
+            session.beginStory();
         }
     }
     const session = sessionRef.current;
@@ -152,6 +154,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             // storage unavailable: nothing to wipe
         }
         sessionRef.current = new WorldSession();
+        sessionRef.current.beginStory();
         setRoutes([{ name: 'place' }]);
         bump();
         showToast('New game started.');

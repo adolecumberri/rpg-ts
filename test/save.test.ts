@@ -66,7 +66,7 @@ describe('save system', () => {
 
         expect(restored.currentPlaceId).toBe('camp');
         expect(restored.team.getCharacter('player')).toBeDefined();
-        expect(restored.roster.all()).toHaveLength(13); // player + 12 farmers
+        expect(restored.roster.all()).toHaveLength(16); // player + 14 recruits + the captain
     });
 
     it('rejects saves with an unknown version', () => {

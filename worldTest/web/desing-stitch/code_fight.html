@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RPG-TS: JRPG Pseudo-3D Battle Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --u: 4px;
+    --c-bg: #0c0604;
+    --c-frame: #1b1009;
+    --c-panel: #27170e;
+    --c-panel-light: #3d2417;
+    --c-gold: #d4af37;
+    --c-gold-bright: #ffd966;
+    --c-gold-dim: #8c7222;
+    --c-amber: #e59b23;
+    --c-red-hp: #dc2626;
+    --c-red-glow: #ef4444;
+    --c-green-hp: #22c55e;
+    --c-green-tactical: #2f4d22;
+    --c-blue-mp: #3b82f6;
+    --c-cyan-turn: #38bdf8;
+    --c-text-white: #f5f5f5;
+    --c-text-dim: #9ca3af;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    user-select: none;
+  }
+
+  body {
+    background-color: #050302;
+    color: var(--c-gold);
+    font-family: 'VT323', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  /* Strict 320x640 mobile viewport */
+  .viewport-320x640 {
+    width: 320px;
+    height: 640px;
+    position: relative;
+    background: var(--c-bg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #362013;
+    box-shadow: 0 0 25px rgba(0,0,0,0.9), 0 0 5px rgba(212, 175, 55, 0.2);
+  }
+
+  /* Scanline CRT overlay */
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.25) 3px,
+      rgba(0, 0, 0, 0.25) 4px
+    );
+  }
+
+  /* TOP PERSISTENT STATUS BAR (48px = 12u) */
+  .top-bar {
+    height: 48px;
+    background: #190e08;
+    border-bottom: 2px solid #381e10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    z-index: 30;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  }
+
+  .nav-btn {
+    width: 32px;
+    height: 32px;
+    background: #2b180d;
+    border: 2px solid #5a341b;
+    border-top-color: #7b4725;
+    border-left-color: #7b4725;
+    border-bottom-color: #150a04;
+    border-right-color: #150a04;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+  }
+  .nav-btn:active {
+    border-top-color: #150a04;
+    border-left-color: #150a04;
+    border-bottom-color: #7b4725;
+    border-right-color: #7b4725;
+  }
+  .nav-btn span {
+    width: 16px;
+    height: 2px;
+    background: var(--c-gold);
+    display: block;
+  }
+
+  .top-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .location-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    color: var(--c-gold-bright);
+    line-height: 1;
+  }
+  .sub-tag {
+    background: #6a1c1a;
+    color: #ffc4c4;
+    font-size: 11px;
+    padding: 0 3px;
+    border: 1px solid #942b29;
+    letter-spacing: 0.5px;
+  }
+  .location-subline {
+    font-size: 12px;
+    color: #b59247;
+    margin-top: 2px;
+    display: flex;
+    gap: 6px;
+  }
+
+  .engine-status {
+    text-align: right;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    line-height: 1.2;
+    color: #e59b23;
+  }
+  .engine-status .ok {
+    color: #4ade80;
+    font-weight: bold;
+  }
+
+  /* BATTLE ARENA PERSPECTIVE STAGE (396px) */
+  .battle-viewport {
+    position: relative;
+    height: 396px;
+    width: 100%;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 30%, #2a150c 0%, #120904 65%, #080302 100%);
+    perspective: 500px;
+    perspective-origin: 50% 25%;
+  }
+
+  /* Parallax Ambient Sky / Cavern Wall */
+  .backdrop-wall {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: 
+      radial-gradient(circle at 20% 40%, rgba(229, 155, 35, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
+      linear-gradient(to bottom, #110804 0%, #1a0e07 60%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .backdrop-wall::after {
+    content: "";
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: repeating-linear-gradient(90deg, #180d07 0px, #180d07 14px, #1f1109 14px, #1f1109 28px);
+    opacity: 0.3;
+    mask-image: linear-gradient(to bottom, transparent, black 70%, transparent);
+  }
+
+  /* Atmosphere Floating Embers */
+  .ember {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: #ffb703;
+    box-shadow: 0 0 4px #fb8500;
+    opacity: 0.8;
+    pointer-events: none;
+    animation: ember-float 6s infinite linear;
+  }
+  @keyframes ember-float {
+    0% { transform: translateY(180px) translateX(0); opacity: 0; }
+    30% { opacity: 0.8; }
+    80% { opacity: 0.6; }
+    100% { transform: translateY(-20px) translateX(25px); opacity: 0; }
+  }
+
+  /* 3D TILTED BATTLEFIELD GROUND */
+  .battle-ground-3d {
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    left: -30px;
+    top: 50px;
+    transform: rotateX(60deg) translateZ(0);
+    transform-origin: 50% 65%;
+    transform-style: preserve-3d;
+    background: 
+      /* FFTA2 Checkerboard tactical grid */
+      repeating-linear-gradient(0deg, rgba(70, 38, 20, 0.85) 0px, rgba(70, 38, 20, 0.85) 24px, rgba(50, 26, 13, 0.85) 24px, rgba(50, 26, 13, 0.85) 48px),
+      repeating-linear-gradient(90deg, rgba(212, 175, 55, 0.08) 0px, rgba(212, 175, 55, 0.08) 1px, transparent 1px, transparent 24px);
+    border: 2px solid #5a3016;
+    box-shadow: 
+      inset 0 0 50px rgba(0,0,0,0.8),
+      0 15px 30px rgba(0,0,0,0.9);
+  }
+
+  /* Hexagonal/Square Tactical Floor Highlights */
+  .battle-ground-3d::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 50% 50%, rgba(212, 175, 55, 0.15) 0%, transparent 60%),
+      radial-gradient(circle at 30% 70%, rgba(34, 197, 94, 0.12) 0%, transparent 40%),
+      radial-gradient(circle at 70% 30%, rgba(239, 68, 68, 0.14) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  /* Center Combat Clashing Line (Perspective Angle) */
+  .tactical-skirmish-line {
+    position: absolute;
+    width: 2px;
+    height: 100%;
+    left: 50%;
+    background: linear-gradient(to bottom, transparent, rgba(212, 175, 55, 0.4) 30%, rgba(255, 217, 102, 0.8) 50%, rgba(212, 175, 55, 0.4) 70%, transparent);
+    box-shadow: 0 0 6px rgba(255, 217, 102, 0.5);
+  }
+
+  /* Active Tile Highlighter */
+  .active-tile {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--c-gold-bright);
+    background: rgba(212, 175, 55, 0.25);
+    box-shadow: 0 0 10px rgba(255, 217, 102, 0.5);
+    animation: tile-pulse 1.6s infinite ease-in-out;
+  }
+  @keyframes tile-pulse {
+    0%, 100% { border-color: rgba(255, 217, 102, 0.9); background: rgba(212, 175, 55, 0.3); }
+    50% { border-color: rgba(255, 217, 102, 0.4); background: rgba(212, 175, 55, 0.1); }
+  }
+
+  /* BILLBOARD SPRITES CONTAINER (Depth sorted Y-axis) */
+  .sprites-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Combatant Entity Anchor */
+  .entity {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s;
+  }
+  .entity:hover {
+    filter: drop-shadow(0 0 4px var(--c-gold-bright));
+  }
+  .entity.selected {
+    filter: drop-shadow(0 0 6px #ffe066) brightness(1.2);
+  }
+
+  /* Ground Shadow */
+  .entity-shadow {
+    position: absolute;
+    bottom: -3px;
+    width: 22px;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 50%;
+    filter: blur(1px);
+    z-index: 1;
+  }
+
+  /* Tactical Turn / Target Cursor */
+  .cursor-arrow {
+    position: absolute;
+    top: -18px;
+    width: 10px;
+    height: 10px;
+    animation: cursor-bounce 0.8s infinite alternate ease-in-out;
+    z-index: 10;
+  }
+  @keyframes cursor-bounce {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-4px); }
+  }
+
+  /* Unit Health Micro Bar */
+  .unit-micro-hp {
+    width: 24px;
+    height: 3px;
+    background: #1a0a05;
+    border: 1px solid #36170c;
+    margin-bottom: 2px;
+    position: relative;
+    z-index: 5;
+  }
+  .unit-micro-hp-fill {
+    height: 100%;
+    background: var(--c-green-hp);
+    box-shadow: 0 0 3px rgba(34, 197, 94, 0.8);
+  }
+  .enemy-side .unit-micro-hp-fill {
+    background: var(--c-red-glow);
+    box-shadow: 0 0 3px rgba(239, 68, 68, 0.8);
+  }
+
+  /* 16x16 Pixel Art Sprite Canvas / Rendering */
+  .sprite-box {
+    position: relative;
+    z-index: 3;
+    animation: idle-breathing 1.8s infinite ease-in-out;
+  }
+  @keyframes idle-breathing {
+    0%, 100% { transform: translateY(0) scaleY(1); }
+    50% { transform: translateY(-1.5px) scaleY(1.03); }
+  }
+
+  /* Pseudo-3D Scale tiers depending on depth row */
+  /* Tier Backline (Far - Depth 1) */
+  .depth-far {
+    transform: translate(-50%, -100%) scale(1.0);
+    z-index: 12;
+    filter: brightness(0.85) contrast(0.95);
+  }
+  /* Tier Midline (Depth 2) */
+  .depth-mid {
+    transform: translate(-50%, -100%) scale(1.25);
+    z-index: 15;
+    filter: brightness(0.95);
+  }
+  /* Tier Frontline (Close - Depth 3) */
+  .depth-front {
+    transform: translate(-50%, -100%) scale(1.55);
+    z-index: 20;
+    filter: brightness(1.1);
+  }
+
+  /* Facing directions */
+  .ally-side {
+    /* Faces right */
+  }
+  .enemy-side {
+    /* Faces left */
+    transform: translate(-50%, -100%) scaleX(-1);
+  }
+  .enemy-side .unit-micro-hp,
+  .enemy-side .cursor-arrow,
+  .enemy-side .combat-tag {
+    transform: scaleX(-1);
+  }
+
+  /* Tactical Floating Popups */
+  .damage-popup {
+    position: absolute;
+    top: -24px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+    animation: float-damage 1.5s infinite ease-out;
+    pointer-events: none;
+    z-index: 25;
+  }
+  .damage-popup.crit {
+    color: #ff3b30;
+    font-size: 10px;
+    text-shadow: 0 0 5px #ff0055, 1px 1px 0 #000;
+  }
+  .damage-popup.heal {
+    color: #4ade80;
+    text-shadow: 0 0 5px #22c55e, 1px 1px 0 #000;
+  }
+  @keyframes float-damage {
+    0% { opacity: 0; transform: translateY(6px) scale(0.8); }
+    20% { opacity: 1; transform: translateY(-4px) scale(1.1); }
+    80% { opacity: 0.9; transform: translateY(-16px) scale(1.0); }
+    100% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+  }
+
+  /* Depth Gradient & Vignette on Arena Bottom */
+  .arena-floor-vignette {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: linear-gradient(to bottom, transparent 0%, rgba(12, 6, 4, 0.7) 60%, #120905 100%);
+    pointer-events: none;
+    z-index: 22;
+  }
+
+  /* BATTLE ACTION BAR & TACTICAL MENU TRAY (196px = 49u) */
+  .tactical-hud {
+    height: 196px;
+    background: #190e08;
+    border-top: 2px solid #542d17;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    padding: 6px 8px 8px 8px;
+    z-index: 35;
+    position: relative;
+  }
+
+  /* Active Turn Combatant Banner */
+  .turn-banner {
+    background: #25140b;
+    border: 2px solid #542d17;
+    border-top-color: #6d391c;
+    border-left-color: #6d391c;
+    border-bottom-color: #110804;
+    border-right-color: #110804;
+    padding: 3px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  .turn-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .turn-sprite-avatar {
+    width: 22px;
+    height: 22px;
+    background: #140904;
+    border: 1px solid #7c4420;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .turn-name-group {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+  .turn-name {
+    font-size: 14px;
+    color: var(--c-gold-bright);
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .turn-class {
+    font-size: 11px;
+    color: var(--c-amber);
+    margin-top: 1px;
+  }
+  .turn-stats-preview {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+  }
+  .stat-pill.hp { color: #4ade80; }
+  .stat-pill.mp { color: #60a5fa; }
+  .stat-pill.tp { color: #f59e0b; }
+
+  /* 2x2 Tactical Command Button Grid (FFTA2 Style 148x40 approx) */
+  .command-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 40px 40px;
+    gap: 4px;
+    margin-bottom: 5px;
+  }
+
+  .tactical-btn {
+    background: #2c180e;
+    border: 2px solid #5a3018;
+    border-top-color: #8c4c24;
+    border-left-color: #8c4c24;
+    border-bottom-color: #120703;
+    border-right-color: #120703;
+    color: var(--c-gold);
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    gap: 6px;
+    cursor: pointer;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    position: relative;
+    outline: none;
+    transition: background 0.1s, transform 0.05s;
+  }
+  .tactical-btn:hover {
+    background: #3c2113;
+    color: var(--c-gold-bright);
+    border-top-color: #aa5c2d;
+    border-left-color: #aa5c2d;
+  }
+  .tactical-btn:active, .tactical-btn.active {
+    background: #1f1009;
+    border-top-color: #120703;
+    border-left-color: #120703;
+    border-bottom-color: #8c4c24;
+    border-right-color: #8c4c24;
+    transform: translateY(1px);
+    color: #ffda73;
+  }
+  .tactical-btn.btn-attack {
+    border-left: 3px solid #dc2626;
+  }
+  .tactical-btn.btn-magic {
+    border-left: 3px solid #3b82f6;
+  }
+  .tactical-btn.btn-item {
+    border-left: 3px solid #22c55e;
+  }
+  .tactical-btn.btn-tactics {
+    border-left: 3px solid #d4af37;
+  }
+
+  .tactical-btn .btn-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+  .tactical-btn .btn-sub {
+    margin-left: auto;
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    color: var(--c-amber);
+    opacity: 0.8;
+  }
+
+  /* Bottom Telemetry & Utility Bar (28px) */
+  .telemetry-bar {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #140804;
+    border: 1px solid #3d2010;
+    padding: 0 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+  }
+
+  .auto-toggle-btn {
+    background: #27401c;
+    border: 1px solid #4a7732;
+    color: #86efac;
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    padding: 1px 7px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .auto-toggle-btn:hover {
+    background: #335424;
+  }
+  .auto-toggle-btn.running {
+    background: #166534;
+    color: #bbf7d0;
+    box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+  }
+
+  .perspective-mode-btn {
+    background: #2d1b10;
+    border: 1px solid #5a341b;
+    color: var(--c-gold);
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    padding: 1px 6px;
+    cursor: pointer;
+  }
+  .perspective-mode-btn:hover {
+    background: #422615;
+    color: #fff;
+  }
+
+  .telemetry-metrics {
+    color: #9ca3af;
+    display: flex;
+    gap: 6px;
+  }
+  .metric-val {
+    color: var(--c-gold-bright);
+    font-weight: bold;
+  }
+  .metric-fps {
+    color: #4ade80;
+  }
+
+  /* SVG Pixel Art Sprites Inline Rendering */
+  .pixel-art-svg {
+    width: 28px;
+    height: 28px;
+    image-rendering: pixelated;
+  }
+
+  /* Depth Legend Badge on Screen */
+  .view-badge {
+    position: absolute;
+    top: 54px;
+    left: 8px;
+    background: rgba(22, 11, 6, 0.85);
+    border: 1px solid #5a3016;
+    padding: 2px 6px;
+    font-size: 11px;
+    color: var(--c-gold);
+    letter-spacing: 0.5px;
+    z-index: 28;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    backdrop-filter: blur(2px);
+  }
+  .view-badge .dot {
+    width: 5px;
+    height: 5px;
+    background: #22c55e;
+    border-radius: 50%;
+    box-shadow: 0 0 4px #22c55e;
+  }
+
+  .turn-order-strip {
+    position: absolute;
+    top: 54px;
+    right: 8px;
+    display: flex;
+    gap: 3px;
+    background: rgba(22, 11, 6, 0.85);
+    border: 1px solid #5a3016;
+    padding: 2px 4px;
+    z-index: 28;
+  }
+  .order-chip {
+    width: 14px;
+    height: 14px;
+    border: 1px solid #733c1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-family: 'Space Mono', monospace;
+    background: #1c0e07;
+  }
+  .order-chip.current {
+    border-color: var(--c-gold-bright);
+    background: #543315;
+    color: #fff;
+    box-shadow: 0 0 4px var(--c-gold-bright);
+  }
+  .order-chip.enemy {
+    border-color: #991b1b;
+    background: #450a0a;
+    color: #fca5a5;
+  }
+</style>
+</head>
+<body>
+
+<div class="viewport-320x640" id="gameCanvas">
+  <!-- Scanline filter overlay -->
+  <div class="scanlines"></div>
+
+  <!-- PERSISTENT TOP STATUS BAR (48px) -->
+  <header class="top-bar">
+    <div class="nav-btn" title="Tactical Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <div class="top-center">
+      <div class="location-badge">
+        <span>EL FERGEL</span>
+        <span class="sub-tag">TACTICAL</span>
+      </div>
+      <div class="location-subline">
+        <span>● ROUND 3</span>
+        <span>|</span>
+        <span>ACT: 08</span>
+        <span>|</span>
+        <span>🌾 DEEP RUINS</span>
+      </div>
+    </div>
+
+    <div class="engine-status">
+      <div>RPG-TS</div>
+      <div>SAVE: <span class="ok">OK</span></div>
+    </div>
+  </header>
+
+  <!-- BATTLE ARENA VIEWPORT (396px) -->
+  <main class="battle-viewport" id="arena">
+    <!-- Atmospheric Parallax Wall -->
+    <div class="backdrop-wall"></div>
+
+    <!-- Floating atmospheric particles/embers -->
+    <div class="ember" style="left: 15%; animation-delay: 0s;"></div>
+    <div class="ember" style="left: 45%; animation-delay: 2.2s;"></div>
+    <div class="ember" style="left: 78%; animation-delay: 4.1s;"></div>
+    <div class="ember" style="left: 88%; animation-delay: 1.5s;"></div>
+
+    <!-- Mode Badge -->
+    <div class="view-badge">
+      <span class="dot"></span>
+      <span>ISOMETRIC 2.5D ARENA</span>
+    </div>
+
+    <!-- Turn Order mini-strip -->
+    <div class="turn-order-strip" title="Turn Queue Order">
+      <div class="order-chip current">1</div>
+      <div class="order-chip">2</div>
+      <div class="order-chip enemy">3</div>
+      <div class="order-chip">4</div>
+      <div class="order-chip enemy">5</div>
+    </div>
+
+    <!-- 3D TILTED BATTLE GROUND -->
+    <div class="battle-ground-3d" id="ground3D">
+      <div class="tactical-skirmish-line"></div>
+      
+      <!-- Active highlighted battle cell under Naoufal -->
+      <div class="active-tile" style="left: 100px; top: 215px;"></div>
+      <!-- Targeted Enemy cell under Orc/Goblin -->
+      <div class="active-tile" style="left: 232px; top: 135px; border-color: #ef4444; background: rgba(239, 68, 68, 0.25);"></div>
+    </div>
+
+    <!-- BILLBOARD COMBATANT SPRITES LAYER -->
+    <div class="sprites-layer">
+
+      <!-- ================= ALLY SQUAD (LEFT WING - 3 DEPTH TIERS) ================= -->
+
+      <!-- 1. BACKLINE (Depth 1 - FAR): Arturo (Healer) -->
+      <!-- Coords: X: 48px, Y: 155px -->
+      <div class="entity ally-side depth-far" style="left: 54px; top: 165px;" onclick="selectCombatant('Arturo', '✨ Healer', 420, 520, 180, 200, 45, 12, this)">
+        <div class="entity-shadow"></div>
+        <div class="unit-micro-hp"><div class="unit-micro-hp-fill" style="width: 82%;"></div></div>
+        <div class="sprite-box">
+          <!-- 16x16 Pixel Healer Sprite -->
+          <svg class="pixel-art-svg" viewBox="0 0 16 16" fill="none">
+            <!-- Robe & Hood -->
+            <rect x="6" y="2" width="4" height="4" fill="#38bdf8"/>
+            <rect x="7" y="4" width="2" height="2" fill="#ffd199"/>
+            <rect x="5" y="6" width="6" height="8" fill="#0284c7"/>
+            <rect x="6" y="8" width="4" height="6" fill="#f8fafc"/>
+            <!-- Golden Staff -->
+            <rect x="12" y="1" width="1" height="13" fill="#eab308"/>
+            <rect x="11" y="2" width="3" height="1" fill="#facc15"/>
+            <rect x="11" y="0" width="3" height="1" fill="#fef08a"/>
+            <!-- Shadow feet -->
+            <rect x="6" y="14" width="2" height="1" fill="#082f49"/>
+            <rect x="9" y="14" width="2" height="1" fill="#082f49"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 2. MIDLINE (Depth 2 - MID): Player / Swordsman -->
+      <!-- Coords: X: 75px, Y: 220px -->
+      <div class="entity ally-side depth-mid" style="left: 78px; top: 228px;" onclick="selectCombatant('Player', '⚔ Soldier', 890, 890, 45, 80, 115, 38, this)">
+        <div class="entity-shadow"></div>
+        <div class="unit-micro-hp"><div class="unit-micro-hp-fill" style="width: 100%;"></div></div>
+        <div class="sprite-box">
+          <!-- 16x16 Pixel Soldier / Player Sprite -->
+          <svg class="pixel-art-svg" viewBox="0 0 16 16" fill="none">
+            <!-- Helmet / Hair -->
+            <rect x="6" y="2" width="5" height="3" fill="#94a3b8"/>
+            <rect x="7" y="5" width="3" height="2" fill="#ffd199"/>
+            <!-- Armor Body -->
+            <rect x="5" y="7" width="6" height="5" fill="#475569"/>
+            <rect x="7" y="8" width="2" height="4" fill="#cbd5e1"/>
+            <!-- Wooden/Iron Shield -->
+            <rect x="3" y="7" width="2" height="6" fill="#b45309"/>
+            <rect x="3" y="9" width="2" height="2" fill="#d97706"/>
+            <!-- Steel Sword -->
+            <rect x="12" y="4" width="1" height="9" fill="#f1f5f9"/>
+            <rect x="11" y="9" width="3" height="1" fill="#d4af37"/>
+            <rect x="12" y="13" width="1" height="2" fill="#78350f"/>
+            <!-- Boots -->
+            <rect x="6" y="13" width="2" height="2" fill="#1e293b"/>
+            <rect x="9" y="13" width="2" height="2" fill="#1e293b"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 3. FRONTLINE (Depth 3 - CLOSE - ACTIVE TURN): Naoufal (Tactical Archer) -->
+      <!-- Coords: X: 110px, Y: 298px -->
+      <div class="entity ally-side depth-front selected" id="activeUnit" style="left: 115px; top: 302px;" onclick="selectCombatant('Naoufal Prieto', '🏹 Elite Archer', 520, 640, 95, 120, 142, 65, this)">
+        <!-- Turn Selector Arrow -->
+        <svg class="cursor-arrow" viewBox="0 0 10 10">
+          <polygon points="5,10 0,2 10,2" fill="#ffd966" stroke="#946200" stroke-width="1"/>
+        </svg>
+        <div class="entity-shadow"></div>
+        <div class="unit-micro-hp"><div class="unit-micro-hp-fill" style="width: 81%;"></div></div>
+        
+        <!-- Live Floating Action Pop-up -->
+        <div class="damage-popup heal">+85</div>
+
+        <div class="sprite-box">
+          <!-- 16x16 Pixel Archer Sprite -->
+          <svg class="pixel-art-svg" viewBox="0 0 16 16" fill="none">
+            <!-- Green Archer Cap & Feather -->
+            <rect x="6" y="1" width="5" height="4" fill="#15803d"/>
+            <rect x="11" y="0" width="2" height="2" fill="#dc2626"/>
+            <rect x="7" y="4" width="3" height="2" fill="#ffd199"/>
+            <!-- Leather Tunic -->
+            <rect x="6" y="6" width="5" height="6" fill="#854d0e"/>
+            <rect x="7" y="7" width="3" height="5" fill="#166534"/>
+            <!-- Bow Drawn -->
+            <rect x="3" y="3" width="1" height="9" fill="#a16207"/>
+            <rect x="4" y="2" width="1" height="1" fill="#ca8a04"/>
+            <rect x="4" y="12" width="1" height="1" fill="#ca8a04"/>
+            <rect x="4" y="4" width="1" height="7" fill="#f8fafc"/>
+            <!-- Arrow Nocked -->
+            <rect x="4" y="7" width="7" height="1" fill="#e2e8f0"/>
+            <rect x="11" y="6" width="1" height="3" fill="#cbd5e1"/>
+            <!-- Boots -->
+            <rect x="6" y="13" width="2" height="2" fill="#451a03"/>
+            <rect x="9" y="13" width="2" height="2" fill="#451a03"/>
+          </svg>
+        </div>
+      </div>
+
+
+      <!-- ================= ENEMY SQUAD (RIGHT WING - 3 DEPTH TIERS) ================= -->
+
+      <!-- 4. ENEMY BACKLINE (Depth 1 - FAR): Dark Sorcerer -->
+      <!-- Coords: X: 260px, Y: 160px -->
+      <div class="entity enemy-side depth-far" style="left: 258px; top: 162px;" onclick="selectCombatant('Void Cultist', '🔮 Shadow Mage', 340, 480, 220, 250, 60, 8, this)">
+        <div class="entity-shadow"></div>
+        <div class="unit-micro-hp"><div class="unit-micro-hp-fill" style="width: 70%;"></div></div>
+        <div class="sprite-box">
+          <svg class="pixel-art-svg" viewBox="0 0 16 16" fill="none">
+            <!-- Purple Dark Mage Hood -->
+            <rect x="6" y="2" width="5" height="4" fill="#581c87"/>
+            <rect x="8" y="4" width="2" height="1" fill="#f43f5e"/> <!-- Glowing Eye -->
+            <rect x="5" y="6" width="7" height="8" fill="#3b0764"/>
+            <rect x="7" y="7" width="3" height="7" fill="#7e22ce"/>
+            <!-- Dark Staff with Cursed Orb -->
+            <rect x="13" y="1" width="1" height="14" fill="#312e81"/>
+            <circle cx="13.5" cy="1.5" r="2" fill="#ec4899"/>
+            <rect x="7" y="14" width="2" height="1" fill="#1e1b4b"/>
+            <rect x="10" y="14" width="2" height="1" fill="#1e1b4b"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 5. ENEMY MIDLINE (Depth 2 - MID): Armored Orc Vanguard -->
+      <!-- Coords: X: 236px, Y: 228px -->
+      <div class="entity enemy-side depth-mid" style="left: 235px; top: 230px;" onclick="selectCombatant('Bone Breaker', '🪓 Orc Marauder', 840, 1100, 10, 40, 95, 25, this)">
+        <div class="entity-shadow"></div>
+        <div class="unit-micro-hp"><div class="unit-micro-hp-fill" style="width: 76%;"></div></div>
+        
+        <!-- Live Floating Action Pop-up -->
+        <div class="damage-popup crit" style="top: -28px;">-240!</div>
+
+        <div class="sprite-box">
+          <svg class="pixel-art-svg" viewBox="0 0 16 16" fill="none">
+            <!-- Horned Helmet -->
+            <rect x="5" y="2" width="6" height="4" fill="#713f12"/>
+            <rect x="4" y="1" width="2" height="2" fill="#fef08a"/>
+            <rect x="11" y="1" width="2" height="2" fill="#fef08a"/>
+            <rect x="7" y="5" width="3" height="2" fill="#15803d"/> <!-- Green Orc Skin -->
+            <!-- Heavy Spiked Armor -->
+            <rect x="5" y="7" width="7" height="6" fill="#3f3f46"/>
+            <rect x="6" y="8" width="5" height="4" fill="#b91c1c"/>
+            <!-- Great Battle Axe -->
+            <rect x="2" y="3" width="2" height="12" fill="#78350f"/>
+            <rect x="1" y="4" width="4" height="4" fill="#e2e8f0"/>
+            <rect x="0" y="5" width="1" height="2" fill="#94a3b8"/>
+            <!-- Boots -->
+            <rect x="6" y="13" width="2" height="2" fill="#18181b"/>
+            <rect x="9" y="13" width="2" height="2" fill="#18181b"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 6. ENEMY FRONTLINE (Depth 3 - CLOSE): Shadow Rogue / Beast -->
+      <!-- Coords: X: 200px, Y: 304px -->
+      <div class="entity enemy-side depth-front" style="left: 205px; top: 304px;" onclick="selectCombatant('Night Stalker', '🗡 Shadowblade', 380, 560, 80, 90, 130, 42, this)">
+        <div class="entity-shadow"></div>
+        <div class="unit-micro-hp"><div class="unit-micro-hp-fill" style="width: 67%;"></div></div>
+        <div class="sprite-box">
+          <svg class="pixel-art-svg" viewBox="0 0 16 16" fill="none">
+            <!-- Ninja Cowl / Mask -->
+            <rect x="6" y="3" width="5" height="3" fill="#1e293b"/>
+            <rect x="8" y="4" width="2" height="1" fill="#ef4444"/> <!-- Red Glint -->
+            <!-- Leather Garb -->
+            <rect x="5" y="6" width="6" height="6" fill="#0f172a"/>
+            <rect x="6" y="7" width="4" height="4" fill="#dc2626"/>
+            <!-- Dual Daggers -->
+            <rect x="3" y="9" width="2" height="5" fill="#e2e8f0"/>
+            <rect x="12" y="9" width="2" height="5" fill="#e2e8f0"/>
+            <!-- Tabi boots -->
+            <rect x="6" y="13" width="2" height="2" fill="#020617"/>
+            <rect x="9" y="13" width="2" height="2" fill="#020617"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Vignette -->
+    <div class="arena-floor-vignette"></div>
+  </main>
+
+  <!-- TACTICAL ACTION HUD & FFTA2 COMMAND BUTTON TRAY (196px) -->
+  <footer class="tactical-hud">
+    <!-- Active Turn Combatant Status Bar -->
+    <div class="turn-banner" id="turnBanner">
+      <div class="turn-left">
+        <div class="turn-sprite-avatar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="6" y="2" width="5" height="4" fill="#15803d"/>
+            <rect x="7" y="5" width="3" height="2" fill="#ffd199"/>
+            <rect x="6" y="7" width="5" height="6" fill="#166534"/>
+          </svg>
+        </div>
+        <div class="turn-name-group">
+          <div class="turn-name" id="hudName">Naoufal Prieto <span style="color:#22c55e; font-size:11px;">[TURN]</span></div>
+          <div class="turn-class" id="hudClass">🏹 Elite Archer · LV. 14</div>
+        </div>
+      </div>
+
+      <div class="turn-stats-preview">
+        <div class="stat-pill hp" id="hudHP">HP 520/640</div>
+        <div class="stat-pill mp" id="hudMP">MP 95/120</div>
+      </div>
+    </div>
+
+    <!-- 2x2 Tactical Parchment Action Grid (154x40 px per button) -->
+    <div class="command-grid">
+      <!-- Attack Button -->
+      <button class="tactical-btn btn-attack active" onclick="triggerAction('ATTACK')">
+        <span class="btn-icon">⚔</span>
+        <span>ATTACK</span>
+        <span class="btn-sub">100% HIT</span>
+      </button>
+
+      <!-- Magic / Skills Button -->
+      <button class="tactical-btn btn-magic" onclick="triggerAction('SKILL')">
+        <span class="btn-icon">⚡</span>
+        <span>SKILLS</span>
+        <span class="btn-sub">6 AP</span>
+      </button>
+
+      <!-- Items Button -->
+      <button class="tactical-btn btn-item" onclick="triggerAction('ITEM')">
+        <span class="btn-icon">🧪</span>
+        <span>BAG</span>
+        <span class="btn-sub">x4 POTION</span>
+      </button>
+
+      <!-- Move / Tactics Button -->
+      <button class="tactical-btn btn-tactics" onclick="triggerAction('DEFEND')">
+        <span class="btn-icon">🛡</span>
+        <span>DEFEND</span>
+        <span class="btn-sub">+25% DEF</span>
+      </button>
+    </div>
+
+    <!-- Bottom Telemetry & Controls Tray (28px) -->
+    <div class="telemetry-bar">
+      <button class="auto-toggle-btn" id="autoBtn" onclick="toggleAuto()">
+        <span>▶</span> <span>AUTO</span>
+      </button>
+
+      <button class="perspective-mode-btn" onclick="toggleTilt()">
+        <span>⟳ 3D TILT</span>
+      </button>
+
+      <div class="telemetry-metrics">
+        <span>TICK: <span class="metric-val" id="tickVal">184</span></span>
+        <span>|</span>
+        <span class="metric-fps">60 FPS</span>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script>
+  let isAuto = false;
+  let tick = 184;
+  let tilted = true;
+
+  // Real-time tick engine runner
+  setInterval(() => {
+    tick++;
+    document.getElementById('tickVal').innerText = tick;
+
+    if (isAuto && Math.random() > 0.6) {
+      simulateCombatPulse();
+    }
+  }, 400);
+
+  function toggleAuto() {
+    isAuto = !isAuto;
+    const btn = document.getElementById('autoBtn');
+    if (isAuto) {
+      btn.classList.add('running');
+      btn.innerHTML = '<span>❚❚</span> <span>PAUSE</span>';
+    } else {
+      btn.classList.remove('running');
+      btn.innerHTML = '<span>▶</span> <span>AUTO</span>';
+    }
+  }
+
+  function toggleTilt() {
+    tilted = !tilted;
+    const ground = document.getElementById('ground3D');
+    if (tilted) {
+      ground.style.transform = 'rotateX(60deg) translateZ(0)';
+    } else {
+      ground.style.transform = 'rotateX(45deg) translateZ(0)';
+    }
+  }
+
+  function selectCombatant(name, job, hp, maxHp, mp, maxMp, phys, mag, el) {
+    document.querySelectorAll('.entity').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+
+    document.getElementById('hudName').innerHTML = `${name} <span style="color:#ffd966; font-size:11px;">[INFO]</span>`;
+    document.getElementById('hudClass').innerText = `${job} · DMG ${phys}`;
+    document.getElementById('hudHP').innerText = `HP ${hp}/${maxHp}`;
+    document.getElementById('hudMP').innerText = `MP ${mp}/${maxMp}`;
+  }
+
+  function triggerAction(actionName) {
+    const pop = document.createElement('div');
+    pop.className = 'damage-popup crit';
+    pop.style.left = '210px';
+    pop.style.top = '270px';
+    pop.innerText = actionName === 'ATTACK' ? 'CRIT 312!' : (actionName === 'SKILL' ? 'ARCANE 450!' : '+150 HP');
+    document.getElementById('arena').appendChild(pop);
+
+    setTimeout(() => {
+      pop.remove();
+    }, 1400);
+  }
+
+  function simulateCombatPulse() {
+    const enemies = document.querySelectorAll('.enemy-side');
+    const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+    if (randomEnemy) {
+      const rect = randomEnemy.getBoundingClientRect();
+      const arenaRect = document.getElementById('arena').getBoundingClientRect();
+      
+      const pop = document.createElement('div');
+      pop.className = 'damage-popup';
+      pop.style.left = (rect.left - arenaRect.left + 15) + 'px';
+      pop.style.top = (rect.top - arenaRect.top) + 'px';
+      pop.innerText = '-' + (Math.floor(Math.random() * 80) + 40);
+      document.getElementById('arena').appendChild(pop);
+      setTimeout(() => pop.remove(), 1200);
+    }
+  }
+</script>
+
+</body>
+</html>

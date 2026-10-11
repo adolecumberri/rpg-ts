@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RPG-TS · Combat Forecast: HIT &amp; Matchup View</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&family=VT323&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ------------------------------------------------------------------
+     Combat Forecast: HIT & Matchup View — FFTA2 dark tactical
+     parchment. Grid rhythm: --u = 4px. Zero external assets (inline
+     SVG). No damage prediction: damage must be processed, so the view
+     only previews the HIT chance, the two combatants and the damage
+     TYPE. The HIT wordmark and the 210px arrow follow the
+     code_with_arrow reference (proportional fill through the tip,
+     permanent gilded borders, 100% crit radiance).
+  ------------------------------------------------------------------ */
+    :root {
+      --u: 4px;
+      --card: #251911;
+      /* card surface */
+      --bevel-top: #3a2618;
+      /* inner bevel light edge */
+      --bevel-bottom: #100a06;
+      /* inner bevel dark edge */
+      --text: #f3e7be;
+      /* creamy parchment */
+      --gold: #d4af37;
+      --ally-hp: #4ade80;
+      --enemy-hp: #f87171;
+      --mana: #60a5fa;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      image-rendering: pixelated;
+      -webkit-font-smoothing: none;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
+    }
+
+    body {
+      background: #0b0503;
+      /* demo backdrop only */
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'VT323', monospace;
+    }
+
+    .viewport {
+      width: 320px;
+      padding: 8px;
+      /* 2u */
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      /* 2u */
+    }
+
+    /* ==================================================================
+     SECTION A — the HIT gauge (the code_with_arrow reference)
+     Transparent background: only the wordmark, the arrow and the
+     readout float over whatever hosts the component.
+  ================================================================== */
+    .hit-gauge-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      /* 1u */
+      padding: 6px 8px;
+      /* 1.5u / 2u */
+      background: transparent;
+      transition: filter 0.25s ease;
+    }
+
+    /* 100% Critical Hit Glow Animation */
+    @keyframes crit-radiance {
+
+      0%,
+      100% {
+        filter: drop-shadow(0 0 4px #eab308) drop-shadow(0 0 10px rgba(250, 204, 21, 0.65));
+      }
+
+      50% {
+        filter: drop-shadow(0 0 8px #facc15) drop-shadow(0 0 18px rgba(254, 240, 138, 0.95));
+      }
+    }
+
+    .hit-gauge-container.is-max-hit {
+      animation: crit-radiance 1.2s ease-in-out infinite alternate;
+    }
+
+    /* The HIT row: the 3D-extruded slanted wordmark + the arrow stage. */
+    .hit-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      /* 2u */
+    }
+
+    /* 3D Extruded Slanted HIT Typography (two-layer extrusion). */
+    .hit-logo {
+      flex: none;
+      font-family: 'Press Start 2P', monospace;
+      font-style: italic;
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1;
+      transform: skewX(-16deg);
+      color: rgb(255, 230, 153);
+      text-shadow:
+        rgb(230, 161, 0) 0 1px 0,
+        rgb(158, 91, 0) 1px 2px 0,
+        rgb(74, 39, 0) 1px 3px 0,
+        rgb(31, 15, 0) 2px 4px 0;
+      transition: color 0.2s, text-shadow 0.2s;
+      position: absolute;
+      font-size: 14px;
+      z-index: 4;
+      margin-left: 46px;
+      margin-top: 0px;
+    }
+
+    .hit-logo::before {
+      content: "HIT";
+      position: absolute;
+      inset: 0;
+      color: #170c05;
+      transform: translate(2px, 3px);
+      filter: blur(0.5px);
+      text-shadow: 1px 1px 0 #000, 2px 2px 0 #000, 3px 3px 0 #000;
+      z-index: -1;
+    }
+
+    .hit-gauge-container.is-max-hit .hit-logo {
+      color: #ffffff;
+      text-shadow:
+        0 0 10px #facc15,
+        0 1px 0 #ffe088,
+        1px 2px 0 #d97706,
+        2px 3px 0 #78350f;
+    }
+
+    /* The arrow vector stage (210px x 34px). */
+    .hit-arrow {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      transition: filter 0.3s;
+    }
+
+    .hit-arrow-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+      width: 160px;
+      height: 36px;
+      overflow: visible;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+      margin-left: 60px;
+    }
+
+    /* Numerical readouts: the big percentage + the damage type. */
+    .hit-readout {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      position: absolute;
+      /* 2u */
+    }
+
+    .hit-acc {
+      font-family: 'Space Mono', monospace;
+      font-size: 15px;
+      font-weight: bold;
+      color: #f6ded1;
+      text-shadow: 1px 1px 0 #000, 2px 2px 0 #3c2f00;
+      position: absolute;
+      margin: 16px 0px 0px 64px;
+
+      font-size: 20px;
+    }
+
+    .hit-acc .pct {
+      font-size: 10px;
+      color: #d0c5af;
+    }
+
+    /* The damage number, colored by its composition: pure kinds get
+     their kind color (physical red, magical blue, true white); hybrid
+     mixes get their own mix color. */
+    .hit-dmg {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    .hit-dmg--physical {
+      color: #f87171;
+    }
+
+    .hit-dmg--magical {
+      color: #60a5fa;
+    }
+
+    .hit-dmg--true {
+      color: #ffffff;
+    }
+
+    .hit-dmg--physical-magical {
+      color: #c084fc;
+    }
+
+    .hit-dmg--physical-true {
+      color: #fb923c;
+    }
+
+    .hit-dmg--magical-true {
+      color: #2dd4bf;
+    }
+
+    .hit-dmg--physical-magical-true {
+      color: #facc15;
+    }
+
+    .pop {
+      animation: pop 0.35s ease-out;
+    }
+
+    @keyframes pop {
+      0% {
+        transform: scale(0.8);
+        opacity: 0.4;
+      }
+
+      60% {
+        transform: scale(1.15);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    /* ==================================================================
+     SECTION B — dual combatant matchup cards (identical layout on
+     both sides: name, level, HP gauge, MANA gauge)
+  ================================================================== */
+    .matchup {
+      display: flex;
+      align-items: stretch;
+      gap: 4px;
+      /* 1u */
+    }
+
+    .combatant {
+      flex: 1;
+      min-width: 0;
+      background: var(--card);
+      border-top: 2px solid var(--bevel-top);
+      border-left: 2px solid var(--bevel-top);
+      border-right: 2px solid var(--bevel-bottom);
+      border-bottom: 2px solid var(--bevel-bottom);
+      box-shadow: inset 0 0 0 1px #000;
+      padding: 8px;
+      /* 2u */
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      /* 1u */
+    }
+
+    .combatant-head {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      font-size: 13px;
+      color: var(--text);
+      text-shadow: 1px 1px 0 #000;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .combatant-head .name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .combatant-head .lvl {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      color: var(--gold);
+    }
+
+    .combatant .dot {
+      flex: none;
+      color: var(--ally-hp);
+    }
+
+    .combatant.enemy .dot {
+      color: var(--enemy-hp);
+    }
+
+    .gauge {
+      position: relative;
+      height: 12px;
+      /* 3u */
+      background: #0d0705;
+      border: 1px solid #000;
+      overflow: hidden;
+    }
+
+    .gauge .fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      transition: width 0.35s ease-out;
+    }
+
+    .gauge--hp .fill {
+      background: var(--ally-hp);
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .combatant.enemy .gauge--hp .fill {
+      background: var(--enemy-hp);
+    }
+
+    .gauge--mana .fill {
+      background: var(--mana);
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25), inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    .gauge-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 1px 1px 0 #000;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="viewport">
+    <!-- ================ SECTION A: HIT gauge ================ -->
+    <div id="hitWidget" class="hit-gauge-container">
+      <div class="hit-row">
+        <span class="hit-logo" id="hitLogo">HIT</span>
+        <div class="hit-arrow" id="arrowWrapper">
+          <svg class="hit-arrow-svg" viewBox="0 0 210 34" preserveAspectRatio="none">
+            <defs>
+              <!-- Continuous 5-stop vibrant spectrum -->
+              <linearGradient id="ffta-vibrant-spectrum" x1="0%" x2="100%" y1="50%" y2="50%">
+                <stop offset="0%" stop-color="#3249c8"></stop>
+                <stop offset="22%" stop-color="#1d78f2"></stop>
+                <stop offset="48%" stop-color="#06b6d4"></stop>
+                <stop offset="76%" stop-color="#84cc16"></stop>
+                <stop offset="100%" stop-color="#facc15"></stop>
+              </linearGradient>
+
+              <!-- Dynamic fill clip: proportionally spans 0px to 210px -->
+              <clipPath id="fill-meter-clip">
+                <rect height="34" id="clip-rect" width="184.8" x="0" y="0"></rect>
+              </clipPath>
+
+              <!-- Arrow silhouette: body x 4..172, head base 172, tip vertex 208 -->
+              <path d="M 12 5 L 162 5 L 162 0 L 208 17 L 162 34 L 162 30 L 5 30 L 12 5 Z" id="arrow-contour"></path>
+              <!-- Distinct arrowhead contour for the divider line -->
+              <polygon id="arrowhead-shape" points="172,0 208,17 172,34"></polygon>
+            </defs>
+
+            <!-- Outer 3D drop edge shadow -->
+            <path d="M 14 7 L 174 7 L 174 3 L 210 20 L 174 37 L 174 33 L 6 33 Z" fill="#140a04" opacity="0.8"></path>
+
+            <!-- Dark track background (empty sunken silhouette) -->
+            <use fill="#170c05" href="#arrow-contour"></use>
+
+            <!-- Grid & track markings -->
+            <g opacity="0.3">
+              <line stroke="#99907c" stroke-dasharray="2 2" stroke-width="1" x1="45" x2="45" y1="5" y2="29"></line>
+              <line stroke="#99907c" stroke-dasharray="2 2" stroke-width="1" x1="90" x2="90" y1="5" y2="29"></line>
+              <line stroke="#99907c" stroke-dasharray="2 2" stroke-width="1" x1="135" x2="135" y1="5" y2="29"></line>
+            </g>
+
+            <!-- Active meter fill, masked smoothly into the tip -->
+            <g clip-path="url(#fill-meter-clip)">
+              <use fill="url(#ffta-vibrant-spectrum)" href="#arrow-contour"></use>
+              <!-- Specular glint highlight along the top edge -->
+            </g>
+
+            <!-- Permanent crisp gilded bevel border -->
+            <use fill="none" href="#arrow-contour" id="arrow-contour-outline" stroke="#d4af37" stroke-width="1.8"></use>
+            <use fill="none" href="#arrow-contour" opacity="0.5" stroke="#ffd875" stroke-width="0.8"></use>
+            <!-- 100% radiance pulse overlay -->
+            <use fill="none" href="#arrow-contour" id="crit-vector-glow" opacity="0" stroke="#ffffff" stroke-width="2">
+            </use>
+          </svg>
+        </div>
+        <div class="hit-readout">
+
+          <span class="hit-acc"><span id="readout-acc-val" class="pop">88</span><span class="pct">%</span></span><span
+            class="hit-dmg hit-dmg--magical-physical" id="dmgVal">124</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================ SECTION B: dual matchup cards ================ -->
+    <div class="matchup">
+      <div class="combatant ally">
+        <div class="combatant-head">
+          <span class="dot">●</span>
+          <span class="name" id="attackerName">N. PRIETO</span>
+          <span class="lvl" id="attackerLevel">Lv.14</span>
+        </div>
+        <div class="gauge gauge--hp">
+          <div class="fill" id="attackerHpFill" style="width: 100%;"></div>
+          <span class="gauge-text" id="attackerHpText">HP 520/520</span>
+        </div>
+        <div class="gauge gauge--mana">
+          <div class="fill" id="attackerManaFill" style="width: 66.6%;"></div>
+          <span class="gauge-text" id="attackerManaText">MANA 20/30</span>
+        </div>
+      </div>
+
+      <div class="combatant enemy">
+        <div class="combatant-head">
+          <span class="dot">●</span>
+          <span class="name" id="defenderName">ORC VGD.</span>
+          <span class="lvl" id="defenderLevel">Lv.13</span>
+        </div>
+        <div class="gauge gauge--hp">
+          <div class="fill" id="defenderHpFill" style="width: 45%;"></div>
+          <span class="gauge-text" id="defenderHpText">HP 216/480</span>
+        </div>
+        <div class="gauge gauge--mana">
+          <div class="fill" id="defenderManaFill" style="width: 66.6%;"></div>
+          <span class="gauge-text" id="defenderManaText">MANA 20/30</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+    /**
+     * Combat Forecast: HIT & Matchup View — logic.
+     *
+     * No damage prediction: damage must be processed, so the view only
+     * previews the HIT chance (the arrow), the two combatants (name,
+     * level, HP, MANA) and the damage TYPE. The arrow is the FFTA2
+     * normalized gauge: body 0-172px (81.9%), tip 172-210px (18.1%);
+     * the fill advances continuously through the tip, borders stay
+     * visible at every value, and 100% lights the whole widget up.
+     */
+
+    /** @typedef {{ name: string, level: number, currentHp: number, maxHp: number, currentMana: number, maxMana: number, isAlly: boolean }} Combatant */
+
+    var attacker = { name: 'N. Prieto', level: 14, currentHp: 520, maxHp: 520, currentMana: 20, maxMana: 30, isAlly: true };
+    var defender = { name: 'Orc Vanguard', level: 13, currentHp: 216, maxHp: 480, currentMana: 20, maxMana: 30, isAlly: false };
+
+    var hitWidget = document.getElementById('hitWidget');
+    var arrowWrapper = document.getElementById('arrowWrapper');
+    var clipRect = document.getElementById('clip-rect');
+    var accVal = document.getElementById('readout-acc-val');
+    var dmgVal = document.getElementById('dmgVal');
+    var contourOutline = document.getElementById('arrow-contour-outline');
+    var critGlow = document.getElementById('crit-vector-glow');
+
+    /** Pops the readout number so the change reads as an action. */
+    function pop(el) {
+      el.classList.remove('pop');
+      void el.offsetWidth; // reflow: restart the animation
+      el.classList.add('pop');
+    }
+
+    /**
+     * Drives the arrow gauge (the code_with_arrow controller).
+     * @param {number} accuracy 0-100
+     */
+    function updateHitMeter(accuracy) {
+      var pct = Math.max(0, Math.min(100, Number(accuracy)));
+      var widthVal = (pct / 100) * 210;
+
+      // The fill sweeps continuously across the body AND into the tip.
+      if (clipRect) clipRect.setAttribute('width', widthVal.toFixed(1));
+      if (accVal) {
+        accVal.textContent = Math.round(pct);
+        pop(accVal);
+      }
+
+      if (pct >= 100) {
+        // 100% critical hit radiance & bloom.
+        hitWidget.classList.add('is-max-hit');
+        if (critGlow) critGlow.setAttribute('opacity', '0.7');
+        if (contourOutline) {
+          contourOutline.setAttribute('stroke', '#fff088');
+          contourOutline.setAttribute('stroke-width', '2.2');
+        }
+      } else {
+        hitWidget.classList.remove('is-max-hit');
+        if (critGlow) critGlow.setAttribute('opacity', '0');
+        if (contourOutline) {
+          contourOutline.setAttribute('stroke', '#d4af37');
+          contourOutline.setAttribute('stroke-width', '1.8');
+        }
+      }
+    }
+
+    /** The damage number, colored by its composition. `kinds` holds one
+     *  or more of 'physical' | 'magical' | 'true'; each mix has its own
+     *  color (pure physical red, pure magical blue, pure true white,
+     *  hybrids their own mix). */
+    function renderDamage(damage, kinds) {
+      var list = (kinds && kinds.length ? kinds : ['physical'])
+        .map(function (kind) { return String(kind).toLowerCase(); })
+        .filter(function (kind, index, all) { return all.indexOf(kind) === index; })
+        .sort();
+      var key = list.length ? list.join('-') : 'physical';
+      dmgVal.textContent = String(damage);
+      dmgVal.className = 'hit-dmg hit-dmg--' + key;
+    }
+
+    /**
+     * Recalculates the whole forecast: the HIT gauge, the damage number
+     * (colored by its composition) and both matchup cards.
+     * @param {Combatant} a
+     * @param {Combatant} d
+     * @param {{ hitRate: number, damage: number, kinds?: string[] }} forecast
+     */
+    function updateCombatForecast(a, d, forecast) {
+      var hitRate = forecast ? forecast.hitRate : 88;
+      var damage = forecast && forecast.damage !== undefined ? forecast.damage : 124;
+      var kinds = forecast ? forecast.kinds : undefined;
+
+      updateHitMeter(hitRate);
+      renderDamage(damage, kinds);
+
+      renderCard('attacker', a);
+      renderCard('defender', d);
+    }
+
+    /** Renders one matchup card (name, level, HP and MANA gauges). */
+    function renderCard(prefix, c) {
+      document.getElementById(prefix + 'Name').textContent = c.name;
+      document.getElementById(prefix + 'Level').textContent = 'Lv.' + c.level;
+
+      var hpPct = c.maxHp > 0 ? Math.max(0, Math.min(100, (c.currentHp / c.maxHp) * 100)) : 0;
+      document.getElementById(prefix + 'HpFill').style.width = hpPct + '%';
+      document.getElementById(prefix + 'HpText').textContent = 'HP ' + c.currentHp + '/' + c.maxHp;
+
+      var manaPct = c.maxMana > 0 ? Math.max(0, Math.min(100, (c.currentMana / c.maxMana) * 100)) : 0;
+      document.getElementById(prefix + 'ManaFill').style.width = manaPct + '%';
+      document.getElementById(prefix + 'ManaText').textContent = 'MANA ' + c.currentMana + '/' + c.maxMana;
+    }
+
+    // Initial render + the public handles for external callers.
+    updateCombatForecast(attacker, defender, { hitRate: 88, damage: 124, kinds: ['physical', 'magical'] });
+    window.updateCombatForecast = updateCombatForecast;
+    window.updateHitMeter = updateHitMeter;
+  </script>
+</body>
+
+</html>

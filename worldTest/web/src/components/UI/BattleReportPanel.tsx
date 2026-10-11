@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { ReactNode } from 'react';
 import type { BattleReport, BattleFighterStats, DamageKindTotals } from '@core';
 
 export type BattleReportSide = {
@@ -52,29 +51,71 @@ function FighterDetail({ stats }: { stats: BattleFighterStats }) {
 
 type ReportSectionId = 'dealt' | 'healing' | 'taken';
 
+// A numeric cell of a row: the value and its kind color class.
+type ReportCell = {
+    value: number;
+    cls: string;
+};
+
 type ReportSection = {
     title: string;
     measure: (stats: BattleFighterStats) => number;
-    value: (stats: BattleFighterStats) => ReactNode;
+    cells: (stats: BattleFighterStats) => ReportCell[];
+    // The table column headers, same colors as the cells.
+    headers: ReportCell[];
 };
+
+const PHYS: ReportCell = { value: 0, cls: 'report-phys' };
+const MAG: ReportCell = { value: 0, cls: 'report-mag' };
+const TRUE: ReportCell = { value: 0, cls: 'report-true' };
 
 const SECTIONS: Record<ReportSectionId, ReportSection> = {
     dealt: {
         title: 'Dealt',
         measure: (stats) => totalOf(stats.damageDealt),
-        value: (stats) => <KindTotals totals={stats.damageDealt} />,
+        cells: (stats) => [
+            { ...PHYS, value: stats.damageDealt.physical },
+            { ...MAG, value: stats.damageDealt.magical },
+            { ...TRUE, value: stats.damageDealt.true },
+        ],
+        headers: [
+            { ...PHYS, value: 0, cls: 'report-phys' },
+            { ...MAG, value: 0, cls: 'report-mag' },
+            { ...TRUE, value: 0, cls: 'report-true' },
+        ],
     },
     healing: {
         title: 'Healing',
         measure: (stats) => stats.healingGiven,
-        value: (stats) => <span>{Math.round(stats.healingGiven)}</span>,
+        cells: (stats) => [{ value: stats.healingGiven, cls: 'report-heal' }],
+        headers: [{ value: 0, cls: 'report-heal' }],
     },
     taken: {
         title: 'Taken',
         measure: (stats) => totalOf(stats.damageReceived),
-        value: (stats) => <KindTotals totals={stats.damageReceived} />,
+        cells: (stats) => [
+            { ...PHYS, value: stats.damageReceived.physical },
+            { ...MAG, value: stats.damageReceived.magical },
+            { ...TRUE, value: stats.damageReceived.true },
+        ],
+        headers: [
+            { ...PHYS, value: 0, cls: 'report-phys' },
+            { ...MAG, value: 0, cls: 'report-mag' },
+            { ...TRUE, value: 0, cls: 'report-true' },
+        ],
     },
 };
+
+const HEADER_LABELS: Record<string, string> = {
+    'report-phys': 'PHYS',
+    'report-mag': 'MAG',
+    'report-true': 'TRUE',
+    'report-heal': 'HEALS',
+};
+
+// The distribution bar segment class per cell index (kinds sections
+// only; healing uses the single green segment).
+const BAR_CLASSES = ['report-bar--physical', 'report-bar--magical', 'report-bar--true'];
 
 /**
  * The post-battle stats, tabbed so the whole report fits the screen:
@@ -82,9 +123,10 @@ const SECTIONS: Record<ReportSectionId, ReportSection> = {
  *  1. Team vs team — one tab per side with the active team's totals
  *     (dealt, received, heals, kills) below.
  *  2. One tab per section — Damage dealt, Healing given, Damage taken
- *     — each showing the team's top N rows.
- *  3. Each fighter row opens the per-character detail (dealt/received
- *     by kind, heals given/received, kills).
+ *     — each with column headers (COMBATANT | PHYS | MAG | TRUE), the
+ *     team's top N rows, a damage-kind distribution bar under every
+ *     row and a TOTAL strip under the table.
+ *  3. Each fighter row opens the per-character detail.
  *
  * Fed by the BattleTracker's report.
  */
@@ -93,11 +135,13 @@ export function BattleReportPanel({
     sides,
     limit = 5,
     nameOf = (id) => id,
+    onClose,
 }: {
     report: BattleReport;
     sides: [BattleReportSide, BattleReportSide];
     limit?: number;
     nameOf?: (id: string) => string;
+    onClose?: () => void;
 }) {
     const statsById = new Map(report.map((entry) => [entry.id, entry.stats]));
     const [team, setTeam] = useState(0);
@@ -131,6 +175,36 @@ export function BattleReportPanel({
         .sort((a, b) => active.measure(b.stats) - active.measure(a.stats))
         .slice(0, limit);
 
+    // The TOTAL strip: the visible rows summed per column.
+    const columnSums: number[] = top.reduce((sums, fighter) => {
+        active.cells(fighter.stats).forEach((cell, index) => {
+            sums[index] = (sums[index] ?? 0) + cell.value;
+        });
+        return sums;
+    }, [] as number[]);
+
+    const maxHeal = section === 'healing' ?
+        Math.max(0, ...top.map((fighter) => fighter.stats.healingGiven)) :
+        0;
+
+    // The distribution bar under a row: the damage-kind share of the
+    // row's own total (healing: share of the section's top healer).
+    const barSegments = (fighter: FighterEntry): Array<{ cls: string; pct: number }> => {
+        const cells = active.cells(fighter.stats);
+        if (section === 'healing') {
+            const pct = maxHeal > 0 ? Math.round((cells[0].value / maxHeal) * 100) : 0;
+            return [{ cls: 'report-bar--heal', pct }];
+        }
+        const total = cells.reduce((sum, cell) => sum + cell.value, 0);
+        if (total <= 0) return [];
+        return cells
+            .map((cell, index) => ({
+                cls: BAR_CLASSES[index],
+                pct: Math.round((cell.value / total) * 100),
+            }))
+            .filter((segment) => segment.pct > 0);
+    };
+
     const selectTeam = (index: number) => {
         setTeam(index);
         setOpenFighter(null);
@@ -142,13 +216,18 @@ export function BattleReportPanel({
 
     return (
         <div className="pixel-panel report-panel">
-            <div className="pixel-title">BATTLE REPORT</div>
+            <div className="report-head">
+                <span className="report-title">BATTLE REPORT</span>
+                {onClose ? (
+                    <button type="button" className="report-close" onClick={onClose}>✕</button>
+                ) : null}
+            </div>
             <div className="report-tabs">
                 {sides.map((side, index) => (
                     <button
                         key={side.name}
                         type="button"
-                        className={`pixel-btn report-tab${team === index ? ' pixel-btn--primary' : ''}`}
+                        className={`pixel-btn${team === index ? ' pixel-btn--primary' : ''}`}
                         onClick={() => selectTeam(index)}
                     >
                         {side.name}
@@ -166,12 +245,22 @@ export function BattleReportPanel({
                     <button
                         key={id}
                         type="button"
-                        className={`pixel-btn report-tab--section${section === id ? ' pixel-btn--primary' : ''}`}
+                        className={`pixel-btn${section === id ? ' pixel-btn--primary' : ''}`}
                         onClick={() => selectSection(id)}
                     >
                         {SECTIONS[id].title}
                     </button>
                 ))}
+            </div>
+            <div className="report-columns">
+                <span className="report-name">COMBATANT</span>
+                <span className="report-cells">
+                    {active.headers.map((header, index) => (
+                        <span key={index} className={`report-col ${header.cls}`}>
+                            {HEADER_LABELS[header.cls]}
+                        </span>
+                    ))}
+                </span>
             </div>
             {top.length === 0 ? (
                 <div className="report-empty">Nothing to show.</div>
@@ -185,14 +274,41 @@ export function BattleReportPanel({
                                 setOpenFighter(openFighter === fighter.id ? null : fighter.id)}
                         >
                             <span className="report-name">{nameOf(fighter.id)}</span>
-                            <span className="report-cell">{active.value(fighter.stats)}</span>
+                            <span className="report-cells">
+                                {active.cells(fighter.stats).map((cell, index) => (
+                                    <span key={index} className={`report-col ${cell.cls}`}>
+                                        {Math.round(cell.value)}
+                                    </span>
+                                ))}
+                            </span>
                         </button>
+                        <div className="report-bar">
+                            {barSegments(fighter).map((segment, index) => (
+                                <span
+                                    key={index}
+                                    className={segment.cls}
+                                    style={{ width: `${segment.pct}%` }}
+                                />
+                            ))}
+                        </div>
                         {openFighter === fighter.id ? (
                             <FighterDetail stats={fighter.stats} />
                         ) : null}
                     </div>
                 ))
             )}
+            {top.length > 0 ? (
+                <div className="report-total">
+                    <span className="report-total-label">TOTAL</span>
+                    <span className="report-cells">
+                        {columnSums.map((sum, index) => (
+                            <span key={index} className={`report-col ${active.headers[index].cls}`}>
+                                {Math.round(sum)}
+                            </span>
+                        ))}
+                    </span>
+                </div>
+            ) : null}
         </div>
     );
 }

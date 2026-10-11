@@ -1,9 +1,27 @@
+import type { StoryCondition, StoryEffect } from './story';
+
 // Phrase-by-phrase dialogue: missions and events push lines, the UI
-// reveals them one at a time with a "next" tap.
+// reveals them one at a time with a "next" tap. A line may be story-
+// gated (hidden until its condition holds) and may carry player
+// choices: picking one applies its effects (flags, missions, fights).
+
+// One selectable option of a dialogue line.
+export type DialogueChoice = {
+    label: string;
+    // What choosing this option does: set flags, start missions or
+    // fights, move people... applied through the session.
+    effects: StoryEffect[];
+};
 
 export type DialogueLine = {
     speaker: string;
     text: string;
+    // The line is hidden while the condition does not hold (the
+    // session filters gated lines when it pushes them).
+    when?: StoryCondition;
+    // Player choices: when present, the UI shows the options instead
+    // of advancing on tap.
+    choices?: DialogueChoice[];
 };
 
 export class Dialogue {

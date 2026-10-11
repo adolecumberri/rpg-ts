@@ -64,7 +64,7 @@ describe('the jobs', () => {
     it('recruits learn their job skills on top of the defaults', () => {
         const session = new WorldSession({ random: () => 0.5 });
         expect(session.availableSkillIds(session.roster.character('archer_0')!)).toEqual([
-            'defend', 'fast_draw', 'weak_point',
+            'defend', 'fast_draw', 'weak_point', 'perception',
         ]);
         expect(session.availableSkillIds(session.roster.character('arturo')!)).toEqual([
             'defend', 'dispel', 'cure',
@@ -123,7 +123,7 @@ describe('job assignment', () => {
         expect(heldJobOf(soldier)).toBe(ARCHER_JOB);
 
         // The new job's skill kit follows immediately.
-        expect(session.availableSkillIds(soldier)).toEqual(['defend', 'fast_draw', 'weak_point']);
+        expect(session.availableSkillIds(soldier)).toEqual(['defend', 'fast_draw', 'weak_point', 'perception']);
 
         // Swapping back restores the original numbers.
         session.setJob('soldier_0', 'soldier');
@@ -143,10 +143,9 @@ describe('job assignment', () => {
         expect(session.roster.character('soldier_0')!.equipment.get('weapon')).toBeUndefined();
 
         // The sword is back in the shared inventory as available (the
-        // test bag seeds two swords: one worn by the player's loadout,
-        // the returned copy available again).
+        // bag was empty: the returned copy is its only one).
         const slot = session.team.inventory.getItemSlotByItemId('sword');
-        expect(slot?.totalQuantity).toBe(2);
+        expect(slot?.totalQuantity).toBe(1);
         expect(slot?.quantity).toBe(1);
 
         // Non-weapon slots stay untouched.
@@ -160,19 +159,20 @@ describe('job assignment', () => {
         const session = new WorldSession({ random: () => 0.5 });
         const player = session.team.getCharacter('player')!;
         expect(heldJobOf(player)).toBe(SOLDIER_JOB);
-        expect(player.stats.attack).toBe(7); // 4 + job 3
-        expect(player.stats.defence).toBe(3); // 1 + job 2
+        // The recruit reports at level 5: 6 + 4×2.16 (attack gain) + 3.
+        expect(player.stats.attack).toBeCloseTo(17.64, 2);
+        expect(player.stats.defence).toBeCloseTo(9.8, 2); // 3 + 4×1.2 + 2
 
         expect(session.setJob('player', 'archer').ok).toBe(true);
         expect(heldJobOf(player)).toBe(ARCHER_JOB);
-        expect(player.stats.attack).toBe(6); // 7 - 3 + 2
-        expect(player.getStat('speed')).toBe(8); // 6 + job 2
+        expect(player.stats.attack).toBeCloseTo(16.64, 2); // 17.64 - 3 + 2
+        expect(player.getStat('speed')).toBeCloseTo(7.86, 2); // 5.86 + job 2
 
         // And on to the adventurer, which carries no bonuses.
         expect(session.setJob('player', 'adventurer').ok).toBe(true);
-        expect(player.stats.attack).toBe(4);
-        expect(player.stats.defence).toBe(1);
-        expect(player.getStat('speed')).toBe(6);
+        expect(player.stats.attack).toBeCloseTo(14.64, 2);
+        expect(player.stats.defence).toBeCloseTo(7.8, 2);
+        expect(player.getStat('speed')).toBeCloseTo(5.86, 2);
     });
 
     it('persists the held job and its stats through a save', () => {
@@ -186,7 +186,7 @@ describe('job assignment', () => {
         expect(heldJobOf(swappedSoldier)).toBe(ARCHER_JOB);
         expect(swappedSoldier.stats.attack).toBe(8); // bonuses persisted
         expect(swappedSoldier.getStat('speed')).toBe(7);
-        expect(restored.availableSkillIds(swappedSoldier)).toEqual(['defend', 'fast_draw', 'weak_point']);
+        expect(restored.availableSkillIds(swappedSoldier)).toEqual(['defend', 'fast_draw', 'weak_point', 'perception']);
 
         const swappedArcher = restored.roster.character('archer_0')!;
         expect(heldJobOf(swappedArcher)).toBe(HEALER_JOB);

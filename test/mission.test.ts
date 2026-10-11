@@ -312,7 +312,7 @@ describe('unit moves and spawns', () => {
         const atHay = session.npcsAt('hay_field').map((npc) => npc.id).sort();
         expect(atHay).toEqual([
             'arturo',
-            'archer_0',
+            'healer_0',
             'reinforcements_unit_0',
             'reinforcements_unit_1',
             'reinforcements_unit_2',

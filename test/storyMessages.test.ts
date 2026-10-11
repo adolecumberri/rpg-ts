@@ -94,7 +94,7 @@ describe('character kits', () => {
         // The Order Army classes: archers harass, healers support,
         // soldiers lead. Their kits come from their character ids.
         expect(session.availableSkillIds(session.roster.character('archer_0')!)).toEqual([
-            'defend', 'fast_draw', 'weak_point',
+            'defend', 'fast_draw', 'weak_point', 'perception',
         ]);
         expect(session.availableSkillIds(session.roster.character('arturo')!)).toEqual([
             'defend', 'dispel', 'cure',
@@ -103,11 +103,12 @@ describe('character kits', () => {
             'defend', 'impetu', 'first_aid',
         ]);
 
-        // The player enlisted as a soldier: sack plus the sword and the
-        // outfit in the loadout holes.
+        // The recruit starts weaponless: sack plus the outfit in the
+        // second loadout hole (the branch choice grants the class
+        // weapon later).
         const player = session.team.getCharacter('player')!;
         expect(player.equipment.get('bag')?.id).toBe('sack');
-        expect(player.loadout?.holes?.[0]?.id).toBe('sword');
+        expect(player.loadout?.holes?.[0]).toBeUndefined();
         expect(player.loadout?.holes?.[1]?.id).toBe('farmer_outfit');
     });
 });

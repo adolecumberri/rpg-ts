@@ -102,11 +102,19 @@ describe('calendar in the session', () => {
 
     it('does not pass a day when accepting missions', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        session.missions.register({
+            id: 'day_check',
+            title: 'Day Check',
+            steps: [
+                { id: 'go', kind: 'travel', placeId: 'camp' },
+                { id: 'done', kind: 'reward' },
+            ],
+        });
 
-        // The free test mission can be picked and cancelled for free.
-        expect(session.startMission('test_mission')).toBe(true);
-        session.cancelMission('test_mission');
-        expect(session.startMission('test_mission')).toBe(true);
+        // A free fixture mission can be picked and cancelled for free.
+        expect(session.startMission('day_check')).toBe(true);
+        session.cancelMission('day_check');
+        expect(session.startMission('day_check')).toBe(true);
         expect(session.calendar.totalDays()).toBe(0);
 
         expect(session.startMission('no_such_mission')).toBe(false); // unknown

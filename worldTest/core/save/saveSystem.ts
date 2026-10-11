@@ -36,6 +36,8 @@ export function buildCharacterFromSave(saved: SavedCharacter): Character {
         if (extra.magicDefence !== undefined) character.stats.magicDefence = extra.magicDefence;
         if (extra.critChance !== undefined) character.stats.critChance = extra.critChance;
         if (extra.critMultiplier !== undefined) character.stats.critMultiplier = extra.critMultiplier;
+        if (extra.mana !== undefined) character.stats.mana = extra.mana;
+        if (extra.totalMana !== undefined) character.stats.totalMana = extra.totalMana;
     }
     // Formation row: saves made before positions existed load at front.
     if (saved.position === 'front' || saved.position === 'center' || saved.position === 'back') {

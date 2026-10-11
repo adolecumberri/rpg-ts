@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { ActionButton } from './ActionButton';
 import type { ActionIcon } from './ActionButton';
 
@@ -13,6 +13,9 @@ export type ActionBarCell = {
     label: string;
     icon?: ActionIcon;
     tone?: 'default' | 'primary' | 'danger';
+    // A color for the button's left border accent (the battle commands:
+    // attack red, skill blue, defend yellow, flee red).
+    accent?: string;
     disabled?: boolean;
     disabledReason?: string;
     selected?: boolean;
@@ -20,10 +23,16 @@ export type ActionBarCell = {
     mark?: string;
     // The muted sub-label under the label.
     sub?: string;
+    // The hover tooltip shown over the cell (skills: only the stat
+    // changes — the label already carries the skill name).
+    tip?: string;
     // The grid slot (1-based) and whether the cell spans the whole row
     // (both grid columns) — screens pin their buttons to fixed places.
     slot?: number;
     wide?: boolean;
+    // A static node rendered in place of the button (the forecast's
+    // combatant cards): same slot placement, no click behavior.
+    custom?: ReactNode;
     onClick?: () => void;
 };
 
@@ -42,6 +51,16 @@ function layoutFor(count: number): 'rows' | 'grid' {
     // 1-3 stack as rows, except 2 which fits a clean 50/50 grid.
     if (count === 2) return 'grid';
     return count <= 3 ? 'rows' : 'grid';
+}
+
+// The grid placement shared by buttons and custom cells: slot 1 = row
+// 1 col 1, slot 2 = row 1 col 2, and so on down the two columns.
+function slotStyle(slot?: number, wide?: boolean): CSSProperties {
+    if (!slot) return {};
+    return {
+        gridRow: Math.ceil(slot / 2),
+        gridColumn: wide ? '1 / span 2' : String(((slot - 1) % 2) + 1),
+    };
 }
 
 /**
@@ -78,9 +97,10 @@ export function ActionBar({
     // The last cell is pinned to the final grid slot (6 in lg, where
     // More would sit) so short lists show it instead of paginating.
     pinLast?: boolean;
-    // A text banner spanning the first two slots of the first page
-    // (the world map shows the place name there).
-    banner?: string;
+    // A banner spanning the first two slots of the first page (the
+    // world map shows the place name there; any node fits, so screens
+    // can drop a compact card into the slot).
+    banner?: ReactNode;
     // The grid keeps its fixed row heights even for empty rows, so a
     // button pinned to a lower row (e.g. slot 5) stays at the bottom
     // of the bar instead of closing up against the row above.
@@ -127,6 +147,11 @@ export function ActionBar({
         'grid' :
         layoutFor(pages === 1 ? visible.length + special + (pinned ? 1 : 0) : mode.capacity);
 
+    // Static cells (the forecast cards) lock the grid to the fixed row
+    // height so they render at the same size as the buttons.
+    const hasCustom = cells.some((cell) => cell.custom !== undefined) ||
+        Boolean(pinned?.custom);
+
     const press = (cell: ActionBarCell) => {
         if (cell.disabled) {
             setHint(cell.disabledReason ?? `${cell.label} is unavailable.`);
@@ -136,13 +161,33 @@ export function ActionBar({
     };
 
     const rendered: ReactNode[] = [];
-    // The banner occupies the first two slots of the first page.
+    // The banner occupies the first two slots of the first page. Text
+    // banners keep the slot's centered label chrome; node banners (a
+    // card, an item) own the full slot so they align with the buttons.
+    const bannerIsNode = typeof banner !== 'string';
     if (banner && page === 0) {
         rendered.push(
-            <div key="banner" className="action-bar-banner">{banner}</div>,
+            <div
+                key="banner"
+                className={`action-bar-banner${bannerIsNode ? ' action-bar-banner--node' : ''}`}
+            >
+                {banner}
+            </div>,
         );
     }
     for (const cell of visible) {
+        if (cell.custom !== undefined) {
+            rendered.push(
+                <div
+                    key={cell.id}
+                    className="action-bar-cell"
+                    style={slotStyle(cell.slot, cell.wide)}
+                >
+                    {cell.custom}
+                </div>,
+            );
+            continue;
+        }
         rendered.push(
             <ActionButton
                 key={cell.id}
@@ -150,10 +195,12 @@ export function ActionBar({
                 icon={cell.icon}
                 size={size}
                 tone={cell.tone}
+                accent={cell.accent}
                 disabled={cell.disabled}
                 selected={cell.selected}
                 mark={cell.mark}
                 sub={cell.sub}
+                tip={cell.tip}
                 slot={cell.slot}
                 wide={cell.wide}
                 onClick={() => press(cell)}
@@ -186,6 +233,7 @@ export function ActionBar({
                 icon={pinned.icon}
                 size={size}
                 tone={pinned.tone}
+                accent={pinned.accent}
                 disabled={pinned.disabled}
                 selected={pinned.selected}
                 mark={pinned.mark}
@@ -238,7 +286,10 @@ export function ActionBar({
             ) : null}
             {hint ? <div className="action-bar-hint pixel-inset">{hint}</div> : null}
             <div
-                className={`action-bar-grid action-bar-grid--${layout}${fixedRows ? ' action-bar-grid--fixed-rows' : ''}`}
+                className={
+                    `action-bar-grid action-bar-grid--${layout}` +
+                    `${fixedRows || bannerIsNode || hasCustom ? ' action-bar-grid--fixed-rows' : ''}`
+                }
             >
                 {rendered}
             </div>

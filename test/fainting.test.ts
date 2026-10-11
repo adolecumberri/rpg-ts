@@ -70,10 +70,10 @@ describe('fainting', () => {
         expect(result.ok).toBe(true);
         expect(hasStatusNamed(player, 'Corpse Carrying')).toBe(true);
 
-        // The penalties are live: attack 11 -> 7.5 (7 base + sword 4,
-        // halved), speed 6 -> 2.4.
-        expect(player.getStat('attack')).toBeCloseTo(7.5, 2);
-        expect(player.getStat('speed')).toBeCloseTo(2.4, 2);
+        // The penalties are live: attack 17.64 -> 8.82 (no weapon yet,
+        // the base halved), speed 5.86 -> 2.34.
+        expect(player.getStat('attack')).toBeCloseTo(8.82, 2);
+        expect(player.getStat('speed')).toBeCloseTo(2.34, 2);
 
         // The corpse travels with the carrier now.
         expect(session.corpsesAt('farm')).toHaveLength(0);
@@ -173,8 +173,8 @@ describe('fainting', () => {
         expect(session.corpsesAt('farm')).toHaveLength(0);
 
         // The fallen soldier's gear returned to the shared inventory
-        // (the test bag seeds two swords; the returned copy is available).
-        expect(session.team.inventory.getItemSlotByItemId('sword')?.totalQuantity).toBe(2);
+        // (the bag was empty: the returned sword is its only copy).
+        expect(session.team.inventory.getItemSlotByItemId('sword')?.totalQuantity).toBe(1);
 
         // The camp no longer hosts them.
         expect(session.npcsAt('camp').map((npc) => npc.id)).not.toContain('soldier_0');
@@ -211,7 +211,7 @@ describe('fainting', () => {
         expect(restored.roster.activeIds()).toEqual(['player']);
         const player = restored.team.getCharacter('player')!;
         expect(hasStatusNamed(player, 'Corpse Carrying')).toBe(true);
-        expect(player.getStat('attack')).toBeCloseTo(7.5, 2); // penalties restored
+        expect(player.getStat('attack')).toBeCloseTo(8.82, 2); // penalties restored
 
         // The fountain still works after the round trip.
         restored.currentPlaceId = 'camp';

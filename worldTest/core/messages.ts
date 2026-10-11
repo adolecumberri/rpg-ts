@@ -1,3 +1,6 @@
+import type { DialogueChoice } from './dialogue';
+import type { StoryCondition } from './story';
+
 // Global story messages: systems (arrival events, missions, battles)
 // push lines here and the web shows them in a dialog box over
 // everything. The speaker is optional (name shown when present); the
@@ -10,6 +13,12 @@ export type MessageLine = {
     portrait?: string;
     text: string;
     side?: 'left' | 'right';
+    // Story-gated line: the session filters it when pushing, so the
+    // queue only ever holds visible lines.
+    when?: StoryCondition;
+    // Player choices: the message box renders the options instead of
+    // advancing on tap; picking one applies the choice's effects.
+    choices?: DialogueChoice[];
 };
 
 export class MessageQueue {

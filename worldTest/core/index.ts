@@ -31,6 +31,7 @@ export * from './generators';
 export * from './combat';
 export * from './calendar';
 export * from './flags';
+export * from './story';
 export * from './jobs';
 export * from './fainting';
 export * from './equipment/loadout';

@@ -71,10 +71,22 @@ const TEST_FIGHTS: Record<string, FightDefinition> = {
 };
 Object.assign(FIGHTS, TEST_FIGHTS);
 
+// The boss fixture: the farm's lord son left the world content, but the
+// Gate affinity machinery (open_gate -> fire_breath) still lives in
+// CHARACTER_SKILLS — the tests add him as a roster-pool member so the
+// manualId resolution and the affinity flow keep being exercised.
+function addBossFixture(session: WorldSession): Character {
+    const federico = character('lord_son', { hp: 130, totalHp: 130, attack: 28, defence: 10, speed: 6 });
+    session.roster.add(federico);
+    session.roster.deactivate(federico.id);
+    session.roster.rebuildTeam(session.team);
+    return federico;
+}
+
 // The mission that owns the chain: the opening dialogue queues the
 // skirmish battle, every victory queues the next beat, and the last
-// one completes the mission. The lord's son and two Order recruits
-// travel with it and return home when it ends.
+// one completes the mission. Two Order recruits travel with it and
+// return home when it ends.
 const BATTLE_CHAIN: Mission = {
     id: 'test_battle_chain',
     title: 'Goblin Chain',
@@ -121,7 +133,6 @@ const BATTLE_CHAIN: Mission = {
         { id: 'reward', kind: 'reward', flags: ['chain_done'] },
     ],
     npcMoves: [
-        { npcId: 'lord_son', fromPlaceId: 'farm', toPlaceId: 'hay_field' },
         { npcId: 'arturo', fromPlaceId: 'camp', toPlaceId: 'hay_field' },
         { npcId: 'soldier_0', fromPlaceId: 'camp', toPlaceId: 'hay_field' },
     ],
@@ -299,6 +310,7 @@ describe('buildHybridCombat', () => {
 
     it('the boss battle hands the player the lord\'s son with his fire breath', () => {
         const session = new WorldSession({ random: () => 0.5 });
+        addBossFixture(session);
         const setup = buildHybridCombat(session, FIGHTS.goblin_chief, { random: () => 0.9 });
 
         expect(setup.allies.map((ally) => ally.id)).toEqual(['lord_son']);
@@ -336,7 +348,7 @@ describe('the battle chain through the session', () => {
         session.messages.clear(); // the opening lines were read
         session.travel('hay_field');
         expect(session.npcsAt('hay_field').map((npc) => npc.id)).toEqual([
-            'lord_son', 'arturo', 'soldier_0',
+            'arturo', 'soldier_0',
         ]);
         expect(session.pendingBattle()).toEqual({
             fightId: 'goblin_skirmish',
@@ -386,6 +398,7 @@ describe('the battle chain through the session', () => {
     it('the full chain completes the mission and sends everyone home', () => {
         const session = new WorldSession({ random: () => 0.5 });
         session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED); // the hay field is locked by default
+        addBossFixture(session);
         session.missions.register(BATTLE_CHAIN);
         session.startMission('test_battle_chain');
         session.messages.clear();
@@ -397,16 +410,16 @@ describe('the battle chain through the session', () => {
         expect(session.hasFlag('chain_done')).toBe(true);
         // The people that travelled with the mission returned home.
         expect(session.npcsAt('hay_field')).toEqual([]);
-        expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('lord_son');
         expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
         expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('soldier_0');
         // Federico fought the chief personally: the battle hurt him.
-        expect(session.findNpc('lord_son')!.character.stats.hp).toBeLessThan(130);
+        expect(session.roster.character('lord_son')!.stats.hp).toBeLessThan(130);
     });
 
     it('the boss battle grants XP only to the lord\'s son', () => {
         const session = new WorldSession({ random: () => 0.5 });
         session.unlocked.add(FLAGS.HAY_FIELD_UNLOCKED); // the hay field is locked by default
+        addBossFixture(session);
         session.missions.register(BATTLE_CHAIN);
         session.startMission('test_battle_chain');
         session.messages.clear();
@@ -420,7 +433,7 @@ describe('the battle chain through the session', () => {
         const playerXpBefore = session.team.getCharacter('player')!.experience.currentXp;
         const end = winChainFight(session, 'goblin_chief', true);
 
-        const federico = session.findNpc('lord_son')!.character;
+        const federico = session.roster.character('lord_son')!;
         expect(federico.experience.currentXp).toBe(90); // 9 kills × 10, no assists
         expect(session.team.getCharacter('player')!.experience.currentXp).toBe(playerXpBefore);
         // The message matches what Federico actually earned: no hidden
@@ -489,7 +502,6 @@ describe('the battle chain through the session', () => {
 
         expect(end.message).toContain('Mission failed');
         expect(session.npcsAt('hay_field')).toEqual([]);
-        expect(session.npcsAt('farm').map((npc) => npc.id)).toContain('lord_son');
         expect(session.npcsAt('camp').map((npc) => npc.id)).toContain('arturo');
     });
 });

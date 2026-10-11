@@ -7,12 +7,14 @@ import {
     gateOpenedStatus,
     berserkStatus,
     fastDrawStatus,
+    perceptionStatus,
     weakPointAttackStatus,
     weakPointDefenceStatus,
     impetuStatus,
 } from './statuses';
 import { FATIGUE } from './combat/fatigue';
 import { heldJobOf } from './constants/jobs';
+import { statusModifierSummary } from './statuses';
 import type { DamageComponent } from './damage/composer';
 import type { ConditionInput } from './combat/conditions';
 import type { ImpactProc } from './damage/impact';
@@ -95,6 +97,10 @@ export type SkillSpec = {
     // Priority tier (0 = normal): actions resolve by priority first and
     // speed second. No skill defines one yet, the field is ready for it.
     priority?: number;
+    // The mana the skill spends when cast (0/unset = free). The battle
+    // engines hide skills the fighter cannot afford and deduct the cost
+    // on use.
+    manaCost?: number;
     // Attack reach of the skill. Spells default to 'all' (every row).
     rangeOf?: 'short' | 'long' | 'all';
     // Damage components resolved with the compound damage composer.
@@ -252,6 +258,14 @@ export const Skills: Record<string, SkillSpec> = {
         description: 'Speed +8 for 3 turns.',
         targeting: 'SELF',
         statusOnSelf: fastDrawStatus(),
+    },
+    perception: {
+        id: 'perception',
+        name: 'Perception',
+        description: 'Evasion +20 and crit chance +3% for 2 turns.',
+        targeting: 'SELF',
+        statusOnSelf: perceptionStatus(),
+        manaCost: 12,
     },
     weak_point: {
         id: 'weak_point',
@@ -438,6 +452,27 @@ export function battleSkillSpecs(character: Character, base: SkillSpec[]): Skill
 
 export function specOf(skillId: string): SkillSpec | undefined {
     return Skills[skillId];
+}
+
+/**
+ * The compact effect summary of a skill for UI tooltips: only the stat
+ * changes of the statuses it applies ('evasion +20 · critChance +3%'),
+ * with no skill name or status titles (the cell label already shows
+ * the name). Skills without stat changes fall back to the description.
+ */
+export function skillEffectSummary(spec: SkillSpec): string {
+    const parts: string[] = [];
+    const statuses = [
+        spec.statusOnSelf,
+        spec.statusOnTargets,
+        ...(spec.statusesOnTargets ?? []),
+    ];
+    for (const definition of statuses) {
+        if (!definition) continue;
+        parts.push(...statusModifierSummary(definition));
+    }
+    if (parts.length === 0) return spec.description;
+    return parts.join(' · ');
 }
 
 /**

@@ -5,6 +5,7 @@ import type { DamageComponent } from '../damage/composer';
 import type { ReactionHandler } from '../damage/reactions';
 import type { ImpactProc } from '../damage/impact';
 import type { GrowthProfile } from './growth';
+import { MANA } from './mana';
 
 // ---------------------------------------------------------------------------
 // Interface enhancement (type level only).
@@ -35,6 +36,11 @@ declare module '@rpg' {
         // Percent chance (0-100) of dodging an incoming attack. Even a
         // perfectly aimed hit (skills: 100% accuracy) can be evaded.
         evasion?: number;
+        // Current mana (spell fuel; skills will spend it). Fights start
+        // at MANA.startOfBattle and regen MANA.regenPerTurn each turn.
+        mana?: number;
+        // The mana pool cap (mana can never exceed it).
+        totalMana?: number;
     }
 
     // The Stats class only declares the library fields; this merge makes
@@ -50,6 +56,8 @@ declare module '@rpg' {
         magic?: number;
         rangeOf?: 'short' | 'long' | 'all';
         evasion?: number;
+        mana?: number;
+        totalMana?: number;
     }
 
     interface ItemDefinition {
@@ -122,6 +130,8 @@ Object.assign(DEFAULT_STATS, {
     magic: 0,
     rangeOf: 'short',
     evasion: 0,
+    mana: MANA.total,
+    totalMana: MANA.total,
 });
 
 // ---------------------------------------------------------------------------

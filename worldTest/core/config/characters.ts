@@ -13,10 +13,11 @@ export function flatExperience(): Experience {
 }
 
 // ---------------------------------------------------------------------------
-// Deprecated: the fixed starting characters are built with the character
-// generator now. These builders stay only for the save system and the
-// test fixtures, keeping the legacy growth curves (base → target at the
-// level cap) expressed as per-stat ratios, so nothing else moves.
+// The legacy fixture builders (hero, companion, ember): the save system
+// rebuilds known characters through their factories so growth functions
+// and other behaviors are restored, and the tests use them as fixtures.
+// The legacy growth curves (base → target at the level cap) stay
+// expressed as per-stat ratios so nothing else moves.
 // ---------------------------------------------------------------------------
 
 // The ratio that makes a stat reach `target` at the level cap from
