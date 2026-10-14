@@ -181,11 +181,11 @@ function ArenaEntity({
                 <StatBar
                     value={hp}
                     max={maxHp}
-                    color={side === 'enemy' ? '#ef4444' : '#22c55e'}
-                    width={24}
-                    height={2}
+                    type={side === 'enemy' ? 'enemy-hp' : 'hp'}
+                    width={16}
+                    height={1}
                 />
-                <StatBar value={mana} max={totalMana} color="#60a5fa" width={24} height={3} />
+                <StatBar value={mana} max={totalMana} type="mana" width={16} height={1} />
             </span>
             <span
                 className="jrpg-sprite-box"

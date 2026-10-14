@@ -253,7 +253,7 @@ export function perceptionStatus(): StatusDefinition {
         triggersOnAdd: true,
         statsAffected: [
             { from: 'evasion', to: 'evasion', value: 20, typeOfModification: 'BUFF_FIXED' },
-            { from: 'critChance', to: 'critChance', value: 3, typeOfModification: 'BUFF_FIXED' },
+            { from: 'critChance', to: 'critChance', value: 10, typeOfModification: 'BUFF_FIXED' },
         ],
     };
 }
@@ -307,8 +307,7 @@ export function disarmStatus(): StatusDefinition {
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
-            { from: 'attack', to: 'attack', value: 5, typeOfModification: 'DEBUFF_FIXED' },
-            { from: 'attack', to: 'attack', value: 20, typeOfModification: 'DEBUFF_PERCENTAGE' },
+            { from: 'attack', to: 'attack', value: 40, typeOfModification: 'DEBUFF_PERCENTAGE' },
         ],
     };
 }
@@ -328,10 +327,8 @@ export function defenceStandStatus(): StatusDefinition {
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
-            { from: 'defence', to: 'defence', value: 10, typeOfModification: 'BUFF_FIXED' },
-            { from: 'defence', to: 'defence', value: 20, typeOfModification: 'BUFF_PERCENTAGE' },
-            { from: 'magicDefence', to: 'magicDefence', value: 10, typeOfModification: 'BUFF_FIXED' },
-            { from: 'magicDefence', to: 'magicDefence', value: 20, typeOfModification: 'BUFF_PERCENTAGE' },
+            { from: 'defence', to: 'defence', value: 60, typeOfModification: 'BUFF_PERCENTAGE' },
+            { from: 'magicDefence', to: 'magicDefence', value: 30, typeOfModification: 'BUFF_PERCENTAGE' },
         ],
     };
 }
@@ -351,9 +348,7 @@ export function footShotStatus(): StatusDefinition {
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
-            { from: 'speed', to: 'speed', value: 3, typeOfModification: 'DEBUFF_FIXED' },
-            { from: 'speed', to: 'speed', value: 30, typeOfModification: 'DEBUFF_PERCENTAGE' },
-            { from: 'defence', to: 'defence', value: 2, typeOfModification: 'DEBUFF_FIXED' },
+            { from: 'speed', to: 'speed', value: 80, typeOfModification: 'DEBUFF_PERCENTAGE' },
             { from: 'defence', to: 'defence', value: 30, typeOfModification: 'DEBUFF_PERCENTAGE' },
         ],
     };
@@ -646,7 +641,7 @@ export function statusModifierSummary(definition: StatusDefinition): string[] {
             modifier.typeOfModification === 'DEBUFF_PERCENTAGE';
         const sign =
             modifier.typeOfModification === 'DEBUFF_FIXED' ||
-            modifier.typeOfModification === 'DEBUFF_PERCENTAGE' ?
+                modifier.typeOfModification === 'DEBUFF_PERCENTAGE' ?
                 '-' :
                 '+';
         // critChance is a percent-valued stat: a fixed +3 reads +3%.

@@ -95,6 +95,7 @@ f2ca50 // acento
     --heal: #66bb6a;
     --hp: #ef5350;
     --xp: #7f8cff;
+    --lv: #b8a038;
     --gold: #f5b942;
     /* The definition mark-language schema (item/skill descriptions):
        [impact] yellow, [physical] red, [magical] blue-purple,
@@ -107,6 +108,18 @@ f2ca50 // acento
     --radius: 14px;
     --shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
 
+
+    --ally-hp-bar: #a6c978;
+    --ally-hp-bar-end: #22c528;
+
+    --enemy-hp-bar: #e8a090;
+    --enemy-hp-bar-end: #eb6a4d;
+
+    --mana-bar: #649dbb;
+    --mana-bar-end: #2b7298;
+
+    --exp-bar: #f2ca50;
+    --exp-bar-end: #e86020;
 
     --font-pixel: 'FFTA2', 'FFTA', ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
 }
@@ -1668,13 +1681,31 @@ f2ca50 // acento
     gap: var(--s1);
     color: var(--text);
     margin-top: var(--s3);
+    font-size: var(--s3);
+}
+
+.team-data-identity>div {
+    font-size: var(--s3);
 }
 
 .team-data-lv {
     color: var(--accent);
     font-weight: 700;
-    margin-right: var(--s1);
+    /* margin-right: var(--s1); */
 }
+
+.team-data-hp {
+    color: var(--ally-hp-bar);
+    font-weight: 700;
+    /* margin-right: var(--s1); */
+}
+
+.team-data-mp {
+    color: var(--mana-bar);
+    font-weight: 700;
+    /* margin-right: var(--s1); */
+}
+
 
 /* The vitals as the shared StatBar bars: hp, mana and the level
    progress (xp / xp-to-next-level), stacked under the identity lines. */
@@ -1684,6 +1715,97 @@ f2ca50 // acento
     gap: var(--s1);
     width: calc(var(--u) * 24);
     margin-top: 2px;
+}
+
+/* The formation view (the team page's Posición): the battlefield with
+   the team's three columns standing on the ground; tapping a unit
+   picks it and the bar's Frente/Centro/Detrás buttons move it. */
+.position-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.position-field {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: var(--s2);
+    padding: var(--s2);
+    background:
+        radial-gradient(circle at 50% 30%, #2a150c 0%, #120904 65%, #080302 100%),
+        linear-gradient(to top, rgba(70, 38, 20, 0.6) 0%, rgba(70, 38, 20, 0) 45%);
+    border: 2px solid #000;
+    box-shadow: inset 2px 2px 0 0 rgba(255, 200, 160, 0.12), inset -2px -2px 0 0 rgba(0, 0, 0, 0.75);
+}
+
+.position-column {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+}
+
+.position-column-title {
+    text-align: center;
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 8px;
+    color: #d4af37;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.position-column-units {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--s1);
+    padding: var(--s2) var(--s1);
+}
+
+.position-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+    max-width: 96px;
+    background: #221209;
+    border: 1px solid #3d2110;
+    padding: 4px;
+    cursor: pointer;
+}
+
+.position-unit:hover {
+    border-color: #7b4725;
+}
+
+.position-unit--selected {
+    border-color: #d4af37;
+    background: #2b1a0e;
+    box-shadow: 0 0 6px rgba(212, 175, 55, 0.45);
+}
+
+.position-unit-sprite {
+    width: 24px;
+    height: 24px;
+    background-size: 96px 24px;
+    background-position: 0 0;
+    image-rendering: pixelated;
+}
+
+.position-unit-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 12px;
+    font-size-adjust: none;
+    color: #eedbcc;
 }
 
 .team-data-split {

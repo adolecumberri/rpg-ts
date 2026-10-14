@@ -32,6 +32,8 @@ export function TeamData({ character }: { character: Character }) {
         value: `${entry.prefix ?? ''}${Math.round(character.getStat(entry.key))}${entry.suffix ?? ''}`,
     }));
 
+    console.log("hola", character.stats.mana);
+
     return (
         <>
             <div className="team-data-head">
@@ -40,43 +42,64 @@ export function TeamData({ character }: { character: Character }) {
                     <img className="team-data-portrait" src={portraitUrl(portraitIdOf(character))} alt={character.name} />
                 </div>
                 <div className="team-data-identity">
-                    <div style={{ fontSize: 'var(--s3)' }}>
-                        <span className="team-data-lv">Lv. {experience.level}</span>
-                        <span style={{ color: 'var(--muted)' }}>
-                            <Icon id="default" size={4} /> {jobLine}
-                        </span>
+                    <span style={{ color: 'var(--muted)', marginBottom: "var(--s2)" }}>
+                        <div style={{ position: "absolute", }}>
+                            {/* <Icon id="default" size={4} /> */}
+                            {jobLine}
+                        </div>
+                        <StatBar
+                            // value={experience.currentXp}
+                            value={50}
+                            max={experience.getXpToNextLevel()}
+                            type="xp"
+                            width={100}
+                            height={8}
+                        />
+
+                    </span>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                        <span className="team-data-lv" >Lv. {experience.level}</span>
+                        <div>
+                            <div style={{ position: "absolute" }}>
+                                <span className="team-data-lv" style={{ color: '#e86020' }} >EXP. </span>{experience.currentXp}
+                            </div>
+                            <StatBar
+                                // value={experience.currentXp}
+                                value={50}
+                                max={experience.getXpToNextLevel()}
+                                type="xp"
+                                width={68}
+                                height={8}
+                            />
+                        </div>
                     </div>
-                    <div style={{ fontSize: 'var(--s3)' }}>
-                        <Icon id="default" size={4} /> {Math.round(character.getStat('hp'))}/{Math.round(character.getStat('totalHp'))}
-                    </div>
-                    <div style={{ fontSize: 'var(--s3)' }}>
-                        <Icon id="default" size={4} /> MANA {Math.round(character.stats.mana ?? 0)}/
-                        {Math.round(character.stats.totalMana ?? 0)}
-                    </div>
-                    <div style={{ fontSize: 'var(--s3)' }}>
-                        <Icon id="default" size={4} /> XP {experience.currentXp}
-                    </div>
-                    {/* The vitals as bars: hp, mana and the level progress. */}
-                    <div className="team-data-bars">
+                    <div style={{
+                        display: "flex",
+                        alignItems: "center"
+                    }}>
+                        <div style={{ minWidth: "60px" }}>
+                            <span className="team-data-hp" >HP. </span> {Math.round(character.getStat('hp'))}/{Math.round(character.getStat('totalHp'))}
+                        </div>
                         <StatBar
                             value={Math.round(character.getStat('hp'))}
                             max={Math.round(character.getStat('totalHp'))}
-                            color="#22c55e"
-                            width={96}
+                            type="hp"
+                            width={80}
                             height={5}
                         />
+                    </div>
+                    <div style={{
+                        display: "flex",
+                        alignItems: "center"
+                    }}>
+                        <div style={{ minWidth: "60px" }}>
+                            <span className="team-data-mp" >MP</span> {Math.round(character.stats.mana ?? 0)}/{Math.round(character.stats.totalMana ?? 0)}
+                        </div>
                         <StatBar
                             value={Math.round(character.stats.mana ?? 0)}
                             max={Math.round(character.stats.totalMana ?? 0)}
-                            color="#60a5fa"
-                            width={96}
-                            height={5}
-                        />
-                        <StatBar
-                            value={experience.currentXp}
-                            max={experience.getXpToNextLevel()}
-                            color="#f2ca50"
-                            width={96}
+                            type="mana"
+                            width={80}
                             height={5}
                         />
                     </div>

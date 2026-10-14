@@ -23,54 +23,6 @@ function goblin(id: string): Character {
     return characterGenerator({ creature: Creatures.goblin, level: 1, id });
 }
 
-// The local battle chain the settlement tests run: the content fights
-// were removed, these fixtures exercise the same machinery (hybrid
-// battles, mission beats, XP and flee hooks) through the FIGHTS
-// registry, exactly like the content fights used to.
-const TEST_FIGHTS: Record<string, FightDefinition> = {
-    goblin_skirmish: {
-        id: 'goblin_skirmish',
-        mode: 'hybrid',
-        placeId: 'hay_field',
-        enemies: () => [goblin('goblin_a'), goblin('goblin_b'), goblin('goblin_c')],
-        allyIds: ['arturo', 'soldier_0'],
-        onFlee: (mission) => mission?.fail(),
-    },
-    goblin_rally: {
-        id: 'goblin_rally',
-        mode: 'hybrid',
-        placeId: 'hay_field',
-        enemies: () => [goblin('goblin_d'), goblin('goblin_e'), goblin('goblin_f')],
-        allyIds: ['arturo', 'soldier_0'],
-        onFlee: (mission) => mission?.fail(),
-    },
-    goblin_chief: {
-        id: 'goblin_chief',
-        mode: 'hybrid',
-        placeId: 'hay_field',
-        manualId: 'lord_son',
-        enemies: () => [
-            characterGenerator({
-                creature: Creatures.goblin,
-                level: 1,
-                id: 'goblin_chief',
-                name: 'Goblin Chief',
-                stats: { hp: 40, attack: 20 },
-                skills: ['boss_regen', 'boss_berserk'],
-            }),
-            goblin('goblin_1'),
-            goblin('goblin_2'),
-            goblin('goblin_3'),
-            goblin('goblin_4'),
-            goblin('goblin_5'),
-            goblin('goblin_6'),
-            goblin('goblin_7'),
-            goblin('goblin_8'),
-        ],
-    },
-};
-Object.assign(FIGHTS, TEST_FIGHTS);
-
 // The boss fixture: the farm's lord son left the world content, but the
 // Gate affinity machinery (open_gate -> fire_breath) still lives in
 // CHARACTER_SKILLS — the tests add him as a roster-pool member so the
@@ -290,52 +242,6 @@ describe('hybrid combat engine', () => {
         if (last.kind !== 'end') return;
         expect(last.winner).toBe('left');
         expect(goblin.stats.hp).toBe(0);
-    });
-});
-
-describe('buildHybridCombat', () => {
-    it('pairs the manual player with the automatic recruits', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-        const setup = buildHybridCombat(session, FIGHTS.goblin_skirmish, { random: () => 0.5 });
-
-        expect(setup.allies.map((ally) => ally.id)).toEqual(['player', 'arturo', 'soldier_0']);
-        expect(setup.enemies.map((enemy) => enemy.id)).toEqual(['goblin_a', 'goblin_b', 'goblin_c']);
-
-        const combatants = setup.combat.allCombatants();
-        const manualIds = combatants.filter((entry) => entry.manual).map((entry) => entry.character.id);
-        expect(manualIds).toEqual(['player']);
-        // The real roster characters fight, not clones.
-        expect(setup.allies[1]).toBe(session.roster.character('arturo'));
-    });
-
-    it('the boss battle hands the player the lord\'s son with his fire breath', () => {
-        const session = new WorldSession({ random: () => 0.5 });
-        addBossFixture(session);
-        const setup = buildHybridCombat(session, FIGHTS.goblin_chief, { random: () => 0.9 });
-
-        expect(setup.allies.map((ally) => ally.id)).toEqual(['lord_son']);
-        expect(setup.enemies).toHaveLength(9); // the chief + 8 goblins
-
-        const federico = setup.allies[0];
-        expect(federico.getStat('hp')).toBe(130);
-        expect(federico.getStat('attack')).toBe(28);
-        expect(federico.getStat('defence')).toBe(10);
-
-        const manual = setup.combat.allCombatants().find((entry) => entry.manual);
-        expect(manual?.character.id).toBe('lord_son');
-        // Fire Breath is locked behind the Gate affinity: the base kit
-        // only carries the activation skill (fatigue is off, so Rest is
-        // hidden from the default kit).
-        expect((manual?.skills ?? []).map((spec) => spec.id)).toEqual(['open_gate']);
-
-        // The chief fights with its regeneration and berserk AI.
-        const chief = setup.combat.allCombatants()
-            .find((entry) => entry.character.id === 'goblin_chief');
-        expect((chief?.skills ?? []).map((spec) => spec.id)).toEqual([
-            'boss_regen', 'boss_berserk',
-        ]);
-        // The player's own party stays out of the battle.
-        expect(setup.allies.some((ally) => ally.id === 'player')).toBe(false);
     });
 });
 

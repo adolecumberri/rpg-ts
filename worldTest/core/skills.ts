@@ -249,14 +249,7 @@ export const Skills: Record<string, SkillSpec> = {
             conditions: [{ subject: 'self', stat: 'hp', compare: 'below', value: 50, valueType: 'percent' }],
         },
     },
-    boss_berserk: {
-        id: 'boss_berserk',
-        name: 'Berserk',
-        description: 'The chief flies into a rage: stronger but reckless for 3 actions.',
-        targeting: 'SELF',
-        statusOnSelf: berserkStatus(),
-        auto: { chancePercent: 100, cooldownActions: 5 },
-    },
+
     fast_draw: {
         id: 'fast_draw',
         name: 'Fast Draw',
@@ -268,7 +261,7 @@ export const Skills: Record<string, SkillSpec> = {
     perception: {
         id: 'perception',
         name: 'Perception',
-        description: 'Evasion +20 and crit chance +3% for 5 turns.',
+        description: 'Evasion +20 and crit chance +10% for 5 turns.',
         targeting: 'SELF',
         statusOnSelf: perceptionStatus(),
         manaCost: 12,
@@ -276,7 +269,7 @@ export const Skills: Record<string, SkillSpec> = {
     disarm: {
         id: 'disarm',
         name: 'Disarm',
-        description: 'The target\'s attack -5 and -20% for 5 turns.',
+        description: 'The target\'s attack -5 and -40% for 5 turns.',
         targeting: 'ANY',
         numberOfTargets: 1,
         statusOnTargets: disarmStatus(),
@@ -285,7 +278,7 @@ export const Skills: Record<string, SkillSpec> = {
     stand: {
         id: 'stand',
         name: 'Stand',
-        description: 'Defence +10 and +20%, magic defence +10 and +20% for 5 turns.',
+        description: 'Defence +60%, magic defence +30% for 5 turns.',
         targeting: 'SELF',
         statusOnSelf: defenceStandStatus(),
         manaCost: 16,
@@ -293,7 +286,7 @@ export const Skills: Record<string, SkillSpec> = {
     foot_shot: {
         id: 'foot_shot',
         name: 'Foot Shot',
-        description: 'The enemy\'s speed -3 and -30%, defence -2 and -30% for 2 turns.',
+        description: 'The enemy\'s speed -80%, defence -20% for 2 turns.',
         targeting: 'ENEMY',
         statusOnTargets: footShotStatus(),
         manaCost: 16,
@@ -309,13 +302,13 @@ export const Skills: Record<string, SkillSpec> = {
     perno_magico: {
         id: 'perno_magico',
         name: 'Perno Mágico',
-        description: 'Deals 18 + 60% of your magic as magical damage.',
+        description: 'Deals 80% of your magic as magical damage.',
         targeting: 'ENEMY',
         numberOfTargets: 1,
         damageFor: (actor) => [{
             kind: 'magical',
             element: 'arcane',
-            amount: Math.round((18 + actor.getStat('magic') * 0.6) * 100) / 100,
+            amount: Math.round((actor.getStat('magic') * 0.8) * 100) / 100,
             label: 'Perno Mágico',
         }],
         manaCost: 16,
@@ -323,10 +316,10 @@ export const Skills: Record<string, SkillSpec> = {
     healing_whispers: {
         id: 'healing_whispers',
         name: 'Healing Whispers',
-        description: 'Heals 10 + 60% of your magic.',
+        description: '60% of your magic.',
         targeting: 'ALLY',
         numberOfTargets: 1,
-        healFor: (actor) => Math.round((10 + actor.getStat('magic') * 0.6) * 100) / 100,
+        healFor: (actor) => Math.round((actor.getStat('magic') * 0.6) * 100) / 100,
         manaCost: 16,
     },
     // ------------------------------------------------------------------

@@ -3,6 +3,7 @@ import type { Character } from '@rpg';
 import { BattleTracker, FIGHTS, buildHybridCombat, trackHybridEvent } from '@core';
 import type {
     HybridAutoEvent,
+    HybridCombatant,
     HybridManualEvent,
     HybridSetup,
 } from '@core';
@@ -134,12 +135,13 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
             participants: setup.allies,
             tracker: trackerRef.current,
         });
-        // The party rests after every fight (any outcome): hp and mana
-        // return to full, so the next battle always starts fresh.
+        // The party rests after every fight (any outcome): hp returns to
+        // full and mana drains back to zero — the next fight's start
+        // refills it to MANA.startOfBattle.
         for (const member of session.team.getAll()) {
             member.stats.hp = member.stats.totalHp;
             member.stats.isAlive = 1;
-            member.stats.mana = member.stats.totalMana;
+            member.stats.mana = 0;
         }
         setLog(outcome.message);
         // Hand control back to the router (the mission beat queue and
@@ -149,10 +151,11 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
 
     // ---- the round scheduler (Pokémon-style) --------------------------
     // The battle advances ONE action at a time: the turn queue holds the
-    // round's living fighters; round 1 opens with the player's party
-    // (the fastest ally first), every later round is pure speed order.
-    // Every action (player or automatic) resolves alone, then the next
-    // actor steps up after a beat. The .jrpg-turn-order-strip shows the
+    // round's living fighters; round 1 opens with ONLY the player's
+    // fastest character (the enemies and the rest of the party follow in
+    // speed order), and every later round is pure speed order. Every
+    // action (player or automatic) resolves alone, then the next actor
+    // steps up after a beat. The .jrpg-turn-order-strip shows the
     // queue, current first.
     const AUTO_STEP_MS = 750;
     const AFTER_MANUAL_MS = 850;
@@ -162,8 +165,8 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
     // rest of the round, and the following rounds up to 10 entries.
     const upcomingRef = useRef<{ id: string; enemy: boolean }[]>([]);
     const stepTimerRef = useRef<number | null>(null);
-    // The round counter: round 1 opens with the player's party (the
-    // fastest ally first); the following rounds follow pure speed.
+    // The round counter: round 1 opens with the player's fastest
+    // character only; the following rounds follow pure speed.
     const roundRef = useRef(0);
     // React.StrictMode double-invokes the mount effect in dev: the
     // scheduler must boot exactly once, or the second run would resolve
@@ -173,14 +176,25 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
     const buildOrder = (opening: boolean) => {
         const combat = setupRef.current?.combat;
         if (!combat) return [];
-        return combat.allCombatants()
-            .filter((entry) => entry.character.stats.hp > 0)
-            .sort((a, b) =>
-                (opening ?
-                    (a.side === 'left' ? 0 : 1) - (b.side === 'left' ? 0 : 1) :
-                    0) ||
-                b.character.getStat('speed') - a.character.getStat('speed') ||
-                a.character.id.localeCompare(b.character.id))
+        const living = combat.allCombatants()
+            .filter((entry) => entry.character.stats.hp > 0);
+        const bySpeed = (a: HybridCombatant, b: HybridCombatant) =>
+            b.character.getStat('speed') - a.character.getStat('speed') ||
+            a.character.id.localeCompare(b.character.id);
+        // Round 1: ONLY the player's fastest character opens the fight;
+        // the enemies and the rest of the party follow in speed order.
+        // Every later round is pure speed order.
+        if (opening) {
+            const fastestAlly = living
+                .filter((entry) => entry.side === 'left')
+                .sort(bySpeed)[0];
+            const order = fastestAlly ?
+                [fastestAlly, ...living.filter((entry) => entry !== fastestAlly).sort(bySpeed)] :
+                [...living].sort(bySpeed);
+            return order.map((entry) => ({ id: entry.character.id, enemy: entry.side === 'right' }));
+        }
+        return [...living]
+            .sort(bySpeed)
             .map((entry) => ({ id: entry.character.id, enemy: entry.side === 'right' }));
     };
 
@@ -210,8 +224,8 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
         let next = orderRef.current.shift();
         while (next && !living(next.id)) next = orderRef.current.shift();
         if (!next) {
-            // A fresh round: round 1 belongs to the party (the fastest
-            // ally first), every later round is speed order.
+            // A fresh round: round 1 belongs to the player's fastest
+            // character alone, every later round is speed order.
             orderRef.current = buildOrder(roundRef.current === 0);
             roundRef.current += 1;
             next = orderRef.current.shift();

@@ -84,7 +84,7 @@ export function PlacePage({
     for (const entry of api.session.battleReadyMissionsAt(place.id)) {
         options.push({
             id: `mission_fight_${entry.missionId}`,
-            label: '⚔️ Start the fight',
+            label: 'Start the fight',
             icon: { symbol: 'swords', color: '#fff' },
             tone: 'danger',
             sub: entry.title,

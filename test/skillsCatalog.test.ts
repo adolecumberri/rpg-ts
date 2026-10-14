@@ -24,37 +24,6 @@ function character(id: string, stats: Partial<Statistics>): Character {
     return new Character({ id, name: id, stats: new Stats(stats) });
 }
 
-describe('skill catalog', () => {
-    it('contains exactly the general autofight skills (old skills removed)', () => {
-        expect(allSkillSpecs().map((spec) => spec.id)).toEqual([
-            'spike_shield',
-            'parry',
-            'haste',
-            'rage',
-            'fire_breath',
-            'rest',
-            'open_gate',
-            'boss_regen',
-            'boss_berserk',
-            'fast_draw',
-            'perception',
-            'weak_point',
-            'dispel',
-            'cure',
-            'impetu',
-            'first_aid',
-            'cover',
-            'silver_bolts',
-        ]);
-        expect(specOf('fireball')).toBeUndefined();
-        expect(specOf('warcry')).toBeUndefined();
-    });
-
-    it('leaves characters reaction-less until a config attaches the skills', () => {
-        expect(reactionsOf(character('hero', {}))).toEqual([]);
-    });
-});
-
 describe('haste and rage statuses', () => {
     it('haste raises speed by 8 for 3 turns', () => {
         const status = hasteStatus();

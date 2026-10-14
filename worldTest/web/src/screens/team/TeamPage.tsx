@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Character, InventorySlot, Item } from '@rpg';
+import type { Character, InventorySlot, Item, TeamPosition } from '@rpg';
 import {
     canEquipItem,
     equipFromInventory,
@@ -20,6 +20,7 @@ import { Icon } from '../../components/chrome/Icon';
 import { SkillInfo } from '../../components/character/SkillInfo';
 import { StatsColumn } from '../../components/character/StatsColumn';
 import { ALL_SECTIONS, EquipPicker, SECTION_META } from '../../components/character/EquipPicker';
+import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 
 /**
  * The team page (new UI, FFT A2 style): the squad grid, the selected
@@ -40,6 +41,10 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
     const [pickerSection, setPickerSection] = useState<EquipmentSection>('espadas');
     // The item whose stats the column previews (tap a row to set it).
     const [previewItem, setPreviewItem] = useState<Item | null>(null);
+    // The formation view: the battlefield with the team's columns; the
+    // picked character moves with the Frente/Centro/Detrás buttons.
+    const [positionView, setPositionView] = useState(false);
+    const [positionTargetId, setPositionTargetId] = useState<string | null>(null);
 
     const activeIds = api.session.roster.activeIds();
     const members = activeIds
@@ -124,6 +129,12 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
     const statsRows = previewItem ?
         statsOfItems([previewItem]) :
         selectedHole !== null ? statsOfItems([]) : equippedStats;
+
+    const movePosition = (position: TeamPosition) => {
+        if (!positionTargetId) return;
+        api.setPosition(positionTargetId, position);
+        api.refresh();
+    };
 
     const content = selected ? (
         skillsView ? (
@@ -227,6 +238,39 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                 )}
                 <StatsColumn rows={statsRows} title="ESTADÍSTICAS DEL PORTADOR" />
             </div>
+        ) : positionView ? (
+            <div className="position-view">
+                <div className="position-field">
+                    {(['back', 'center', 'front'] as TeamPosition[]).map((row) => {
+                        const inRow = members.filter((member) => (member.position ?? 'front') === row);
+                        return (
+                            <div key={row} className={`position-column position-column--${row}`}>
+                                <div className="position-column-title">
+                                    {row === 'front' ? 'FRENTE' : row === 'center' ? 'CENTRO' : 'DETRÁS'}
+                                </div>
+                                <div className="position-column-units">
+                                    {inRow.map((member) => (
+                                        <button
+                                            key={member.id}
+                                            type="button"
+                                            className={`position-unit${member.id === positionTargetId ? ' position-unit--selected' : ''}`}
+                                            onClick={() => setPositionTargetId(member.id)}
+                                        >
+                                            <span
+                                                className="position-unit-sprite"
+                                                style={{
+                                                    backgroundImage: `url(${SPRITES[spriteRoleOf(member) ?? 'warrior'].idle})`,
+                                                }}
+                                            />
+                                            <span className="position-unit-name">{member.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         ) : (
             <TeamData character={selected} />
         )
@@ -249,7 +293,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
         </>
     );
 
-    const bar = selected && !equipView && !skillsView ? (
+    const bar = selected && !equipView && !skillsView && !positionView ? (
         <OptionsBar
             size="lg"
             options={[
@@ -266,6 +310,15 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                     onClick: () => {
                         setSelectedSkillId(null);
                         setSkillsView(true);
+                    },
+                },
+                {
+                    id: 'position',
+                    label: 'Posición',
+                    icon: { symbol: 'grid_view', color: 'var(--accent)' },
+                    onClick: () => {
+                        setPositionTargetId(selectedId);
+                        setPositionView(true);
                     },
                 },
                 {
@@ -313,6 +366,40 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                     }
                 },
             }}
+        />
+    ) : selected && positionView ? (
+        <OptionsBar
+            size="lg"
+            options={[
+                {
+                    id: 'front',
+                    label: 'Frente',
+                    icon: { symbol: 'north', color: '#fff' },
+                    accent: '#ef4444',
+                    disabled: !positionTargetId,
+                    disabledReason: 'Pick a character',
+                    onClick: () => movePosition('front'),
+                },
+                {
+                    id: 'center',
+                    label: 'Centro',
+                    icon: { symbol: 'horizontal_rule', color: '#fff' },
+                    accent: '#f2ca50',
+                    disabled: !positionTargetId,
+                    disabledReason: 'Pick a character',
+                    onClick: () => movePosition('center'),
+                },
+                {
+                    id: 'back',
+                    label: 'Detrás',
+                    icon: { symbol: 'south', color: '#fff' },
+                    accent: '#3b82f6',
+                    disabled: !positionTargetId,
+                    disabledReason: 'Pick a character',
+                    onClick: () => movePosition('back'),
+                },
+            ]}
+            back={{ label: 'Atrás', onClick: () => setPositionView(false) }}
         />
     ) : (
         <OptionsBar

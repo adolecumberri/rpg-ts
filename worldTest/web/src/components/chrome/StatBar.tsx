@@ -9,17 +9,32 @@ import './StatBar.css';
 export function StatBar({
     value,
     max,
-    color,
+    type,
     width = 40,
     height = 4,
 }: {
     value: number;
     max: number;
-    // The fill color (any CSS color): hp green/red, mana blue, xp gold.
-    color: string;
     width?: number;
     height?: number;
+    type: 'hp' | 'mana' | 'xp' | 'enemy-hp';
 }) {
+    let color;
+    switch (type) {
+        case 'hp':
+            color = 'linear-gradient(to right, var(--ally-hp-bar), var(--ally-hp-bar-end))';
+            break;
+        case 'mana':
+            color = 'linear-gradient(to right, var(--mana-bar), var(--mana-bar-end))';
+            break;
+        case 'xp':
+            color = 'linear-gradient(to right, var(--exp-bar), var(--exp-bar-end))';
+            break;
+        case 'enemy-hp':
+            color = 'linear-gradient(to right, var(--enemy-hp-bar), var(--enemy-hp-bar-end))';
+            break;
+    }
+
     const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
     return (
         <div className="stat-bar" style={{ width, height }}>

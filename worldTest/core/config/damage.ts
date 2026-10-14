@@ -134,7 +134,9 @@ Object.assign(DEFAULT_STATS, {
     magic: 0,
     rangeOf: 'short',
     evasion: 0,
-    mana: MANA.total,
+    // Mana starts EMPTY outside fights: the battle engines fill it at
+    // fight start (MANA.startOfBattle) and it drains back to zero after.
+    mana: 0,
     totalMana: MANA.total,
 });
 

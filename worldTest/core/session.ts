@@ -1294,6 +1294,9 @@ export class WorldSession {
             character.equipment.equipOrReplace(item, character);
         }
         this.registerWornItems(character);
+        // The class weapon decides the formation row: bows stand in the
+        // back, staffs in the center, swords up front.
+        syncPositionToWeapon(character);
     }
 
     useOn(slot: InventorySlot, characterId: string): boolean {
