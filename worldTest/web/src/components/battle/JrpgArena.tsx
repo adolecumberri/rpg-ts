@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Character } from '@rpg';
-import { heldJobOf, specOf, skillEffectSummary } from '@core';
+import { heldJobOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, skillUnavailableReason, intervalFromSpeed } from '@core';
 import type { SkillSpec } from '@core';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 import type { SpriteSet } from '../../assets/sprites';
@@ -11,7 +11,11 @@ import { TargetBar } from '../chrome/TargetBar';
 import { StatusChips } from './StatusChips';
 import { CombatForecast, previewAttack, previewSkillAttack } from './CombatForecast';
 import type { ForecastCombatant } from './CombatForecast';
-import { selectionRulesOf } from '../../game/targeting';
+import { selectionRulesOf, toggleTarget } from '../../game/targeting';
+import { STAT_CATALOG } from '../../game/statCatalog';
+import type { StatKey } from '../../game/statCatalog';
+import { Icon } from '../chrome/Icon';
+import { StatBar } from '../chrome/StatBar';
 
 /**
  * The JRPG pseudo-3D tactical arena (the small-battle view, per the
@@ -23,6 +27,17 @@ import { selectionRulesOf } from '../../game/targeting';
  */
 
 type DepthTier = 'front' | 'center' | 'back';
+
+// The party sheet order (the grid fills row by row): the STAT_CATALOG
+// keys arranged so each row pairs two stats that read naturally
+// together — attack next to magic, the two defences, speed next to
+// crit. Reorder this list to change the sheet.
+const PARTY_STAT_ORDER: StatKey[] = [
+    'attack', 'magic',
+    'defence', 'magicDefence',
+    'speed', 'critChance',
+    'critMultiplier',
+];
 
 // The visible ground band the columns may occupy: the tilted floor's
 // projected top and bottom edges, in arena coordinates. Sections never
@@ -65,11 +80,22 @@ function tierOf(character: Character): DepthTier {
     return 'front';
 }
 
+// Which side the pending action may pick targets on: a plain attack
+// picks enemies, a skill picks by its targeting (ENEMY/ALLY/ANY), and
+// SELF picks nobody — its target is the caster and never changes.
+function pickableSideOf(spec: SkillSpec | undefined): 'enemy' | 'ally' | 'any' | 'none' {
+    if (!spec) return 'enemy';
+    if (spec.targeting === 'ENEMY') return 'enemy';
+    if (spec.targeting === 'ALLY') return 'ally';
+    if (spec.targeting === 'ANY') return 'any';
+    return 'none';
+}
+
 // The fit of one depth column inside the ground band: when the
 // column's natural height (spacing × (count − 1) + the sprite
 // footprint) exceeds the band, the SPACING shrinks so the section
 // stays on the ground (the sprites themselves never drop below their
-// native 16px size — the CSS floors the total scale at 1).
+// 24px render size — the CSS floors the total scale at 1.5).
 function columnFitOf(tier: DepthTier, count: number): { spacing: number; shrink: number } {
     const spacing = TIERS[tier].spacing;
     const needed = Math.max(1, (count - 1) * spacing + COLUMN_FOOTPRINT);
@@ -128,7 +154,8 @@ function ArenaEntity({
 
     const hp = Math.round(character.stats.hp);
     const maxHp = Math.round(character.stats.totalHp);
-    const pct = maxHp > 0 ? Math.max(0, Math.min(100, Math.round(hp / maxHp * 100))) : 0;
+    const mana = Math.round(character.stats.mana ?? 0);
+    const totalMana = Math.round(character.stats.totalMana ?? 0);
     const sheet: SpriteSet = SPRITES[spriteRoleOf(character) ?? 'warrior'];
 
     return (
@@ -150,11 +177,15 @@ function ArenaEntity({
             {targeted ? <span className="jrpg-target-arrow" /> : null}
             <StatusChips character={character} onTip={onTip} />
             <span className="jrpg-entity-shadow" />
-            <span className="jrpg-micro-hp">
-                <span
-                    className="jrpg-micro-hp-fill"
-                    style={{ width: `${pct}%` }}
+            <span className="jrpg-entity-bars">
+                <StatBar
+                    value={hp}
+                    max={maxHp}
+                    color={side === 'enemy' ? '#ef4444' : '#22c55e'}
+                    width={24}
+                    height={2}
                 />
+                <StatBar value={mana} max={totalMana} color="#60a5fa" width={24} height={3} />
             </span>
             <span
                 className="jrpg-sprite-box"
@@ -232,9 +263,10 @@ export function JrpgArena({
     showSections?: boolean;
     onTarget: (id: string) => void;
     onInspect: (id: string) => void;
-    // Cast a skill; the optional targetId is the player's pick for
-    // single-target skills (SELF and whole-side skills need none).
-    onSkill: (skillId: string, targetId?: string) => void;
+    // Cast a skill; the optional targetIds are the player's picks for
+    // single or multi-target skills (SELF and whole-side skills need
+    // none).
+    onSkill: (skillId: string, targetIds?: string | string[]) => void;
     onFlee: () => void;
 }) {
     // The battle flows: commands -> (Skills list | target pick) ->
@@ -245,6 +277,10 @@ export function JrpgArena({
     const [pendingSkillId, setPendingSkillId] = useState<string | null>(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const [selection, setSelection] = useState<string[]>([]);
+    // The party panel (the menu's Party entry): the roster list plus the
+    // selected member's full stat sheet, for checking the turn order.
+    const [partyOpen, setPartyOpen] = useState(false);
+    const [partySelectedId, setPartySelectedId] = useState<string | undefined>(undefined);
     // The single shared tooltip overlay: chip hovers report here so the
     // tooltip renders outside the tier-scaled entities.
     const rootRef = useRef<HTMLDivElement | null>(null);
@@ -296,8 +332,9 @@ export function JrpgArena({
     });
 
     // ---- the arena entities -------------------------------------------
-    // One placement per combatant: the acting unit always steps to the
-    // frontline, the others keep their position tier. Each tier is
+    // One placement per combatant: everyone keeps their position tier
+    // (the acting unit no longer steps to the frontline — the turn
+    // cursor and the floor tile mark whose turn it is). Each tier is
     // chunked into COLUMN_MAX-sized columns (the overflow forms
     // further columns behind), and each placement knows its column
     // index and size, shared by the entities, the active tile, the
@@ -305,7 +342,7 @@ export function JrpgArena({
     const placementsOf = (side: 'ally' | 'enemy', pool: Character[]) => {
         const byTier = new Map<DepthTier, Character[]>();
         for (const character of pool) {
-            const tier: DepthTier = character.id === activeId ? 'front' : tierOf(character);
+            const tier: DepthTier = tierOf(character);
             const list = byTier.get(tier) ?? [];
             list.push(character);
             byTier.set(tier, list);
@@ -382,10 +419,15 @@ export function JrpgArena({
         return spots.map(({ character, tier, index, count, column }) => {
             // In target mode, tapping a valid target selects it (the
             // cards and the forecast follow); any other tap inspects.
-            // Attacks pick enemies; ALLY/ANY skills also pick allies.
-            const pickable = attacking && (side === 'enemy' ||
-                pendingSpec?.targeting === 'ALLY' ||
-                pendingSpec?.targeting === 'ANY');
+            // The pickable side comes from the CURRENT action: plain
+            // attacks and ENEMY skills pick enemies, ALLY skills pick
+            // allies, ANY skills both — SELF skills pick nobody (the
+            // caster is the fixed target).
+            const pickableSide = pickableSideOf(pendingSpec);
+            const pickable = attacking && (
+                pickableSide === 'any' ||
+                (side === 'enemy' && pickableSide === 'enemy') ||
+                (side === 'ally' && pickableSide === 'ally'));
             const onClick = attacking ?
                 () => {
                     if (!pickable) {
@@ -402,7 +444,11 @@ export function JrpgArena({
                         setSelection([]);
                         return;
                     }
-                    setSelection([character.id]);
+                    // Multi-target picks accumulate (toggle); single-
+                    // target picks replace.
+                    setSelection(pickCount > 1 ?
+                        toggleTarget(selection, character.id, rules) :
+                        [character.id]);
                 } :
                 () => onInspect(character.id);
             return (
@@ -513,7 +559,11 @@ export function JrpgArena({
     // directly (no confirmation screen).
     const skillHasPreview = Boolean(pendingSpec && actor &&
         previewSkillAttack(pendingSpec, actor, actor));
-    const rules = selectionRulesOf({ targeting: 'ENEMY', count: 1, poolSize: targetPool.length });
+    // The pick count of the pending skill (1 = single target, 2 = two
+    // distinct targets...): drives the selection rules and the phase
+    // switch (multi-target picks stay in phase 1 until complete).
+    const pickCount = Math.max(1, pendingSpec?.numberOfTargets ?? 1);
+    const rules = selectionRulesOf({ targeting: 'ENEMY', count: pickCount, poolSize: targetPool.length });
 
     const combatantOf = (character: Character): ForecastCombatant => ({
         name: character.name,
@@ -524,18 +574,19 @@ export function JrpgArena({
         maxMana: Math.round(character.stats.totalMana ?? 0),
     });
 
-    // Commit the picked target (the attack or the pending skill) and
+    // Commit the picked targets (the attack or the pending skill) and
     // leave target mode; cancel steps back: with a target picked it
     // returns to the target list, otherwise it aborts the whole pick.
     const commitSelection = () => {
         if (!selection[0]) return;
         if (pendingSkillId) {
             // SELF skills commit without a target: the actor IS the
-            // target the confirmation screen showed.
+            // target the confirmation screen showed. Multi-target
+            // skills commit their whole selection.
             if (pendingSpec?.targeting === 'SELF') {
                 onSkill(pendingSkillId);
             } else {
-                onSkill(pendingSkillId, selection[0]);
+                onSkill(pendingSkillId, selection);
             }
         } else {
             onTarget(selection[0]);
@@ -718,23 +769,22 @@ export function JrpgArena({
                     size="lg"
                     back={{ label: 'Cancel', onClick: () => setSkillsOpen(false) }}
                     options={skills.map((spec) => {
-                        const cost = spec.manaCost ?? 0;
-                        const affordable = cost <= (actor?.stats.mana ?? 0);
+                        const usable = actor ? canAffordSkill(spec, actor) : false;
                         return {
                             id: spec.id,
                             label: spec.name,
                             icon: { symbol: 'auto_awesome', color: '#fff' },
                             accent: '#3b82f6',
-                            sub: cost > 0 ? `${cost} MANA` : 'Free',
+                            sub: skillCostLabel(spec),
                             tip: skillEffectSummary(spec),
-                            disabled: !affordable,
-                            disabledReason: `Needs ${cost} MANA`,
+                            disabled: !usable,
+                            disabledReason: actor ? skillUnavailableReason(spec, actor) : 'Wait for your turn',
                             onClick: () => chooseSkill(spec),
                         };
                     })}
                 />
             ) : activeId && attacking && (targetPool.length > 0 || pendingSpec?.targeting === 'SELF') ? (
-                selection[0] ? (
+                selection.length >= pickCount && selection[0] ? (
                     // Phase 2 — a target is picked: the forecast (the
                     // .cf-root HIT gauge, with the damage, healing or
                     // status changes) above the tray, the matchup
@@ -778,7 +828,11 @@ export function JrpgArena({
                                 setSelection([]);
                                 return;
                             }
-                            setSelection([id]);
+                            // Multi-target picks accumulate (toggle);
+                            // single-target picks replace.
+                            setSelection(pickCount > 1 ?
+                                toggleTarget(selection, id, rules) :
+                                [id]);
                         }}
                         onAccept={commitSelection}
                         onCancel={cancelTargeting}
@@ -815,10 +869,103 @@ export function JrpgArena({
                                 !manualTurn ? 'Enemy turn' : 'Wait for your turn',
                             onClick: () => setSkillsOpen(true),
                         },
+                        {
+                            id: 'party',
+                            label: 'Party',
+                            icon: { symbol: 'groups', color: '#fff' },
+                            accent: '#f2ca50',
+                            sub: 'Roster & stats',
+                            onClick: () => {
+                                setPartySelectedId(allies[0]?.id);
+                                setPartyOpen(true);
+                            },
+                        },
                         ...(extraOptions ?? []),
                     ]}
                 />
             )}
+
+            {/* ---- the party panel: roster + the selected member's stats ---- */}
+            {partyOpen ? (
+                (() => {
+                    const selected = allies.find((entry) => entry.id === partySelectedId) ?? allies[0];
+                    // The selected member's sheet: the shared STAT_CATALOG
+                    // constant (same icons, curated labels and value
+                    // formatting as the character stats page) in the
+                    // PARTY_STAT_ORDER arrangement, integers only.
+                    const statRows = PARTY_STAT_ORDER
+                        .map((key) => STAT_CATALOG.find((entry) => entry.key === key))
+                        .filter((entry): entry is typeof STAT_CATALOG[number] => Boolean(entry))
+                        .map((entry) => ({
+                            key: entry.key,
+                            icon: entry.icon,
+                            label: entry.label,
+                            value: `${entry.prefix ?? ''}${Math.round(selected ? selected.getStat(entry.key) : 0)}${entry.suffix ?? ''}`,
+                        }));
+                    return (
+                        <div className="jrpg-party-panel">
+                            <div className="jrpg-party-head">
+                                <span className="jrpg-party-title">PARTY</span>
+                                <button
+                                    type="button"
+                                    className="pixel-btn jrpg-party-close"
+                                    onClick={() => setPartyOpen(false)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="jrpg-party-list">
+                                {allies.map((ally) => {
+                                    const isSelected = selected?.id === ally.id;
+                                    // The member's place in the round queue
+                                    // (the strip shows the same order).
+                                    const queueIndex = order ?
+                                        order.findIndex((entry) => entry.id === ally.id) :
+                                        -1;
+                                    return (
+                                        <button
+                                            key={ally.id}
+                                            type="button"
+                                            className={`jrpg-party-row${isSelected ? ' jrpg-party-row--selected' : ''}`}
+                                            onClick={() => setPartySelectedId(ally.id)}
+                                        >
+                                            <span className="jrpg-party-name">{ally.name}</span>
+                                            <span className="jrpg-party-meta">
+                                                LV {ally.experience.level} · {heldJobOf(ally)?.title ?? ''}
+                                            </span>
+                                            <span className="jrpg-party-vitals">
+                                                HP {Math.round(ally.stats.hp)}/{Math.round(ally.stats.totalHp)}
+                                                {' · '}MANA {Math.round(ally.stats.mana ?? 0)}/{Math.round(ally.stats.totalMana ?? 0)}
+                                            </span>
+                                            <span className="jrpg-party-speed">
+                                                SPD {Math.round(ally.getStat('speed'))}
+                                                {' · '}interval {intervalFromSpeed(ally.getStat('speed'))}
+                                                {queueIndex !== -1 ? ` · queue #${queueIndex + 1}` : ''}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            {selected ? (
+                                <div className="jrpg-party-stats">
+                                    <div className="jrpg-party-stats-title">{selected.name}</div>
+                                    <div className="jrpg-party-stats-grid">
+                                        {statRows.map((row) => (
+                                            <span key={row.key} className="jrpg-party-stat">
+                                                <span className="jrpg-party-stat-icon">
+                                                    <Icon id={row.icon} size={3} />
+                                                </span>
+                                                <span className="jrpg-party-stat-label">{row.label}</span>
+                                                <span className="jrpg-party-stat-value">{row.value}</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                    );
+                })()
+            ) : null}
 
             {/* The shared status tooltip overlay: rendered at the arena
                 level, outside every tier-scaled entity, so it shares

@@ -1,4 +1,5 @@
 import type { Character } from '../../src';
+import { StatusInstance } from '../../src/classes/StatusInstance';
 import type { StatusDefinition } from '../../src/classes/StatusInstance';
 import type { ImpactHitContext } from './damage/impact';
 
@@ -549,6 +550,87 @@ export function phantomStrikeStatus(): StatusDefinition {
             ctx.impactHits += 2;
         },
     };
+}
+
+/**
+ * Stun: the bearer loses its next action. Consumed by the combat
+ * engines when the fighter's own turn arrives (consumeStunTurn): the
+ * action is skipped and the status removed.
+ */
+export function stunStatus(): StatusDefinition {
+    return {
+        name: 'Stun',
+        polarity: 'negative',
+        description: 'Stunned: loses the next turn.',
+        applyOn: 'after_turn',
+        duration: { type: 'TEMPORAL', value: 1 },
+        turns: 1,
+        usageFrequency: 'ONCE',
+        statsAffected: [],
+    };
+}
+
+/** Consumes the bearer's Stun: true (and the status removed) when the
+ *  fighter must lose this action. */
+export function consumeStunTurn(character: Character): boolean {
+    for (const status of character.statusManager.statuses.values()) {
+        if (status.definition.name === 'Stun') {
+            character.statusManager.removeStatusInstance(status.id);
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Blind: the bearer's accuracy drops by 45% while the status lasts.
+ */
+export function blindStatus(): StatusDefinition {
+    return {
+        name: 'Blind',
+        polarity: 'negative',
+        description: 'Accuracy −45% for 3 turns.',
+        applyOn: 'after_turn',
+        duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [{ from: 'accuracy', to: 'accuracy', value: 45, typeOfModification: 'DEBUFF_PERCENTAGE' }],
+    };
+}
+
+/**
+ * Astra: while the bearer holds it, every negative status is refused.
+ * The protection is a plain boolean on the character (raised on add,
+ * lowered on remove) — applyStatus checks it, so the protection covers
+ * every application path that goes through that helper.
+ */
+export function astraStatus(): StatusDefinition {
+    return {
+        name: 'Astra',
+        polarity: 'positive',
+        description: 'Protected from bad statuses.',
+        applyOn: 'after_turn',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        statsAffected: [],
+        onAdd: (character) => {
+            character.blocksBadStatuses = true;
+        },
+        onRemove: (character) => {
+            character.blocksBadStatuses = false;
+        },
+    };
+}
+
+/**
+ * Adds a status to a character, honoring Astra: negative statuses are
+ * refused while the character is protected. Returns whether it landed.
+ */
+export function applyStatus(character: Character, definition: StatusDefinition): boolean {
+    if (definition.polarity === 'negative' && character.blocksBadStatuses) return false;
+    character.statusManager.addStatusInstance(new StatusInstance({ definition }));
+    return true;
 }
 
 /**

@@ -1,0 +1,15 @@
+/* The reusable value bar: a dark track with a colored fill (the
+   width, height and fill color come from the component props). */
+.stat-bar {
+    display: block;
+    box-sizing: border-box;
+    background: #1a0a05;
+    /* border: 1px solid #36170c; */
+    overflow: hidden;
+}
+
+.stat-bar-fill {
+    display: block;
+    height: 100%;
+    transition: width 0.25s ease-out;
+}

@@ -1,7 +1,8 @@
-﻿import type { Character, Item } from '@rpg';
+import type { Character, Item } from '@rpg';
 import { heldJobOf, loadoutOf } from '@core';
 import { portraitIdOf, portraitUrl } from '../../constants/portraits';
 import { Icon } from '../chrome/Icon';
+import { StatBar } from '../chrome/StatBar';
 import { StatsColumn } from './StatsColumn';
 import type { StatRow } from './StatsColumn';
 import { STAT_CATALOG } from '../../game/statCatalog';
@@ -32,7 +33,7 @@ export function TeamData({ character }: { character: Character }) {
     }));
 
     return (
-        <div className="pixel-panel team-data">
+        <>
             <div className="team-data-head">
                 <div className="team-data-portrait-wrap">
                     <span className="team-data-portrait-name">{character.name}</span>
@@ -49,7 +50,35 @@ export function TeamData({ character }: { character: Character }) {
                         <Icon id="default" size={4} /> {Math.round(character.getStat('hp'))}/{Math.round(character.getStat('totalHp'))}
                     </div>
                     <div style={{ fontSize: 'var(--s3)' }}>
+                        <Icon id="default" size={4} /> MANA {Math.round(character.stats.mana ?? 0)}/
+                        {Math.round(character.stats.totalMana ?? 0)}
+                    </div>
+                    <div style={{ fontSize: 'var(--s3)' }}>
                         <Icon id="default" size={4} /> XP {experience.currentXp}
+                    </div>
+                    {/* The vitals as bars: hp, mana and the level progress. */}
+                    <div className="team-data-bars">
+                        <StatBar
+                            value={Math.round(character.getStat('hp'))}
+                            max={Math.round(character.getStat('totalHp'))}
+                            color="#22c55e"
+                            width={96}
+                            height={5}
+                        />
+                        <StatBar
+                            value={Math.round(character.stats.mana ?? 0)}
+                            max={Math.round(character.stats.totalMana ?? 0)}
+                            color="#60a5fa"
+                            width={96}
+                            height={5}
+                        />
+                        <StatBar
+                            value={experience.currentXp}
+                            max={experience.getXpToNextLevel()}
+                            color="#f2ca50"
+                            width={96}
+                            height={5}
+                        />
                     </div>
                 </div>
             </div>
@@ -71,6 +100,6 @@ export function TeamData({ character }: { character: Character }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }

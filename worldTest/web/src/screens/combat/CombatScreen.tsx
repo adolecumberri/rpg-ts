@@ -281,10 +281,10 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
         scheduleNext();
     };
 
-    const pickSkill = (skillId: string, targetId?: string) => {
+    const pickSkill = (skillId: string, targetIds?: string | string[]) => {
         const combat = setupRef.current?.combat;
         if (!combat) return;
-        combat.resolveManualSkill(skillId, targetId);
+        combat.resolveManualSkill(skillId, targetIds);
         setPrompt(null);
         setInspectedId(null);
         setVersion((value) => value + 1);

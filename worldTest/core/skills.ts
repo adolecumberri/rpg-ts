@@ -14,6 +14,9 @@ import {
     defenceStandStatus,
     footShotStatus,
     concentrationStatus,
+    astraStatus,
+    stunStatus,
+    blindStatus,
 } from './statuses';
 import { FATIGUE } from './combat/fatigue';
 import { heldJobOf } from './constants/jobs';
@@ -104,6 +107,13 @@ export type SkillSpec = {
     // engines hide skills the fighter cannot afford and deduct the cost
     // on use.
     manaCost?: number;
+    // The hp share the skill consumes on cast (30 = 30% of the user's
+    // TOTAL hp, at least 1). Paid together with the mana cost; the
+    // fighter must survive the payment (at least 1 hp left).
+    hpCostPercent?: number;
+    // Only usable while the bearer wears a shield (the offhand slot):
+    // the UI disables it and the engine refuses it otherwise.
+    requiresShield?: boolean;
     // Attack reach of the skill. Spells default to 'all' (every row).
     rangeOf?: 'short' | 'long' | 'all';
     // Damage components resolved with the compound damage composer.
@@ -317,6 +327,80 @@ export const Skills: Record<string, SkillSpec> = {
         targeting: 'ALLY',
         numberOfTargets: 1,
         healFor: (actor) => Math.round((10 + actor.getStat('magic') * 0.6) * 100) / 100,
+        manaCost: 16,
+    },
+    // ------------------------------------------------------------------
+    // The new act-2 kit (defined but NOT wired into any job yet): the
+    // protection layer, the hp-paid strike, the shield-gated bash and
+    // the reusable Blind/Stun statuses they apply.
+    // ------------------------------------------------------------------
+    astra: {
+        id: 'astra',
+        name: 'Astra',
+        description: 'Shields the whole team from bad statuses while it lasts.',
+        targeting: 'ALL_ALLIES',
+        statusOnTargets: astraStatus(),
+        manaCost: 14,
+    },
+    derribo: {
+        id: 'derribo',
+        name: 'Derribo',
+        description: 'A crushing blow: 140% of your attack as physical damage. Costs 30% of your hp.',
+        targeting: 'ENEMY',
+        numberOfTargets: 1,
+        damageFor: (actor) => [{
+            kind: 'physical',
+            element: 'physical',
+            amount: Math.round(actor.getStat('attack') * 1.4 * 100) / 100,
+            label: 'Derribo',
+        }],
+        hpCostPercent: 30,
+    },
+    shield_bash: {
+        id: 'shield_bash',
+        name: 'Shield Bash',
+        description: '40% of your attack as blunt physical damage, and the target is stunned for 1 turn. Needs a shield.',
+        targeting: 'ENEMY',
+        numberOfTargets: 1,
+        damageFor: (actor) => [{
+            kind: 'physical',
+            element: 'blunt',
+            amount: Math.round(actor.getStat('attack') * 0.4 * 100) / 100,
+            label: 'Shield Bash',
+        }],
+        statusOnTargets: stunStatus(),
+        manaCost: 10,
+        requiresShield: true,
+    },
+    nature_salve: {
+        id: 'nature_salve',
+        name: 'Nature Salve',
+        description: 'Washes the bad statuses off an ally.',
+        targeting: 'ALLY',
+        numberOfTargets: 1,
+        dispel: { onAlly: 'negative' },
+        manaCost: 8,
+    },
+    focus_the_eyes: {
+        id: 'focus_the_eyes',
+        name: 'Focus the Eyes',
+        description: 'Blinds the enemy: accuracy −45% for 3 turns.',
+        targeting: 'ENEMY',
+        numberOfTargets: 1,
+        statusOnTargets: blindStatus(),
+    },
+    double_strike: {
+        id: 'double_strike',
+        name: 'Double Strike',
+        description: '8 + 80% of your magic as magic damage to 2 targets.',
+        targeting: 'ENEMY',
+        numberOfTargets: 2,
+        damageFor: (actor) => [{
+            kind: 'magical',
+            element: 'arcane',
+            amount: Math.round((8 + actor.getStat('magic') * 0.8) * 100) / 100,
+            label: 'Double Strike',
+        }],
         manaCost: 16,
     },
     weak_point: {

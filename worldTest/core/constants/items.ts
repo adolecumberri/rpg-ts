@@ -1,6 +1,5 @@
-import { StatusInstance } from '../../../src/classes/StatusInstance';
 import type { ItemTableEntry } from '../loot/itemTable';
-import { bleedingStatus, phantomStrikeStatus } from '../statuses';
+import { applyStatus, bleedingStatus, phantomStrikeStatus } from '../statuses';
 import { assignReactiveSkill, removeReactiveSkill } from '../skills';
 import { CATEGORIES } from './categories';
 import { EQUIPMENT_SLOTS } from './equipmentSlots';
@@ -85,11 +84,9 @@ export const Items = {
         effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 4 }],
         // Every real hit (damage > 0 after reactions) applies Bleeding to
         // the defender. Reapplying replaces the current instance, so the 3
-        // turn countdown restarts instead of stacking.
+        // turn countdown restarts instead of stacking. Astra blocks it.
         onHit: (context) => {
-            context.defender.statusManager.addStatusInstance(
-                new StatusInstance({ definition: bleedingStatus() }),
-            );
+            applyStatus(context.defender, bleedingStatus());
         },
         skills: [
             {
@@ -246,9 +243,7 @@ export const Items = {
                 moment: 'hit',
                 every: 4,
                 onTrigger: (ctx) => {
-                    ctx.attacker.statusManager.addStatusInstance(
-                        new StatusInstance({ definition: phantomStrikeStatus() }),
-                    );
+                    applyStatus(ctx.attacker, phantomStrikeStatus());
                 },
             },
         ],

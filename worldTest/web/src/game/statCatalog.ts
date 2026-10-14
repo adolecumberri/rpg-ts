@@ -1,4 +1,4 @@
-﻿import type { IconId } from '../components/chrome/Icon';
+import type { IconId } from '../components/chrome/Icon';
 
 /**
  * The catalog of displayed stats, in order — shared by every stats
@@ -24,9 +24,9 @@ export type StatEntry = {
 export const STAT_CATALOG: StatEntry[] = [
     { key: 'attack', icon: 'atqFisico', label: 'Atq. físico' },
     { key: 'defence', icon: 'defence', label: 'Def. física' },
+    { key: 'magic', icon: 'poderMagico', label: 'Poder mágico' },
     { key: 'magicDefence', icon: 'defensaMagica', label: 'Def. mágica' },
     { key: 'speed', icon: 'speed', label: 'Rapidez' },
-    { key: 'magic', icon: 'poderMagico', label: 'Poder mágico' },
     { key: 'critChance', icon: 'critChance', label: 'Crit.', suffix: '%' },
     { key: 'critMultiplier', icon: 'critMultiplier', label: 'Crit. Mult.', prefix: '×' },
 ];

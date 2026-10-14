@@ -1,5 +1,5 @@
 import type { SkillSpec } from '@core';
-import { skillEffectSummary } from '@core';
+import { skillCostLabel, skillEffectSummary } from '@core';
 import './SkillInfo.css';
 
 /**
@@ -20,7 +20,7 @@ export function SkillInfo({ spec }: { spec?: SkillSpec }) {
         <div className="skill-info">
             <div className="skill-info-name">{spec.name}</div>
             <div className="skill-info-desc">{spec.description}</div>
-            <div className="skill-info-row">MANA {spec.manaCost ?? 0}</div>
+            <div className="skill-info-row">{skillCostLabel(spec)}</div>
             <div className="skill-info-row">{skillEffectSummary(spec)}</div>
         </div>
     );

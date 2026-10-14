@@ -8,6 +8,8 @@ import { syncAuras } from './aura';
 import { pickSkillTargets } from './autoSkills';
 import { resolveSkillEffect } from './skillEffects';
 import { consumeFaintTurn } from './fatigue';
+import { consumeStunTurn } from '../statuses';
+import { canAffordSkill, hpCostOf } from './skillGating';
 import { battleSkillSpecs, specOf } from '../skills';
 import type { SkillSpec } from '../skills';
 import type { ComponentLine } from '../damage/composer';
@@ -221,10 +223,10 @@ export class HybridCombat {
         return battleSkillSpecs(actor.character, actor.skills ?? []);
     }
 
-    /** The skills the fighter can pay for right now (auto planner). */
+    /** The skills the fighter can pay for right now (auto planner):
+     *  mana, hp share and the shield requirement all count. */
     private affordableSkillsOf(actor: HybridCombatant): SkillSpec[] {
-        const mana = actor.character.stats.mana ?? 0;
-        return this.skillsOf(actor).filter((spec) => (spec.manaCost ?? 0) <= mana);
+        return this.skillsOf(actor).filter((spec) => canAffordSkill(spec, actor.character));
     }
 
     /**
@@ -312,6 +314,9 @@ export class HybridCombat {
         // Fainted fighters lose this action (their faint counts down).
         if (consumeFaintTurn(actor.character)) return null;
 
+        // Stunned fighters lose this action too (the stun is consumed).
+        if (consumeStunTurn(actor.character)) return null;
+
         if (actor.manual) {
             this.pendingManual = actor;
             return this.manualEvent(actor);
@@ -359,30 +364,32 @@ export class HybridCombat {
 
     /**
      * The player answered the pending manual prompt: cast one of the
-     * fighter's skills. Without a targetId the engine plans the targets
-     * itself (the spec's targeting); with one, the player's pick is
-     * used (single-target skills). Manual skill use ignores auto
-     * policies and cooldowns: the player decides.
+     * fighter's skills. Without targetIds the engine plans the targets
+     * itself (the spec's targeting); with them, the player's picks are
+     * used (single or multi-target skills). Manual skill use ignores
+     * auto policies and cooldowns: the player decides.
      */
-    resolveManualSkill(skillId: string, targetId?: string): HybridAutoEvent | null {
+    resolveManualSkill(skillId: string, targetIds?: string | string[]): HybridAutoEvent | null {
         if (!this.pendingManual) return null;
         const actor = this.pendingManual;
         const spec = this.skillsOf(actor).find((entry) => entry.id === skillId);
         if (!spec) return null;
-        // The fighter must be able to pay the cost (the UI disables the
-        // skill; this keeps the engine honest regardless).
-        if ((spec.manaCost ?? 0) > (actor.character.stats.mana ?? 0)) return null;
+        // The fighter must be able to use the skill: mana, hp share and
+        // the shield requirement (the UI disables it; this keeps the
+        // engine honest regardless).
+        if (!canAffordSkill(spec, actor.character)) return null;
         this.pendingManual = null;
-        let targetIds: string[];
-        if (targetId) {
-            // The player's pick must be a living fighter of this battle.
-            const picked = this.combatants.find(
-                (entry) => entry.character.id === targetId && entry.character.stats.hp > 0,
-            );
-            if (!picked) return null;
-            targetIds = [targetId];
+        let picked: string[] = [];
+        if (targetIds !== undefined) {
+            const ids = Array.isArray(targetIds) ? targetIds : [targetIds];
+            // Every pick must be a living fighter of this battle.
+            const allValid = ids.every((id) => this.combatants.some(
+                (entry) => entry.character.id === id && entry.character.stats.hp > 0,
+            ));
+            if (!allValid) return null;
+            picked = ids;
         } else {
-            targetIds = pickSkillTargets(
+            picked = pickSkillTargets(
                 spec,
                 actor.character,
                 this.alliesOf(actor).map((entry) => entry.character),
@@ -390,7 +397,7 @@ export class HybridCombat {
                 this.random,
             );
         }
-        return this.performSkill(actor, spec, targetIds);
+        return this.performSkill(actor, spec, picked);
     }
 
     private performAttack(actor: HybridCombatant, target: HybridCombatant): HybridAutoEvent {
@@ -440,6 +447,14 @@ export class HybridCombat {
         const cost = spec.manaCost ?? 0;
         if (cost > 0) {
             actor.character.stats.mana = Math.max(0, (actor.character.stats.mana ?? 0) - cost);
+        }
+        // The hp share: a percent of the user's TOTAL hp, paid from its
+        // current hp (at least 1 hp survives — the gate refuses the
+        // cast otherwise).
+        const hpShare = hpCostOf(spec, actor.character);
+        if (hpShare > 0) {
+            actor.character.stats.hp = Math.max(1, actor.character.stats.hp - hpShare);
+            actor.character.stats.isAlive = 1;
         }
 
         const targets = targetIds

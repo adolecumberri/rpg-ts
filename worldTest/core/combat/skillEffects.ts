@@ -1,5 +1,4 @@
 import type { Character } from '../../../src';
-import { StatusInstance } from '../../../src/classes/StatusInstance';
 import type { SkillSpec } from '../skills';
 import { DamageComposer } from '../damage/composer';
 import type { ComponentLine } from '../damage/composer';
@@ -8,7 +7,7 @@ import { kindOfElement } from '../config/damage';
 import { applyCoverRedirect, kindMultiplierFor } from '../damage/general';
 import { applyCover } from './cover';
 import { gainFatigue, restoreFatigue, FATIGUE } from './fatigue';
-import { removeStatusesByPolarity } from '../statuses';
+import { applyStatus, removeStatusesByPolarity } from '../statuses';
 
 // ---------------------------------------------------------------------------
 // The single skill effect resolver shared by the turn-based combat
@@ -114,7 +113,9 @@ export function resolveSkillEffect(
         if (statuses.length > 0) {
             effect.statusesOnTarget = [];
             for (const status of statuses) {
-                target.statusManager.addStatusInstance(new StatusInstance({ definition: status }));
+                // Astra-protected targets refuse bad statuses: only the
+                // statuses that actually landed are reported.
+                if (!applyStatus(target, status)) continue;
                 effect.statusesOnTarget.push(status.name);
             }
             effect.statusOnTarget = effect.statusesOnTarget.join(' + ');
@@ -132,8 +133,7 @@ export function resolveSkillEffect(
     }
 
     let statusOnSelf: string | undefined;
-    if (spec.statusOnSelf) {
-        actor.statusManager.addStatusInstance(new StatusInstance({ definition: spec.statusOnSelf }));
+    if (spec.statusOnSelf && applyStatus(actor, spec.statusOnSelf)) {
         statusOnSelf = spec.statusOnSelf.name;
     }
 

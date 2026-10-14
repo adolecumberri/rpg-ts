@@ -115,6 +115,10 @@ declare module '@rpg' {
         // creation. Special characters keep their own portrait and
         // battle sprite forever; everyone else follows the held job's.
         portraitId?: string;
+        // Astra: while true, the character refuses every negative
+        // status (the Astra status raises it on add, lowers it on
+        // remove). Plain boolean — undefined = unprotected.
+        blocksBadStatuses?: boolean;
     }
 }
 

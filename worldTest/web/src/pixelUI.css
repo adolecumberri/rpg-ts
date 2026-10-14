@@ -565,6 +565,7 @@ f2ca50 // acento
     min-height: 0;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     overflow: hidden;
     background: #251911;
     padding: var(--s2) calc(var(--u) * 2.5);
@@ -1619,7 +1620,7 @@ f2ca50 // acento
     display: flex;
     flex-direction: column;
     /* padding: var(--s1); */
-    margin: 0px var(--s3);
+    /* margin: 0px var(--s3); */
     box-sizing: border-box;
     background: #552723;
     border: 2px solid #180908;
@@ -1653,10 +1654,10 @@ f2ca50 // acento
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    background: var(--card-2);
+    /* background: var(--card-2); */
     padding: var(--s2);
-    box-shadow: inset 2px 2px 0 0 rgba(255, 200, 160, 0.28), inset -2px -2px 0 0 rgba(0, 0, 0, 0.75), inset 4px 4px 0 0 rgba(255, 255, 255, 0.1), inset -2px -2px 0 0 rgba(10, 2, 2, 0.9);
-    border: 0px solid black;
+    /* box-shadow: inset 2px 2px 0 0 rgba(255, 200, 160, 0.28), inset -2px -2px 0 0 rgba(0, 0, 0, 0.75), inset 4px 4px 0 0 rgba(255, 255, 255, 0.1), inset -2px -2px 0 0 rgba(10, 2, 2, 0.9); */
+    /* border: 0px solid black; */
 }
 
 .team-data-identity {
@@ -1675,6 +1676,16 @@ f2ca50 // acento
     margin-right: var(--s1);
 }
 
+/* The vitals as the shared StatBar bars: hp, mana and the level
+   progress (xp / xp-to-next-level), stacked under the identity lines. */
+.team-data-bars {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    width: calc(var(--u) * 24);
+    margin-top: 2px;
+}
+
 .team-data-split {
     display: flex;
     gap: var(--s2);
@@ -1683,7 +1694,8 @@ f2ca50 // acento
 }
 
 /* The stats ledger (stitch view 1): a darker well with an inverted
-   inset bevel, hairline rows, muted labels and gold values. */
+   inset bevel, clean unlined rows (like the battle party sheet),
+   muted labels and gold values. */
 .team-data-stats {
     flex: none;
     width: calc(var(--u) * 35);
@@ -1709,11 +1721,6 @@ f2ca50 // acento
     gap: var(--s1);
     font-size: var(--s3);
     padding: 2px 0;
-    box-shadow: 0 1px 0 0 #251911;
-}
-
-.team-stat-line:last-child {
-    box-shadow: none;
 }
 
 .team-stat-icon {
@@ -3429,23 +3436,24 @@ f2ca50 // acento
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s;
 }
 
-/* The entity's total scale is floored at 1: the sprites are 16x16px
-   native, and neither the crowd shrink (--jrpg-unit-scale) nor the
-   section collapse (--jrpg-shrink) may ever render them smaller. */
+/* The entity's total scale is floored at 1.5: the sprites are 16x16px
+   native and render at 24x24px, and neither the crowd shrink
+   (--jrpg-unit-scale) nor the section collapse (--jrpg-shrink) may
+   ever render them smaller. */
 .jrpg-depth-far {
-    transform: translate(-50%, -100%) scale(max(1, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
+    transform: translate(-50%, -100%) scale(max(1.5, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
     z-index: 12;
     filter: brightness(0.85) contrast(0.95);
 }
 
 .jrpg-depth-mid {
-    transform: translate(-50%, -100%) scale(max(1, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
+    transform: translate(-50%, -100%) scale(max(1.5, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
     z-index: 15;
     filter: brightness(0.95);
 }
 
 .jrpg-depth-front {
-    transform: translate(-50%, -100%) scale(max(1, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
+    transform: translate(-50%, -100%) scale(max(1.5, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
     z-index: 20;
     filter: brightness(1.1);
 }
@@ -3508,25 +3516,16 @@ f2ca50 // acento
     }
 }
 
-.jrpg-micro-hp {
-    width: 24px;
-    height: 3px;
-    background: #1a0a05;
-    border: 1px solid #36170c;
+/* The unit's micro bars: the shared StatBar pair (hp + mana) stacked
+   above the sprite, hp green for allies / red for enemies, mana blue. */
+.jrpg-entity-bars {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* gap: 1px; */
     margin-bottom: 2px;
     position: relative;
     z-index: 5;
-}
-
-.jrpg-micro-hp-fill {
-    height: 100%;
-    background: #22c55e;
-    box-shadow: 0 0 3px rgba(34, 197, 94, 0.8);
-}
-
-.jrpg-enemy-side .jrpg-micro-hp-fill {
-    background: #ef4444;
-    box-shadow: 0 0 3px rgba(239, 68, 68, 0.8);
 }
 
 .jrpg-sprite-box {
@@ -3679,6 +3678,142 @@ f2ca50 // acento
     font-family: 'VT323', var(--font-pixel, monospace);
     font-size: 14px;
     font-size-adjust: none;
+}
+
+/* The party panel (the menu's Party entry): the roster list with
+   vitals, speed/interval and the queue place, plus the selected
+   member's full stat sheet — the turn-order check. */
+.jrpg-party-panel {
+    position: absolute;
+    top: 44px;
+    right: 8px;
+    width: 236px;
+    background: #190e08;
+    border: 1px solid #542d17;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 60;
+}
+
+.jrpg-party-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.jrpg-party-title {
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 9px;
+    color: #f3e7be;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.jrpg-party-close {
+    height: 20px;
+    min-width: 20px;
+    font-size: 11px;
+}
+
+.jrpg-party-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.jrpg-party-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding: 3px 5px;
+    background: #221209;
+    border: 1px solid #3d2110;
+    color: #eedbcc;
+    text-align: left;
+    cursor: pointer;
+}
+
+.jrpg-party-row:hover {
+    border-color: #7b4725;
+}
+
+.jrpg-party-row--selected {
+    border-color: #d4af37;
+    background: #2b1a0e;
+}
+
+.jrpg-party-name {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 14px;
+    font-size-adjust: none;
+    line-height: 1;
+}
+
+.jrpg-party-meta,
+.jrpg-party-vitals,
+.jrpg-party-speed {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    line-height: 1.05;
+    color: #b8ab93;
+}
+
+.jrpg-party-speed {
+    color: #f2ca50;
+}
+
+.jrpg-party-stats {
+    border-top: 1px solid #542d17;
+    padding-top: 4px;
+}
+
+.jrpg-party-stats-title {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 14px;
+    font-size-adjust: none;
+    color: #f3e7be;
+    margin-bottom: 3px;
+}
+
+.jrpg-party-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 8px;
+}
+
+.jrpg-party-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 11px;
+    font-size-adjust: none;
+    color: #eedbcc;
+}
+
+.jrpg-party-stat-icon {
+    flex: none;
+    width: 12px;
+    height: 12px;
+}
+
+.jrpg-party-stat-label {
+    flex: 1;
+    min-width: 0;
+    color: #b7c6ee;
+}
+
+.jrpg-party-stat-value {
+    flex: none;
+    width: var(--s5);
+    text-align: right;
+    color: var(--accent);
 }
 
 .jrpg-turn-left {

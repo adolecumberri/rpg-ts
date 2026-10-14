@@ -4,6 +4,7 @@ export * from './targeting';
 export * from './conditions';
 export * from './autoSkills';
 export * from './skillEffects';
+export * from './skillGating';
 export * from './fatigue';
 export * from './ramp';
 export * from './range';
