@@ -109,5 +109,5 @@ export const MAP_PLACES: MapPlace[] = [
         marker: { x: 1462, y: 1612 },
         x: 1464,
         y: 1613,
-    }
+    },
 ];

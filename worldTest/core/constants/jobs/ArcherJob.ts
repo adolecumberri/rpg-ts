@@ -1,18 +1,15 @@
 import { Job } from '../../jobs/Job';
 import { WEAPON_TYPES } from '../weaponTypes';
 
-// The Order archer: harasses from every row with the bow. Trained
-// reflexes: +2 attack and +2 speed.
+// The Order archer: harasses from every row with the bow. The job's
+// level-1 identity (over the common base): +26 hp, +7 attack,
+// +9 defence, +9 magic defence, +9 speed, +10 crit.
 export const ARCHER_JOB = new Job(
     'archer',
     'Archer',
-    ['fast_draw', 'weak_point', 'perception'],
+    ['foot_shot', 'concentration'],
     [WEAPON_TYPES.bow],
-    { attack: 2, speed: 2 },
+    { hp: 26, totalHp: 26, attack: 7, defence: 9, magicDefence: 9, speed: 9, critChance: 10 },
     false,
-    {
-        base: { hp: 92, totalHp: 92, attack: 5, defence: 0, magicDefence: 0, speed: 8 },
-        // Archers scale speed and crits, but gain little bulk.
-        ratios: { hp: 0.8, totalHp: 0.8, attack: 1.1, defence: 0.6, magicDefence: 0.6, magic: 0.6, speed: 1.2, critChance: 1.2 },
-    },
+    { attack: 1.4, defence: 0.8, magicDefence: 1, magic: 0.8, speed: 1.6, critChance: 1.4 },
 );

@@ -1,7 +1,6 @@
 import { Character, Stats, Team } from '../../src';
-import type { NPC, NPCDefinition, NPCStats, Place } from './types';
+import type { NPC, NPCDefinition, Place } from './types';
 import type { Mission } from './missions';
-import type { Job } from './jobs';
 import { ACT1 } from './config/act1';
 import { DEFAULT_ITEM_TABLE } from './items';
 import { FLAGS } from './constants/flags';
@@ -9,35 +8,24 @@ import { Missions } from './constants/missions';
 import { farmerNameFor } from './names';
 import { applyJobBonuses, jobOfCharacter } from './constants/jobs';
 import { characterGenerator } from './generators/characterGenerator';
+import { DEFAULT_BASE, applyGrowthProfile } from './config/growth';
 import { equipInto, migrateLegacyEquipment } from './equipment/loadout';
-
-
 
 // The Order Army recruits: the fourteen farmers were recruited and now
 // serve with a CONSTANT class composition (ACT1.roster: 4 archers, 2
 // healers — Arturo among them — and 8 soldiers). They live in the camp
-// and are the player's roster. Each class wears its weapon; its stats
-// come from the job's growth bases.
-const recruitStats = (job: Job): NPCStats => {
-    const base = job.growth?.base ?? {};
-    return {
-        hp: base.hp ?? 20,
-        totalHp: base.totalHp ?? 20,
-        attack: base.attack ?? 5,
-        defence: base.defence ?? 1,
-        magicDefence: base.magicDefence,
-        speed: base.speed ?? 6,
-    };
-};
-
+// and are the player's roster. Their stats are NOT declared: they grow
+// from their job's profile up to their level.
 const RECRUIT_NPCS: NPCDefinition[] = [
     // The healers: Arturo leads them, the rest follow his count.
+    // The first of each class starts at level 5 (the player's opening
+    // squad); the rest of the camp trains at level 3.
     {
         id: 'arturo',
         name: 'Arturo',
         talk: '"The Order needs steady hands."',
-        stats: recruitStats(ACT1.recruits.healer),
         group: 'The Order',
+        level: 5,
         inRoster: true,
         equipment: ['staff'],
     },
@@ -47,8 +35,8 @@ const RECRUIT_NPCS: NPCDefinition[] = [
             id,
             name: farmerNameFor(id, 'female'),
             talk: '"Hold still, I will patch you up."',
-            stats: recruitStats(ACT1.recruits.healer),
             group: 'The Order',
+            level: 3,
             inRoster: true,
             equipment: ['staff'],
         };
@@ -59,8 +47,8 @@ const RECRUIT_NPCS: NPCDefinition[] = [
             id,
             name: farmerNameFor(id, index % 2 === 0 ? 'male' : 'female'),
             talk: '"My bow is ready."',
-            stats: recruitStats(ACT1.recruits.archer),
             group: 'The Order',
+            level: index === 0 ? 5 : 3,
             inRoster: true,
             equipment: ['bow'],
         };
@@ -71,8 +59,8 @@ const RECRUIT_NPCS: NPCDefinition[] = [
             id,
             name: farmerNameFor(id, index % 2 === 0 ? 'male' : 'female'),
             talk: '"For the Order!"',
-            stats: recruitStats(ACT1.recruits.soldier),
             group: 'The Order',
+            level: index === 0 ? 5 : 3,
             inRoster: true,
             equipment: ['sword'],
         };
@@ -81,14 +69,15 @@ const RECRUIT_NPCS: NPCDefinition[] = [
 
 // The camp's commanding officer: gives the missions and forms the
 // squad. He is part of the roster — the captain the recruit spars
-// against in the training's final match.
+// against in the sparring finale. A veteran soldier (level 13) whose
+// stats come from the soldier job's growth.
 const GENERAL_NPC: NPCDefinition = {
     id: 'general',
     name: 'Captain Rodrigo',
     talk: '"Report to the board for your orders."',
-    stats: { hp: 100, totalHp: 100, attack: 12, defence: 6, speed: 6 },
     group: 'The Command',
     portrait: 'captain',
+    level: 13,
     inRoster: true,
     respawns: true,
 };
@@ -103,13 +92,6 @@ export const PLACES: Place[] = [
         position: { x: 120, y: 260 },
         actions: [
             { id: 'camp_board', label: "The General's Orders", kind: 'mission_board', icon: '' },
-            {
-                id: 'camp_training',
-                label: 'Start the training match',
-                kind: 'mission_battle',
-                missionId: 'training',
-                icon: '⚔️',
-            },
             { id: 'camp_look', label: 'Look around', kind: 'look_around', icon: '' },
         ],
         connections: [{ label: "The Lord's Farm", to: 'farm', icon: '' }],
@@ -233,6 +215,19 @@ export function buildNpcsFromPlaces(places: Place[]): {
             const defaultJob = jobOfCharacter(def.id);
             if (defaultJob) {
                 character.jobId = defaultJob.id;
+            }
+            // Hand-written stats are authoritative: an NPC with an
+            // explicit `stats` block keeps exactly those numbers. Only
+            // characters WITHOUT hand-written stats grow through their
+            // job's ratios up to their level, from the common base (the
+            // level itself always travels along either way). The job's
+            // own base arrives right after as its stat bonuses.
+            const level = def.level ?? 1;
+            character.experience.level = level;
+            if (!def.stats && defaultJob?.growth) {
+                applyGrowthProfile(character, DEFAULT_BASE, defaultJob.growth, level);
+            }
+            if (defaultJob) {
                 applyJobBonuses(character, defaultJob);
             }
             // The picture override: stamped once at world build, never
@@ -275,11 +270,13 @@ export function buildNpcsFromPlaces(places: Place[]): {
  * level 5 — the branch choice may re-job them), a sack and the outfit,
  * no weapon and no items; the camp people and the missions.
  */
-export function createInitialWorld(): {
+export type InitialWorld = {
     team: Team;
     npcs: Map<string, NPC[]>;
     roster: Character[];
-} {
+};
+
+export function createInitialWorld(): InitialWorld {
     const team = new Team();
     // The player is a standard generated character: the soldier job at
     // level 5 (job bonuses, growth profile and the level-up wiring all

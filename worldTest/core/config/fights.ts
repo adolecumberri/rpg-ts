@@ -63,6 +63,28 @@ export const FIGHTS: Record<string, FightDefinition> = {
     // memory. Sparring is non-lethal: the camp fighters recover after
     // the match.
     // ------------------------------------------------------------------
+    // ------------------------------------------------------------------
+    // Act 1 · the Sparring: the starting squad (the recruit + the two
+    // teammates) fights an Order soldier, archer and mage together.
+    // Losing carries no penalty; a WIN leaves the class flags in the
+    // story memory.
+    // ------------------------------------------------------------------
+    sparring_squad: {
+        id: 'sparring_squad',
+        mode: 'turn',
+        placeId: 'camp',
+        enemies: () => [
+            characterGenerator({ job: SOLDIER_JOB, level: 3, id: 'sparring_soldier', name: 'Order Soldier' }),
+            characterGenerator({ job: ARCHER_JOB, level: 3, id: 'sparring_archer', name: 'Order Archer' }),
+            characterGenerator({ job: HEALER_JOB, level: 3, id: 'sparring_mage', name: 'Order Mage' }),
+        ],
+        onWin: (mission) => {
+            mission?.takeFlag(FLAGS.TRAINING_WON_SOLDIER);
+            mission?.takeFlag(FLAGS.TRAINING_WON_ARCHER);
+            mission?.takeFlag(FLAGS.TRAINING_WON_MAGE);
+        },
+    },
+
     sparring_soldier: {
         id: 'sparring_soldier',
         mode: 'turn',

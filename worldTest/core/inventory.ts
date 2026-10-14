@@ -52,10 +52,11 @@ export function useItemOn(inventory: Inventory, slot: InventorySlot, character: 
 // ---------------------------------------------------------------------------
 
 /**
- * Distinct item stacks currently in the inventory.
+ * Distinct item stacks currently in the inventory. Equipped-only
+ * stacks (quantity 0) are shown but never occupy bag space.
  */
 export function inventorySlotCount(inventory: Inventory): number {
-    return inventory.getAllItems().length;
+    return inventory.getAllItems().filter((slot) => slot.quantity > 0).length;
 }
 
 /**

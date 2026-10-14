@@ -8,6 +8,7 @@ export function burnStatus(): StatusDefinition {
         polarity: 'negative',
         applyOn: 'after_turn',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         statsAffected: [],
         onTrigger: (character) => {
@@ -23,6 +24,7 @@ export function poisonStatus(): StatusDefinition {
         polarity: 'negative',
         applyOn: 'after_turn',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         statsAffected: [],
         onTrigger: (character) => {
@@ -38,6 +40,7 @@ export function regenStatus(): StatusDefinition {
         polarity: 'positive',
         applyOn: 'turn_end',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         statsAffected: [],
         onTrigger: (character) => {
@@ -60,6 +63,7 @@ export function bleedingStatus(): StatusDefinition {
         description: 'Loses 1 hp at the end of each turn, for 3 turns.',
         applyOn: 'after_turn',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         statsAffected: [],
         onTrigger: (character) => {
@@ -76,6 +80,7 @@ export function attackUpStatus(): StatusDefinition {
         polarity: 'positive',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [{ from: 'attack', to: 'attack', value: 10, typeOfModification: 'BUFF_FIXED' }],
@@ -88,6 +93,7 @@ export function defenceUpStatus(): StatusDefinition {
         polarity: 'positive',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [{ from: 'defence', to: 'defence', value: 8, typeOfModification: 'BUFF_FIXED' }],
@@ -100,6 +106,7 @@ export function weakenStatus(): StatusDefinition {
         polarity: 'negative',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [{ from: 'attack', to: 'attack', value: 6, typeOfModification: 'DEBUFF_FIXED' }],
@@ -112,6 +119,7 @@ export function hasteStatus(): StatusDefinition {
         polarity: 'positive',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [{ from: 'speed', to: 'speed', value: 8, typeOfModification: 'BUFF_FIXED' }],
@@ -124,6 +132,7 @@ export function rageStatus(): StatusDefinition {
         polarity: 'positive',
         applyOn: 'before_turn',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
@@ -145,34 +154,12 @@ export function faintStatus(): StatusDefinition {
         description: 'Unconscious from exhaustion: loses 2 of their own turns.',
         applyOn: 'on_turn',
         duration: { type: 'TEMPORAL', value: 2 },
+        turns: 2,
         usageFrequency: 'PER_ACTION',
         statsAffected: [],
     };
 }
 
-/**
- * Defending (the Defend skill): takes 70% less damage for 1 turn.
- */
-export function defendingStatus(): StatusDefinition {
-    return {
-        name: 'Defending',
-        polarity: 'positive',
-        description: 'Braced for the blow: takes 70% less damage for 1 turn.',
-        applyOn: 'after_turn',
-        duration: { type: 'TEMPORAL', value: 1 },
-        usageFrequency: 'PER_ACTION',
-        statsAffected: [],
-        // Final damage variation: takes 70% less from every hit.
-        finalDamageVariation: { percent: -70 },
-    };
-}
-
-/**
- * The lord's son's Gate affinity, awakened by the Open Gate skill: a
- * permanent status (lasts the whole fight) that unlocks Fire Breath.
- * The granted skill is derived from the live statuses, so removing the
- * status at battle end removes the skill too.
- */
 /**
  * The lord's son's Gate affinity, awakened by the Open Gate skill: a
  * permanent status (lasts the whole fight) that unlocks Fire Breath,
@@ -214,6 +201,7 @@ export function berserkStatus(): StatusDefinition {
         description: 'Attack +30%, defence -20% and speed +2 for 3 of its own actions.',
         applyOn: 'on_turn',
         duration: { type: 'TEMPORAL', value: 3 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
@@ -232,15 +220,16 @@ export function berserkStatus(): StatusDefinition {
 // ---------------------------------------------------------------------------
 
 /**
- * Fast Draw (archers): speed +8 for 3 turns.
+ * Fast Draw (archers): speed +8 for 6 turns.
  */
 export function fastDrawStatus(): StatusDefinition {
     return {
         name: 'Fast Draw',
         polarity: 'positive',
-        description: 'Speed +8 for 3 turns.',
+        description: 'Speed +8 for 6 turns.',
         applyOn: 'on_turn',
-        duration: { type: 'TEMPORAL', value: 4 },
+        duration: { type: 'TEMPORAL', value: 7 },
+        turns: 6,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [{ from: 'speed', to: 'speed', value: 8, typeOfModification: 'BUFF_FIXED' }],
@@ -248,16 +237,17 @@ export function fastDrawStatus(): StatusDefinition {
 }
 
 /**
- * Perception (archers): +20 evasion and +3% crit chance for 2 turns.
+ * Perception (archers): +20 evasion and +3% crit chance for 5 turns.
  * The crit bonus is 3 points of the percent stat, not 3% of it.
  */
 export function perceptionStatus(): StatusDefinition {
     return {
         name: 'Perception',
         polarity: 'positive',
-        description: 'Evasion +20 and crit chance +3% for 2 turns.',
+        description: 'Evasion +20 and crit chance +3% for 5 turns.',
         applyOn: 'on_turn',
-        duration: { type: 'TEMPORAL', value: 3 },
+        duration: { type: 'TEMPORAL', value: 6 },
+        turns: 5,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
@@ -268,15 +258,16 @@ export function perceptionStatus(): StatusDefinition {
 }
 
 /**
- * Weak Point (archers): the enemy's attack -40% for 2 turns...
+ * Weak Point (archers): the enemy's attack -40% for 4 turns...
  */
 export function weakPointAttackStatus(): StatusDefinition {
     return {
         name: 'Weak Point: Attack',
         polarity: 'negative',
-        description: 'Attack -40% for 2 turns.',
+        description: 'Attack -40% for 4 turns.',
         applyOn: 'on_turn',
-        duration: { type: 'TEMPORAL', value: 3 },
+        duration: { type: 'TEMPORAL', value: 5 },
+        turns: 4,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [{ from: 'attack', to: 'attack', value: 40, typeOfModification: 'DEBUFF_PERCENTAGE' }],
@@ -284,18 +275,108 @@ export function weakPointAttackStatus(): StatusDefinition {
 }
 
 /**
- * ... and its defence -40% for 1 turn (the second status of the skill).
+ * ... and its defence -40% for 3 turns (the second status of the skill).
  */
 export function weakPointDefenceStatus(): StatusDefinition {
     return {
         name: 'Weak Point: Defence',
         polarity: 'negative',
-        description: 'Defence -40% for 1 turn.',
+        description: 'Defence -40% for 3 turns.',
         applyOn: 'on_turn',
-        duration: { type: 'TEMPORAL', value: 2 },
+        duration: { type: 'TEMPORAL', value: 4 },
+        turns: 3,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [{ from: 'defence', to: 'defence', value: 40, typeOfModification: 'DEBUFF_PERCENTAGE' }],
+    };
+}
+
+/**
+ * Disarm (soldiers): the target loses grip and power: attack -5 fixed
+ * and -20% for 5 turns. Applies to an enemy or an ally.
+ */
+export function disarmStatus(): StatusDefinition {
+    return {
+        name: 'Disarm',
+        polarity: 'negative',
+        description: 'Attack -5 and -20% for 5 turns.',
+        applyOn: 'on_turn',
+        duration: { type: 'TEMPORAL', value: 6 },
+        turns: 5,
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [
+            { from: 'attack', to: 'attack', value: 5, typeOfModification: 'DEBUFF_FIXED' },
+            { from: 'attack', to: 'attack', value: 20, typeOfModification: 'DEBUFF_PERCENTAGE' },
+        ],
+    };
+}
+
+/**
+ * Defence Stand (soldiers): braced stance: defence +10 and +20%,
+ * magic defence +10 and +20% for 5 turns.
+ */
+export function defenceStandStatus(): StatusDefinition {
+    return {
+        name: 'Defence Stand',
+        polarity: 'positive',
+        description: 'Defence +10 and +20%, magic defence +10 and +20% for 5 turns.',
+        applyOn: 'on_turn',
+        duration: { type: 'TEMPORAL', value: 6 },
+        turns: 5,
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [
+            { from: 'defence', to: 'defence', value: 10, typeOfModification: 'BUFF_FIXED' },
+            { from: 'defence', to: 'defence', value: 20, typeOfModification: 'BUFF_PERCENTAGE' },
+            { from: 'magicDefence', to: 'magicDefence', value: 10, typeOfModification: 'BUFF_FIXED' },
+            { from: 'magicDefence', to: 'magicDefence', value: 20, typeOfModification: 'BUFF_PERCENTAGE' },
+        ],
+    };
+}
+
+/**
+ * Foot Shot (archers): the target limps and opens its guard: speed -3
+ * and -30%, defence -2 and -30% for 2 turns.
+ */
+export function footShotStatus(): StatusDefinition {
+    return {
+        name: 'Foot Shot',
+        polarity: 'negative',
+        description: 'Speed -3 and -30%, defence -2 and -30% for 2 turns.',
+        applyOn: 'on_turn',
+        duration: { type: 'TEMPORAL', value: 3 },
+        turns: 2,
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [
+            { from: 'speed', to: 'speed', value: 3, typeOfModification: 'DEBUFF_FIXED' },
+            { from: 'speed', to: 'speed', value: 30, typeOfModification: 'DEBUFF_PERCENTAGE' },
+            { from: 'defence', to: 'defence', value: 2, typeOfModification: 'DEBUFF_FIXED' },
+            { from: 'defence', to: 'defence', value: 30, typeOfModification: 'DEBUFF_PERCENTAGE' },
+        ],
+    };
+}
+
+/**
+ * Concentration (archers): the next shot is perfect: crit chance +40%
+ * and crit multiplier +0.40. Consumed by the bearer's next BASIC attack
+ * (skills do not run the impact pipeline, so they never consume it).
+ */
+export function concentrationStatus(): StatusDefinition {
+    return {
+        name: 'Concentration',
+        polarity: 'positive',
+        description: 'Crit chance +40% and crit multiplier +0.40; consumed on your next basic attack.',
+        applyOn: 'impact_hit',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [
+            { from: 'critChance', to: 'critChance', value: 40, typeOfModification: 'BUFF_FIXED' },
+            { from: 'critMultiplier', to: 'critMultiplier', value: 0.4, typeOfModification: 'BUFF_FIXED' },
+        ],
+        consumedOnImpactHit: true,
     };
 }
 
@@ -310,6 +391,7 @@ export function impetuStatus(): StatusDefinition {
         description: 'Attack +10 and +20%, speed +10 for 1 turn.',
         applyOn: 'on_turn',
         duration: { type: 'TEMPORAL', value: 2 },
+        turns: 1,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [

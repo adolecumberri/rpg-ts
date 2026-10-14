@@ -326,13 +326,13 @@ describe('buildHybridCombat', () => {
         // Fire Breath is locked behind the Gate affinity: the base kit
         // only carries the activation skill (fatigue is off, so Rest is
         // hidden from the default kit).
-        expect((manual?.skills ?? []).map((spec) => spec.id)).toEqual(['defend', 'open_gate']);
+        expect((manual?.skills ?? []).map((spec) => spec.id)).toEqual(['open_gate']);
 
         // The chief fights with its regeneration and berserk AI.
         const chief = setup.combat.allCombatants()
             .find((entry) => entry.character.id === 'goblin_chief');
         expect((chief?.skills ?? []).map((spec) => spec.id)).toEqual([
-            'defend', 'boss_regen', 'boss_berserk',
+            'boss_regen', 'boss_berserk',
         ]);
         // The player's own party stays out of the battle.
         expect(setup.allies.some((ally) => ally.id === 'player')).toBe(false);

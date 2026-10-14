@@ -70,10 +70,10 @@ describe('fainting', () => {
         expect(result.ok).toBe(true);
         expect(hasStatusNamed(player, 'Corpse Carrying')).toBe(true);
 
-        // The penalties are live: attack 17.64 -> 8.82 (no weapon yet,
-        // the base halved), speed 5.86 -> 2.34.
-        expect(player.getStat('attack')).toBeCloseTo(8.82, 2);
-        expect(player.getStat('speed')).toBeCloseTo(2.34, 2);
+        // The penalties are live: attack 12.12 -> 6.06 (no weapon yet,
+        // the base halved), speed 3.15 -> 1.26.
+        expect(player.getStat('attack')).toBeCloseTo(6.06, 2);
+        expect(player.getStat('speed')).toBeCloseTo(1.26, 2);
 
         // The corpse travels with the carrier now.
         expect(session.corpsesAt('farm')).toHaveLength(0);
@@ -211,7 +211,7 @@ describe('fainting', () => {
         expect(restored.roster.activeIds()).toEqual(['player']);
         const player = restored.team.getCharacter('player')!;
         expect(hasStatusNamed(player, 'Corpse Carrying')).toBe(true);
-        expect(player.getStat('attack')).toBeCloseTo(8.82, 2); // penalties restored
+        expect(player.getStat('attack')).toBeCloseTo(6.06, 2); // penalties restored
 
         // The fountain still works after the round trip.
         restored.currentPlaceId = 'camp';

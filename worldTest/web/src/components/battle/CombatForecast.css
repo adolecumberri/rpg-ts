@@ -1,0 +1,412 @@
+/* ---------------------------------------------------------------------------
+   Combat Forecast — the ONLY css for this component (curated from the
+   design-stitch code_combat_forecast reference). The view shows the HIT
+   gauge (wordmark + arrow + accuracy/theoretical damage readout); the
+   combatant cards render in the target screen's bar (places 1+2).
+   FFTA2 dark tactical parchment; --u grid rhythm (4px multiples).
+--------------------------------------------------------------------------- */
+
+.cf-root {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 6px 8px;
+    background: transparent;
+    position: absolute;
+    bottom: calc(var(--u) * 52);
+    /* bottonera*/
+}
+
+/* ------------------------------------------------------------------
+   SECTION A — the HIT gauge (the code_with_arrow reference)
+------------------------------------------------------------------ */
+.cf-hit {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: transparent;
+    transition: filter 0.25s ease;
+}
+
+/* 100% Critical Hit Glow Animation */
+@keyframes cf-crit-radiance {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 4px #eab308) drop-shadow(0 0 10px rgba(250, 204, 21, 0.65));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 8px #facc15) drop-shadow(0 0 18px rgba(254, 240, 138, 0.95));
+    }
+}
+
+.cf-hit.is-max-hit {
+    animation: cf-crit-radiance 1.2s ease-in-out infinite alternate;
+}
+
+.cf-hit-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 3D-extruded slanted HIT wordmark (two-layer extrusion), floating
+   over the left end of the arrow. */
+.cf-hit-logo {
+    position: absolute;
+    z-index: 4;
+    margin-left: 64px;
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 16px;
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1;
+    transform: skewX(-16deg);
+    color: rgb(255, 230, 153);
+    text-shadow:
+        rgb(230, 161, 0) 0 1px 0,
+        rgb(158, 91, 0) 1px 2px 0,
+        rgb(74, 39, 0) 1px 3px 0,
+        rgb(31, 15, 0) 2px 4px 0;
+    transition: color 0.2s, text-shadow 0.2s;
+}
+
+.cf-hit-logo::before {
+    content: "HIT";
+    position: absolute;
+    inset: 0;
+    color: #170c05;
+    transform: translate(2px, 3px);
+    filter: blur(0.5px);
+    text-shadow: 1px 1px 0 #000, 2px 2px 0 #000, 3px 3px 0 #000;
+    z-index: -1;
+}
+
+.cf-hit.is-max-hit .cf-hit-logo {
+    color: #ffffff;
+    text-shadow:
+        0 0 10px #facc15,
+        0 1px 0 #ffe088,
+        1px 2px 0 #d97706,
+        2px 3px 0 #78350f;
+}
+
+.cf-hit-arrow {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    transition: filter 0.3s;
+}
+
+.cf-hit-arrow-svg {
+    width: 140px;
+    height: 30px;
+    margin-left: 80px;
+    overflow: visible;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+}
+
+/* The readout floats at the bottom-left of the arrow stage. */
+.cf-hit-readout {
+    position: absolute;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+
+    height: 100%;
+    width: 100%;
+    top: 20px;
+}
+
+.cf-hit-acc {
+    position: absolute;
+    margin: 12px 0 0 64px;
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: bold;
+    color: #f6ded1;
+    text-shadow: 1px 1px 0 #000, 2px 2px 0 #3c2f00;
+    letter-spacing: -0.5px;
+}
+
+.cf-hit-acc .cf-hit-pct {
+    font-size: 10px;
+    color: #d0c5af;
+}
+
+/* The damage number, colored by its composition (hybrid mixes get
+   their own mix color). */
+.cf-hit-dmg {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: -2.5px;
+    text-shadow: 1px 1px 0 #000, 2px 2px 0 #3c2f00;
+    right: 16px;
+    position: absolute;
+    top: 12px;
+    font-size: 20px;
+}
+
+.cf-hit-dmg--physical {
+    color: #f87171;
+}
+
+.cf-hit-dmg--magical {
+    color: #60a5fa;
+}
+
+.cf-hit-dmg--true {
+    color: #ffffff;
+}
+
+/* The potential healing readout (heal skills): green, like the HP
+   gauges. */
+.cf-hit-dmg--heal {
+    color: #4ade80;
+}
+
+.cf-hit-dmg--magical-physical {
+    color: #c084fc;
+}
+
+.cf-hit-dmg--physical-true {
+    color: #fb923c;
+}
+
+.cf-hit-dmg--magical-true {
+    color: #2dd4bf;
+}
+
+/* The pre-mitigation number ("raw → after defence"): muted and small,
+   so the colored number reads as the real expected damage. */
+.cf-hit-dmg-raw {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: #b8ab93;
+    margin-right: 2px;
+}
+
+.cf-hit-dmg--magical-physical-true {
+    color: #facc15;
+}
+
+.cf-hit-pts {
+    font-size: 12px;
+    color: #d0c5af;
+    margin-left: 8px;
+}
+
+/* The status changes a skill applies (attack reduction, defence
+   boosts...), listed under the HIT gauge, one line per status with its
+   duration. Only rendered for damage/heal skills (status-only skills
+   display nothing). */
+.cf-hit-effects {
+    margin: 0 0 2px 80px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2px;
+    color: #d0c5af;
+    text-shadow: 1px 1px 0 #000;
+}
+
+@keyframes cf-pop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.4;
+    }
+
+    60% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.cf-pop {
+    animation: cf-pop 0.35s ease-out;
+}
+
+/* ------------------------------------------------------------------
+   SECTION B — the combatant card anatomy, shared by the compact
+   variants: name + level head, HP gauge, MANA gauge
+------------------------------------------------------------------ */
+.cf-combatant-gauges {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cf-combatant-head {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: 13px;
+    color: #f3e7be;
+    text-shadow: 1px 1px 0 #000;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.cf-combatant-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cf-combatant-lvl {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: #d4af37;
+}
+
+.cf-combatant-dot {
+    flex: none;
+    color: #4ade80;
+}
+
+.cf-combatant--enemy .cf-combatant-dot {
+    color: #f87171;
+}
+
+.cf-gauge {
+    position: relative;
+    height: 12px;
+    background: #0d0705;
+    border: 1px solid #000;
+    overflow: hidden;
+}
+
+.cf-gauge-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transition: width 0.35s ease-out;
+}
+
+.cf-gauge--hp .cf-gauge-fill {
+    background: #4ade80;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.cf-combatant--enemy .cf-gauge--hp .cf-gauge-fill {
+    background: #f87171;
+}
+
+.cf-gauge--mana .cf-gauge-fill {
+    background: #60a5fa;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25), inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.cf-gauge-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+}
+
+/* ------------------------------------------------------------------
+   SECTION C — the compact variants: the same card element laid out to
+   fit the action bar. Both carry the same pixel-btn bevel chrome as
+   the buttons, so the card reads as wired into the tray.
+   - --compact: the banner slot (spans buttons 1+2), horizontal.
+   - --cell: ONE button-sized cell (the target screen's places 1 and
+     2), vertical stack: name row, then HP | MANA side by side.
+------------------------------------------------------------------ */
+.cf-combatant--compact,
+.cf-combatant--cell {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    background: #3b1c1c;
+    border: 2px solid #5a2e2e;
+    box-shadow:
+        inset 2px 2px 0 0 #703d3d,
+        inset -2px -2px 0 0 #1a0a0a,
+        inset 3px 3px 0 0 rgba(255, 255, 255, 0.08),
+        inset -3px -3px 0 0 rgba(0, 0, 0, 0.6),
+        0 0 0 1px #050202;
+}
+
+.cf-combatant--compact {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+}
+
+.cf-combatant--compact .cf-combatant-head {
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    font-size: 11px;
+}
+
+.cf-combatant--compact .cf-combatant-lvl {
+    font-size: 8px;
+}
+
+.cf-combatant--compact .cf-combatant-gauges {
+    flex: none;
+    width: 112px;
+    gap: 4px;
+}
+
+.cf-combatant--compact .cf-gauge {
+    height: 12px;
+}
+
+.cf-combatant--compact .cf-gauge-text {
+    font-size: 8px;
+}
+
+.cf-combatant--cell {
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px 6px;
+}
+
+.cf-combatant--cell .cf-combatant-head {
+    width: 100%;
+    align-items: baseline;
+    font-size: 11px;
+}
+
+.cf-combatant--cell .cf-combatant-lvl {
+    font-size: 8px;
+}
+
+.cf-combatant--cell .cf-combatant-gauges {
+    flex-direction: row;
+    width: 100%;
+    gap: 4px;
+}
+
+.cf-combatant--cell .cf-gauge {
+    flex: 1;
+    min-width: 0;
+    height: 14px;
+}
+
+.cf-combatant--cell .cf-gauge-text {
+    font-size: 8px;
+}

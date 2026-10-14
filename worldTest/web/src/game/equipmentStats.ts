@@ -1,7 +1,7 @@
-import type { Item } from '@rpg';
+﻿import type { Item } from '@rpg';
 import { STAT_CATALOG } from './statCatalog';
 import type { StatKey } from './statCatalog';
-import type { StatRow } from '../components/UI/StatsColumn';
+import type { StatRow } from '../components/character/StatsColumn';
 
 const KNOWN_KEYS: StatKey[] = STAT_CATALOG.map((entry) => entry.key);
 

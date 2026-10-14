@@ -94,13 +94,13 @@ describe('character kits', () => {
         // The Order Army classes: archers harass, healers support,
         // soldiers lead. Their kits come from their character ids.
         expect(session.availableSkillIds(session.roster.character('archer_0')!)).toEqual([
-            'defend', 'fast_draw', 'weak_point', 'perception',
+            'fast_draw', 'weak_point', 'perception',
         ]);
         expect(session.availableSkillIds(session.roster.character('arturo')!)).toEqual([
-            'defend', 'dispel', 'cure',
+            'dispel', 'cure',
         ]);
         expect(session.availableSkillIds(session.roster.character('soldier_0')!)).toEqual([
-            'defend', 'impetu', 'first_aid',
+            'impetu', 'first_aid',
         ]);
 
         // The recruit starts weaponless: sack plus the outfit in the

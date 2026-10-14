@@ -266,12 +266,51 @@ export class HybridCombat {
         const actor = this.due.shift() as HybridCombatant;
         if (actor.character.stats.hp <= 0) return this.next();
 
+        const event = this.actOnce(actor);
+        if (!event) return this.next();
+        return event;
+    }
+
+    /**
+     * The battle's winner once a side is wiped: 'left', 'right' or
+     * 'draw'. Null while both sides still stand.
+     */
+    isOver(): HybridSide | 'draw' | null {
+        return this.winner();
+    }
+
+    /** Whether a manual prompt is waiting for the player's answer. */
+    hasPendingManual(): boolean {
+        return this.pendingManual !== null;
+    }
+
+    /**
+     * Resolves exactly ONE action of the given fighter (the Pokémon-
+     * style step): the turn-start regen, the faint skip, and then
+     * either the manual prompt (the player answers resolveManual /
+     * resolveManualSkill) or the planned automatic action. Returns null
+     * when the fighter is missing, dead or fainted — the caller steps
+     * to the next actor. The tick-based next() stays available for the
+     * auto battles.
+     */
+    resolveAction(actorId: string): HybridAutoEvent | HybridManualEvent | null {
+        const actor = this.combatants.find((entry) => entry.character.id === actorId);
+        if (!actor || actor.character.stats.hp <= 0) return null;
+        return this.actOnce(actor);
+    }
+
+    /**
+     * One fighter's action, shared by the tick loop and the step API:
+     * the mana regen, the faint gate, and the manual prompt or the
+     * planned automatic action.
+     */
+    private actOnce(actor: HybridCombatant): HybridAutoEvent | HybridManualEvent | null {
         // Turn start: the fighter regains mana (capped at the pool).
         const totalMana = actor.character.stats.totalMana ?? 0;
         actor.character.stats.mana = Math.min(totalMana, (actor.character.stats.mana ?? 0) + MANA.regenPerTurn);
 
         // Fainted fighters lose this action (their faint counts down).
-        if (consumeFaintTurn(actor.character)) return this.next();
+        if (consumeFaintTurn(actor.character)) return null;
 
         if (actor.manual) {
             this.pendingManual = actor;
@@ -296,7 +335,7 @@ export class HybridCombat {
             const target = this.enemiesOf(actor).find(
                 (entry) => entry.character.id === plan.targetId,
             );
-            if (!target) return this.next();
+            if (!target) return null;
             return this.performAttack(actor, target);
         }
         return this.performSkill(actor, plan.spec, plan.targetIds);

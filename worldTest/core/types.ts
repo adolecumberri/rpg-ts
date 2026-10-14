@@ -21,10 +21,6 @@ export type PlaceAction =
     | { id: string; label: string; kind: 'train'; levels: number; icon?: string }
     | { id: string; label: string; kind: 'task'; itemId: string; quantity: number; icon?: string }
     | { id: string; label: string; kind: 'mission'; missionId: string; icon?: string }
-    // Starts the mission's waiting battle from this place: only shown
-    // while the mission's current step waits for its fight here (the
-    // training's "start the match" option).
-    | { id: string; label: string; kind: 'mission_battle'; missionId: string; icon?: string }
     | { id: string; label: string; kind: 'team'; icon?: string }
     | { id: string; label: string; kind: 'mission_board'; icon?: string }
     // Opens the place's look-around submenu (fainted corpses and other
@@ -92,6 +88,9 @@ export type NPCStats = {
     defence: number;
     magicDefence?: number;
     speed?: number;
+    magic?: number;
+    critChance?: number;
+    critMultiplier?: number;
 };
 
 // The data a place stores about one of its people. Live characters are
@@ -100,7 +99,9 @@ export type NPCDefinition = {
     id: string;
     name: string;
     talk: string;
-    stats: NPCStats;
+    // Hand-crafted stats (optional: a character with a job grows from
+    // its job's profile instead).
+    stats?: NPCStats;
     // Presentation group, e.g. "The Lord's Household" / "The Farmers".
     group?: string;
     // Item ids the character wears from the start (farmers carry sickles).

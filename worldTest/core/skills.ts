@@ -3,7 +3,6 @@ import type { StatusDefinition } from '../../src/classes/StatusInstance';
 import {
     hasteStatus,
     rageStatus,
-    defendingStatus,
     gateOpenedStatus,
     berserkStatus,
     fastDrawStatus,
@@ -11,6 +10,10 @@ import {
     weakPointAttackStatus,
     weakPointDefenceStatus,
     impetuStatus,
+    disarmStatus,
+    defenceStandStatus,
+    footShotStatus,
+    concentrationStatus,
 } from './statuses';
 import { FATIGUE } from './combat/fatigue';
 import { heldJobOf } from './constants/jobs';
@@ -129,7 +132,7 @@ export type SkillSpec = {
     // the caster. Targets a single ally.
     cover?: { percent: number };
     // Fatigue change applied to the caster on use (negative restores,
-    // e.g. Rest: -20, Defend: -10).
+    // e.g. Rest: -20).
     fatigueDelta?: number;
     // When the bearer has a status with this NAME, the skill is hidden
     // from the menus (activation skills like Open Gate disappear once
@@ -209,14 +212,6 @@ export const Skills: Record<string, SkillSpec> = {
             label: 'Fire Breath',
         }],
     },
-    defend: {
-        id: 'defend',
-        name: 'Defend',
-        description: 'Takes 70% less damage for 1 turn and restores 10 fatigue.',
-        targeting: 'SELF',
-        statusOnSelf: defendingStatus(),
-        fatigueDelta: -10,
-    },
     rest: {
         id: 'rest',
         name: 'Rest',
@@ -255,22 +250,79 @@ export const Skills: Record<string, SkillSpec> = {
     fast_draw: {
         id: 'fast_draw',
         name: 'Fast Draw',
-        description: 'Speed +8 for 3 turns.',
+        description: 'Speed +8 for 6 turns.',
         targeting: 'SELF',
         statusOnSelf: fastDrawStatus(),
+        manaCost: 16,
     },
     perception: {
         id: 'perception',
         name: 'Perception',
-        description: 'Evasion +20 and crit chance +3% for 2 turns.',
+        description: 'Evasion +20 and crit chance +3% for 5 turns.',
         targeting: 'SELF',
         statusOnSelf: perceptionStatus(),
         manaCost: 12,
     },
+    disarm: {
+        id: 'disarm',
+        name: 'Disarm',
+        description: 'The target\'s attack -5 and -20% for 5 turns.',
+        targeting: 'ANY',
+        numberOfTargets: 1,
+        statusOnTargets: disarmStatus(),
+        manaCost: 16,
+    },
+    stand: {
+        id: 'stand',
+        name: 'Stand',
+        description: 'Defence +10 and +20%, magic defence +10 and +20% for 5 turns.',
+        targeting: 'SELF',
+        statusOnSelf: defenceStandStatus(),
+        manaCost: 16,
+    },
+    foot_shot: {
+        id: 'foot_shot',
+        name: 'Foot Shot',
+        description: 'The enemy\'s speed -3 and -30%, defence -2 and -30% for 2 turns.',
+        targeting: 'ENEMY',
+        statusOnTargets: footShotStatus(),
+        manaCost: 16,
+    },
+    concentration: {
+        id: 'concentration',
+        name: 'Concentration',
+        description: 'Crit chance +40% and crit multiplier +0.40; consumed on your next basic attack.',
+        targeting: 'SELF',
+        statusOnSelf: concentrationStatus(),
+        manaCost: 18,
+    },
+    perno_magico: {
+        id: 'perno_magico',
+        name: 'Perno Mágico',
+        description: 'Deals 18 + 60% of your magic as magical damage.',
+        targeting: 'ENEMY',
+        numberOfTargets: 1,
+        damageFor: (actor) => [{
+            kind: 'magical',
+            element: 'arcane',
+            amount: Math.round((18 + actor.getStat('magic') * 0.6) * 100) / 100,
+            label: 'Perno Mágico',
+        }],
+        manaCost: 16,
+    },
+    healing_whispers: {
+        id: 'healing_whispers',
+        name: 'Healing Whispers',
+        description: 'Heals 10 + 60% of your magic.',
+        targeting: 'ALLY',
+        numberOfTargets: 1,
+        healFor: (actor) => Math.round((10 + actor.getStat('magic') * 0.6) * 100) / 100,
+        manaCost: 16,
+    },
     weak_point: {
         id: 'weak_point',
         name: 'Weak Point',
-        description: 'The enemy\'s attack -40% for 2 turns and defence -40% for 1 turn.',
+        description: 'The enemy\'s attack -40% for 4 turns and defence -40% for 3 turns.',
         targeting: 'ENEMY',
         statusesOnTargets: [weakPointAttackStatus(), weakPointDefenceStatus()],
         // The archer exploits enemies that are still at full strength:
@@ -288,6 +340,7 @@ export const Skills: Record<string, SkillSpec> = {
             cooldownActions: 3,
             target: { side: 'enemy', prefer: 'highest_attack' },
         },
+        manaCost: 14,
     },
     dispel: {
         id: 'dispel',
@@ -383,20 +436,25 @@ export const Skills: Record<string, SkillSpec> = {
     },
 };
 
+// The typed skill id: every id reference in content (job kits, kits
+// maps, the defaults) is one of these, derived from the dictionary —
+// no magic strings survive, and a typo fails the build.
+export type SkillId = keyof typeof Skills;
+
 // Skills every character knows by default (the fatigue management kit).
-export const DEFAULT_SKILLS: string[] = ['defend', 'rest'];
+export const DEFAULT_SKILLS: SkillId[] = ['rest'];
 
 /**
  * The default kit actually offered to a character. While the fatigue
  * system is switched off, Rest (a pure fatigue skill) is hidden.
  */
 export function defaultSkillIds(): string[] {
-    return FATIGUE.enabled ? DEFAULT_SKILLS : ['defend'];
+    return FATIGUE.enabled ? DEFAULT_SKILLS : [];
 }
 
 // Base skill ids available per character id: the job of the character
 // provides the recruit kits; extra entries live here.
-export const CHARACTER_SKILLS: Record<string, string[]> = {
+export const CHARACTER_SKILLS: Record<string, SkillId[]> = {
     // The lord's son awakens his Gate affinity first: Fire Breath comes
     // from the awakened status, not from the base kit.
     lord_son: ['open_gate'],
@@ -457,8 +515,9 @@ export function specOf(skillId: string): SkillSpec | undefined {
 /**
  * The compact effect summary of a skill for UI tooltips: only the stat
  * changes of the statuses it applies ('evasion +20 · critChance +3%'),
- * with no skill name or status titles (the cell label already shows
- * the name). Skills without stat changes fall back to the description.
+ * plus how many turns each status lasts, with no skill name or status
+ * titles (the cell label already shows the name). Skills without stat
+ * changes fall back to the description.
  */
 export function skillEffectSummary(spec: SkillSpec): string {
     const parts: string[] = [];
@@ -469,7 +528,12 @@ export function skillEffectSummary(spec: SkillSpec): string {
     ];
     for (const definition of statuses) {
         if (!definition) continue;
-        parts.push(...statusModifierSummary(definition));
+        const modifiers = statusModifierSummary(definition);
+        if (modifiers.length === 0) continue;
+        const text = definition.turns !== undefined ?
+            `${modifiers.join(' · ')} · ${definition.turns} turns` :
+            modifiers.join(' · ');
+        parts.push(text);
     }
     if (parts.length === 0) return spec.description;
     return parts.join(' · ');

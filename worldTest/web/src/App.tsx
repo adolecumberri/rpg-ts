@@ -1,6 +1,6 @@
-import { GameProvider } from './game/GameContext';
+﻿import { GameProvider } from './game/GameContext';
 import { useUiScale } from './game/uiScale';
-import { NewUiRouter } from './screens/NewUiRouter';
+import { NewUiRouter } from './screens/app/NewUiRouter';
 import type { ReactNode } from 'react';
 
 /**

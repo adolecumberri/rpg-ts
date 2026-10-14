@@ -103,9 +103,9 @@ declare module '@rpg' {
         // (its stat bonuses and skill kit). Undefined = the default job
         // derived from the character id.
         jobId?: string;
-        // worldTest extension: the growth profile the character levels
+        // worldTest extension: the growth ratios the character levels
         // with (set by the character generator; falls back to the held
-        // job's profile).
+        // job's ratios).
         growthProfile?: GrowthProfile;
         // worldTest extension: explicit per-character skill ids (set by
         // the character generator's `skills` config; wins over the held
@@ -166,6 +166,10 @@ declare module '@rpg/classes/StatusInstance' {
         // Set on the internal effect statuses synced from an aura: the
         // aura's name, used to remove them when the holder dies.
         auraSource?: string;
+        // The human turn count of a temporal status (the descriptions'
+        // number: "for N turns"). Displayed by tooltips; the engine
+        // keeps using the internal duration ticks.
+        turns?: number;
     }
 }
 

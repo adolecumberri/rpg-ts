@@ -6,8 +6,9 @@ import { equippedItemsOf } from '../worldTest/core/equipment/loadout';
 
 // ---------------------------------------------------------------------------
 // Act 1 as data: the opening (captain's welcome + branch choice), the
-// training trail (four sparring matches, win flags, map unlock) and
-// the caza menor (boar packs, the squad vote and the spectral boar).
+// sparring trail (three single matches, then the captain — win flags,
+// map unlock) and the caza menor (boar packs, the squad vote and the
+// spectral boar).
 // ---------------------------------------------------------------------------
 
 function freshSession(): WorldSession {
@@ -73,82 +74,109 @@ describe('the act 1 opening', () => {
     });
 });
 
-describe('training to be worth it', () => {
+describe('the sparring trail', () => {
+    const sparring = [
+        { missionId: 'spar_with_soldier', fightId: 'sparring_soldier', flag: FLAGS.TRAINING_WON_SOLDIER },
+        { missionId: 'spar_with_mage', fightId: 'sparring_mage', flag: FLAGS.TRAINING_WON_MAGE },
+        { missionId: 'spar_with_archer', fightId: 'sparring_archer', flag: FLAGS.TRAINING_WON_ARCHER },
+        { missionId: 'spar_with_captain', fightId: 'sparring_captain', flag: FLAGS.TRAINING_WON_CAPTAIN },
+    ];
+
+    // Accepts and wins one sparring mission (battle queued, consumed
+    // and reported to the session).
+    function winSpar(session: WorldSession, missionId: string, fightId: string): void {
+        expect(session.startMission(missionId)).toBe(true);
+        expect(session.missionBattleReady(missionId, 'camp')).toBe(true);
+        expect(session.startMissionBattle(missionId)).toBe(true);
+        expect(session.pendingBattle()?.fightId).toBe(fightId);
+        session.consumePendingBattle();
+        session.finishCombat('won', { fightId, missionId, placeId: 'camp' });
+    }
+
     it('is only offered once the branch is chosen', () => {
         const session = freshSession();
-        expect(session.missions.newMissions('camp').map((mission) => mission.id)).not.toContain('training');
-        expect(session.startMission('training')).toBe(false);
+        expect(session.missions.newMissions('camp').map((mission) => mission.id)).not.toContain('spar_with_soldier');
+        expect(session.startMission('spar_with_soldier')).toBe(false);
 
         session.beginStory();
         pickBranch(session, 2); // Mage
-        expect(session.missions.newMissions('camp').map((mission) => mission.id)).toContain('training');
-        expect(session.startMission('training')).toBe(true);
+        const offered = session.missions.newMissions('camp').map((mission) => mission.id);
+        expect(offered).toEqual(expect.arrayContaining([
+            'spar_with_soldier',
+            'spar_with_mage',
+            'spar_with_archer',
+        ]));
+        // The captain only appears once the three are done.
+        expect(offered).not.toContain('spar_with_captain');
+        expect(session.startMission('spar_with_soldier')).toBe(true);
     });
 
-    it('the start option only exists while the mission waits for its battle at the place', () => {
+    it('offers the waiting fight as a place option for every mission', () => {
         const session = freshSession();
         session.beginStory();
         pickBranch(session, 0); // Soldier
 
-        expect(session.missionBattleReady('training', 'camp')).toBe(false);
-        session.startMission('training');
-        expect(session.missionBattleReady('training', 'camp')).toBe(true);
-        expect(session.missionBattleReady('training', 'farm')).toBe(false);
-
-        session.startMissionBattle('training');
-        session.consumePendingBattle();
-        session.finishCombat('won', { fightId: 'sparring_soldier', missionId: 'training', placeId: 'camp' });
-        // The mage match is the new beat: still waiting at the camp.
-        expect(session.missionBattleReady('training', 'camp')).toBe(true);
+        expect(session.battleReadyMissionsAt('camp')).toEqual([]);
+        expect(session.startMission('spar_with_soldier')).toBe(true);
+        expect(session.battleReadyMissionsAt('camp')).toEqual([
+            { missionId: 'spar_with_soldier', title: 'Sparring with the Soldier' },
+        ]);
+        expect(session.battleReadyMissionsAt('farm')).toEqual([]);
     });
 
-    it('chains the four sparring matches and records each win as a flag', () => {
+    it('each match is its own mission: a loss still completes it', () => {
         const session = freshSession();
         session.beginStory();
         pickBranch(session, 0); // Soldier
-        expect(session.startMission('training')).toBe(true);
 
-        // Accepting does NOT queue the fight: the place offers the
-        // "start the mission" option while the beat waits for it.
-        expect(session.pendingBattle()).toBeNull();
-        expect(session.missionBattleReady('training', 'camp')).toBe(true);
-        expect(session.startMissionBattle('training')).toBe(true);
+        expect(session.startMission('spar_with_soldier')).toBe(true);
+        expect(session.missionBattleReady('spar_with_soldier', 'camp')).toBe(true);
+        expect(session.missionBattleReady('spar_with_soldier', 'farm')).toBe(false);
+        session.startMissionBattle('spar_with_soldier');
         expect(session.pendingBattle()?.fightId).toBe('sparring_soldier');
         session.consumePendingBattle();
+        session.finishCombat('lost', { fightId: 'sparring_soldier', missionId: 'spar_with_soldier', placeId: 'camp' });
 
-        const matches = [
-            { fightId: 'sparring_soldier', flag: FLAGS.TRAINING_WON_SOLDIER },
-            { fightId: 'sparring_mage', flag: FLAGS.TRAINING_WON_MAGE },
-            { fightId: 'sparring_archer', flag: FLAGS.TRAINING_WON_ARCHER },
-            { fightId: 'sparring_captain', flag: FLAGS.TRAINING_WON_CAPTAIN },
-        ];
-        for (const match of matches) {
-            session.finishCombat('won', { fightId: match.fightId, missionId: 'training', placeId: 'camp' });
+        expect(session.hasFlag(FLAGS.TRAINING_WON_SOLDIER)).toBe(false);
+        expect(session.missionIsComplete('spar_with_soldier')).toBe(true);
+        expect(session.pendingBattle()).toBeNull();
+        // Losing the match is NOT failing the mission: the next spar
+        // is already offered on the board.
+        expect(session.missions.newMissions('camp').map((mission) => mission.id)).toContain('spar_with_mage');
+    });
+
+    it('each win leaves its flag and the three unlock the captain', () => {
+        const session = freshSession();
+        session.beginStory();
+        pickBranch(session, 0); // Soldier
+
+        for (const match of sparring.slice(0, 3)) {
+            winSpar(session, match.missionId, match.fightId);
             expect(session.hasFlag(match.flag)).toBe(true);
+            expect(session.missionIsComplete(match.missionId)).toBe(true);
         }
 
-        // The reward opened the map and the east field, and the mission
-        // completed.
-        expect(session.missionIsComplete('training')).toBe(true);
+        // The fourth mission: sparring with the captain.
+        const offered = session.missions.newMissions('camp').map((mission) => mission.id);
+        expect(offered).toContain('spar_with_captain');
+    });
+
+    it('the captain\'s reward opens the map and the east field', () => {
+        const session = freshSession();
+        session.beginStory();
+        pickBranch(session, 0); // Soldier
+        for (const match of sparring.slice(0, 3)) {
+            winSpar(session, match.missionId, match.fightId);
+        }
+
+        winSpar(session, 'spar_with_captain', 'sparring_captain');
+
+        expect(session.hasFlag(FLAGS.TRAINING_WON_CAPTAIN)).toBe(true);
+        expect(session.missionIsComplete('spar_with_captain')).toBe(true);
         expect(session.hasFlag(FLAGS.TRAINING_COMPLETED)).toBe(true);
         expect(session.hasFlag(FLAGS.MAP_UNLOCKED)).toBe(true);
         expect(session.hasFlag(FLAGS.EAST_FIELD_UNLOCKED)).toBe(true);
         expect(session.travel('east_field').ok).toBe(true);
-    });
-
-    it('a lost sparring match still leads to the next one and leaves no win flag', () => {
-        const session = freshSession();
-        session.beginStory();
-        pickBranch(session, 0); // Soldier
-        session.startMission('training');
-        session.startMissionBattle('training');
-        session.consumePendingBattle();
-
-        session.finishCombat('lost', { fightId: 'sparring_soldier', missionId: 'training', placeId: 'camp' });
-
-        expect(session.hasFlag(FLAGS.TRAINING_WON_SOLDIER)).toBe(false);
-        expect(session.missionIsActive('training')).toBe(true);
-        expect(session.pendingBattle()?.fightId).toBe('sparring_mage');
     });
 });
 
@@ -157,16 +185,22 @@ describe('caza menor', () => {
         const session = freshSession();
         session.beginStory();
         pickBranch(session, 0); // Soldier
-        session.startMission('training');
-        session.startMissionBattle('training');
-        session.consumePendingBattle();
-        for (const fightId of ['sparring_soldier', 'sparring_mage', 'sparring_archer', 'sparring_captain']) {
-            session.finishCombat('won', { fightId, missionId: 'training', placeId: 'camp' });
+        const sparring = [
+            { missionId: 'spar_with_soldier', fightId: 'sparring_soldier' },
+            { missionId: 'spar_with_mage', fightId: 'sparring_mage' },
+            { missionId: 'spar_with_archer', fightId: 'sparring_archer' },
+            { missionId: 'spar_with_captain', fightId: 'sparring_captain' },
+        ];
+        for (const match of sparring) {
+            session.startMission(match.missionId);
+            session.startMissionBattle(match.missionId);
+            session.consumePendingBattle();
+            session.finishCombat('won', { fightId: match.fightId, missionId: match.missionId, placeId: 'camp' });
         }
         return session;
     }
 
-    it('requires the training and its arrival starts the first boar pack', () => {
+    it('requires the captain mission and its arrival starts the first boar pack', () => {
         const session = freshSession();
         expect(session.missions.newMissions('camp').map((mission) => mission.id)).not.toContain('caza_menor');
 

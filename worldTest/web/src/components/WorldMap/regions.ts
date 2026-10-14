@@ -1,4 +1,4 @@
-import type { IconId } from '../UI/Icon';
+import type { IconId } from '../chrome/Icon';
 import { COUNTRY_ENABLED } from './flags';
 import { COUNTRY_IDS, REGION_IDS } from './ids';
 import type { CountryId, RegionId } from './ids';

@@ -2,9 +2,8 @@ import { Character, Experience, Stats } from '../../../src';
 import { DEFAULT_ITEM_TABLE } from '../items';
 import type { ItemRef } from '../constants/items';
 import type { CreatureDefinition } from '../constants/creatures';
-import { creatureProfile } from '../constants/creatures';
 import type { Job } from '../jobs/Job';
-import type { GrowthProfile, StatBlock } from '../config/growth';
+import type { StatBlock } from '../config/growth';
 import { DEFAULT_BASE, statBlockAtLevel } from '../config/growth';
 import { applyJobBonuses, wireCharacterGrowth } from '../constants/jobs';
 import { equipInto, firstFreeHole } from '../equipment/loadout';
@@ -12,10 +11,10 @@ import { XP } from '../xp/xpConfig';
 
 /**
  * The character generator: builds a Character from a config object —
- * a creature constant, a job or a raw profile, a level, the equipment
- * references (Items constants) and explicit skills. The stats are a
- * pure function of the profile and the level; item bonuses stack on
- * top.
+ * a creature constant, a job or a raw growth definition, a level, the
+ * equipment references (Items constants) and explicit skills. The
+ * stats are a pure function of the base, the ratios and the level;
+ * item and job bonuses stack on top.
  *
  *   characterGenerator({ creature: Creatures.goblin, level: 1, hand: Items.stick })
  *   characterGenerator({ job: SOLDIER_JOB, level: 3, hand: Items.sword })
@@ -23,10 +22,12 @@ import { XP } from '../xp/xpConfig';
 
 export type CharacterGeneratorConfig = {
     // One of the three is required: the creature, the job or a raw
-    // growth profile (a job also assigns the identity and bonuses).
+    // growth definition (a job also assigns the identity and bonuses).
     creature?: CreatureDefinition;
     job?: Job;
-    profile?: GrowthProfile;
+    // A raw growth definition: the complete level-1 base plus the
+    // optional per-stat ratios (the legacy fixtures use this).
+    profile?: { base?: StatBlock; ratios?: StatBlock };
     level?: number;
     // Ids must be unique inside a battle; fights pass explicit ids.
     id?: string;
@@ -51,9 +52,17 @@ export function characterGenerator(config: CharacterGeneratorConfig): Character 
     }
 
     const level = config.level ?? 1;
-    const profile: GrowthProfile = config.creature
-        ? creatureProfile(config.creature)
-        : config.job?.growth ?? config.profile ?? { base: DEFAULT_BASE };
+    // The level-1 base: creatures and raw profiles declare complete
+    // values; jobs sit on the common DEFAULT_BASE (their own base
+    // travels as statBonuses, applied below).
+    const base: StatBlock = config.creature ?
+        config.creature.base :
+        config.profile?.base ?? DEFAULT_BASE;
+    // The per-level gains: the creature's, the job's or the raw
+    // profile's ratios; none = the neutral default (ratio 1).
+    const ratios: StatBlock = config.creature ?
+        (config.creature.growth ?? {}) :
+        config.job?.growth ?? config.profile?.ratios ?? {};
 
     // A lone hp override sets both hp and totalHp (the old generator's
     // contract: the merged hp filled both fields).
@@ -65,14 +74,16 @@ export function characterGenerator(config: CharacterGeneratorConfig): Character 
     const character = new Character({
         id: config.id ?? `${config.creature?.id ?? config.job?.id ?? 'character'}_${level}`,
         name: config.name ?? config.creature?.name ?? config.job?.title ?? 'Character',
-        stats: new Stats({ ...statBlockAtLevel(profile, level), ...overrides }),
-        experience: new Experience({ baseXpToLevel: XP.perLevel, xpGrowthFactor: 1 }),
+        stats: new Stats({ ...statBlockAtLevel(base, ratios, level), ...overrides }),
+        // The level travels with the character (XP thresholds and the
+        // over-level rules read it), not only with the stat block.
+        experience: new Experience({ level, baseXpToLevel: XP.perLevel, xpGrowthFactor: 1 }),
     });
 
-    // Growth and identity. The creation profile stays as the origin
+    // Growth and identity. The creation ratios stay as the origin
     // (level-ups resolve the HELD job live, so job changes take effect
     // from the next level).
-    character.growthProfile = profile;
+    character.growthProfile = ratios;
     wireCharacterGrowth(character);
     if (config.creature) {
         character.speciesId = config.creature.id;

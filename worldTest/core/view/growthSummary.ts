@@ -1,12 +1,11 @@
-import type { GrowthProfile } from '../config/growth';
-import { DEFAULT_MAX, LEVEL_CAP, resolveGrowth } from '../config/growth';
+import type { GrowthProfile, StatBlock } from '../config/growth';
+import { DEFAULT_BASE, DEFAULT_MAX, LEVEL_CAP, resolveGrowth } from '../config/growth';
 
 export type GrowthRowStat = 'attack' | 'defence' | 'magicDefence' | 'magic' | 'speed' | 'totalHp';
 
 export type GrowthRow = {
     stat: GrowthRowStat;
-    icon: string;
-    // Level-1 value.
+    // Level-1 value (the base's missing stats inherit DEFAULT_BASE).
     base: number;
     // Value at the level cap: base + (cap − 1) × gain.
     target: number;
@@ -16,43 +15,25 @@ export type GrowthRow = {
     cap: number;
 };
 
-const GROWTH_ICONS: Record<GrowthRowStat, string> = {
-    attack: '⚔️',
-    defence: '🛡️',
-    magicDefence: '🔮',
-    magic: '✨',
-    speed: '⚡',
-    totalHp: '❤️',
-};
-
-export const GROWTH_STAT_LABELS: Record<GrowthRowStat, string> = {
-    attack: 'Atq. físico',
-    defence: 'Def. física',
-    magicDefence: 'Def. mágica',
-    magic: 'Poder mágico',
-    speed: 'Rapidez',
-    totalHp: 'Max HP',
-};
-
 /**
- * The growth profile as display rows, one per growing stat: where it
- * starts, where it ends at the level cap, the per-stat ratio and the
+ * The growth of one stat as a display row: where it starts (the base),
+ * where it ends at the level cap, the per-stat ratio and the
  * theoretical maximum. Used by the character details view.
  */
-export function growthRowsOf(profile: GrowthProfile): GrowthRow[] {
-    const resolved = resolveGrowth(profile);
+export function growthRowsOf(base: StatBlock, ratios: GrowthProfile): GrowthRow[] {
+    const gains = resolveGrowth(ratios).gainPerLevel;
     const stats: GrowthRowStat[] = ['attack', 'defence', 'magicDefence', 'magic', 'speed', 'totalHp'];
 
-    return stats.map((stat) => ({
-        stat,
-        icon: GROWTH_ICONS[stat],
-        base: resolved.base[stat],
-        target: Math.round(
-            (resolved.base[stat] + (LEVEL_CAP - 1) * resolved.gainPerLevel[stat]) * 100,
-        ) / 100,
-        ratioPercent: Math.round((profile.ratios?.[stat] ?? 1) * 100),
-        cap: DEFAULT_MAX[stat],
-    }));
+    return stats.map((stat) => {
+        const levelOne = base[stat] ?? DEFAULT_BASE[stat];
+        return {
+            stat,
+            base: levelOne,
+            target: Math.round((levelOne + (LEVEL_CAP - 1) * gains[stat]) * 100) / 100,
+            ratioPercent: Math.round((ratios[stat] ?? 1) * 100),
+            cap: DEFAULT_MAX[stat],
+        };
+    });
 }
 
 export function levelCap(): number {

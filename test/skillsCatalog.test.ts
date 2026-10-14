@@ -32,7 +32,6 @@ describe('skill catalog', () => {
             'haste',
             'rage',
             'fire_breath',
-            'defend',
             'rest',
             'open_gate',
             'boss_regen',
@@ -297,14 +296,14 @@ describe('the Gate affinity', () => {
                 interval: 2,
                 side: 'left',
                 manual: true,
-                skills: [specOf('defend')!, specOf('rest')!, specOf('open_gate')!],
+                skills: [specOf('haste')!, specOf('rest')!, specOf('open_gate')!],
             },
             { character: goblin, interval: 100, side: 'right' },
         ], { random: () => 0.5 });
 
         const first = combat.next();
         if (first.kind !== 'manual') throw new Error('expected a manual prompt');
-        expect(first.skills).toEqual(['defend', 'rest', 'open_gate']); // no Fire Breath yet
+        expect(first.skills).toEqual(['haste', 'rest', 'open_gate']); // no Fire Breath yet
 
         const cast = combat.resolveManualSkill('open_gate');
         expect(cast?.skillId).toBe('open_gate');
@@ -313,7 +312,7 @@ describe('the Gate affinity', () => {
 
         const second = combat.next();
         if (second.kind !== 'manual') throw new Error('expected a manual prompt');
-        expect(second.skills).toEqual(['defend', 'rest', 'fire_breath']); // unlocked, activation hidden
+        expect(second.skills).toEqual(['haste', 'rest', 'fire_breath']); // unlocked, activation hidden
 
         // Attacking ramps the Gate: +8 attack and +2 speed per hit.
         const hit = combat.resolveManual(second.targets[0]);
@@ -325,6 +324,6 @@ describe('the Gate affinity', () => {
         son.statusManager.removeAllStatuses();
         const third = combat.next();
         if (third.kind !== 'manual') throw new Error('expected a manual prompt');
-        expect(third.skills).toEqual(['defend', 'rest', 'open_gate']);
+        expect(third.skills).toEqual(['haste', 'rest', 'open_gate']);
     });
 });

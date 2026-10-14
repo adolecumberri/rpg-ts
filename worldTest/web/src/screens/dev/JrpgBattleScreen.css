@@ -1,0 +1,11 @@
+/* The JRPG battle layout preview (dev page): the arena is allowed to
+   shrink below its battle-screen minimum, so the preview fits under the
+   app header with the controls panel above it. */
+.jrpg-dev-arena {
+    display: flex;
+    flex-direction: column;
+}
+
+.jrpg-dev-arena .jrpg-arena {
+    min-height: 0;
+}

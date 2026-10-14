@@ -152,6 +152,11 @@ export class WorldSession {
             initial.roster,
             initial.roster.filter((character) => this.team.getCharacter(character.id)).map((character) => character.id),
         );
+        // The starting party brings its worn items into the shared
+        // inventory too (the same rule every team member follows).
+        for (const character of this.team.getAll()) {
+            this.registerWornItems(character);
+        }
         this.lootRoller = new LootRoller(options.random ?? Math.random);
         this.missions = new MissionManager(
             options.random ?? Math.random,
@@ -244,6 +249,19 @@ export class WorldSession {
             this.setJob(effect.characterId, effect.jobId);
             if (effect.weaponItemId) this.grantWeapon(effect.characterId, effect.weaponItemId);
             return;
+        case 'addToTeam': {
+            // The branch choice fills the squad with the classes the
+            // player did NOT pick: the character joins the active party
+            // (bringing its worn items into the shared inventory, like
+            // every team member).
+            const character = this.roster.character(effect.characterId);
+            if (!character || this.team.getCharacter(effect.characterId)) return;
+            if (!this.roster.activate(effect.characterId)) return;
+            this.roster.rebuildTeam(this.team);
+            this.registerWornItems(character);
+            syncPositionToWeapon(character);
+            return;
+        }
         case 'skipBattle':
             // The vote's "leave": the current wait_battle step completes
             // as a retreat, so the fight never happens.
@@ -370,8 +388,8 @@ export class WorldSession {
             if (connection.requiredFlag && !flagOpen(connection.requiredFlag)) {
                 return { ok: false, message: connection.lockedMessage ?? 'The way is closed.' };
             }
-            if (connection.requiredMissionId
-                && !this.missionIsActive(connection.requiredMissionId)) {
+            if (connection.requiredMissionId &&
+                !this.missionIsActive(connection.requiredMissionId)) {
                 return { ok: false, message: connection.lockedMessage ?? 'A mission is needed to go there.' };
             }
         }
@@ -493,8 +511,8 @@ export class WorldSession {
         }
         // Seasonal missions only open during their season.
         if (
-            mission.availableMonths
-            && mission.availableMonths.indexOf(this.calendar.monthIndex()) === -1
+            mission.availableMonths &&
+            mission.availableMonths.indexOf(this.calendar.monthIndex()) === -1
         ) {
             return {
                 ok: false,
@@ -583,6 +601,23 @@ export class WorldSession {
         const beat = runner.current();
         if (beat?.kind !== 'wait_battle' || !beat.battle) return false;
         return beat.battle.placeId === placeId;
+    }
+
+    /**
+     * Every active mission whose current beat waits for a battle at the
+     * place: the place page offers the fight option for each of them
+     * (the sparring matches at the camp, the boar packs...).
+     */
+    battleReadyMissionsAt(placeId: string): { missionId: string; title: string }[] {
+        const found: { missionId: string; title: string }[] = [];
+        for (const runner of this.missions.activeMissions()) {
+            if (runner.isComplete() || runner.isFailed()) continue;
+            const beat = runner.current();
+            if (beat?.kind !== 'wait_battle' || !beat.battle) continue;
+            if (beat.battle.placeId !== placeId) continue;
+            found.push({ missionId: runner.missionId(), title: runner.title() });
+        }
+        return found;
     }
 
     /**
@@ -850,23 +885,32 @@ export class WorldSession {
             if (before.has(id)) continue;
             const character = this.roster.character(id);
             if (!character) continue;
-            for (const worn of equippedItemsOf(character)) {
-                const slot = this.team.inventory.getItemSlotByItemId(worn.id);
-                if (!slot) {
-                    if (!canAddItem(this.team, worn)) continue;
-                    this.team.inventory.addItem(new Item(worn.definition), 1);
-                    this.team.inventory.consumeAvailable(worn.id, 1);
-                } else if (slot.quantity > 0) {
-                    // Already owned: one available copy becomes equipped.
-                    this.team.inventory.consumeAvailable(worn.id, 1);
-                }
-            }
+            this.registerWornItems(character);
             // Adding to the team places the character in the row its
             // reach belongs to: 'all' back, 'long' center, 'short' front.
             syncPositionToWeapon(character);
         }
         const names = this.team.getAll().map((character) => character.name).join(', ');
         return { ok: this.team.count() > 0, message: names ? `Active party: ${names}` : 'Active party is empty.' };
+    }
+
+    /**
+     * Registers a character's worn items into the shared inventory as
+     * owned copies (the equipped one is marked, a spare bag copy
+     * absorbs it, and unknown items join when the bag can hold them).
+     */
+    private registerWornItems(character: Character): void {
+        for (const worn of equippedItemsOf(character)) {
+            const slot = this.team.inventory.getItemSlotByItemId(worn.id);
+            if (!slot) {
+                if (!canAddItem(this.team, worn)) continue;
+                this.team.inventory.addItem(new Item(worn.definition), 1);
+                this.team.inventory.consumeAvailable(worn.id, 1);
+            } else if (slot.quantity > 0) {
+                // Already owned: one available copy becomes equipped.
+                this.team.inventory.consumeAvailable(worn.id, 1);
+            }
+        }
     }
 
     /**
@@ -1209,9 +1253,9 @@ export class WorldSession {
             if (item.definition.slot !== 'weapon') continue;
             if (job.allowsWeapon(item.definition.weaponType)) continue;
             const loadout = character.loadout;
-            const holeIndex = loadout
-                ? loadout.holes.findIndex((entry) => entry?.id === item.id)
-                : -1;
+            const holeIndex = loadout ?
+                loadout.holes.findIndex((entry) => entry?.id === item.id) :
+                -1;
             if (holeIndex !== -1) {
                 const result = unequipHole(character, holeIndex);
                 if (result.ok) {
@@ -1232,9 +1276,10 @@ export class WorldSession {
     /**
      * Hands a character an item directly (the branch's class weapon):
      * the instance is created from the catalog and equipped into the
-     * loadout, exactly like the character generator does — it never
-     * touches the shared inventory. Idempotent: a character already
-     * carrying the item keeps theirs.
+     * loadout, exactly like the character generator does. Idempotent: a
+     * character already carrying the item keeps theirs. The granted
+     * item joins the shared inventory as an owned (equipped) copy, so
+     * it shows in the player's bag.
      */
     private grantWeapon(characterId: string, itemId: string): void {
         const character = this.team.getCharacter(characterId) ?? this.roster.character(characterId);
@@ -1248,6 +1293,7 @@ export class WorldSession {
         if (!result.ok && item.definition.slot) {
             character.equipment.equipOrReplace(item, character);
         }
+        this.registerWornItems(character);
     }
 
     useOn(slot: InventorySlot, characterId: string): boolean {
@@ -1325,9 +1371,9 @@ export class WorldSession {
             if (special.placeId !== placeId) continue;
             if (special.repeat === 'once' && this.spawnedSpecials.has(special.id)) continue;
 
-            const triggered = special.repeat === 'once'
-                ? count === special.triggerAfter
-                : count % special.triggerAfter === 0;
+            const triggered = special.repeat === 'once' ?
+                count === special.triggerAfter :
+                count % special.triggerAfter === 0;
 
             if (!triggered) continue;
             if (this.findNpc(special.id)) continue; // still there (undefeated)
@@ -1387,18 +1433,18 @@ export class WorldSession {
                 ...(context.fighters ?? []),
             ];
             const fallen = this.faintFallen(context.placeId, fledCrew);
-            const leftBehind = fallen.length > 0
-                ? ` ${fallen.join(', ')} ${fallen.length === 1 ? 'was' : 'were'} left behind.`
-                : '';
+            const leftBehind = fallen.length > 0 ?
+                ` ${fallen.join(', ')} ${fallen.length === 1 ? 'was' : 'were'} left behind.` :
+                '';
             this.missions.reportBattle('fled');
             // The mission may have advanced (the spectral boar retreat):
             // queue its next beat like any other outcome.
             this.queueNextBeat(fightMission);
             this.evaluateStory();
             return {
-                message: failedMissionTitles.length > 0
-                    ? `You fled the battle. Mission failed: ${failedMissionTitles.join(', ')}${leftBehind}`
-                    : `You fled the battle.${leftBehind}`,
+                message: failedMissionTitles.length > 0 ?
+                    `You fled the battle. Mission failed: ${failedMissionTitles.join(', ')}${leftBehind}` :
+                    `You fled the battle.${leftBehind}`,
                 leveled: false,
                 unlockedEast: false,
                 drops: [],
@@ -1429,9 +1475,9 @@ export class WorldSession {
             this.queueNextBeat(fightMission);
             this.evaluateStory();
             return {
-                message: failedMissionTitles.length > 0
-                    ? `Your party was defeated. You wake up in Central Town. Mission failed: ${failedMissionTitles.join(', ')}`
-                    : 'Your party was defeated. You wake up in Central Town.',
+                message: failedMissionTitles.length > 0 ?
+                    `Your party was defeated. You wake up in Central Town. Mission failed: ${failedMissionTitles.join(', ')}` :
+                    'Your party was defeated. You wake up in Central Town.',
                 leveled: false,
                 unlockedEast: false,
                 drops: [],
@@ -1467,9 +1513,9 @@ export class WorldSession {
                 list.findIndex((entry) => entry.id === character.id) === index,
         );
         const killerOf = (killerId: string): Character | undefined =>
-            this.team.getCharacter(killerId)
-            ?? participants.find((character) => character.id === killerId)
-            ?? fighters.find((fighter) => fighter.id === killerId);
+            this.team.getCharacter(killerId) ??
+            participants.find((character) => character.id === killerId) ??
+            fighters.find((fighter) => fighter.id === killerId);
 
         let leveled: boolean;
         let message: string;
@@ -1502,11 +1548,11 @@ export class WorldSession {
             }
 
             const xpSummary = xpGrants.map((grant) => `${grant.character.name} +${grant.gained} XP`).join(' · ');
-            message = npc.recruitOnDefeat
-                ? `${npc.character.name} joined your party!`
-                : leveled
-                    ? `Victory! +${npc.goldReward}g · ${xpSummary} · leveled up!`
-                    : `Victory! +${npc.goldReward}g · ${xpSummary}.`;
+            message = npc.recruitOnDefeat ?
+                `${npc.character.name} joined your party!` :
+                leveled ?
+                    `Victory! +${npc.goldReward}g · ${xpSummary} · leveled up!` :
+                    `Victory! +${npc.goldReward}g · ${xpSummary}.`;
         } else {
             const kills = context.kills ?? [];
             let anyLeveled = false;
@@ -1725,9 +1771,9 @@ export class WorldSession {
             // a hole fill the first free one).
             for (const entry of saved.loadout ?? []) {
                 if (!session.itemTable.has(entry.itemId)) continue;
-                const hole = typeof entry.hole === 'number'
-                    ? entry.hole
-                    : firstFreeHole(character);
+                const hole = typeof entry.hole === 'number' ?
+                    entry.hole :
+                    firstFreeHole(character);
                 equipInto(character, hole, session.itemTable.createItem(entry.itemId));
             }
             // Saves made before the five-hole loadout carry their gear
@@ -1858,9 +1904,9 @@ export class WorldSession {
                         const heldJob = heldJobOf(rosterCharacter);
                         for (const item of equippedItemsOf(npc.character)) {
                             if (
-                                item.definition.slot === 'weapon'
-                                && heldJob
-                                && !heldJob.allowsWeapon(item.definition.weaponType)
+                                item.definition.slot === 'weapon' &&
+                                heldJob &&
+                                !heldJob.allowsWeapon(item.definition.weaponType)
                             ) {
                                 continue;
                             }
@@ -1932,8 +1978,8 @@ export class WorldSession {
             if (!session.roster.character(entry.characterId)) continue;
             session.roster.deactivate(entry.characterId);
             if (entry.carriedBy) {
-                const carrier = session.team.getCharacter(entry.carriedBy)
-                    ?? session.roster.character(entry.carriedBy);
+                const carrier = session.team.getCharacter(entry.carriedBy) ??
+                    session.roster.character(entry.carriedBy);
                 if (carrier) applyCarryStatus(carrier);
             }
         }

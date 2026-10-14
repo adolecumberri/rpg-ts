@@ -1,19 +1,15 @@
 import { Job } from '../../jobs/Job';
 import { WEAPON_TYPES } from '../weaponTypes';
 
-// The Order soldier: leads the charge with the sword. Drill and armor:
-// +3 attack and +2 defence. Trained with the shield.
+// The Order soldier: leads the charge with the sword. The job's level-1
+// identity (over the common base): +30 hp, +9 attack, +10 defence,
+// +4 magic defence, +2 speed. Trained with the shield.
 export const SOLDIER_JOB = new Job(
     'soldier',
     'Soldier',
-    ['impetu', 'first_aid'],
+    ['disarm', 'stand'],
     [WEAPON_TYPES.sword],
-    { attack: 3, defence: 2 },
+    { hp: 30, totalHp: 30, attack: 9, defence: 10, magicDefence: 4, speed: 2 },
     true,
-    {
-        base: { hp: 100, totalHp: 100, attack: 6, defence: 3, magicDefence: 0, speed: 5 },
-        // Soldiers gain more life and attack per level, but scale
-        // magic and magic power less.
-        ratios: { hp: 1.2, totalHp: 1.2, attack: 1.2, defence: 1, magicDefence: 0.7, magic: 0.5, speed: 0.9 },
-    },
+    { hp: 1.6, totalHp: 1.6, attack: 1.3, defence: 1.3, magicDefence: 0.9, magic: 0.7, speed: 1.2 },
 );

@@ -130,9 +130,14 @@ describe('act 1 world', () => {
         const session = new WorldSession({ random: () => 0.5 });
 
         // The old farm-era encargos were removed: only the act-1 story
-        // missions remain.
-        expect(session.missions.mission('training')).toBeDefined();
+        // missions remain (the three sparring matches, the captain and
+        // the caza menor).
+        expect(session.missions.mission('spar_with_soldier')).toBeDefined();
+        expect(session.missions.mission('spar_with_mage')).toBeDefined();
+        expect(session.missions.mission('spar_with_archer')).toBeDefined();
+        expect(session.missions.mission('spar_with_captain')).toBeDefined();
         expect(session.missions.mission('caza_menor')).toBeDefined();
+        expect(session.missions.mission('training')).toBeUndefined();
         expect(session.missions.mission('spring_sowing')).toBeUndefined();
         expect(session.missions.mission('test_mission')).toBeUndefined();
 

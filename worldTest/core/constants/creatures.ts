@@ -1,9 +1,11 @@
-import type { GrowthOptions, GrowthProfile, StatBlock } from '../config/growth';
+import type { GrowthProfile, StatBlock } from '../config/growth';
 
 // The creatures the character generator can build. Each one declares
-// its level-1 base stats and, optionally, its own growth (max/rate).
-// Without one, the default growth applies (60% of the generic
-// maximums). Content references creatures ONLY through the Creatures
+// its complete level-1 base stats and, optionally, its own growth
+// ratios. Without them, the default growth applies (60% of the
+// generic maximums). Unlike jobs — whose level-1 values are their
+// statBonuses over the common base — a creature's base is the whole
+// story. Content references creatures ONLY through the Creatures
 // constant (Creatures.goblin).
 
 export type CreatureDefinition = {
@@ -11,7 +13,7 @@ export type CreatureDefinition = {
     name: string;
     icon: string;
     base: StatBlock;
-    growth?: GrowthOptions;
+    growth?: GrowthProfile;
 };
 
 export const Creatures = {
@@ -20,19 +22,15 @@ export const Creatures = {
         name: 'Goblin',
         icon: '👺',
         base: { hp: 10, totalHp: 10, attack: 2, defence: 0, magicDefence: 0, speed: 5 },
-        growth: {
-            // Goblins scale attack and speed, but stay small and dumb.
-            ratios: { hp: 0.5, totalHp: 0.5, attack: 0.8, defence: 0.5, magicDefence: 0.3, magic: 0.2, speed: 0.8 },
-        },
+        // Goblins scale attack and speed, but stay small and dumb.
+        growth: { hp: 0.5, totalHp: 0.5, attack: 0.8, defence: 0.5, magicDefence: 0.3, magic: 0.2, speed: 0.8 },
     },
     farmer: {
         id: 'farmer',
         name: 'Farmer',
         icon: '🌾',
         base: { hp: 14, totalHp: 14, attack: 4, defence: 1, magicDefence: 0, speed: 6 },
-        growth: {
-            ratios: { hp: 0.6, totalHp: 0.6, attack: 0.7, defence: 0.8, magicDefence: 0.4, magic: 0.2, speed: 0.7 },
-        },
+        growth: { hp: 0.6, totalHp: 0.6, attack: 0.7, defence: 0.8, magicDefence: 0.4, magic: 0.2, speed: 0.7 },
     },
     // The dev training dummy: a damage sponge that never fights back
     // and never grows (every ratio 0).
@@ -42,17 +40,15 @@ export const Creatures = {
         icon: '🎯',
         base: { hp: 1000, totalHp: 1000, attack: 0, defence: 0, magicDefence: 0, speed: 1 },
         growth: {
-            ratios: {
-                hp: 0,
-                totalHp: 0,
-                attack: 0,
-                defence: 0,
-                magicDefence: 0,
-                magic: 0,
-                speed: 0,
-                critChance: 0,
-                critMultiplier: 0,
-            },
+            hp: 0,
+            totalHp: 0,
+            attack: 0,
+            defence: 0,
+            magicDefence: 0,
+            magic: 0,
+            speed: 0,
+            critChance: 0,
+            critMultiplier: 0,
         },
     },
     // The east field's game: tough, charging and territorial. The caza
@@ -62,9 +58,7 @@ export const Creatures = {
         name: 'Boar',
         icon: '🐗',
         base: { hp: 60, totalHp: 60, attack: 12, defence: 2, magicDefence: 0, speed: 5 },
-        growth: {
-            ratios: { hp: 0.7, totalHp: 0.7, attack: 0.9, defence: 0.6, magicDefence: 0.3, magic: 0.1, speed: 0.6 },
-        },
+        growth: { hp: 0.7, totalHp: 0.7, attack: 0.9, defence: 0.6, magicDefence: 0.3, magic: 0.1, speed: 0.6 },
     },
     // The doomed hunt: the spectral boar is a fight the recruits are
     // NOT meant to win — its numbers overwhelm a fresh squad, so the
@@ -74,16 +68,6 @@ export const Creatures = {
         name: 'Spectral Boar',
         icon: '👻',
         base: { hp: 1500, totalHp: 1500, attack: 90, defence: 15, magicDefence: 15, speed: 3 },
-        growth: {
-            ratios: { hp: 0.3, totalHp: 0.3, attack: 0.4, defence: 0.3, magicDefence: 0.3, magic: 0.3, speed: 0.2 },
-        },
+        growth: { hp: 0.3, totalHp: 0.3, attack: 0.4, defence: 0.3, magicDefence: 0.3, magic: 0.3, speed: 0.2 },
     },
 } as const satisfies Record<string, CreatureDefinition>;
-
-/** The growth profile of a creature constant. */
-export function creatureProfile(creature: CreatureDefinition): GrowthProfile {
-    return {
-        base: creature.base,
-        ratios: creature.growth?.ratios,
-    };
-}

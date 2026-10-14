@@ -279,9 +279,9 @@ export function equipInto(character: Character, holeIndex: number, item: Item): 
         if (kind === 'weapon') {
             const policy = policyOf(character);
             const other = holes.find((entry) => entry?.definition.loadoutSlot === 'weapon');
-            const bothOneHanded = Boolean(other)
-                && (other?.definition.arms ?? 1) === 1
-                && (item.definition.arms ?? 1) === 1;
+            const bothOneHanded = Boolean(other) &&
+                (other?.definition.arms ?? 1) === 1 &&
+                (item.definition.arms ?? 1) === 1;
             allowSecond = Boolean(policy.doubleWeapon) && bothOneHanded;
         }
         if (!allowSecond) {

@@ -46,6 +46,9 @@ export type StoryEffect =
     // hands over the class weapon directly (created from the catalog,
     // never taken from the shared bag).
     | { kind: 'setJob'; characterId: string; jobId: string; weaponItemId?: string }
+    // Adds a roster character to the active party (the branch choice
+    // fills the squad with the two classes the player did NOT pick).
+    | { kind: 'addToTeam'; characterId: string }
     // Completes the mission's current wait_battle step as a retreat
     // (the vote "leave" option: the fight never happens).
     | { kind: 'skipBattle'; missionId: string };

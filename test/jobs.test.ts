@@ -64,17 +64,17 @@ describe('the jobs', () => {
     it('recruits learn their job skills on top of the defaults', () => {
         const session = new WorldSession({ random: () => 0.5 });
         expect(session.availableSkillIds(session.roster.character('archer_0')!)).toEqual([
-            'defend', 'fast_draw', 'weak_point', 'perception',
+            'fast_draw', 'weak_point', 'perception',
         ]);
         expect(session.availableSkillIds(session.roster.character('arturo')!)).toEqual([
-            'defend', 'dispel', 'cure',
+            'dispel', 'cure',
         ]);
         expect(session.availableSkillIds(session.roster.character('soldier_0')!)).toEqual([
-            'defend', 'impetu', 'first_aid',
+            'impetu', 'first_aid',
         ]);
         // The player enlisted as a soldier and carries the same kit.
         expect(session.availableSkillIds(session.team.getCharacter('player')!)).toEqual([
-            'defend', 'impetu', 'first_aid',
+            'impetu', 'first_aid',
         ]);
     });
 
@@ -82,14 +82,14 @@ describe('the jobs', () => {
         const session = new WorldSession({ random: () => 0.5 });
         // Arturo: healer job (+5 magic), staff (+1 attack, +5 arcane).
         const arturo = session.roster.character('arturo')!;
-        expect(arturo.getStat('attack')).toBe(3); // 2 + staff 1
-        // The magical arcane component carries the magic power: 5 + 5.
+        expect(arturo.getStat('attack')).toBe(6); // 5 (no attack base) + staff 1
+        // The magical arcane component carries the magic power: 25 + 5.
         const armored = defender('armored', { defence: 99, magicDefence: 0 });
-        expect(resolveGeneralAttack(arturo, armored, noCrit).damage).toBeCloseTo(11.01, 2); // 3*50/149 + 10
+        expect(resolveGeneralAttack(arturo, armored, noCrit).damage).toBeCloseTo(32.01, 2); // 6*50/149 + 30
 
         // The same hit against magicDefence: the magical part is the one reduced.
         const warded = defender('warded', { defence: 0, magicDefence: 50 });
-        expect(resolveGeneralAttack(arturo, warded, noCrit).damage).toBeCloseTo(8, 2); // 3 + 10*50/100
+        expect(resolveGeneralAttack(arturo, warded, noCrit).damage).toBeCloseTo(21, 2); // 6 + 30*50/100
     });
 });
 
@@ -98,16 +98,16 @@ describe('job assignment', () => {
         const session = new WorldSession({ random: () => 0.5 });
         const soldier = session.roster.character('soldier_0')!;
         expect(soldier.stats.attack).toBe(9); // 6 + job 3
-        expect(soldier.stats.defence).toBe(5); // 3 + job 2
+        expect(soldier.stats.defence).toBe(10); // 8 + job 2
         expect(heldJobOf(soldier)).toBe(SOLDIER_JOB);
 
         const archer = session.roster.character('archer_0')!;
-        expect(archer.stats.attack).toBe(7); // 5 + job 2
-        expect(archer.getStat('speed')).toBe(10); // 8 + job 2
+        expect(archer.stats.attack).toBe(17); // 15 + job 2
+        expect(archer.getStat('speed')).toBe(7); // 5 + job 2
 
         const healer = session.roster.character('arturo')!;
-        expect(healer.getStat('magic')).toBe(5);
-        expect(healer.stats.defence).toBe(-1);
+        expect(healer.getStat('magic')).toBe(25); // 20 + job 5
+        expect(healer.stats.defence).toBe(4); // 5 - job 1
     });
 
     it('swapping a job removes the old bonuses and adds the new ones', () => {
@@ -116,20 +116,32 @@ describe('job assignment', () => {
 
         const result = session.setJob('soldier_0', 'archer');
         expect(result.ok).toBe(true);
-        // 6 base + 3 job - 3 job + 2 job
+        // 6 base + 3 job - 3 job + 2 job (the base never rebases).
         expect(soldier.stats.attack).toBe(8);
-        expect(soldier.stats.defence).toBe(3); // back to base
-        expect(soldier.getStat('speed')).toBe(7); // 5 default + 2
+        expect(soldier.stats.defence).toBe(8); // 10 - job 2, no defence bonus
+        expect(soldier.getStat('speed')).toBe(4); // 2 base + job 2
         expect(heldJobOf(soldier)).toBe(ARCHER_JOB);
 
         // The new job's skill kit follows immediately.
-        expect(session.availableSkillIds(soldier)).toEqual(['defend', 'fast_draw', 'weak_point', 'perception']);
+        expect(session.availableSkillIds(soldier)).toEqual(['fast_draw', 'weak_point', 'perception']);
 
         // Swapping back restores the original numbers.
         session.setJob('soldier_0', 'soldier');
         expect(soldier.stats.attack).toBe(9);
-        expect(soldier.stats.defence).toBe(5);
-        expect(soldier.getStat('speed')).toBe(5);
+        expect(soldier.stats.defence).toBe(10);
+        expect(soldier.getStat('speed')).toBe(2);
+    });
+
+    it('a character joining the team adds its worn items to the shared inventory', () => {
+        const session = new WorldSession({ random: () => 0.5 });
+        // The soldier's sword is not in the bag before he joins.
+        expect(session.team.inventory.getItemSlotByItemId('sword')).toBeUndefined();
+
+        session.setActiveParty(['player', 'soldier_0']);
+
+        const slot = session.team.inventory.getItemSlotByItemId('sword')!;
+        expect(slot.quantity).toBe(0); // worn, not in the bag
+        expect(slot.totalQuantity).toBe(1);
     });
 
     it('unequips the weapons the new job cannot wield', () => {
@@ -159,20 +171,20 @@ describe('job assignment', () => {
         const session = new WorldSession({ random: () => 0.5 });
         const player = session.team.getCharacter('player')!;
         expect(heldJobOf(player)).toBe(SOLDIER_JOB);
-        // The recruit reports at level 5: 6 + 4×2.16 (attack gain) + 3.
-        expect(player.stats.attack).toBeCloseTo(17.64, 2);
-        expect(player.stats.defence).toBeCloseTo(9.8, 2); // 3 + 4×1.2 + 2
+        // The recruit reports at level 5: 6 + 4×0.78 (attack gain) + 3.
+        expect(player.stats.attack).toBeCloseTo(12.12, 2);
+        expect(player.stats.defence).toBeCloseTo(12.5, 2); // 8 + 4×0.624 + 2
 
         expect(session.setJob('player', 'archer').ok).toBe(true);
         expect(heldJobOf(player)).toBe(ARCHER_JOB);
-        expect(player.stats.attack).toBeCloseTo(16.64, 2); // 17.64 - 3 + 2
-        expect(player.getStat('speed')).toBeCloseTo(7.86, 2); // 5.86 + job 2
+        expect(player.stats.attack).toBeCloseTo(11.12, 2); // 12.12 - 3 + 2
+        expect(player.getStat('speed')).toBeCloseTo(5.15, 2); // 3.15 + job 2
 
         // And on to the adventurer, which carries no bonuses.
         expect(session.setJob('player', 'adventurer').ok).toBe(true);
-        expect(player.stats.attack).toBeCloseTo(14.64, 2);
-        expect(player.stats.defence).toBeCloseTo(7.8, 2);
-        expect(player.getStat('speed')).toBeCloseTo(5.86, 2);
+        expect(player.stats.attack).toBeCloseTo(9.12, 2);
+        expect(player.stats.defence).toBeCloseTo(10.5, 2);
+        expect(player.getStat('speed')).toBeCloseTo(3.15, 2); // bonus removed
     });
 
     it('persists the held job and its stats through a save', () => {
@@ -185,19 +197,21 @@ describe('job assignment', () => {
         const swappedSoldier = restored.roster.character('soldier_0')!;
         expect(heldJobOf(swappedSoldier)).toBe(ARCHER_JOB);
         expect(swappedSoldier.stats.attack).toBe(8); // bonuses persisted
-        expect(swappedSoldier.getStat('speed')).toBe(7);
-        expect(restored.availableSkillIds(swappedSoldier)).toEqual(['defend', 'fast_draw', 'weak_point', 'perception']);
+        expect(swappedSoldier.getStat('speed')).toBe(4);
+        expect(restored.availableSkillIds(swappedSoldier)).toEqual(['fast_draw', 'weak_point', 'perception']);
 
         const swappedArcher = restored.roster.character('archer_0')!;
         expect(heldJobOf(swappedArcher)).toBe(HEALER_JOB);
+        // setJob swaps the bonuses only: the archer's own magic stays 0,
+        // the healer bonus (+5) applies on top.
         expect(swappedArcher.getStat('magic')).toBe(5);
         expect(swappedArcher.equipment.get('weapon')).toBeUndefined(); // bow stripped
 
         // Swapping again after the load keeps the math consistent.
         restored.setJob('soldier_0', 'soldier');
         expect(swappedSoldier.stats.attack).toBe(9);
-        expect(swappedSoldier.stats.defence).toBe(5);
-        expect(swappedSoldier.getStat('speed')).toBe(5);
+        expect(swappedSoldier.stats.defence).toBe(10);
+        expect(swappedSoldier.getStat('speed')).toBe(2);
     });
 
     it('self-heals old saves by adopting the default job and its bonuses', () => {
@@ -218,9 +232,9 @@ describe('job assignment', () => {
         const soldier = restored.roster.character('soldier_0')!;
         expect(heldJobOf(soldier)).toBe(SOLDIER_JOB);
         // The self-heal applies the default job bonuses exactly once
-        // (raw stats: 6 + job 3 attack, 3 + job 2 defence).
+        // (raw stats: 6 + job 3 attack, 8 + job 2 defence).
         expect(soldier.stats.attack).toBe(9);
-        expect(soldier.stats.defence).toBe(5);
+        expect(soldier.stats.defence).toBe(10);
         expect(soldier.getStat('speed')).toBe(5); // speed was not saved back then
     });
 });

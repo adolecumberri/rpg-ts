@@ -13,26 +13,65 @@ import { FLAGS } from './flags';
 
 export const Missions = {
     // ------------------------------------------------------------------
-    // Act 1 story: the training trail and the east field hunt.
+    // Act 1 story: the sparring trail and the east field hunt.
     // ------------------------------------------------------------------
 
-    // The recruit proves their branch: three sparring matches (soldier,
-    // mage, archer) and Captain Rodrigo. Losing a match carries no
-    // penalty — the mission advances regardless; each WIN leaves its
-    // own flag (the story memory of how many battles were won). The
-    // reward opens the map and the east field.
-    training: {
-        id: 'training',
-        title: 'Training to Be Worth It',
+    // The training trail, now TWO missions: the opening SPARRING — the
+    // whole starting squad (the recruit + the two teammates) fights one
+    // Order soldier, one archer and one mage together (losing still
+    // completes it; each class defeated leaves its win flag) — and then
+    // the captain. The captain's reward opens the map and the east
+    // field.
+    sparring: {
+        id: 'sparring',
+        title: 'Sparring',
         level: 1,
         commission: 0,
-        description: 'Spar against the Order: the soldier, the mage, the archer — and Captain Rodrigo himself.',
+        description: 'The starting squad spars against an Order soldier, an archer and a mage.',
         availableAt: ['camp'],
         requiredFlags: [FLAGS.BRANCH_CHOSEN],
         details: {
-            description: 'Captain Rodrigo wants to see what the recruit is made of. Four sparring ' +
-                'matches: the Order soldier, the Order mage, the Order archer, and the captain ' +
-                'himself. Losing costs nothing but pride — but every win is remembered.',
+            description: 'Captain Rodrigo wants to see what\n' +
+                'the recruit is made of.\n' +
+                '\n' +
+                'The whole squad takes the field against an Order\n' +
+                'soldier, an Order archer and an Order mage.\n' +
+                '\n' +
+                'Losing costs nothing but pride.\n' +
+                'A win is remembered.',
+            requiredItems: [],
+            expedition: { members: 3 },
+            cancelable: false,
+            placeId: 'camp',
+        },
+        steps: [
+            {
+                id: 'vs_squad',
+                kind: 'wait_battle',
+                completeOn: ['won', 'lost', 'fled'],
+                battle: { fightId: 'sparring_squad', placeId: 'camp' },
+                lines: [{ speaker: 'Captain Rodrigo', text: 'Three of them: soldier, archer and mage. Fight as one.' }],
+            },
+        ],
+    },
+
+    // The final sparring mission: the captain himself. Only offered once
+    // the opening Sparring is done; the reward opens the map and the
+    // east field.
+    spar_with_captain: {
+        id: 'spar_with_captain',
+        title: 'Sparring with the Captain',
+        level: 1,
+        commission: 0,
+        description: 'The Sparring is done: now Captain Rodrigo himself.',
+        availableAt: ['camp'],
+        requires: ['sparring'],
+        details: {
+            description: 'The captain is the last test.\n' +
+                '\n' +
+                'Beat him — or lose with honor —\n' +
+                'the training is over: the map and\n' +
+                'the east field open.',
             requiredItems: [],
             rewards: [{ itemId: 'wood', quantity: 2 }],
             rewardGold: 20,
@@ -42,32 +81,11 @@ export const Missions = {
         },
         steps: [
             {
-                id: 'vs_soldier',
-                kind: 'wait_battle',
-                completeOn: ['won', 'lost', 'fled'],
-                battle: { fightId: 'sparring_soldier', placeId: 'camp' },
-                lines: [{ speaker: 'Captain Rodrigo', text: 'First blood: the soldier. Survive, recruit.' }],
-            },
-            {
-                id: 'vs_mage',
-                kind: 'wait_battle',
-                completeOn: ['won', 'lost', 'fled'],
-                battle: { fightId: 'sparring_mage', placeId: 'camp' },
-                lines: [{ speaker: 'Captain Rodrigo', text: 'The mage does not punch: she burns. Stay sharp.' }],
-            },
-            {
-                id: 'vs_archer',
-                kind: 'wait_battle',
-                completeOn: ['won', 'lost', 'fled'],
-                battle: { fightId: 'sparring_archer', placeId: 'camp' },
-                lines: [{ speaker: 'Captain Rodrigo', text: 'Arrows find the slow. Move or bleed.' }],
-            },
-            {
                 id: 'vs_captain',
                 kind: 'wait_battle',
                 completeOn: ['won', 'lost', 'fled'],
                 battle: { fightId: 'sparring_captain', placeId: 'camp' },
-                lines: [{ speaker: 'Captain Rodrigo', text: 'Now me. Show me what four matches taught you.' }],
+                lines: [{ speaker: 'Captain Rodrigo', text: 'Now me. Show me what the Sparring taught you.' }],
             },
             {
                 id: 'reward',
@@ -90,12 +108,19 @@ export const Missions = {
         commission: 0,
         description: 'The east field is open: hunt the boar packs, then answer the squad\'s vote.',
         availableAt: ['camp'],
-        requires: ['training'],
+        requires: ['spar_with_captain'],
         details: {
-            description: 'The east field runs wild with boars. Take four recruits and clear two ' +
-                'packs — three boars, then four more, with no healing between the hunts. The ' +
-                'squad\'s vote over the spectral boar is yours to break: fight a ghost, or leave ' +
-                'it be. Fleeing a fight you cannot win is a victory.',
+            description: 'The east field runs wild with boars.\n' +
+                '\n' +
+                'Take four recruits and clear two packs:\n' +
+                'three boars, then four more, with no\n' +
+                'healing between the hunts.\n' +
+                '\n' +
+                'The squad\'s vote over the spectral\n' +
+                'boar is yours to break.\n' +
+                '\n' +
+                'Fleeing a fight you cannot win is\n' +
+                'a victory.',
             requiredItems: [],
             rewards: [{ itemId: 'hay', quantity: 3 }],
             rewardGold: 30,

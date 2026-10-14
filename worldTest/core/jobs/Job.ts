@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import type { GrowthProfile } from '../config/growth';
+import type { SkillId } from '../skills';
 
 // The weapon triangle for now; armors and other slots will join later.
 export type WeaponType = 'sword' | 'bow' | 'staff';
@@ -19,7 +20,9 @@ export type JobStatKey =
     | 'critChance'
     | 'critMultiplier'
     | 'speed'
-    | 'magic';
+    | 'magic'
+    | 'hp'
+    | 'totalHp';
 
 export type JobStatBonuses = Partial<Record<JobStatKey, number>>;
 
@@ -27,19 +30,20 @@ export class Job {
     constructor(
         readonly id: string,
         readonly title: string,
-        readonly skillIds: string[],
+        readonly skillIds: SkillId[],
         readonly weaponTypes: WeaponType[],
         // Stat modifiers applied to the bearer while the job is held
         // (added on assignment, removed on swap). Plain numbers, not
-        // statuses: they live directly on the character stats.
+        // statuses: they live directly on the character stats. These
+        // ARE the job's level-1 identity — its base values layered on
+        // top of the common DEFAULT_BASE (the soldier's +30 hp...).
         readonly statBonuses: JobStatBonuses = {},
         // Whether the job may carry a shield in the offhand.
         readonly canShield: boolean = false,
-        // The job's growth profile (level-1 bases + optional max/rate).
-        // Without one, the default growth applies (60% of the generic
-        // maximums).
+        // The job's per-stat growth ratios (1 = the default gains;
+        // missing stats use 1). The base values live in statBonuses.
         readonly growth?: GrowthProfile,
-    ) {}
+    ) { }
 
     /** Whether the job may wield a weapon of the given type. Untyped
      *  items (bags, outfits...) are always allowed. */

@@ -29,11 +29,12 @@ describe('perception', () => {
         expect(spec.manaCost).toBe(12);
     });
 
-    it('applies the Perception status: +20 evasion and +3% crit for 2 turns', () => {
+    it('applies the Perception status: +20 evasion and +3% crit for 5 turns', () => {
         const status = perceptionStatus();
         expect(status.name).toBe('Perception');
         expect(status.polarity).toBe('positive');
-        expect(status.duration).toEqual({ type: 'TEMPORAL', value: 3 }); // 2 own actions
+        expect(status.duration).toEqual({ type: 'TEMPORAL', value: 6 }); // 5 own actions
+        expect(status.turns).toBe(5);
         expect(status.statsAffected).toEqual([
             { from: 'evasion', to: 'evasion', value: 20, typeOfModification: 'BUFF_FIXED' },
             { from: 'critChance', to: 'critChance', value: 3, typeOfModification: 'BUFF_FIXED' },
@@ -59,10 +60,10 @@ describe('perception', () => {
         expect(archer.getStat('critChance')).toBe(13);
     });
 
-    it('summarizes only the stat changes for the tooltip', () => {
+    it('summarizes only the stat changes and the turn count for the tooltip', () => {
         // No name, no description: the cell label already says
         // "Perception" — the tooltip carries the numbers only.
-        expect(skillEffectSummary(specOf('perception')!)).toBe('evasion +20 · critChance +3%');
+        expect(skillEffectSummary(specOf('perception')!)).toBe('evasion +20 · critChance +3% · 5 turns');
     });
 
     it('offers the skill in the prompt but refuses the cast while unaffordable', () => {

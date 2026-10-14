@@ -1,4 +1,4 @@
-import type { IconId } from '../components/UI/Icon';
+﻿import type { IconId } from '../components/chrome/Icon';
 
 /**
  * The catalog of displayed stats, in order — shared by every stats

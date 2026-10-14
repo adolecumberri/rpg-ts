@@ -229,7 +229,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
             load,
             reset,
         }),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [version, currentPlace, npcsAtCurrent, routes, current, toast],
     );
 

@@ -33,7 +33,7 @@ export const CHATS: Record<string, ChatDefinition> = {
                 text: 'Choose your branch.',
                 choices: [
                     {
-                        label: '⚔️ Soldier',
+                        label: 'Soldier',
                         effects: [
                             { kind: 'setFlag', flag: FLAGS.BRANCH_CHOSEN },
                             { kind: 'setFlag', flag: FLAGS.BRANCH_SOLDIER },
@@ -43,10 +43,13 @@ export const CHATS: Record<string, ChatDefinition> = {
                                 jobId: SOLDIER_JOB.id,
                                 weaponItemId: 'sword',
                             },
+                            // The two other classes join the squad.
+                            { kind: 'addToTeam', characterId: 'archer_0' },
+                            { kind: 'addToTeam', characterId: 'arturo' },
                         ],
                     },
                     {
-                        label: '🏹 Archer',
+                        label: 'Archer',
                         effects: [
                             { kind: 'setFlag', flag: FLAGS.BRANCH_CHOSEN },
                             { kind: 'setFlag', flag: FLAGS.BRANCH_ARCHER },
@@ -56,10 +59,12 @@ export const CHATS: Record<string, ChatDefinition> = {
                                 jobId: ARCHER_JOB.id,
                                 weaponItemId: 'bow',
                             },
+                            { kind: 'addToTeam', characterId: 'soldier_0' },
+                            { kind: 'addToTeam', characterId: 'arturo' },
                         ],
                     },
                     {
-                        label: '✨ Mage',
+                        label: 'Mage',
                         effects: [
                             { kind: 'setFlag', flag: FLAGS.BRANCH_CHOSEN },
                             { kind: 'setFlag', flag: FLAGS.BRANCH_MAGE },
@@ -69,6 +74,8 @@ export const CHATS: Record<string, ChatDefinition> = {
                                 jobId: HEALER_JOB.id,
                                 weaponItemId: 'staff',
                             },
+                            { kind: 'addToTeam', characterId: 'soldier_0' },
+                            { kind: 'addToTeam', characterId: 'archer_0' },
                         ],
                     },
                 ],
@@ -89,8 +96,10 @@ export const CHATS: Record<string, ChatDefinition> = {
     caza_spectral_left: {
         id: 'caza_spectral_left',
         lines: [
-            { speaker: 'Captain Rodrigo', text: 'A wise call. The Order does not waste recruits on ghosts. ' +
-                'Back to camp — the hunt is over.' },
+            {
+                speaker: 'Captain Rodrigo', text: 'A wise call. The Order does not waste recruits on ghosts. ' +
+                    'Back to camp — the hunt is over.'
+            },
         ],
     },
 };

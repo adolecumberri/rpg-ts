@@ -20,11 +20,17 @@ function character(id: string, stats: Partial<import('../src').Statistics>): Cha
 
 // The fatigue system ships switched OFF; these tests turn it back on
 // and restore the default at the end.
-beforeEach(() => { FATIGUE.enabled = true; });
-afterAll(() => { FATIGUE.enabled = false; });
+beforeEach(() => {
+    FATIGUE.enabled = true;
+});
+afterAll(() => {
+    FATIGUE.enabled = false;
+});
 
 describe('the fatigue system switched off (default)', () => {
-    beforeEach(() => { FATIGUE.enabled = false; });
+    beforeEach(() => {
+        FATIGUE.enabled = false;
+    });
 
     it('accumulates nothing and applies no penalties', () => {
         expect(FATIGUE.enabled).toBe(false);
@@ -40,9 +46,8 @@ describe('the fatigue system switched off (default)', () => {
 
     it('Rest is hidden from the default kit while the system is off', () => {
         const session = new WorldSession({ random: () => 0.5 });
-        // Defend stays, Rest is hidden — plus the player's soldier kit.
+        // No defaults — just the player's soldier kit.
         expect(session.availableSkillIds(session.team.getCharacter('player')!)).toEqual([
-            'defend',
             'impetu',
             'first_aid',
         ]);
@@ -185,8 +190,8 @@ describe('accuracy', () => {
     });
 });
 
-describe('defend and rest skills', () => {
-    it('every character knows them by default', () => {
+describe('rest skill', () => {
+    it('every character knows it by default (when fatigue is on)', () => {
         const session = new WorldSession({ random: () => 0.5 });
         // The defaults come first, then the character's own kit (the
         // player enlisted as a soldier).
@@ -195,23 +200,7 @@ describe('defend and rest skills', () => {
             'impetu',
             'first_aid',
         ]);
-        expect(DEFAULT_SKILLS).toEqual(['defend', 'rest']);
-    });
-
-    it('Defend restores 10 fatigue and cuts damage taken by 70%', () => {
-        const fighter = character('fighter', { hp: 100, totalHp: 100, attack: 5, defence: 0, speed: 6 });
-        gainFatigue(fighter, 30);
-
-        resolveSkillEffect(specOf('defend')!, fighter, [fighter]);
-
-        expect(fighter.stats.fatigue).toBe(20);
-        const defending = Array.from(fighter.statusManager.statuses.values())
-            .find((status) => status.definition.name === 'Defending');
-        expect(defending?.definition.finalDamageVariation).toEqual({ percent: -70 });
-        // physical: 50/(50+0) = 1, times (1 - 70/100) = 0.3
-        expect(kindMultiplierFor(fighter)('physical')).toBeCloseTo(0.3);
-        // true damage skips the variation entirely
-        expect(kindMultiplierFor(fighter)('true')).toBe(1);
+        expect(DEFAULT_SKILLS).toEqual(['rest']);
     });
 
     it('Rest recovers 20 fatigue and the penalties shrink with the value', () => {

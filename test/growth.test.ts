@@ -154,7 +154,7 @@ describe('deterministic growth', () => {
 
     it('the job constants carry their bases and ratios', () => {
         expect(SOLDIER_JOB.growth?.base.attack).toBe(6);
-        expect(SOLDIER_JOB.growth?.ratios?.attack).toBe(1.2);
+        expect(SOLDIER_JOB.growth?.ratios?.attack).toBe(1.3);
     });
 });
 
@@ -162,7 +162,7 @@ describe('the job career', () => {
     it('accumulates the gains of every job the character leveled with', () => {
         const character = characterGenerator({ job: SOLDIER_JOB, level: 1, id: 'career' });
         const baseAttack = character.getStat('attack');
-        const soldierGain = DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP * 1.2; // 0.864
+        const soldierGain = DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP * 1.3;
 
         // 9 levels as a soldier.
         applyGrowthLevels(character, 9);
@@ -174,7 +174,7 @@ describe('the job career', () => {
         character.jobId = HEALER_JOB.id;
         applyJobBonuses(character, HEALER_JOB);
         const afterSwitch = character.getStat('attack');
-        const healerGain = DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP * 0.6; // 0.432
+        const healerGain = DEFAULT_MAX.attack * DEFAULT_GROWTH_RATE / LEVEL_CAP * 0.7;
 
         applyGrowthLevels(character, 20);
         expect(character.getStat('attack')).toBeCloseTo(afterSwitch + 20 * healerGain, 2);

@@ -89,7 +89,7 @@ describe('weapon reach and gear', () => {
         expect(wornIds('archer_0')).toContain('bow');
         expect(wornIds('arturo')).toContain('staff');
         expect(wornIds('soldier_0')).toContain('sword');
-        expect(session.roster.character('archer_0')!.getStat('attack')).toBe(10); // 5 + job 2 + bow 3
+        expect(session.roster.character('archer_0')!.getStat('attack')).toBe(20); // 15 + job 2 + bow 3
         expect(session.roster.character('soldier_0')!.getStat('attack')).toBe(13); // 6 + job 3 + sword 4
     });
 });

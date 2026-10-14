@@ -50,6 +50,7 @@ export function heldJobOf(character: Character): Job | undefined {
  */
 export function jobOfCharacter(characterId: string): Job | undefined {
     if (characterId === 'player') return SOLDIER_JOB;
+    if (characterId === 'general') return SOLDIER_JOB; // Captain Rodrigo
     if (characterId === 'arturo' || characterId === 'healer_0') return HEALER_JOB;
     if (characterId.indexOf('archer_') === 0) return ARCHER_JOB;
     if (characterId.indexOf('soldier_') === 0) return SOLDIER_JOB;
@@ -57,12 +58,12 @@ export function jobOfCharacter(characterId: string): Job | undefined {
 }
 
 /**
- * The growth profile the character levels with: the HELD job's (so
- * switching jobs switches the future gains), the one the generator
- * attached at creation, or the generic default.
+ * The growth ratios the character levels with: the HELD job's (so
+ * switching jobs switches the future gains), the ones the generator
+ * attached at creation, or the neutral default (ratio 1 everywhere).
  */
 export function growthProfileOf(character: Character): GrowthProfile {
-    return heldJobOf(character)?.growth ?? character.growthProfile ?? { base: DEFAULT_BASE };
+    return heldJobOf(character)?.growth ?? character.growthProfile ?? {};
 }
 
 /**
@@ -76,8 +77,8 @@ export function applyGrowthLevels(character: Character, levels: number, heal = t
     const resolved = resolveGrowth(growthProfileOf(character));
     for (const stat of STAT_KEYS) {
         if (stat === 'hp') continue;
-        character.stats[stat] = (character.stats[stat] ?? DEFAULT_BASE[stat])
-            + levels * resolved.gainPerLevel[stat];
+        character.stats[stat] = (character.stats[stat] ?? DEFAULT_BASE[stat]) +
+            levels * resolved.gainPerLevel[stat];
     }
     if (heal) {
         character.stats.hp = character.stats.totalHp;
@@ -100,17 +101,20 @@ export function jobById(jobId: string): Job | undefined {
 }
 
 const STAT_LABELS: Record<JobStatKey, string> = {
-    attack: '⚔️ Atq. físico',
-    defence: '🛡️ Def. física',
-    magicDefence: '🔮 Def. mágica',
-    critChance: '🎯 Crit.',
-    critMultiplier: '💥 Crit. Mult.',
-    speed: '⚡ Rapidez',
-    magic: '✨ Poder mágico',
+    attack: 'Atq. físico',
+    defence: 'Def. física',
+    magicDefence: 'Def. mágica',
+    critChance: 'Crit.',
+    critMultiplier: 'Crit. Mult.',
+    speed: 'Rapidez',
+    magic: 'Poder mágico',
+    hp: 'HP',
+    totalHp: 'Max HP',
 };
 
 // The bonus keys in a stable order, so the helpers below iterate the
-// typed statistics directly — no casts to records.
+// typed statistics directly — no casts to records. hp and totalHp ride
+// along: the job's base IS its stat bonuses.
 const JOB_STAT_KEYS: JobStatKey[] = [
     'attack',
     'defence',
@@ -119,6 +123,8 @@ const JOB_STAT_KEYS: JobStatKey[] = [
     'critMultiplier',
     'speed',
     'magic',
+    'hp',
+    'totalHp',
 ];
 
 /** The stat bonuses of a job as display lines, e.g. "+3 ⚔️ attack". */
