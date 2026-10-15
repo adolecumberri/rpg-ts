@@ -97,6 +97,8 @@ f2ca50 // acento
     --xp: #7f8cff;
     --lv: #b8a038;
     --gold: #f5b942;
+
+
     /* The definition mark-language schema (item/skill descriptions):
        [impact] yellow, [physical] red, [magical] blue-purple,
        [true] white, [gold] amber. */
@@ -105,6 +107,9 @@ f2ca50 // acento
     --def-magical: #7f8cff;
     --def-true: #ffffff;
     --def-gold: #fde68a;
+
+
+
     --radius: 14px;
     --shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
 
@@ -982,6 +987,25 @@ f2ca50 // acento
     margin-left: auto;
 }
 
+/* The gold ↑ level-up chip on a bar option: guides the player to the
+   entry that resolves the pending pick (same look as the card badge). */
+.action-btn-badge {
+    flex: none;
+    margin-left: 6px;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 7px;
+    color: #170c05;
+    background: var(--accent);
+    border: 2px solid #000;
+    box-shadow: 0 0 6px rgba(242, 202, 80, 0.8);
+    animation: team-card-badge-pulse 1.4s infinite ease-in-out alternate;
+}
+
 
 /* Test-screen scaffold: the page is a column (panels stack on top of
    each other), the bar is pinned to the bottom of the visible canvas,
@@ -1115,6 +1139,79 @@ f2ca50 // acento
     justify-content: center;
     background: rgba(0, 0, 0, 0.45);
     z-index: 10;
+}
+
+/* The end-of-fight modal: the battle holds until Continue. The title,
+   the xp rows (one per character), the job level-ups, the items and
+   the gold, then the message and the Continue button. */
+.fight-end-overlay {
+    z-index: 50;
+}
+
+.fight-end-modal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    width: calc(var(--u) * 72);
+    max-width: 92%;
+    max-height: 80%;
+    overflow-y: auto;
+    padding: var(--s3);
+    background: #1a0e08;
+}
+
+.fight-end-title {
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 14px;
+    color: #f3e7be;
+    text-shadow: 1px 1px 0 #000;
+    margin-bottom: var(--s1);
+}
+
+.fight-end-title--win {
+    color: var(--accent);
+}
+
+.fight-end-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-top: 1px solid #35271f;
+    padding-top: var(--s1);
+}
+
+.fight-end-row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s2);
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 13px;
+    font-size-adjust: none;
+    color: #eedbcc;
+}
+
+.fight-end-row-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fight-end-row-value {
+    flex: none;
+    color: var(--accent);
+}
+
+.fight-end-row--gold .fight-end-row-name,
+.fight-end-row--gold .fight-end-row-value {
+    color: var(--accent);
+}
+
+.fight-end-message {
+    font-family: 'VT323', var(--font-pixel, monospace);
+    font-size: 12px;
+    font-size-adjust: none;
+    color: #99907c;
+    margin-top: var(--s1);
 }
 
 /* A viewport-fixed overlay for pages taller than the canvas (the
@@ -1558,6 +1655,7 @@ f2ca50 // acento
 }
 
 .team-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1571,6 +1669,38 @@ f2ca50 // acento
     box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512;
     cursor: pointer;
     transition: transform 0.05s ease, filter 0.05s ease;
+}
+
+/* The pending level-up badge (a job enhancement pick awaits). */
+.team-card-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 8px;
+    color: #170c05;
+    background: var(--accent);
+    border: 2px solid #000;
+    box-shadow: 0 0 6px rgba(242, 202, 80, 0.8);
+    z-index: 5;
+    animation: team-card-badge-pulse 1.4s infinite ease-in-out alternate;
+}
+
+@keyframes team-card-badge-pulse {
+
+    0%,
+    100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.35);
+    }
 }
 
 /* The pressed card sinks 1px and inverts its bevel, like the design. */
@@ -1869,6 +1999,47 @@ f2ca50 // acento
 .team-stat-value--flat {
     font-weight: 400;
     color: #99907c;
+}
+
+/* The job-change delta next to a stat value: green when the new job
+   raises the stat, red when it lowers it, muted when unchanged. */
+.team-stat-delta {
+    flex: none;
+    width: var(--s5);
+    text-align: right;
+    font-size: calc(var(--u) * 2.75);
+    color: #99907c;
+}
+
+.team-stat-delta--up {
+    color: #4ade80;
+}
+
+.team-stat-delta--down {
+    color: #f87171;
+}
+
+/* The job view (Oficio): the character's stats ledger under the
+   previewed job, with the variation deltas. */
+.job-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
+    overflow-y: auto;
+}
+
+.job-view-head {
+    flex: none;
+}
+
+.job-view-title {
+    font-family: 'Press Start 2P', var(--font-pixel, monospace);
+    font-size: 10px;
+    color: #f3e7be;
+    text-shadow: 1px 1px 0 #000;
 }
 
 /* The right side of the split: the equipment block. */
@@ -3659,6 +3830,38 @@ f2ca50 // acento
     background-position: 0 0;
     image-rendering: pixelated;
     animation: jrpg-idle-breathe 1.8s infinite ease-in-out;
+}
+
+/* The attack pose: the entity's sprite box switches to its attack
+   sheet and steps through its frames once (the vars come inline from
+   the role's SpriteSet). */
+.jrpg-sprite-box--attack {
+    background-size: calc(var(--attack-frames) * 16px) 16px;
+    animation: jrpg-attack-steps var(--attack-ms) steps(3) 1;
+}
+
+@keyframes jrpg-attack-steps {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: -48px 0;
+    }
+}
+
+/* The battle effects (the physical slash, the magical blast): one-shot
+   frame-stepped sprites played over their target, above the sprites. */
+.jrpg-effects-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 25;
+}
+
+.jrpg-effect {
+    position: absolute;
+    image-rendering: pixelated;
 }
 
 .jrpg-enemy-side .jrpg-sprite-box {

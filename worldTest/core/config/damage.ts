@@ -119,6 +119,9 @@ declare module '@rpg' {
         // status (the Astra status raises it on add, lowers it on
         // remove). Plain boolean — undefined = unprotected.
         blocksBadStatuses?: boolean;
+        // Job progression: one bucket per job id (xp, enhancement
+        // picks, mastery). The jobs/progression helpers own it.
+        jobProgress?: Record<string, import('../jobs/Job').JobProgressState>;
     }
 }
 

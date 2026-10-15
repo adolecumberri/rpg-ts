@@ -1,15 +1,25 @@
 import { useState } from 'react';
 import type { Character, InventorySlot, Item, TeamPosition } from '@rpg';
 import {
+    applyEnhancement,
     canEquipItem,
+    enhanceableSkillsOf,
     equipFromInventory,
     equippedItemsOf,
+    heldJobOf,
+    jobById,
+    jobLevelOf,
+    jobProgressOf,
     loadoutOf,
+    pendingJobPicks,
     sectionOfItem,
-    specOf,
+    specForSkill,
     unequipToInventory,
+    ARCHER_JOB,
+    HEALER_JOB,
+    SOLDIER_JOB,
 } from '@core';
-import type { EquipmentSection, SkillSpec } from '@core';
+import type { EquipmentSection, Job, SkillSpec } from '@core';
 import { useGame } from '../../game/GameContext';
 import { EQUIP_MESSAGES, messageOf } from '../../game/equipmentMessages';
 import { statsOfItems } from '../../game/equipmentStats';
@@ -19,8 +29,54 @@ import { TeamData } from '../../components/character/TeamData';
 import { Icon } from '../../components/chrome/Icon';
 import { SkillInfo } from '../../components/character/SkillInfo';
 import { StatsColumn } from '../../components/character/StatsColumn';
+import type { StatRow } from '../../components/character/StatsColumn';
 import { ALL_SECTIONS, EquipPicker, SECTION_META } from '../../components/character/EquipPicker';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
+import { STAT_CATALOG } from '../../game/statCatalog';
+import type { StatKey } from '../../game/statCatalog';
+import type { IconId } from '../../components/chrome/Icon';
+
+// The jobs the Oficio flow offers (archer, soldier, mage).
+const OFFERED_JOBS: Job[] = [ARCHER_JOB, SOLDIER_JOB, HEALER_JOB];
+
+// The stats the job comparison shows, in order: the two vitals plus
+// the shared catalog (its curated names and icons).
+const JOB_COMPARE_STATS: {
+    key: StatKey | 'hp' | 'totalHp';
+    label: string;
+    icon: IconId;
+    prefix?: string;
+    suffix?: string;
+}[] = [
+    { key: 'hp', label: 'HP', icon: 'default' },
+    { key: 'totalHp', label: 'Max HP', icon: 'default' },
+    ...STAT_CATALOG.map((entry) => ({
+        key: entry.key,
+        label: entry.label,
+        icon: entry.icon,
+        prefix: entry.prefix,
+        suffix: entry.suffix,
+    })),
+];
+
+/** The stats ledger rows of a job change: the character's values under
+ *  the target job plus the delta versus the held job (green +/red −).
+ *  Without a target, the current values with no delta. */
+function jobVariationRows(character: Character, target?: Job): StatRow[] {
+    const current = heldJobOf(character);
+    return JOB_COMPARE_STATS.map((entry) => {
+        const oldBonus = current?.statBonuses[entry.key] ?? 0;
+        const newBonus = target ? (target.statBonuses[entry.key] ?? 0) : oldBonus;
+        const next = character.getStat(entry.key) - oldBonus + newBonus;
+        const row: StatRow = {
+            icon: entry.icon,
+            label: entry.label,
+            value: `${entry.prefix ?? ''}${Math.round(next)}${entry.suffix ?? ''}`,
+        };
+        if (target) row.delta = Math.round(newBonus - oldBonus);
+        return row;
+    });
+}
 
 /**
  * The team page (new UI, FFT A2 style): the squad grid, the selected
@@ -45,12 +101,18 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
     // picked character moves with the Frente/Centro/Detrás buttons.
     const [positionView, setPositionView] = useState(false);
     const [positionTargetId, setPositionTargetId] = useState<string | null>(null);
+    // The job view (Oficio): the bar lists the accessible jobs; picking
+    // one previews the stats variation, then Accept/Back decides.
+    const [jobView, setJobView] = useState(false);
+    const [jobTargetId, setJobTargetId] = useState<string | null>(null);
 
     const activeIds = api.session.roster.activeIds();
     const members = activeIds
         .map((id) => api.session.roster.character(id))
         .filter((character): character is Character => Boolean(character));
     const selected = selectedId ? members.find((entry) => entry.id === selectedId) : undefined;
+    // The job the Oficio flow previews (undefined = no pick yet).
+    const jobTarget = jobTargetId ? jobById(jobTargetId) : undefined;
 
     const loadout = selected ? loadoutOf(selected) : undefined;
     // The five holes: each holds an item or nothing (Vacío). Any hole
@@ -64,14 +126,37 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
         item,
     }));
 
-    // The character's skills: the live kit (job skills + defaults +
-    // skill tree), resolved through the catalog.
-    const skills: SkillSpec[] = selected ?
+    // The character's skills: the live kit (job ladder skills at their
+    // current rank + defaults + skill tree), resolved through the
+    // catalog, each entry keeping its BASE id (the enhancement pick
+    // targets the base skill).
+    const skillEntries: { baseId: string; spec: SkillSpec }[] = selected ?
         api.session.availableSkillIds(selected)
-            .map((id) => specOf(id))
-            .filter((spec): spec is SkillSpec => Boolean(spec)) :
+            .map((id) => ({ baseId: id, spec: specForSkill(selected, id) }))
+            .filter((entry): entry is { baseId: string; spec: SkillSpec } => Boolean(entry.spec)) :
         [];
-    const selectedSkill = skills.find((spec) => spec.id === selectedSkillId);
+    const selectedSkill = skillEntries.find((entry) => entry.baseId === selectedSkillId)?.spec;
+    // The pending job level-up picks (the card badge's source): the
+    // skills the player may raise by one rank.
+    const pendingPicks = selected ? pendingJobPicks(selected) : 0;
+    const enhanceable = selected ? enhanceableSkillsOf(selected) : [];
+    // The selected skill's next rank (the SkillInfo comparison), only
+    // while a pick is actually available to spend.
+    const enhanceChoice = selected && selectedSkillId && pendingPicks > 0 ?
+        enhanceable.find((entry) => entry.skillId === selectedSkillId) :
+        undefined;
+
+    const enhance = (skillId: string) => {
+        if (!selected) return;
+        const ok = applyEnhancement(selected, skillId);
+        api.refresh();
+        if (ok) {
+            const choice = enhanceable.find((entry) => entry.skillId === skillId);
+            api.showToast(choice?.nextSpec ?
+                `${choice.nextSpec.name} enhanced!` :
+                'Skill enhanced!');
+        }
+    };
 
     const openHolePicker = (hole: number) => {
         // If the hole already holds equipment, open its own section
@@ -140,23 +225,28 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
         skillsView ? (
             <div className="equip-view inventory-page">
                 <div className="skill-list">
-                    {skills.map((spec) => (
+                    {skillEntries.map((entry) => (
                         <div
-                            key={spec.id}
-                            className={`inv-item-row${spec.id === selectedSkillId ? ' inv-item-row--preview' : ''}`}
-                            onClick={() => setSelectedSkillId(spec.id)}
+                            key={entry.baseId}
+                            className={`inv-item-row${entry.baseId === selectedSkillId ? ' inv-item-row--preview' : ''}`}
+                            onClick={() => setSelectedSkillId(entry.baseId)}
                         >
                             <span className="inv-item-icon">
                                 <span className="material-symbol">auto_awesome</span>
                             </span>
                             <span className="inv-item-info">
-                                <span className="inv-item-name">{spec.name}</span>
+                                <span className="inv-item-name">{entry.spec.name}</span>
                             </span>
-                            <span className="inv-count">{spec.manaCost ?? 0}</span>
+                            <span className="inv-count">{entry.spec.manaCost ?? 0}</span>
                         </div>
                     ))}
                 </div>
-                <SkillInfo spec={selectedSkill} />
+                <SkillInfo
+                    spec={selectedSkill}
+                    nextSpec={enhanceChoice?.nextSpec}
+                    rankFrom={enhanceChoice?.currentRank}
+                    rankTo={enhanceChoice?.nextRank}
+                />
             </div>
         ) : equipView ? (
             <div className="equip-view">
@@ -259,7 +349,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                                             <span
                                                 className="position-unit-sprite"
                                                 style={{
-                                                    backgroundImage: `url(${SPRITES[spriteRoleOf(member) ?? 'warrior'].idle})`,
+                                                    backgroundImage: `url(${SPRITES[spriteRoleOf(member) ?? 'warrior'].idle.sheet})`,
                                                 }}
                                             />
                                             <span className="position-unit-name">{member.name}</span>
@@ -270,6 +360,16 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                         );
                     })}
                 </div>
+            </div>
+        ) : jobView ? (
+            <div className="job-view">
+                <div className="job-view-head">
+                    <span className="job-view-title">
+                        {heldJobOf(selected)?.title ?? ''}
+                        {jobTarget ? ` → ${jobTarget.title}` : ' · pick a job'}
+                    </span>
+                </div>
+                <StatsColumn rows={jobVariationRows(selected, jobTarget)} title="VARIACIÓN DE ESTADÍSTICAS" />
             </div>
         ) : (
             <TeamData character={selected} />
@@ -293,7 +393,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
         </>
     );
 
-    const bar = selected && !equipView && !skillsView && !positionView ? (
+    const bar = selected && !equipView && !skillsView && !positionView && !jobView ? (
         <OptionsBar
             size="lg"
             options={[
@@ -307,6 +407,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                     id: 'skills',
                     label: 'Habilidades',
                     icon: { symbol: 'auto_awesome', color: 'var(--accent)' },
+                    badge: pendingPicks > 0 ? '↑' : undefined,
                     onClick: () => {
                         setSelectedSkillId(null);
                         setSkillsView(true);
@@ -323,9 +424,12 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                 },
                 {
                     id: 'job',
-                    label: 'Oficio',
+                    label: 'Job Change',
                     icon: { symbol: 'person', color: 'var(--accent)' },
-                    onClick: () => api.showToast('The Jobs page is coming soon.'),
+                    onClick: () => {
+                        setJobTargetId(null);
+                        setJobView(true);
+                    },
                 },
             ]}
             back={{ label: 'Atrás', onClick: () => setSelectedId(null) }}
@@ -333,7 +437,22 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
     ) : selected && skillsView ? (
         <OptionsBar
             size="lg"
-            options={[]}
+            options={[{
+                id: 'enhance',
+                label: 'Enhance',
+                icon: { symbol: 'arrow_upward', color: '#fff' },
+                accent: '#4ade80',
+                sub: pendingPicks > 0 ?
+                    `${pendingPicks} pick${pendingPicks > 1 ? 's' : ''} available` :
+                    'No level up available',
+                disabled: !enhanceChoice,
+                disabledReason: !selectedSkillId ?
+                    'Select a skill' :
+                    pendingPicks <= 0 ? 'No level up available' : 'Already maxed',
+                onClick: () => {
+                    if (selectedSkillId) enhance(selectedSkillId);
+                },
+            }]}
             back={{
                 label: 'Atrás',
                 onClick: () => {
@@ -400,6 +519,60 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                 },
             ]}
             back={{ label: 'Atrás', onClick: () => setPositionView(false) }}
+        />
+    ) : selected && jobView && !jobTarget ? (
+        <OptionsBar
+            size="lg"
+            options={OFFERED_JOBS.map((job) => {
+                const mastered = jobProgressOf(selected, job.id).mastered;
+                return {
+                    id: job.id,
+                    label: `${job.title}${mastered ? ' ★' : ''}`,
+                    icon: { symbol: 'person', color: 'var(--accent)' },
+                    sub: `Lv.${jobLevelOf(selected, job.id)}`,
+                    onClick: () => setJobTargetId(job.id),
+                };
+            })}
+            back={{
+                label: 'Atrás', onClick: () => {
+                    setJobView(false);
+                    setJobTargetId(null);
+                },
+            }}
+        />
+    ) : selected && jobView ? (
+        <OptionsBar
+            size="lg"
+            options={[
+                {
+                    id: 'accept',
+                    label: 'Accept',
+                    icon: { symbol: 'check', color: '#fff' },
+                    tone: 'primary',
+                    disabled: !jobTarget || jobTarget.id === heldJobOf(selected)?.id,
+                    disabledReason: jobTarget && jobTarget.id === heldJobOf(selected)?.id ?
+                        'Current job' :
+                        'Pick a job',
+                    onClick: () => {
+                        if (!jobTarget) return;
+                        api.setJob(selected.id, jobTarget.id);
+                        setJobView(false);
+                        setJobTargetId(null);
+                    },
+                },
+                {
+                    id: 'back',
+                    label: 'Back',
+                    icon: { symbol: 'chevron_left', color: 'var(--accent)' },
+                    onClick: () => setJobTargetId(null),
+                },
+            ]}
+            back={{
+                label: 'Atrás', onClick: () => {
+                    setJobView(false);
+                    setJobTargetId(null);
+                },
+            }}
         />
     ) : (
         <OptionsBar

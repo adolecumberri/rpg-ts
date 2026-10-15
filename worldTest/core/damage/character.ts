@@ -16,7 +16,6 @@ import { equippedItemsOf } from '../equipment/loadout';
  */
 export function attackComponentsOf(character: Character): DamageComponent[] {
     const baseAttack = character.getStat('attack');
-    const magic = character.getStat('magic') ?? 0;
     const equipped = equippedItemsOf(character);
 
     const components: DamageComponent[] = [
@@ -26,12 +25,13 @@ export function attackComponentsOf(character: Character): DamageComponent[] {
     for (const item of equipped) {
         for (const element of item.definition.elements ?? []) {
             if (!element.attackValue) continue;
-            const kind = kindOfElement(element.element);
             components.push({
-                kind,
+                kind: kindOfElement(element.element),
                 element: element.element as ElementId,
-                // Spell power raises every magical component.
-                amount: kind === 'magical' ? element.attackValue + magic : element.attackValue,
+                // The flat bonus the item declares (+5 magic damage).
+                // Skill scaling is the skills' job — the item never
+                // absorbs the bearer's whole magic stat.
+                amount: element.attackValue,
                 label: item.name,
             });
         }

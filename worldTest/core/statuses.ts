@@ -293,84 +293,86 @@ export function weakPointDefenceStatus(): StatusDefinition {
 }
 
 /**
- * Disarm (soldiers): the target loses grip and power: attack -5 fixed
- * and -20% for 5 turns. Applies to an enemy or an ally.
+ * Disarm (soldiers): the target loses grip and power: attack -40% for
+ * `turns` turns (5 by default). Applies to an enemy or an ally. Higher
+ * skill ranks reuse the status with a longer duration.
  */
-export function disarmStatus(): StatusDefinition {
+export function disarmStatus(turns = 5, amount = 40): StatusDefinition {
     return {
         name: 'Disarm',
         polarity: 'negative',
-        description: 'Attack -5 and -20% for 5 turns.',
+        description: `Attack -${amount}% for ${turns} turns.`,
         applyOn: 'on_turn',
-        duration: { type: 'TEMPORAL', value: 6 },
-        turns: 5,
+        duration: { type: 'TEMPORAL', value: turns + 1 },
+        turns,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
-            { from: 'attack', to: 'attack', value: 40, typeOfModification: 'DEBUFF_PERCENTAGE' },
+            { from: 'attack', to: 'attack', value: amount, typeOfModification: 'DEBUFF_PERCENTAGE' },
         ],
     };
 }
 
 /**
- * Defence Stand (soldiers): braced stance: defence +10 and +20%,
- * magic defence +10 and +20% for 5 turns.
+ * Defence Stand (soldiers): braced stance: defence +60% and magic
+ * defence +30% for `turns` turns (5 by default).
  */
-export function defenceStandStatus(): StatusDefinition {
+export function defenceStandStatus(turns = 5, defenceAmount = 60, magicDefenceAmount = 30): StatusDefinition {
     return {
         name: 'Defence Stand',
         polarity: 'positive',
-        description: 'Defence +10 and +20%, magic defence +10 and +20% for 5 turns.',
+        description: `Defence +${defenceAmount}%, magic defence +${magicDefenceAmount}% for ${turns} turns.`,
         applyOn: 'on_turn',
-        duration: { type: 'TEMPORAL', value: 6 },
-        turns: 5,
+        duration: { type: 'TEMPORAL', value: turns + 1 },
+        turns,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
-            { from: 'defence', to: 'defence', value: 60, typeOfModification: 'BUFF_PERCENTAGE' },
-            { from: 'magicDefence', to: 'magicDefence', value: 30, typeOfModification: 'BUFF_PERCENTAGE' },
+            { from: 'defence', to: 'defence', value: defenceAmount, typeOfModification: 'BUFF_PERCENTAGE' },
+            { from: 'magicDefence', to: 'magicDefence', value: magicDefenceAmount, typeOfModification: 'BUFF_PERCENTAGE' },
         ],
     };
 }
 
 /**
- * Foot Shot (archers): the target limps and opens its guard: speed -3
- * and -30%, defence -2 and -30% for 2 turns.
+ * Foot Shot (archers): the target limps and opens its guard: speed
+ * -80% and defence -30% for `turns` turns (2 by default).
  */
-export function footShotStatus(): StatusDefinition {
+export function footShotStatus(turns = 3, speedAmount = 80, defenceAmount = 30): StatusDefinition {
     return {
         name: 'Foot Shot',
         polarity: 'negative',
-        description: 'Speed -3 and -30%, defence -2 and -30% for 2 turns.',
+        description: `Speed -${speedAmount}%, defence -${defenceAmount}% for ${turns} turns.`,
         applyOn: 'on_turn',
-        duration: { type: 'TEMPORAL', value: 3 },
-        turns: 2,
+        duration: { type: 'TEMPORAL', value: turns + 1 },
+        turns,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
-            { from: 'speed', to: 'speed', value: 80, typeOfModification: 'DEBUFF_PERCENTAGE' },
-            { from: 'defence', to: 'defence', value: 30, typeOfModification: 'DEBUFF_PERCENTAGE' },
+            { from: 'speed', to: 'speed', value: speedAmount, typeOfModification: 'DEBUFF_PERCENTAGE' },
+            { from: 'defence', to: 'defence', value: defenceAmount, typeOfModification: 'DEBUFF_PERCENTAGE' },
         ],
     };
 }
 
 /**
- * Concentration (archers): the next shot is perfect: crit chance +40%
- * and crit multiplier +0.40. Consumed by the bearer's next BASIC attack
- * (skills do not run the impact pipeline, so they never consume it).
+ * Concentration (archers): the next shot is perfect: crit chance
+ * +`critChance`% and crit multiplier +`critMultiplier`. Consumed by the
+ * bearer's next BASIC attack (skills do not run the impact pipeline,
+ * so they never consume it). Higher ranks raise both values.
  */
-export function concentrationStatus(): StatusDefinition {
+export function concentrationStatus(critChance = 40, critMultiplier = 0.4): StatusDefinition {
     return {
         name: 'Concentration',
         polarity: 'positive',
-        description: 'Crit chance +40% and crit multiplier +0.40; consumed on your next basic attack.',
+        description: `Crit chance +${critChance}% and crit multiplier +${critMultiplier}; consumed on your next basic attack.`,
         applyOn: 'impact_hit',
         duration: { type: 'PERMANENT' },
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [
-            { from: 'critChance', to: 'critChance', value: 40, typeOfModification: 'BUFF_FIXED' },
-            { from: 'critMultiplier', to: 'critMultiplier', value: 0.4, typeOfModification: 'BUFF_FIXED' },
+            { from: 'critChance', to: 'critChance', value: critChance, typeOfModification: 'BUFF_FIXED' },
+            { from: 'critMultiplier', to: 'critMultiplier', value: critMultiplier, typeOfModification: 'BUFF_FIXED' },
         ],
         consumedOnImpactHit: true,
     };
@@ -578,16 +580,17 @@ export function consumeStunTurn(character: Character): boolean {
 }
 
 /**
- * Blind: the bearer's accuracy drops by 45% while the status lasts.
+ * Blind: the bearer's accuracy drops by 45% for `turns` turns (3 by
+ * default). Higher skill ranks reuse it with a longer duration.
  */
-export function blindStatus(): StatusDefinition {
+export function blindStatus(turns = 3): StatusDefinition {
     return {
         name: 'Blind',
         polarity: 'negative',
-        description: 'Accuracy −45% for 3 turns.',
+        description: `Accuracy −45% for ${turns} turns.`,
         applyOn: 'after_turn',
-        duration: { type: 'TEMPORAL', value: 3 },
-        turns: 3,
+        duration: { type: 'TEMPORAL', value: turns },
+        turns,
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
         statsAffected: [{ from: 'accuracy', to: 'accuracy', value: 45, typeOfModification: 'DEBUFF_PERCENTAGE' }],

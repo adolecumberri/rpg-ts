@@ -26,6 +26,39 @@ export type JobStatKey =
 
 export type JobStatBonuses = Partial<Record<JobStatKey, number>>;
 
+// One skill the job teaches: learned at a job level, with its rank
+// ladder — 1 to 3 normal catalog specs (base, enhanced, mastered).
+export type JobSkillPlan = {
+    skillId: SkillId;
+    atJobLevel: number;
+    ranks: SkillId[];
+};
+
+// The job's progression ladder: what each job level teaches or grants.
+export type JobProgression = {
+    // The skills the job teaches, in learning order.
+    skills: JobSkillPlan[];
+    // The job levels that grant one enhancement PICK (the player
+    // chooses which owned skill goes up one rank).
+    enhancementAt: number[];
+    // The level-7 title (the mastered star on the job list).
+    masteryTitle: string;
+};
+
+// One character's progress in ONE job (each job keeps its own bucket:
+// a character can hold all the jobs, each with its own xp and picks).
+export type JobProgressState = {
+    // Total job xp: 100 per level, 7 levels max.
+    xp: number;
+    // The player's enhancement picks (base skill ids; each entry = +1
+    // rank, max rank 3).
+    enhancements: string[];
+    // Reached job level 7.
+    mastered: boolean;
+    // Enhancement picks waiting for the player's choice.
+    pendingPicks: number;
+};
+
 export class Job {
     constructor(
         readonly id: string,
@@ -43,6 +76,10 @@ export class Job {
         // The job's per-stat growth ratios (1 = the default gains;
         // missing stats use 1). The base values live in statBonuses.
         readonly growth?: GrowthProfile,
+        // The job's progression ladder: the skills it teaches (with
+        // their rank specs), the enhancement levels and the mastery
+        // title. Undefined = no ladder (the Adventurer).
+        readonly progression?: JobProgression,
     ) { }
 
     /** Whether the job may wield a weapon of the given type. Untyped

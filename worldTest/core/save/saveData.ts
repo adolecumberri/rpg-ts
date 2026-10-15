@@ -45,6 +45,15 @@ export type SavedCharacter = {
     // The hole is 0-based; entries without it (very old saves, named
     // slots) fill the first free hole on load.
     loadout?: { hole?: number; itemId: string }[];
+    // Job progression: one bucket per job (optional: saves made before
+    // the job system existed load with fresh buckets).
+    jobProgress?: Array<{
+        jobId: string;
+        xp: number;
+        enhancements: string[];
+        mastered: boolean;
+        pendingPicks: number;
+    }>;
 };
 
 export type SavedSlot = {

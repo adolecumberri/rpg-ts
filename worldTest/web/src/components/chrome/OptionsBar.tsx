@@ -22,6 +22,9 @@ export type OptionSpec = {
     // The hover tooltip shown over the cell (skills: only the stat
     // changes — the label already carries the skill name).
     tip?: string;
+    // A corner chip next to the label (the gold ↑ level-up badge:
+    // guides the player to the bar entry that resolves it).
+    badge?: string;
     // The grid slot (1-based) and whether the option spans the whole
     // row — screens pin their buttons to fixed places.
     slot?: number;
@@ -63,6 +66,7 @@ export function OptionsBar({
         disabledReason: option.disabledReason,
         sub: option.sub,
         tip: option.tip,
+        badge: option.badge,
         slot: option.slot,
         wide: option.wide,
         onClick: option.onClick,

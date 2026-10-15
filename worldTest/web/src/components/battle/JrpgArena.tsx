@@ -3,8 +3,8 @@ import type { CSSProperties } from 'react';
 import type { Character } from '@rpg';
 import { heldJobOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, skillUnavailableReason, intervalFromSpeed } from '@core';
 import type { SkillSpec } from '@core';
-import { SPRITES, spriteRoleOf } from '../../assets/sprites';
-import type { SpriteSet } from '../../assets/sprites';
+import { SPRITES, spriteRoleOf, animationMsOf } from '../../assets/sprites';
+import type { SpriteAnimation, SpriteSet } from '../../assets/sprites';
 import { OptionsBar } from '../chrome/OptionsBar';
 import type { OptionSpec } from '../chrome/OptionsBar';
 import { TargetBar } from '../chrome/TargetBar';
@@ -134,6 +134,8 @@ function ArenaEntity({
     active,
     targeted,
     inspected,
+    acting,
+    actingNonce,
     onClick,
     onTip,
 }: {
@@ -146,6 +148,10 @@ function ArenaEntity({
     active?: boolean;
     targeted?: boolean;
     inspected?: boolean;
+    // The entity acts right now: it plays its attack pose once per
+    // nonce change, then returns to the idle sheet.
+    acting?: boolean;
+    actingNonce?: number;
     onClick?: () => void;
     // Forwarded to the status chips: the arena owns the tooltip overlay.
     onTip?: (tip: { text: string; anchor: Element } | null) => void;
@@ -157,6 +163,19 @@ function ArenaEntity({
     const mana = Math.round(character.stats.mana ?? 0);
     const totalMana = Math.round(character.stats.totalMana ?? 0);
     const sheet: SpriteSet = SPRITES[spriteRoleOf(character) ?? 'warrior'];
+
+    // The attack pose: one-shot over the attack sheet, back to idle
+    // when the animation's total time elapses.
+    const [posing, setPosing] = useState(false);
+    useEffect(() => {
+        if (!acting) {
+            setPosing(false);
+            return;
+        }
+        setPosing(true);
+        const timer = window.setTimeout(() => setPosing(false), animationMsOf(sheet.attack));
+        return () => window.clearTimeout(timer);
+    }, [acting, actingNonce, sheet]);
 
     return (
         <div
@@ -188,10 +207,62 @@ function ArenaEntity({
                 <StatBar value={mana} max={totalMana} type="mana" width={16} height={1} />
             </span>
             <span
-                className="jrpg-sprite-box"
-                style={{ backgroundImage: `url(${sheet.idle})` }}
+                className={`jrpg-sprite-box${posing ? ' jrpg-sprite-box--attack' : ''}`}
+                style={posing ? {
+                    'backgroundImage': `url(${sheet.attack.sheet})`,
+                    '--attack-frames': sheet.attack.frames,
+                    '--attack-ms': `${animationMsOf(sheet.attack)}ms`,
+                } as CSSProperties : { backgroundImage: `url(${sheet.idle.sheet})` }}
             />
         </div>
+    );
+}
+
+/** One battle effect sprite (the physical slash, the magical blast):
+ *  steps through its frames at frameMs and reports when the last
+ *  frame played. */
+function EffectPlayer({
+    animation,
+    x,
+    y,
+    onDone,
+}: {
+    animation: SpriteAnimation;
+    x: number;
+    y: number;
+    onDone: () => void;
+}) {
+    const [frame, setFrame] = useState(0);
+    const frameRef = useRef(0);
+    const doneRef = useRef(onDone);
+    doneRef.current = onDone;
+    useEffect(() => {
+        frameRef.current = 0;
+        setFrame(0);
+        const timer = window.setInterval(() => {
+            frameRef.current += 1;
+            if (frameRef.current >= animation.frames) {
+                window.clearInterval(timer);
+                doneRef.current();
+                return;
+            }
+            setFrame(frameRef.current);
+        }, animation.frameMs);
+        return () => window.clearInterval(timer);
+    }, [animation]);
+    return (
+        <span
+            className="jrpg-effect"
+            style={{
+                'left': x,
+                'top': y,
+                'width': animation.frameWidth,
+                'height': animation.frameHeight,
+                'backgroundImage': `url(${animation.sheet})`,
+                'backgroundSize': `${animation.frameWidth * animation.frames}px ${animation.frameHeight}px`,
+                'backgroundPosition': `${-frame * animation.frameWidth}px 0`,
+            }}
+        />
     );
 }
 
@@ -233,6 +304,9 @@ export function JrpgArena({
     targets,
     extraOptions,
     showSections,
+    effects,
+    onEffectDone,
+    acting,
     onTarget,
     onInspect,
     onSkill,
@@ -261,6 +335,14 @@ export function JrpgArena({
     // depth tier and side (the dev battle page shows them to check
     // where the current formation places its fighters).
     showSections?: boolean;
+    // One-shot battle effects played over a target (the physical slash
+    // or the magical blast); the arena positions them at the target's
+    // arena spot and reports when each finishes.
+    effects?: { id: string; targetId: string; animation: SpriteAnimation }[];
+    onEffectDone?: (id: string) => void;
+    // The acting fighter (its entity plays the attack pose one-shot per
+    // nonce change).
+    acting?: { actorId: string; nonce: number } | null;
     onTarget: (id: string) => void;
     onInspect: (id: string) => void;
     // Cast a skill; the optional targetIds are the player's picks for
@@ -463,6 +545,8 @@ export function JrpgArena({
                     active={character.id === activeId}
                     targeted={attacking && selection.includes(character.id)}
                     inspected={character.id === inspectedId}
+                    acting={acting ? character.id === acting.actorId : false}
+                    actingNonce={acting?.nonce}
                     onClick={onClick}
                     onTip={showChipTip}
                 />
@@ -521,7 +605,9 @@ export function JrpgArena({
     const bannerTotalMana = bannerCharacter ? Math.round(bannerCharacter.stats.totalMana ?? 0) : 0;
     const bannerLevel = bannerCharacter ? bannerCharacter.experience.level : 0;
     const bannerJob = bannerCharacter ? heldJobOf(bannerCharacter)?.title ?? '' : '';
-    const bannerSprite = bannerCharacter ? SPRITES[spriteRoleOf(bannerCharacter) ?? 'warrior'].idle : undefined;
+    const bannerSprite = bannerCharacter ?
+        SPRITES[spriteRoleOf(bannerCharacter) ?? 'warrior'].idle.sheet :
+        undefined;
     const bannerName = bannerCharacter ? bannerCharacter.name : '—';
 
     const skills = (skillIds ?? [])
@@ -719,6 +805,34 @@ export function JrpgArena({
                         {renderSide('enemy', enemySpots)}
                     </div>
 
+                    {/* ---- the battle effects: one-shot sprites over
+                        their target's arena spot ---- */}
+                    {(effects ?? []).length > 0 ? (
+                        <div className="jrpg-effects-layer">
+                            {(effects ?? []).map((effect) => {
+                                const placement = allySpots.concat(enemySpots)
+                                    .find((spot) => spot.character.id === effect.targetId);
+                                if (!placement) return null;
+                                const spot = positionOf(
+                                    placement.tier,
+                                    placement.side,
+                                    placement.index,
+                                    placement.count,
+                                    placement.column,
+                                );
+                                return (
+                                    <EffectPlayer
+                                        key={effect.id}
+                                        animation={effect.animation}
+                                        x={spot.x - effect.animation.frameWidth / 2}
+                                        y={spot.y - effect.animation.frameHeight}
+                                        onDone={() => onEffectDone?.(effect.id)}
+                                    />
+                                );
+                            })}
+                        </div>
+                    ) : null}
+
                     {showSections ? (
                         <div className="jrpg-sections-layer">
                             {[...sectionBoxes(allySpots, 'ally'), ...sectionBoxes(enemySpots, 'enemy')].map((box) => (
@@ -747,7 +861,7 @@ export function JrpgArena({
                             ...entry,
                             name: character?.name ?? entry.id,
                             sprite: character ?
-                                SPRITES[spriteRoleOf(character) ?? 'warrior'].idle :
+                                SPRITES[spriteRoleOf(character) ?? 'warrior'].idle.sheet :
                                 undefined,
                         };
                     })

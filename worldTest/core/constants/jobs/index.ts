@@ -23,13 +23,6 @@ const JOBS_BY_ID: Record<string, Job> = ALL_JOBS.reduce(
     {},
 );
 
-// Icons shown next to the job title in the roster and menus.
-export const JOB_ICONS: Record<string, string> = {
-    archer: '🏹',
-    healer: '✨',
-    soldier: '⚔️',
-    adventurer: '👤',
-};
 
 /**
  * The job a character holds right now: the jobId assigned through

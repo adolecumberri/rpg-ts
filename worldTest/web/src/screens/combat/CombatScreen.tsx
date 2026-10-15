@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Character } from '@rpg';
-import { BattleTracker, FIGHTS, buildHybridCombat, trackHybridEvent } from '@core';
+import { BattleTracker, FIGHTS, buildHybridCombat, specOf, trackHybridEvent } from '@core';
 import type {
+    CombatEndResult,
     HybridAutoEvent,
     HybridCombatant,
     HybridManualEvent,
@@ -16,7 +17,9 @@ import type { DamagePart, FloatingHit } from '../../components/battle/FloatingDa
 import { TargetBar } from '../../components/chrome/TargetBar';
 import { OptionsBar } from '../../components/chrome/OptionsBar';
 import { selectionRulesOf } from '../../game/targeting';
-import { SPRITES, spriteRoleOf } from '../../assets/sprites';
+import { SPRITES, spriteRoleOf, animationMsOf } from '../../assets/sprites';
+import type { SpriteAnimation } from '../../assets/sprites';
+import { effectAnimationFor } from '../../assets/effects';
 import type { PendingBattle } from '../../components/dialogue/MessageBox';
 
 /**
@@ -121,6 +124,15 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
     }
     const setup = setupRef.current;
 
+    // ---- the end-of-fight modal ----------------------------------------
+    // The battle does not hand control back until the player taps
+    // Continue: the modal lists the xp rows, job level-ups, items and
+    // gold the fight granted.
+    const [endState, setEndState] = useState<{
+        result: 'won' | 'lost' | 'fled';
+        outcome: CombatEndResult;
+    } | null>(null);
+
     // ---- the engine loop ----------------------------------------------
     const settle = (result: 'won' | 'lost' | 'fled') => {
         if (settledRef.current || !setup) return;
@@ -144,9 +156,10 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
             member.stats.mana = 0;
         }
         setLog(outcome.message);
-        // Hand control back to the router (the mission beat queue and
-        // the story engine already advanced inside finishCombat).
-        window.setTimeout(() => onEnd(), outcome.report ? 2400 : 1400);
+        // The modal takes over; Continue hands control back to the
+        // router (the mission beat queue and the story engine already
+        // advanced inside finishCombat).
+        setEndState({ result, outcome });
     };
 
     // ---- the round scheduler (Pokémon-style) --------------------------
@@ -154,10 +167,9 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
     // round's living fighters; round 1 opens with ONLY the player's
     // fastest character (the enemies and the rest of the party follow in
     // speed order), and every later round is pure speed order. Every
-    // action (player or automatic) resolves alone, then the next actor
-    // steps up after a beat. The .jrpg-turn-order-strip shows the
-    // queue, current first.
-    const AUTO_STEP_MS = 750;
+    // action (player or automatic) resolves alone, its animation plays
+    // and the next actor waits for it. The .jrpg-turn-order-strip shows
+    // the queue, current first.
     const AFTER_MANUAL_MS = 850;
 
     const orderRef = useRef<{ id: string; enemy: boolean }[]>([]);
@@ -261,12 +273,10 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
             return;
         }
         // The automatic action resolved (the observer projected it):
-        // let it breathe, then the next actor steps up.
+        // its animation plays and the battle WAITS for it, then the
+        // next actor steps up.
         setVersion((value) => value + 1);
-        stepTimerRef.current = window.setTimeout(() => {
-            stepTimerRef.current = null;
-            advance();
-        }, AUTO_STEP_MS);
+        scheduleAfter(event);
     };
 
     useEffect(() => {
@@ -278,31 +288,82 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
         };
     }, []);
 
-    const scheduleNext = () => {
+    // ---- the action animations ----------------------------------------
+    // One resolved action plays the actor's attack pose plus the damage
+    // effect over the target (physical slash / magical blast, stretched
+    // to the skill's custom time). The next action waits for them.
+    const effectIdRef = useRef(0);
+    const [effects, setEffects] = useState<{
+        id: string;
+        targetId: string;
+        animation: SpriteAnimation;
+    }[]>([]);
+    const [acting, setActing] = useState<{ actorId: string; nonce: number } | null>(null);
+    const nonceRef = useRef(0);
+
+    const actorOf = (actorId: string): Character | undefined => {
+        const current = setupRef.current;
+        return current ?
+            current.allies.concat(current.enemies).find((entry) => entry.id === actorId) :
+            undefined;
+    };
+
+    const actionDurationOf = (event: HybridAutoEvent): number => {
+        const actor = actorOf(event.actorId);
+        const role = actor ? SPRITES[spriteRoleOf(actor) ?? 'warrior'] : SPRITES.warrior;
+        const poseMs = animationMsOf(role.attack);
+        const spec = event.skillId ? specOf(event.skillId) : undefined;
+        const kind = event.damageByKind?.magical ? 'magical' : 'physical';
+        const effectMs = event.damage > 0 || (event.heal ?? 0) > 0 ?
+            animationMsOf(effectAnimationFor(spec, kind)) :
+            0;
+        // The battle waits for the longer of the pose and the effect,
+        // clamped so a slow sheet can never stall the fight.
+        return Math.min(1500, Math.max(300, Math.max(poseMs, effectMs)));
+    };
+
+    const spawnEffect = (event: HybridAutoEvent) => {
+        const spec = event.skillId ? specOf(event.skillId) : undefined;
+        if (event.damage <= 0 && (event.heal ?? 0) <= 0) return;
+        const kind = event.damageByKind?.magical ? 'magical' : 'physical';
+        const targetId = event.targetIds?.[0] ?? event.targetId ?? event.actorId;
+        setEffects((prev) => [...prev, {
+            id: `fx_${++effectIdRef.current}`,
+            targetId,
+            animation: effectAnimationFor(spec, kind),
+        }]);
+    };
+
+    const scheduleAfter = (event: HybridAutoEvent | null) => {
+        const ms = event ? actionDurationOf(event) : AFTER_MANUAL_MS;
+        if (event) {
+            spawnEffect(event);
+            setActing({ actorId: event.actorId, nonce: ++nonceRef.current });
+        }
         stepTimerRef.current = window.setTimeout(() => {
             stepTimerRef.current = null;
             advance();
-        }, AFTER_MANUAL_MS);
+        }, ms);
     };
 
     const pickTarget = (targetId: string) => {
         const combat = setupRef.current?.combat;
         if (!combat) return;
-        combat.resolveManual(targetId);
+        const event = combat.resolveManual(targetId);
         setPrompt(null);
         setInspectedId(null);
         setVersion((value) => value + 1);
-        scheduleNext();
+        scheduleAfter(event);
     };
 
     const pickSkill = (skillId: string, targetIds?: string | string[]) => {
         const combat = setupRef.current?.combat;
         if (!combat) return;
-        combat.resolveManualSkill(skillId, targetIds);
+        const event = combat.resolveManualSkill(skillId, targetIds);
         setPrompt(null);
         setInspectedId(null);
         setVersion((value) => value + 1);
-        scheduleNext();
+        scheduleAfter(event);
     };
 
     const flee = () => settle('fled');
@@ -330,7 +391,7 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
     const unitOf = (character: Character): BattleUnit => ({
         id: character.id,
         name: character.name,
-        sprite: SPRITES[spriteRoleOf(character) ?? 'warrior'],
+        sprite: SPRITES[spriteRoleOf(character) ?? 'warrior'].idle.sheet,
         row: character.position === 'center' || character.position === 'back' ? character.position : 'front',
         hp: Math.round(character.stats.hp),
         maxHp: Math.round(character.stats.totalHp),
@@ -349,6 +410,73 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
 
     void version;
 
+    // The end-of-fight modal: the battle holds until Continue. Victory
+    // lists the xp rows (per character), job level-ups, items and gold;
+    // defeat and retreat show just the message.
+    const endModal = endState ? (() => {
+        const { result, outcome } = endState;
+        const title = result === 'won' ? 'VICTORY!' : result === 'lost' ? 'DEFEAT' : 'RETREAT';
+        return (
+            <div className="fight-overlay fight-end-overlay">
+                <div className="pixel-panel fight-end-modal">
+                    <div className={`fight-end-title${result === 'won' ? ' fight-end-title--win' : ''}`}>
+                        {title}
+                    </div>
+                    {outcome.xpRows && outcome.xpRows.length > 0 ? (
+                        <div className="fight-end-section">
+                            {outcome.xpRows.map((row) => (
+                                <div key={row.name} className="fight-end-row">
+                                    <span className="fight-end-row-name">{row.name}</span>
+                                    <span className="fight-end-row-value">
+                                        +{row.gained} XP
+                                        {row.levels > 0 ? ' · level up!' : ''}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
+                    {outcome.jobLevelUps && outcome.jobLevelUps.length > 0 ? (
+                        <div className="fight-end-section">
+                            {outcome.jobLevelUps.map((name) => (
+                                <div key={name} className="fight-end-row fight-end-row--gold">
+                                    <span className="fight-end-row-name">✦ {name}</span>
+                                    <span className="fight-end-row-value">level up available</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
+                    {outcome.itemsGained && outcome.itemsGained.length > 0 ? (
+                        <div className="fight-end-section">
+                            {outcome.itemsGained.map((item) => (
+                                <div key={item.name} className="fight-end-row">
+                                    <span className="fight-end-row-name">{item.name}</span>
+                                    <span className="fight-end-row-value">×{item.quantity}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
+                    {outcome.goldGained ? (
+                        <div className="fight-end-row fight-end-row--gold">
+                            <span className="fight-end-row-name">Gold</span>
+                            <span className="fight-end-row-value">+{outcome.goldGained} G</span>
+                        </div>
+                    ) : null}
+                    <div className="fight-end-message">{outcome.message}</div>
+                    <button
+                        type="button"
+                        className="pixel-btn pixel-btn--primary"
+                        onClick={() => {
+                            setEndState(null);
+                            onEnd();
+                        }}
+                    >
+                        Continue
+                    </button>
+                </div>
+            </div>
+        );
+    })() : null;
+
     if (small) {
         return (
             <div className="jrpg-fight pixel-font" ref={pageRef} style={{ position: 'relative' }}>
@@ -362,12 +490,16 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
                     inspectedId={inspectedId ?? undefined}
                     skillIds={prompt?.skills}
                     targets={promptTargets}
+                    effects={effects}
+                    onEffectDone={(id) => setEffects((prev) => prev.filter((effect) => effect.id !== id))}
+                    acting={acting}
                     onTarget={pickTarget}
                     onInspect={(id) => setInspectedId(id)}
                     onSkill={pickSkill}
                     onFlee={flee}
                 />
                 {log ? <div className="newui-toast">{log}</div> : null}
+                {endModal}
             </div>
         );
     }
@@ -421,6 +553,7 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
             )}
 
             {log ? <div className="newui-toast">{log}</div> : null}
+            {endModal}
         </div>
     );
 }

@@ -43,6 +43,19 @@ export function buildCharacterFromSave(saved: SavedCharacter): Character {
     if (saved.position === 'front' || saved.position === 'center' || saved.position === 'back') {
         character.position = saved.position;
     }
+    // Job progression: each job's bucket (xp, enhancement picks,
+    // mastery). Old saves load with fresh buckets.
+    if (saved.jobProgress && saved.jobProgress.length > 0) {
+        character.jobProgress = {};
+        for (const entry of saved.jobProgress) {
+            character.jobProgress[entry.jobId] = {
+                xp: entry.xp,
+                enhancements: [...entry.enhancements],
+                mastered: entry.mastered,
+                pendingPicks: entry.pendingPicks,
+            };
+        }
+    }
 
     return character;
 }

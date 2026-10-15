@@ -10,8 +10,9 @@ import { resolveSkillEffect } from './skillEffects';
 import { consumeFaintTurn } from './fatigue';
 import { consumeStunTurn } from '../statuses';
 import { canAffordSkill, hpCostOf } from './skillGating';
-import { battleSkillSpecs, specOf } from '../skills';
+import { battleSkillSpecs } from '../skills';
 import type { SkillSpec } from '../skills';
+import { specForSkill } from '../jobs/progression';
 import type { ComponentLine } from '../damage/composer';
 import type { WorldSession } from '../session';
 import type { FightDefinition } from '../config/fights';
@@ -530,10 +531,11 @@ export type HybridSetup = {
     enemies: Character[];
 };
 
-/** The SkillSpecs a character knows (base skills plus tree nodes). */
+/** The SkillSpecs a character knows (base skills plus tree nodes),
+ *  with job-ladder skills at their current enhanced rank. */
 function skillSpecsOf(session: WorldSession, character: Character): SkillSpec[] {
     return session.availableSkillIds(character)
-        .map((id) => specOf(id))
+        .map((id) => specForSkill(character, id))
         .filter((spec): spec is SkillSpec => Boolean(spec));
 }
 

@@ -86,6 +86,9 @@ export type MissionDetails = {
     // The reward granted on completion: items plus gold.
     rewards?: { itemId: string; quantity: number }[];
     rewardGold?: number;
+    // Job xp granted to every party member's HELD job on completion
+    // (the job progression: 100 xp per job level, cap 7).
+    jobXp?: number;
     // The expedition the mission sends: how many characters it takes
     // (0/undefined = the player goes personally, no expedition).
     expedition?: { members: number };

@@ -21,6 +21,9 @@ export type ActionBarCell = {
     selected?: boolean;
     // The badge on a picked cell ('✓' or '✓×2' for stacked hits).
     mark?: string;
+    // A corner chip next to the label (the gold ↑ level-up badge:
+    // guides the player to the bar entry that resolves it).
+    badge?: string;
     // The muted sub-label under the label.
     sub?: string;
     // The hover tooltip shown over the cell (skills: only the stat
@@ -199,6 +202,7 @@ export function ActionBar({
                 disabled={cell.disabled}
                 selected={cell.selected}
                 mark={cell.mark}
+                badge={cell.badge}
                 sub={cell.sub}
                 tip={cell.tip}
                 slot={cell.slot}

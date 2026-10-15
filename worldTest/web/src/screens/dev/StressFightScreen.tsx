@@ -92,7 +92,7 @@ function unitOf(entry: ArmyEntry): BattleUnit {
     return {
         id: entry.character.id,
         name: entry.character.name,
-        sprite: SPRITES[entry.role],
+        sprite: SPRITES[entry.role].idle.sheet,
         row: entry.row,
         hp: Math.round(entry.character.stats.hp),
         maxHp: Math.round(entry.character.stats.totalHp),

@@ -1,18 +1,21 @@
-﻿import { Icon } from '../chrome/Icon';
+import { Icon } from '../chrome/Icon';
 import type { IconId } from '../chrome/Icon';
 
-/** One row of the stats column: icon, label and the formatted value. */
+/** One row of the stats column: icon, label, the formatted value and an
+ *  optional variation delta (the job comparison: green +/red −). */
 export type StatRow = {
     icon: IconId;
     label: string;
     value: string;
+    delta?: number;
 };
 
 /**
  * The reusable stats column: icon + name + gold value lines inside the
  * dark "ledger" well (the stitch stats design). The character page
  * renders it with the character's totals; the equipment page renders
- * it with the equipped items' (or a previewed item's) bonuses.
+ * it with the equipped items' (or a previewed item's) bonuses; the job
+ * page renders it with the job-change variation (the delta).
  */
 export function StatsColumn({ rows, title }: { rows: StatRow[]; title?: string }) {
     return (
@@ -27,6 +30,16 @@ export function StatsColumn({ rows, title }: { rows: StatRow[]; title?: string }
                     <span className={`team-stat-value${row.value === '-' ? ' team-stat-value--flat' : ''}`}>
                         {row.value}
                     </span>
+                    {row.delta !== undefined ? (
+                        <span
+                            className={`team-stat-delta${
+                                row.delta > 0 ? ' team-stat-delta--up' :
+                                    row.delta < 0 ? ' team-stat-delta--down' : ''
+                            }`}
+                        >
+                            {row.delta > 0 ? '+' : ''}{row.delta}
+                        </span>
+                    ) : null}
                 </div>
             ))}
         </div>

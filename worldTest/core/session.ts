@@ -26,6 +26,7 @@ import {
 } from './constants/jobs';
 import { FaintRegistry, applyCarryStatus, clearCarryStatus } from './fainting';
 import { syncPositionToWeapon } from './combat/range';
+import { grantJobXp, ownedJobSkills } from './jobs/progression';
 import type { BattleReport, BattleTracker } from './combat/battleTracker';
 import { equipInto, equippedItemsOf, firstFreeHole, migrateLegacyEquipment, unequipHole } from './equipment/loadout';
 import type { CharacterLoadout } from './equipment/loadout';
@@ -81,6 +82,15 @@ export type CombatEndResult = {
     specialSpawn?: { id: string; name: string } | null;
     // The damage report of the battle, when a tracker was attached.
     report?: BattleReport;
+    // The structured victory summary (the end-of-fight modal): one row
+    // per character that earned xp, with the levels it gained.
+    xpRows?: { name: string; gained: number; levels: number }[];
+    // Names whose job leveled into an enhancement pick.
+    jobLevelUps?: string[];
+    // Items the fight granted (loot plus mission rewards), by name.
+    itemsGained?: { name: string; quantity: number }[];
+    // Gold the fight granted (npc reward plus mission rewards).
+    goldGained?: number;
 };
 
 // One travel option the map renders: a hidden place is not drawn at
@@ -1248,10 +1258,16 @@ export class WorldSession {
 
         // The new job may not wield everything the old one could: those
         // items go back to the shared inventory (loadout or legacy).
+        // Weapons the job refuses AND shields on jobs that cannot carry
+        // them both count — the shield's legacy slot is 'armor', so the
+        // check reads the loadout kind, not the legacy slot.
         const removed: string[] = [];
         for (const item of equippedItemsOf(character)) {
-            if (item.definition.slot !== 'weapon') continue;
-            if (job.allowsWeapon(item.definition.weaponType)) continue;
+            const kind = item.definition.loadoutSlot;
+            const weaponBlocked = (kind === 'weapon' || (kind === undefined && item.definition.slot === 'weapon')) &&
+                !job.allowsWeapon(item.definition.weaponType);
+            const shieldBlocked = kind === 'offhand' && !job.canShield;
+            if (!weaponBlocked && !shieldBlocked) continue;
             const loadout = character.loadout;
             const holeIndex = loadout ?
                 loadout.holes.findIndex((entry) => entry?.id === item.id) :
@@ -1293,6 +1309,11 @@ export class WorldSession {
         if (!result.ok && item.definition.slot) {
             character.equipment.equipOrReplace(item, character);
         }
+        // What the equipping replaced (a two-handed bow drops the
+        // shield) returns to the shared bag — it must never vanish.
+        for (const replacedItem of result.replaced) {
+            this.team.inventory.returnAvailable(replacedItem.id, 1);
+        }
         this.registerWornItems(character);
         // The class weapon decides the formation row: bows stand in the
         // back, staffs in the center, swords up front.
@@ -1310,12 +1331,17 @@ export class WorldSession {
     }
 
     // Default skills plus the base ones of the character plus the skills
-    // granted by learned tree nodes.
+    // granted by learned tree nodes, plus the job's owned skills (the
+    // level-3 and level-5 unlocks of its progression ladder).
     availableSkillIds(character: Character): string[] {
         const base = skillIdsOf(character);
         const tree = this.skillTreeOf(character.id);
         const learned = tree ? tree.learnedSkillIds() : [];
-        return [...defaultSkillIds(), ...base, ...learned];
+        const ids: string[] = [];
+        for (const id of [...defaultSkillIds(), ...base, ...ownedJobSkills(character), ...learned]) {
+            if (ids.indexOf(id) === -1) ids.push(id);
+        }
+        return ids;
     }
 
     unlockNode(characterId: string, nodeId: string): { ok: boolean; message: string } {
@@ -1497,6 +1523,43 @@ export class WorldSession {
             this.revertMissionMoves(missionId);
         }
 
+        // Mission payouts: the declared rewards (items, gold) and job
+        // xp land on completion. Job xp goes on the HELD job of every
+        // party member (the one they trained during the fight). Members
+        // whose job leveled into an enhancement pick get the level-up
+        // note.
+        const levelUpNames: string[] = [];
+        const itemsGained: { name: string; quantity: number }[] = [];
+        let goldGained = 0;
+        for (const missionId of completedMissions) {
+            const details = this.missions.mission(missionId)?.details;
+            const rewardGold = details?.rewardGold ?? 0;
+            if (rewardGold > 0) {
+                this.team.gold += rewardGold;
+                goldGained += rewardGold;
+            }
+            for (const reward of details?.rewards ?? []) {
+                if (!this.itemTable.has(reward.itemId)) continue;
+                const item = this.itemTable.createItem(reward.itemId);
+                if (!canAddItem(this.team, item)) continue;
+                this.team.inventory.addItem(item, reward.quantity);
+                const existing = itemsGained.find((entry) => entry.name === item.name);
+                if (existing) {
+                    existing.quantity += reward.quantity;
+                } else {
+                    itemsGained.push({ name: item.name, quantity: reward.quantity });
+                }
+            }
+            const jobXp = details?.jobXp ?? 0;
+            if (jobXp <= 0) continue;
+            for (const member of this.team.getAll()) {
+                const grant = grantJobXp(member, jobXp);
+                if (grant.pendingPicks > 0 && levelUpNames.indexOf(member.name) === -1) {
+                    levelUpNames.push(member.name);
+                }
+            }
+        }
+
         // A won battle can open the mission's next beat (dialogue
         // and/or its battle). Handled by the shared beat queue.
         this.queueNextBeat(fightMission);
@@ -1523,6 +1586,16 @@ export class WorldSession {
         let leveled: boolean;
         let message: string;
         let unlockedEast = false;
+        const xpRows: { name: string; gained: number; levels: number }[] = [];
+        const addXpRow = (grant: { character: Character; gained: number; levels: number }) => {
+            const existing = xpRows.find((row) => row.name === grant.character.name);
+            if (existing) {
+                existing.gained += grant.gained;
+                existing.levels += grant.levels;
+            } else {
+                xpRows.push({ name: grant.character.name, gained: grant.gained, levels: grant.levels });
+            }
+        };
 
         if (npc) {
             const killerId = context.kills?.[0]?.killerId;
@@ -1534,7 +1607,9 @@ export class WorldSession {
                 customXp: npc.customXp,
             });
             leveled = xpGrants.some((grant) => grant.levels > 0);
+            for (const grant of xpGrants) addXpRow(grant);
             this.team.gold += npc.goldReward;
+            goldGained += npc.goldReward;
 
             if (npc.recruitOnDefeat) {
                 npc.character.stats.hp = 1;
@@ -1563,6 +1638,7 @@ export class WorldSession {
             const grantForKiller = (killer: Character) => {
                 const grants = grantCombatXp({ killer, allies: battleAllies, creatureLevel: 1 });
                 totalXp += grants.reduce((sum, grant) => sum + grant.gained, 0);
+                for (const grant of grants) addXpRow(grant);
                 if (grants.some((grant) => grant.levels > 0)) anyLeveled = true;
             };
 
@@ -1578,11 +1654,22 @@ export class WorldSession {
 
             leveled = anyLeveled;
             this.team.gold += 15;
+            goldGained += 15;
             message = leveled ? `Victory! ${totalXp} XP total — someone leveled up!` : `Victory! ${totalXp} XP total.`;
         }
 
         const drops = this.rollLoot(npc ? npc.dropTable : undefined);
         this.grantLoot(drops);
+        for (const drop of drops) {
+            if (!this.itemTable.has(drop.itemId)) continue;
+            const name = this.itemTable.createItem(drop.itemId).name;
+            const existing = itemsGained.find((entry) => entry.name === name);
+            if (existing) {
+                existing.quantity += drop.quantity;
+            } else {
+                itemsGained.push({ name, quantity: drop.quantity });
+            }
+        }
 
         const specialSpawn = this.checkSpecialEncounters(placeId);
         if (specialSpawn) {
@@ -1610,6 +1697,11 @@ export class WorldSession {
             }
         }
 
+        if (levelUpNames.length > 0) {
+            const names = levelUpNames.join(', ');
+            message = `${message} ${names} ${levelUpNames.length === 1 ? 'has' : 'have'} a level up available!`;
+        }
+
         // The teammates that fell stay behind as corpses at the battle
         // place (the player always drags themselves back).
         const fallen = this.faintFallen(placeId, [...participants, ...fighters]);
@@ -1619,7 +1711,18 @@ export class WorldSession {
 
         this.evaluateStory();
 
-        return { message, leveled, unlockedEast, drops, specialSpawn, report };
+        return {
+            message,
+            leveled,
+            unlockedEast,
+            drops,
+            specialSpawn,
+            report,
+            xpRows,
+            jobLevelUps: levelUpNames.length > 0 ? levelUpNames : undefined,
+            itemsGained: itemsGained.length > 0 ? itemsGained : undefined,
+            goldGained,
+        };
     }
 
     exportSave(): SaveData {
@@ -1731,6 +1834,10 @@ export class WorldSession {
                 .filter(([, item]) => Boolean(item))
                 .map(([slot, item]) => ({ slot, itemId: (item as Item).id })),
             loadout: serializeLoadout(character),
+            // Job progression: every job's bucket (xp, picks, mastery).
+            jobProgress: character.jobProgress ? Object.entries(character.jobProgress).map(
+                ([jobId, state]) => ({ jobId, ...state }),
+            ) : undefined,
         };
     }
 

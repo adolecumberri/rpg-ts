@@ -1,5 +1,5 @@
 import type { Character, Item } from '@rpg';
-import { heldJobOf, loadoutOf } from '@core';
+import { heldJobOf, jobXpInLevelOf, loadoutOf } from '@core';
 import { portraitIdOf, portraitUrl } from '../../constants/portraits';
 import { Icon } from '../chrome/Icon';
 import { StatBar } from '../chrome/StatBar';
@@ -18,6 +18,7 @@ export function TeamData({ character }: { character: Character }) {
     const job = heldJobOf(character);
     const jobLine = job ? job.title : 'The Player';
     const experience = character.experience;
+    const jobProgression = character.jobProgress;
     const loadout = loadoutOf(character);
     // The five holes: each shows its item (icon + name) or is empty.
     const lines: Array<{ key: string; icon: string; item?: Item }> = loadout.holes.map((item, index) => ({
@@ -49,8 +50,8 @@ export function TeamData({ character }: { character: Character }) {
                         </div>
                         <StatBar
                             // value={experience.currentXp}
-                            value={50}
-                            max={experience.getXpToNextLevel()}
+                            value={jobXpInLevelOf(character)}
+                            max={100}
                             type="xp"
                             width={100}
                             height={8}
@@ -65,8 +66,8 @@ export function TeamData({ character }: { character: Character }) {
                             </div>
                             <StatBar
                                 // value={experience.currentXp}
-                                value={50}
-                                max={experience.getXpToNextLevel()}
+                                value={jobXpInLevelOf(character)}
+                                max={100}
                                 type="xp"
                                 width={68}
                                 height={8}

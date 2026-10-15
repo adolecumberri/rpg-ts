@@ -6,7 +6,7 @@
 
 .skill-list {
     flex: none;
-    height: 50%;
+    /* height: 50%; */
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -49,4 +49,22 @@
 .skill-info-row {
     font-size: var(--s3);
     color: #f6ded1;
+}
+
+/* The enhanced-rank comparison: a divider, the "Lv.X → Lv.Y" header
+   and the next spec's info, stacked under the current one. */
+.skill-info-next {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding-top: var(--s2);
+    border-top: 1px solid #35271f;
+    margin-top: var(--s1);
+}
+
+.skill-info-next-title {
+    font-size: var(--s2);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: #4ade80;
 }

@@ -61,6 +61,7 @@ type GameApi = {
     equipTo: (itemId: string, characterId: string) => void;
     useOn: (slot: InventorySlot, characterId: string) => void;
     setPosition: (characterId: string, position: TeamPosition) => void;
+    setJob: (characterId: string, jobId: string) => void;
     findNpc: (npcId: string) => NPC | undefined;
     refresh: () => void;
 };
@@ -203,6 +204,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
         showToast(ok && character ? `${character.name} moved to the ${position} row.` : 'Could not change position.');
     };
 
+    const setJob = (characterId: string, jobId: string) => {
+        const result = session.setJob(characterId, jobId);
+        bump();
+        showToast(result.message);
+    };
+
     const api = useMemo<GameApi>(
         () => ({
             session,
@@ -224,6 +231,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             equipTo,
             useOn,
             setPosition,
+            setJob,
             findNpc: session.findNpc.bind(session),
             refresh: bump,
             load,

@@ -40,6 +40,7 @@ export const Missions = {
                 'Losing costs nothing but pride.\n' +
                 'A win is remembered.',
             requiredItems: [],
+            jobXp: 60,
             expedition: { members: 3 },
             cancelable: false,
             placeId: 'camp',
@@ -75,6 +76,7 @@ export const Missions = {
             requiredItems: [],
             rewards: [{ itemId: 'wood', quantity: 2 }],
             rewardGold: 20,
+            jobXp: 60,
             expedition: { members: 1 },
             cancelable: false,
             placeId: 'camp',
@@ -124,6 +126,7 @@ export const Missions = {
             requiredItems: [],
             rewards: [{ itemId: 'hay', quantity: 3 }],
             rewardGold: 30,
+            jobXp: 60,
             expedition: { members: 5 },
             cancelable: false,
             placeId: 'east_field',

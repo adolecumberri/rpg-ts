@@ -37,6 +37,7 @@ export function ActionButton({
     disabled,
     selected,
     mark,
+    badge,
     slot,
     wide,
     sub,
@@ -56,6 +57,9 @@ export function ActionButton({
     // The badge on a picked cell: '✓' by default, or '✓×2' for
     // multi-hit skills that may stack hits on one target.
     mark?: string;
+    // A corner chip next to the label (the gold ↑ level-up badge:
+    // guides the player to the bar entry that resolves it).
+    badge?: string;
     // The grid slot (1-based): row 3 col 2 for slot 6, etc. Keeps the
     // page controls pinned to their slots on short pages.
     slot?: number;
@@ -129,6 +133,10 @@ export function ActionButton({
         <span className="action-btn-check">{mark ?? '✓'}</span>
     ) : null;
 
+    const badgeNode = badge ? (
+        <span className="action-btn-badge" title="Level up available">{badge}</span>
+    ) : null;
+
     return (
         <button
             type="button"
@@ -147,6 +155,7 @@ export function ActionButton({
             <span className="action-btn-text">
                 <span className="action-btn-label action-btn-title">
                     <span className="action-btn-label-text">{label}</span>
+                    {badgeNode}
                     {checkNode}
                 </span>
                 {sub ? <span className="action-btn-caption">{sub}</span> : null}
