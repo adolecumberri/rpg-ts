@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import type { Character } from '@rpg';
 import { heldJobOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, skillUnavailableReason, intervalFromSpeed } from '@core';
 import type { SkillSpec } from '@core';
-import { SPRITES, spriteRoleOf, animationMsOf } from '../../assets/sprites';
+import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 import type { SpriteAnimation, SpriteSet } from '../../assets/sprites';
 import { OptionsBar } from '../chrome/OptionsBar';
 import type { OptionSpec } from '../chrome/OptionsBar';
@@ -164,18 +164,49 @@ function ArenaEntity({
     const totalMana = Math.round(character.stats.totalMana ?? 0);
     const sheet: SpriteSet = SPRITES[spriteRoleOf(character) ?? 'warrior'];
 
-    // The attack pose: one-shot over the attack sheet, back to idle
+    // The attack pose: a one-shot over the attack sheet (stepped by JS
+    // so frame offsets like the cow's shared sheet work), back to idle
     // when the animation's total time elapses.
     const [posing, setPosing] = useState(false);
+    const [poseFrame, setPoseFrame] = useState(0);
     useEffect(() => {
         if (!acting) {
             setPosing(false);
             return;
         }
         setPosing(true);
-        const timer = window.setTimeout(() => setPosing(false), animationMsOf(sheet.attack));
-        return () => window.clearTimeout(timer);
+        setPoseFrame(0);
+        let current = 0;
+        const timer = window.setInterval(() => {
+            current += 1;
+            if (current >= sheet.attack.frames) {
+                window.clearInterval(timer);
+                setPosing(false);
+                return;
+            }
+            setPoseFrame(current);
+        }, sheet.attack.frameMs);
+        return () => window.clearInterval(timer);
     }, [acting, actingNonce, sheet]);
+
+    // The idle loop: steps through the idle sheet's frames forever
+    // (paused while the attack pose plays). Single-frame idles sit on
+    // frame 0.
+    const [idleFrame, setIdleFrame] = useState(0);
+    useEffect(() => {
+        if (posing || sheet.idle.frames <= 1) return;
+        const timer = window.setInterval(() => {
+            setIdleFrame((prev) => (prev + 1) % sheet.idle.frames);
+        }, sheet.idle.frameMs);
+        return () => window.clearInterval(timer);
+    }, [posing, sheet]);
+
+    // The display helpers: the full sheet's background size and the
+    // frame's position (the offset lands mid-sheet on shared sheets).
+    const sheetSize = (animation: SpriteAnimation) =>
+        `${(animation.sheetFrames ?? animation.frames) * animation.frameWidth}px ${animation.frameHeight}px`;
+    const framePosition = (animation: SpriteAnimation, frame: number) =>
+        `${-((animation.frameOffset ?? 0) + frame) * animation.frameWidth}px 0`;
 
     return (
         <div
@@ -207,12 +238,16 @@ function ArenaEntity({
                 <StatBar value={mana} max={totalMana} type="mana" width={16} height={1} />
             </span>
             <span
-                className={`jrpg-sprite-box${posing ? ' jrpg-sprite-box--attack' : ''}`}
+                className="jrpg-sprite-box"
                 style={posing ? {
                     'backgroundImage': `url(${sheet.attack.sheet})`,
-                    '--attack-frames': sheet.attack.frames,
-                    '--attack-ms': `${animationMsOf(sheet.attack)}ms`,
-                } as CSSProperties : { backgroundImage: `url(${sheet.idle.sheet})` }}
+                    'backgroundSize': sheetSize(sheet.attack),
+                    'backgroundPosition': framePosition(sheet.attack, poseFrame),
+                } as CSSProperties : {
+                    'backgroundImage': `url(${sheet.idle.sheet})`,
+                    'backgroundSize': sheetSize(sheet.idle),
+                    'backgroundPosition': framePosition(sheet.idle, 0),
+                }}
             />
         </div>
     );

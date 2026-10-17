@@ -3832,24 +3832,6 @@ f2ca50 // acento
     animation: jrpg-idle-breathe 1.8s infinite ease-in-out;
 }
 
-/* The attack pose: the entity's sprite box switches to its attack
-   sheet and steps through its frames once (the vars come inline from
-   the role's SpriteSet). */
-.jrpg-sprite-box--attack {
-    background-size: calc(var(--attack-frames) * 16px) 16px;
-    animation: jrpg-attack-steps var(--attack-ms) steps(3) 1;
-}
-
-@keyframes jrpg-attack-steps {
-    from {
-        background-position: 0 0;
-    }
-
-    to {
-        background-position: -48px 0;
-    }
-}
-
 /* The battle effects (the physical slash, the magical blast): one-shot
    frame-stepped sprites played over their target, above the sprites. */
 .jrpg-effects-layer {

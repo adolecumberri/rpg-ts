@@ -60,6 +60,15 @@ export const Creatures = {
         base: { hp: 60, totalHp: 60, attack: 12, defence: 2, magicDefence: 0, speed: 5 },
         growth: { hp: 0.7, totalHp: 0.7, attack: 0.9, defence: 0.6, magicDefence: 0.3, magic: 0.1, speed: 0.6 },
     },
+    // The caza menor's cows: the same numbers as the boar, a new skin
+    // (the sprite role 'cow' follows the species id).
+    cow: {
+        id: 'cow',
+        name: 'Cow',
+        icon: '🐄',
+        base: { hp: 60, totalHp: 60, attack: 12, defence: 2, magicDefence: 0, speed: 5 },
+        growth: { hp: 0.7, totalHp: 0.7, attack: 0.9, defence: 0.6, magicDefence: 0.3, magic: 0.1, speed: 0.6 },
+    },
     // The doomed hunt: the spectral boar is a fight the recruits are
     // NOT meant to win — its numbers overwhelm a fresh squad, so the
     // correct call is to retreat (or never engage).

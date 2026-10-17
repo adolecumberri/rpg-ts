@@ -126,7 +126,7 @@ export const FIGHTS: Record<string, FightDefinition> = {
     },
 
     // ------------------------------------------------------------------
-    // Act 1 · "Caza menor": the east field packs (3 boars, then 4 more
+    // Act 1 · "Caza menor": the east field packs (3 cows, then 4 more
     // with no healing between the hunts) and the spectral boar nobody
     // should fight.
     // ------------------------------------------------------------------
@@ -135,9 +135,9 @@ export const FIGHTS: Record<string, FightDefinition> = {
         mode: 'hybrid',
         placeId: 'east_field',
         enemies: () => [
-            characterGenerator({ creature: Creatures.boar, level: 1, id: 'boar_a' }),
-            characterGenerator({ creature: Creatures.boar, level: 2, id: 'boar_b' }),
-            characterGenerator({ creature: Creatures.boar, level: 2, id: 'boar_c' }),
+            characterGenerator({ creature: Creatures.cow, level: 1, id: 'cow_a' }),
+            characterGenerator({ creature: Creatures.cow, level: 2, id: 'cow_b' }),
+            characterGenerator({ creature: Creatures.cow, level: 2, id: 'cow_c' }),
         ],
     },
     boar_four: {
@@ -145,10 +145,10 @@ export const FIGHTS: Record<string, FightDefinition> = {
         mode: 'hybrid',
         placeId: 'east_field',
         enemies: () => [
-            characterGenerator({ creature: Creatures.boar, level: 2, id: 'boar_d' }),
-            characterGenerator({ creature: Creatures.boar, level: 2, id: 'boar_e' }),
-            characterGenerator({ creature: Creatures.boar, level: 3, id: 'boar_f' }),
-            characterGenerator({ creature: Creatures.boar, level: 3, id: 'boar_g' }),
+            characterGenerator({ creature: Creatures.cow, level: 2, id: 'cow_d' }),
+            characterGenerator({ creature: Creatures.cow, level: 2, id: 'cow_e' }),
+            characterGenerator({ creature: Creatures.cow, level: 3, id: 'cow_f' }),
+            characterGenerator({ creature: Creatures.cow, level: 3, id: 'cow_g' }),
         ],
     },
     spectral_boar: {
