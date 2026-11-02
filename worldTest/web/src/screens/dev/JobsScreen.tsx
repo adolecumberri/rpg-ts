@@ -41,7 +41,7 @@ function JobCard({ job }: { job: Job }) {
                 <thead>
                     <tr>
                         <th className="jobdev-th">Stat</th>
-                        <th className="jobdev-th jobdev-th--num">Lv 1</th>
+                        <th className="jobdev-th jobdev-th--num">Job bonus</th>
                         <th className="jobdev-th jobdev-th--num">Growth</th>
                     </tr>
                 </thead>
@@ -49,18 +49,14 @@ function JobCard({ job }: { job: Job }) {
                     {JOB_STATS.map((stat) => {
                         const bonus = job.statBonuses[stat.key] ?? 0;
                         const ratio = (job.growth ?? {})[stat.key] ?? 1;
-                        const levelOne = (DEFAULT_BASE[stat.key] ?? 0) + bonus;
                         const gain = growth[stat.key] ?? 0;
                         return (
                             <tr className="jobdev-row" key={stat.key}>
                                 <td className="jobdev-td">{stat.label}</td>
                                 <td className="jobdev-td jobdev-td--num">
-                                    {Math.round(levelOne)}
-                                    {bonus !== 0 ? (
-                                        <span className={`jobdev-bonus${bonus < 0 ? ' jobdev-bonus--down' : ''}`}>
-                                            {bonus > 0 ? '+' : ''}{bonus}
-                                        </span>
-                                    ) : null}
+                                    <span className={`jobdev-bonus${bonus < 0 ? ' jobdev-bonus--down' : ''}`}>
+                                        {bonus > 0 ? '+' : ''}{bonus}
+                                    </span>
                                 </td>
                                 <td className="jobdev-td jobdev-td--num">
                                     <span className="jobdev-ratio">×{ratio.toFixed(2)}</span>
@@ -73,8 +69,11 @@ function JobCard({ job }: { job: Job }) {
             </table>
 
             <div className="jobdev-foot">
-                Lv 1 = DEFAULT_BASE + job bonus · Growth = DEFAULT_MAX × {DEFAULT_GROWTH_RATE} / 100
-                × ratio (the ratio multiplies the default gain; it is not added to it).
+                All characters start from the shared DEFAULT_BASE (HP {DEFAULT_BASE.hp} · ATK{' '}
+                {DEFAULT_BASE.attack} · DEF {DEFAULT_BASE.defence} · MAG {DEFAULT_BASE.magic} · SPD{' '}
+                {DEFAULT_BASE.speed}); the job column shows only what the job adds on top. Growth =
+                DEFAULT_MAX × {DEFAULT_GROWTH_RATE} / 100 × ratio (the ratio multiplies the default
+                gain; it is not added to it).
             </div>
 
             <div className="jobdev-section">
@@ -92,9 +91,7 @@ function JobCard({ job }: { job: Job }) {
                     ) : ladder.map((plan) => (
                         <div className="jobdev-ladder-row" key={plan.skillId}>
                             <span className="jobdev-ladder-level">Lv {plan.atJobLevel}</span>
-                            <span className="jobdev-ladder-name">
-                                {plan.ranks.map((id) => skillName(id)).join(' → ')}
-                            </span>
+                            <span className="jobdev-ladder-name">{skillName(plan.skillId)}</span>
                         </div>
                     ))}
                 </div>
