@@ -124,9 +124,11 @@ function jobSkillRows(job: Job, knows: (skillId: string) => boolean): JobSkillRo
  * opens the skills view: the character's skills as rows on top and
  * the selected skill's info in the inferior part of the container.
  */
-export function TeamPage({ onBack }: { onBack?: () => void }) {
+export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; initialSelectedId?: string }) {
     const api = useGame();
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    // The party panel can open the team page with a card already picked
+    // (its inline squad cards carry the character id).
+    const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
     const [skillsView, setSkillsView] = useState(false);
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
     const [equipView, setEquipView] = useState(false);

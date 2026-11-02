@@ -153,6 +153,9 @@ export function NewUiRouter() {
     // Whether the page we navigated away to came from the party
     // submenu: its Back returns to the submenu, not to the place menu.
     const [returnToParty, setReturnToParty] = useState(false);
+    // The character the party panel's squad card clicked: the team page
+    // opens with that card selected.
+    const [teamInitialId, setTeamInitialId] = useState<string | null>(null);
     // The page the main menu opened the map from: the map's Back
     // returns there.
     const [pageBeforeMap, setPageBeforeMap] = useState<PageId>('place');
@@ -301,8 +304,9 @@ export function NewUiRouter() {
                         <>
                             {page === 'place' ? (
                                 <PlacePage
-                                    onOpenTeam={(fromParty) => {
+                                    onOpenTeam={(fromParty, characterId) => {
                                         setReturnToParty(Boolean(fromParty));
+                                        setTeamInitialId(characterId ?? null);
                                         setPage('team');
                                     }}
                                     onOpenMissions={(tab) => {
@@ -321,7 +325,10 @@ export function NewUiRouter() {
                                 />
                             ) : null}
                             {page === 'team' ? (
-                                <TeamPage onBack={() => backToPlace(returnToParty ? 'party' : 'place')} />
+                                <TeamPage
+                                    onBack={() => backToPlace(returnToParty ? 'party' : 'place')}
+                                    initialSelectedId={teamInitialId ?? undefined}
+                                />
                             ) : null}
                             {page === 'missions' ? (
                                 <MissionsPage

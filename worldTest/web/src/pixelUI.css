@@ -1655,6 +1655,8 @@ f2ca50 // acento
     align-items: center;
     justify-content: flex-start;
     gap: var(--s2);
+    width: 100%;
+    max-width: 150px;
     height: 88px;
     padding: var(--s1) var(--s2);
     box-sizing: border-box;
@@ -1709,6 +1711,28 @@ f2ca50 // acento
 .team-card.is-selected {
     border-color: var(--accent);
     box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512, inset 0 0 0 2px var(--accent);
+}
+
+/* The portrait frame: the same language as the data panel's portrait. */
+.team-card-portrait-wrap {
+    flex: none;
+    width: var(--s16);
+    height: var(--s16);
+    display: flex;
+    box-sizing: border-box;
+    overflow: hidden;
+    background: #552723;
+    border: 2px solid #180908;
+    box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512;
+}
+
+.team-card-portrait {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+    image-rendering: pixelated;
 }
 
 .team-card-identity {
@@ -3563,4 +3587,21 @@ f2ca50 // acento
     font-size: var(--text-md);
     color: var(--text-dim-warm);
     padding: 2px var(--s1);
+}
+
+
+/* The party panel's inline squad: the same grid inside the place page,
+   under the place's squad header. */
+.party-squad-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
+}
+
+.party-squad-view .team-grid {
+    flex: 1;
+    min-height: 0;
 }

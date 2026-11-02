@@ -98,3 +98,25 @@ the 64 px sprite, no crop, no text overflow and the badge corner.
 4. Badge anchored to `.team-card`; selection ring selector fixed.
 5. Verification: typecheck, lint, build, and a 320Ã—640 headless screenshot of
    the team grid with the longest data.
+
+## Implemented outcome (supersedes the first gate decision)
+
+After the owner review of the shipped cards, the scope was raised again and
+shipped as follows:
+
+- **Party** opens the party panel **and** the place page's central container
+  switches from the place hero to the inline squad (same TeamCard grid as the
+  team page). The **Squad** row is removed from the party bar, which now keeps
+  Inventory, Misiones and Back — so the orphaned-submenu risk is resolved
+  because the panel still exists and renders the squad itself.
+- Clicking an inline card opens the team page with that character preselected
+  (TeamPage initialSelectedId), so the detail flow (equipment, skills, job
+  change) is unchanged.
+- The card is the **portrait** version of the data panel's identity: a 64px
+  framed portrait (the story portrait, portraitIdOf/portraitUrl, framed with
+  the same border/bevel as .team-data-portrait-wrap), old sprite animation
+  removed, identity lines name / job + job level / level at fixed max width
+  (150px) so cards never stretch.
+
+Verified with headless Chrome: Party ? inline squad (3 cards, 146×88, portrait
+60×60), bar shows Inventory/Misiones/Back, card click opens the detail view.

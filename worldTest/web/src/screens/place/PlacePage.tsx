@@ -3,6 +3,7 @@ import { FLAGS } from '@core';
 import { useGame } from '../../game/GameContext';
 import { OptionsBar } from '../../components/chrome/OptionsBar';
 import type { OptionSpec } from '../../components/chrome/OptionsBar';
+import { TeamCard } from '../../components/character/TeamCard';
 import { placeImageOf } from '../../assets/places';
 import { ACTION_ICONS } from '../../assets/actionIcons';
 import { WorldMapScreen } from '../map/WorldMapScreen';
@@ -22,7 +23,7 @@ export function PlacePage({
     discovered,
     setDiscovered,
 }: {
-    onOpenTeam?: (fromParty?: boolean) => void;
+    onOpenTeam?: (fromParty?: boolean, characterId?: string) => void;
     onOpenMissions?: (tab?: 'accepted') => void;
     // Opens the informative inventory page (the party submenu's
     // Inventory option) instead of the team page.
@@ -49,14 +50,19 @@ export function PlacePage({
     }
 
     // Opening the team from the party submenu tells the router to come
-    // back to the submenu when the user presses Back there.
-    const openTeam = (fromParty = false) => {
+    // back to the submenu when the user presses Back there. The optional
+    // character id preselects that card on the team page.
+    const openTeam = (fromParty = false, characterId?: string) => {
         if (onOpenTeam) {
-            onOpenTeam(fromParty);
+            onOpenTeam(fromParty, characterId);
             return;
         }
         api.navigate({ name: 'team' });
     };
+
+    // The squad the party panel renders inline (the same cards as the
+    // team page, so both views stay one design).
+    const members = api.session.roster.activeCharacters();
 
     const place = api.currentPlace;
     const options: OptionSpec[] = [];
@@ -257,48 +263,66 @@ export function PlacePage({
 
     return (
         <div className="pixel-font" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div className="place-view">
-                <img className="place-image" src={placeImageOf(place.image)} alt={place.name} />
-                <div className="place-caption">
-                    <div className="place-card-head">
-                        <div className="place-card-title">{place.name}</div>
-                        {place.subtitle ? (
-                            <div className="place-card-subtitle">{place.subtitle}</div>
+            {panel === 'party' ? (
+                <div className="party-squad-view">
+                    <div className="squad-card">
+                        <div className="squad-card-title">THE SQUAD</div>
+                        <div className="squad-card-text">Tap a character to open their data.</div>
+                    </div>
+                    <div className="team-grid">
+                        {members.map((character) => (
+                            <TeamCard
+                                key={character.id}
+                                character={character}
+                                onClick={() => openTeam(true, character.id)}
+                            />
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="place-view">
+                    <img className="place-image" src={placeImageOf(place.image)} alt={place.name} />
+                    <div className="place-caption">
+                        <div className="place-card-head">
+                            <div className="place-card-title">{place.name}</div>
+                            {place.subtitle ? (
+                                <div className="place-card-subtitle">{place.subtitle}</div>
+                            ) : null}
+                        </div>
+                        <p className="place-card-desc">{place.description}</p>
+                        {activeHere.length > 0 || markers.length > 0 ? (
+                            <div style={{ marginTop: 8 }}>
+                                {activeHere.map((mission) => (
+                                    <div key={mission.missionId} className="pixel-label">
+                                    ❗ {mission.title}
+                                    </div>
+                                ))}
+                                {markers.length > 0 ? (
+                                    <div className="pixel-label">❗ Mission here</div>
+                                ) : null}
+                                {activeHere.length > 0 ? (
+                                    <button
+                                        type="button"
+                                        className="pixel-btn pixel-btn--primary"
+                                        style={{ marginTop: 8 }}
+                                        onClick={() => api.navigate({
+                                            name: 'mission',
+                                            missionId: activeHere[0].missionId,
+                                        })}
+                                    >
+                                    Open
+                                    </button>
+                                ) : null}
+                            </div>
+                        ) : null}
+                        {place.menu === false && corpses === 0 ? (
+                            <div className="pixel-caption" style={{ marginTop: 8 }}>
+                            There is nothing to do here.
+                            </div>
                         ) : null}
                     </div>
-                    <p className="place-card-desc">{place.description}</p>
-                    {activeHere.length > 0 || markers.length > 0 ? (
-                        <div style={{ marginTop: 8 }}>
-                            {activeHere.map((mission) => (
-                                <div key={mission.missionId} className="pixel-label">
-                                    ❗ {mission.title}
-                                </div>
-                            ))}
-                            {markers.length > 0 ? (
-                                <div className="pixel-label">❗ Mission here</div>
-                            ) : null}
-                            {activeHere.length > 0 ? (
-                                <button
-                                    type="button"
-                                    className="pixel-btn pixel-btn--primary"
-                                    style={{ marginTop: 8 }}
-                                    onClick={() => api.navigate({
-                                        name: 'mission',
-                                        missionId: activeHere[0].missionId,
-                                    })}
-                                >
-                                    Open
-                                </button>
-                            ) : null}
-                        </div>
-                    ) : null}
-                    {place.menu === false && corpses === 0 ? (
-                        <div className="pixel-caption" style={{ marginTop: 8 }}>
-                            There is nothing to do here.
-                        </div>
-                    ) : null}
                 </div>
-            </div>
+            )}
             {panel === 'party' ? (
                 <OptionsBar
                     size="lg"
@@ -315,13 +339,6 @@ export function PlacePage({
                                 }
                                 openTeam(true);
                             },
-                        },
-                        {
-                            id: 'squad',
-                            label: 'Squad',
-                            icon: { symbol: 'groups', color: '#f2ca50' },
-                            sub: 'Active party',
-                            onClick: () => openTeam(true),
                         },
                         {
                             id: 'missions',
