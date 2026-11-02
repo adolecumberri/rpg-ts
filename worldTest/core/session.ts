@@ -122,6 +122,10 @@ export class WorldSession {
         ['hero', createHeroTree()],
         ['companion', createCompanionTree()],
     ]);
+    // The player's known skills: the skill ids any team or roster member
+    // has learned (job level-ups and already-trained recruits). Persisted;
+    // the job pages reveal names from it, combat ignores it.
+    private knownSkillIds: Set<string> = new Set();
     currentPlaceId: string = ACT1.startPlaceId;
     unlocked: Set<string> = new Set();
     // The story calendar: one day per travel, one day per mission.
@@ -1286,6 +1290,7 @@ export class WorldSession {
         }
 
         const removedNote = removed.length > 0 ? ` Unequipped: ${removed.join(', ')}.` : '';
+        this.syncKnownSkills();
         return { ok: true, message: `${character.name} is now ${jobLabel}.${removedNote}` };
     }
 
@@ -1342,6 +1347,25 @@ export class WorldSession {
             if (ids.indexOf(id) === -1) ids.push(id);
         }
         return ids;
+    }
+
+    /** Whether the player has seen this skill learned by the party. */
+    knowsSkill(skillId: string): boolean {
+        return this.knownSkillIds.has(skillId);
+    }
+
+    /**
+     * Recomputes the player's known-skill memory: every skill the held job
+     * of a character in the team or the roster has taught so far becomes
+     * known. Idempotent, so it can backfill recruits that arrived already
+     * trained and old saves. The job pages read it; combat ignores it.
+     */
+    syncKnownSkills(): void {
+        for (const character of [...this.team.getAll(), ...this.roster.all()]) {
+            for (const skillId of ownedJobSkills(character)) {
+                this.knownSkillIds.add(skillId);
+            }
+        }
     }
 
     unlockNode(characterId: string, nodeId: string): { ok: boolean; message: string } {
@@ -1531,6 +1555,9 @@ export class WorldSession {
         const levelUpNames: string[] = [];
         const itemsGained: { name: string; quantity: number }[] = [];
         let goldGained = 0;
+        // The job xp below teaches skills: refresh the player's known
+        // skills once the whole reward block settles.
+        const syncKnownAfterRewards = () => this.syncKnownSkills();
         for (const missionId of completedMissions) {
             const details = this.missions.mission(missionId)?.details;
             const rewardGold = details?.rewardGold ?? 0;
@@ -1559,6 +1586,7 @@ export class WorldSession {
                 }
             }
         }
+        syncKnownAfterRewards();
 
         // A won battle can open the mission's next beat (dialogue
         // and/or its battle). Handled by the shared beat queue.
@@ -1792,6 +1820,7 @@ export class WorldSession {
                 characterId,
                 learned: Array.from(tree.learned),
             })),
+            knownSkills: Array.from(this.knownSkillIds),
             missions: this.missions.serialize(),
             missionBoard: this.missions.serializeBoard(),
             calendarDay: this.calendar.totalDays(),
@@ -2072,6 +2101,12 @@ export class WorldSession {
                 }
             }
         }
+
+        // The known-skill memory: restore what the save carries, then
+        // backfill from the party (old saves, or recruits that arrived
+        // already trained since the last save).
+        session.knownSkillIds = new Set(data.knownSkills ?? []);
+        session.syncKnownSkills();
 
         session.missions.load(data.missions ?? []);
         if (data.missionBoard && data.missionBoard.length > 0) {

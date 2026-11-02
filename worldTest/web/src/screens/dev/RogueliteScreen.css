@@ -1,0 +1,172 @@
+/* The roguelite dev flow: a compact ledger over the pixel font, with the
+   reward offers as the only big click targets. */
+
+.rogue-page {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
+    overflow-y: auto;
+    font-family: var(--font-body);
+    color: var(--text-warm);
+}
+
+.rogue-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--line-warm);
+    padding-bottom: var(--s1);
+}
+
+.rogue-title {
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    color: var(--paper);
+    text-shadow: 1px 1px 0 #000;
+}
+
+.rogue-wave {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--gold);
+}
+
+.rogue-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    padding: var(--s2);
+    background: var(--well);
+    border: 1px solid var(--line-warm);
+}
+
+.rogue-label {
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rogue-slot {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+}
+
+.rogue-slot-index {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--text-dim);
+    width: var(--s4);
+}
+
+.rogue-job-btn {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-warm);
+    background: var(--well-alt);
+    border: 1px solid var(--line-warm);
+    padding: var(--s1) var(--s2);
+    cursor: pointer;
+}
+
+.rogue-job-btn--on {
+    color: #000;
+    background: var(--gold);
+    border-color: var(--gold-strong);
+}
+
+.rogue-row {
+    display: flex;
+    gap: var(--s2);
+    flex-wrap: wrap;
+}
+
+.rogue-btn {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--text-cream);
+    background: var(--inset-warm);
+    border: 1px solid var(--line-warm);
+    padding: var(--s2) var(--s3);
+    cursor: pointer;
+}
+
+.rogue-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.rogue-btn--primary {
+    color: #000;
+    background: var(--gold);
+    border-color: var(--gold-strong);
+}
+
+.rogue-line {
+    font-size: var(--text-md);
+    color: var(--text-warm);
+}
+
+.rogue-line--enemy {
+    color: var(--danger-soft);
+}
+
+.rogue-offer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+    font-family: var(--font-body);
+    background: var(--modal-bg);
+    border: 1px solid var(--line-warm);
+    padding: var(--s2);
+    cursor: pointer;
+}
+
+.rogue-offer:hover {
+    border-color: var(--gold-strong);
+}
+
+.rogue-offer-name {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--gold-bright);
+}
+
+.rogue-offer-desc {
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+}
+
+.rogue-result {
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: var(--paper);
+    text-align: center;
+    padding: var(--s1);
+}
+
+.rogue-log {
+    flex: 1 1 auto;
+    min-height: var(--s48);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--s2);
+    background: var(--well-alt);
+    border: 1px solid var(--hairline);
+    overflow-y: auto;
+    font-size: var(--text-sm);
+    color: var(--text-dim-warm);
+}
+
+.rogue-log-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

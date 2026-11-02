@@ -101,6 +101,10 @@ export type SaveData = {
     encounters: { placeId: string; victories: number }[];
     spawnedSpecials: string[];
     skillTrees: { characterId: string; learned: string[] }[];
+    // The skills the player has seen a party member learn (the job page
+    // reveals skill names from this memory; combat ignores it). Optional:
+    // saves made before it existed backfill from the party on load.
+    knownSkills?: string[];
     // Mission progress (optional: saves made before missions existed
     // still load).
     missions?: MissionSnapshot[];

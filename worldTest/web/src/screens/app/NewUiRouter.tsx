@@ -55,6 +55,7 @@ const DEV_PAGES = [
     { id: 'dialogs', label: 'Dialogs', symbol: 'forum', caption: 'Dialog editor & player' },
     { id: 'items', label: 'Items', symbol: 'inventory_2', caption: 'Every item in the game' },
     { id: 'flags', label: 'Flags', symbol: 'flag', caption: 'Toggle every story flag' },
+    { id: 'rogue', label: 'Roguelite', symbol: 'casino', caption: 'Team · waves · weapon rewards' },
 ] as const;
 
 // The submenu opener: row 04 of the main menu.
@@ -77,6 +78,7 @@ const DEV_LOADERS: Record<string, () => Promise<{ default: ComponentType<{ onBac
         dialogs: () => import('../dev/DialogsScreen').then((m) => ({ default: m.DialogsScreen })),
         items: () => import('../dev/ItemsScreen').then((m) => ({ default: m.ItemsScreen })),
         flags: () => import('../dev/FlagsScreen').then((m) => ({ default: m.FlagsScreen })),
+        rogue: () => import('../dev/RogueliteScreen').then((m) => ({ default: m.RogueliteScreen })),
     } : {};
 
 const PAGES = [...MAIN_PAGES, ...DEV_PAGES] as const;

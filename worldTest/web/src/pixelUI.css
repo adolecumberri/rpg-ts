@@ -469,7 +469,9 @@ f2ca50 // acento
    two stacked layers (idle below, attack above) so both sheets load
    once and the swing only flips opacity. */
 .battle-card-sprite {
-    position: relative;
+    position: relative;
+
+
     background-repeat: no-repeat;
     background-position: 0 0;
     image-rendering: pixelated;
@@ -2010,6 +2012,81 @@ f2ca50 // acento
     color: var(--paper);
     text-shadow: 1px 1px 0 #000;
 }
+
+/* The job-change comparison: before ? change ? after, plus the
+   target job's skill ladder with unknown names masked. */
+.job-compare {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line-warm);
+    border-bottom: 1px solid var(--line-warm);
+    padding: var(--s1) 0;
+}
+
+.job-compare-head,
+.job-compare-row {
+    display: grid;
+    grid-template-columns: 1fr var(--s16) var(--s16) var(--s16);
+    align-items: center;
+    gap: var(--s1);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-warm);
+}
+
+.job-compare-head {
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.job-compare-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+}
+
+.job-compare-before { text-align: right; color: var(--text-dim); }
+.job-compare-after { text-align: right; color: var(--paper); }
+.job-compare-delta { text-align: right; font-weight: bold; }
+.job-compare-delta--up { color: var(--success); }
+.job-compare-delta--down { color: var(--danger-soft); }
+
+.job-skills {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    padding-top: var(--s1);
+}
+
+.job-skills-title {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--text-cream);
+}
+
+.job-skill-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-warm);
+    padding: var(--s1) var(--s2);
+    background: var(--well);
+    border: 1px solid var(--line-warm);
+}
+
+.job-skill-row--unknown .job-skill-name { color: var(--text-dim-warm); letter-spacing: 2px; }
+
+.job-skill-level {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--gold);
+}
+
 
 /* The right side of the split: the equipment block. */
 .team-data-side {

@@ -14,6 +14,7 @@ import {
     pendingJobPicks,
     sectionOfItem,
     specForSkill,
+    specOf,
     unequipToInventory,
     ARCHER_JOB,
     HEALER_JOB,
@@ -29,7 +30,6 @@ import { TeamData } from '../../components/character/TeamData';
 import { Icon } from '../../components/chrome/Icon';
 import { SkillInfo } from '../../components/character/SkillInfo';
 import { StatsColumn } from '../../components/character/StatsColumn';
-import type { StatRow } from '../../components/character/StatsColumn';
 import { ALL_SECTIONS, EquipPicker, SECTION_META } from '../../components/character/EquipPicker';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 import { spriteFrameStyle } from '../../assets/spriteFrames';
@@ -60,22 +60,58 @@ const JOB_COMPARE_STATS: {
     })),
 ];
 
-/** The stats ledger rows of a job change: the character's values under
- *  the target job plus the delta versus the held job (green +/red −).
- *  Without a target, the current values with no delta. */
-function jobVariationRows(character: Character, target?: Job): StatRow[] {
+/** One row of the job comparison: the value under the held job, the
+ *  change the target job brings and the value under the target job. */
+type JobCompareRow = {
+    key: string;
+    label: string;
+    icon: IconId;
+    before: string;
+    delta: number;
+    after: string;
+};
+
+/** The stats of a job change, before → change → after: the current
+ *  value, the target job's bonus minus the held job's, and the value
+ *  the character would have under the target job. */
+function jobCompareRows(character: Character, target?: Job): JobCompareRow[] {
     const current = heldJobOf(character);
     return JOB_COMPARE_STATS.map((entry) => {
         const oldBonus = current?.statBonuses[entry.key] ?? 0;
         const newBonus = target ? (target.statBonuses[entry.key] ?? 0) : oldBonus;
-        const next = character.getStat(entry.key) - oldBonus + newBonus;
-        const row: StatRow = {
-            icon: entry.icon,
+        const before = character.getStat(entry.key);
+        const after = before - oldBonus + newBonus;
+        const format = (value: number) =>
+            `${entry.prefix ?? ''}${Math.round(value)}${entry.suffix ?? ''}`;
+        return {
+            key: String(entry.key),
             label: entry.label,
-            value: `${entry.prefix ?? ''}${Math.round(next)}${entry.suffix ?? ''}`,
+            icon: entry.icon,
+            before: format(before),
+            delta: Math.round(after - before),
+            after: format(after),
         };
-        if (target) row.delta = Math.round(newBonus - oldBonus);
-        return row;
+    });
+}
+
+/** One skill of the target job's ladder: its name masked to '????'
+ *  until the player has seen any party member learn it. */
+type JobSkillRow = {
+    baseId: string;
+    name: string;
+    known: boolean;
+    atJobLevel: number;
+};
+
+function jobSkillRows(job: Job, knows: (skillId: string) => boolean): JobSkillRow[] {
+    return (job.progression?.skills ?? []).map((plan) => {
+        const known = knows(plan.skillId);
+        return {
+            baseId: plan.skillId,
+            name: known ? (specOf(plan.skillId)?.name ?? plan.skillId) : '????',
+            known,
+            atJobLevel: plan.atJobLevel,
+        };
     });
 }
 
@@ -372,7 +408,46 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                         {jobTarget ? ` → ${jobTarget.title}` : ' · pick a job'}
                     </span>
                 </div>
-                <StatsColumn rows={jobVariationRows(selected, jobTarget)} />
+                <div className="job-compare">
+                    <div className="job-compare-head">
+                        <span className="job-compare-label">Stat</span>
+                        <span className="job-compare-before">Before</span>
+                        <span className="job-compare-delta">Change</span>
+                        <span className="job-compare-after">After</span>
+                    </div>
+                    {jobCompareRows(selected, jobTarget).map((row) => (
+                        <div className="job-compare-row" key={row.key}>
+                            <span className="job-compare-label">
+                                <Icon id={row.icon} size={4} />
+                                {row.label}
+                            </span>
+                            <span className="job-compare-before">{row.before}</span>
+                            <span
+                                className={`job-compare-delta${
+                                    row.delta > 0 ? ' job-compare-delta--up' :
+                                        row.delta < 0 ? ' job-compare-delta--down' : ''
+                                }`}
+                            >
+                                {row.delta > 0 ? '+' : ''}{row.delta}
+                            </span>
+                            <span className="job-compare-after">{row.after}</span>
+                        </div>
+                    ))}
+                </div>
+                {jobTarget ? (
+                    <div className="job-skills">
+                        <div className="job-skills-title">Skills · {jobTarget.title}</div>
+                        {jobSkillRows(jobTarget, (id) => api.session.knowsSkill(id)).map((row) => (
+                            <div
+                                className={`job-skill-row${row.known ? '' : ' job-skill-row--unknown'}`}
+                                key={row.baseId}
+                            >
+                                <span className="job-skill-name">{row.name}</span>
+                                <span className="job-skill-level">Lv {row.atJobLevel}</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
             </div>
         ) : (
             <TeamData character={selected} />
@@ -430,6 +505,10 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                     label: 'Job Change',
                     icon: { symbol: 'person', color: 'var(--accent)' },
                     onClick: () => {
+                        // Backfill the player's known-skill memory (recruits
+                        // that arrived already trained, old saves) before the
+                        // page masks unknown skill names.
+                        api.session.syncKnownSkills();
                         setJobTargetId(null);
                         setJobView(true);
                     },
@@ -528,11 +607,15 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
             size="lg"
             options={OFFERED_JOBS.map((job) => {
                 const mastered = jobProgressOf(selected, job.id).mastered;
+                // The already-held job cannot be selected again.
+                const isCurrent = job.id === heldJobOf(selected)?.id;
                 return {
                     id: job.id,
                     label: `${job.title}${mastered ? ' ★' : ''}`,
                     icon: { symbol: 'person', color: 'var(--accent)' },
-                    sub: `Lv.${jobLevelOf(selected, job.id)}`,
+                    sub: isCurrent ? 'Current job' : `Lv.${jobLevelOf(selected, job.id)}`,
+                    disabled: isCurrent,
+                    disabledReason: 'Current job',
                     onClick: () => setJobTargetId(job.id),
                 };
             })}
