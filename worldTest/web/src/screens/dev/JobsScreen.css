@@ -1,0 +1,132 @@
+/* The job codex dev page: one card per job with the raw data tables.
+   Everything stacks vertically so the 320px canvas never overflows. */
+
+.jobdev-page {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-family: var(--font-body);
+    color: var(--text-warm);
+}
+
+.jobdev-page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--line-warm);
+    padding-bottom: var(--s1);
+}
+
+.jobdev-page-title {
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    color: var(--paper);
+    text-shadow: 1px 1px 0 #000;
+}
+
+.jobdev-page-sub {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--gold);
+}
+
+.jobdev-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding: var(--s2);
+    background: var(--well);
+    border: 1px solid var(--line-warm);
+    min-width: 0;
+}
+
+.jobdev-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s1);
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.jobdev-title {
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: var(--gold-bright);
+}
+
+.jobdev-id {
+    font-size: var(--text-2xs);
+    color: var(--text-dim);
+}
+
+.jobdev-pills {
+    font-size: var(--text-2xs);
+    color: var(--text-dim-warm);
+}
+
+.jobdev-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    min-width: 0;
+}
+
+.jobdev-cell {
+    font-size: var(--text-2xs);
+    color: var(--text-warm);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.jobdev-cell--label {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--text-dim);
+    margin-bottom: calc(-1 * var(--s1));
+}
+
+.jobdev-chip {
+    display: inline-block;
+    margin: 0 var(--s1) var(--s1) 0;
+    padding: 0 var(--s1);
+    background: var(--well-alt);
+    border: 1px solid var(--hairline);
+}
+
+.jobdev-ladder {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.jobdev-ladder-row {
+    display: flex;
+    gap: var(--s1);
+    flex-wrap: wrap;
+    align-items: baseline;
+    padding: 2px 0;
+    border-bottom: 1px dotted var(--hairline);
+    min-width: 0;
+}
+
+.jobdev-ladder-level {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--gold);
+}
+
+.jobdev-ladder-name {
+    color: var(--text-cream);
+}
+
+.jobdev-ladder-ranks {
+    color: var(--text-dim-warm);
+    font-size: var(--text-2xs);
+    overflow-wrap: anywhere;
+}

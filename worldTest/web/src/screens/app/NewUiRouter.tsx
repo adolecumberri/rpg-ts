@@ -56,6 +56,7 @@ const DEV_PAGES = [
     { id: 'items', label: 'Items', symbol: 'inventory_2', caption: 'Every item in the game' },
     { id: 'flags', label: 'Flags', symbol: 'flag', caption: 'Toggle every story flag' },
     { id: 'rogue', label: 'Roguelite', symbol: 'casino', caption: 'Team · waves · weapon rewards' },
+    { id: 'jobs', label: 'Jobs', symbol: 'work', caption: 'Growth · bonuses · skill ladders' },
 ] as const;
 
 // The submenu opener: row 04 of the main menu.
@@ -79,6 +80,7 @@ const DEV_LOADERS: Record<string, () => Promise<{ default: ComponentType<{ onBac
         items: () => import('../dev/ItemsScreen').then((m) => ({ default: m.ItemsScreen })),
         flags: () => import('../dev/FlagsScreen').then((m) => ({ default: m.FlagsScreen })),
         rogue: () => import('../dev/RogueliteScreen').then((m) => ({ default: m.RogueliteScreen })),
+        jobs: () => import('../dev/JobsScreen').then((m) => ({ default: m.JobsScreen })),
     } : {};
 
 const PAGES = [...MAIN_PAGES, ...DEV_PAGES] as const;
