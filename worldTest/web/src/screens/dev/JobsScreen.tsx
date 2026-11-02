@@ -1,4 +1,4 @@
-import { ALL_JOBS, DEFAULT_BASE, DEFAULT_GROWTH_RATE, resolveGrowth, specOf } from '@core';
+import { ALL_JOBS, DEFAULT_GROWTH_RATE, resolveGrowth, specOf } from '@core';
 import type { Job, StatKey } from '@core';
 import { STAT_CATALOG } from '../../game/statCatalog';
 import './JobsScreen.css';
@@ -69,11 +69,8 @@ function JobCard({ job }: { job: Job }) {
             </table>
 
             <div className="jobdev-foot">
-                All characters start from the shared DEFAULT_BASE (HP {DEFAULT_BASE.hp} · ATK{' '}
-                {DEFAULT_BASE.attack} · DEF {DEFAULT_BASE.defence} · MAG {DEFAULT_BASE.magic} · SPD{' '}
-                {DEFAULT_BASE.speed}); the job column shows only what the job adds on top. Growth =
-                DEFAULT_MAX × {DEFAULT_GROWTH_RATE} / 100 × ratio (the ratio multiplies the default
-                gain; it is not added to it).
+                Growth = DEFAULT_MAX × {DEFAULT_GROWTH_RATE} / 100 × ratio (the ratio multiplies the
+                default gain; it is not added to it).
             </div>
 
             <div className="jobdev-section">
