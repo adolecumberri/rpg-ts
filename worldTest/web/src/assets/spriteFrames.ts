@@ -11,7 +11,7 @@ import type { SpriteAnimation } from './sprites';
  */
 export const SPRITE_BOX = {
     ficha: 40,
-    squadCard: 48,
+    squadCard: 64,
 } as const;
 
 /** The pixel scale for a box: the native frame width is 16px. */
@@ -33,7 +33,7 @@ export function spriteBoxStyle(animation: SpriteAnimation | undefined, box: numb
  *
  * `scale` maps the native frame onto the render box: the arena draws at
  * 1x (16px), the battlefield fichas at 2.5x (40px), the squad cards at
- * 3x (48px), the team position view at 1.5x (24px), the arena banner at
+ * 4x (64px), the team position view at 1.5x (24px), the arena banner at
  * 1.375x (22px).
  */
 export function spriteFrameStyle(

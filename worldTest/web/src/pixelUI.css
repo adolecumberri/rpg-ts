@@ -498,7 +498,7 @@ f2ca50 // acento
 }
 
 /* ---------------------------------------------------------------------------
-   The main UI shell: the chrome every screen renders inside (the only UI — the old header/screens were removed).
+   The main UI shell: the chrome every screen renders inside (the only UI ï¿½ the old header/screens were removed).
 --------------------------------------------------------------------------- */
 .newui-shell {
     height: 100%;
@@ -1651,11 +1651,12 @@ f2ca50 // acento
 .team-card {
     position: relative;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: var(--s2);
     height: 88px;
-    padding: var(--s1) 0;
+    padding: var(--s1) var(--s2);
     box-sizing: border-box;
     font-family: inherit;
     background: #552723;
@@ -1705,14 +1706,23 @@ f2ca50 // acento
 }
 
 /* The picked card keeps its bevels under a gold ring. */
-.team-card.pixel-cell.is-selected {
+.team-card.is-selected {
     border-color: var(--accent);
     box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512, inset 0 0 0 2px var(--accent);
 }
 
-.team-card-name {
+.team-card-identity {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.team-card-identity-name {
     font-family: var(--font-body);
-    font-size: var(--text-xl);
+    font-size: var(--text-md);
     font-weight: 700;
     letter-spacing: 0.5px;
     color: var(--text-cream);
@@ -1721,21 +1731,25 @@ f2ca50 // acento
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 0 var(--s1);
-    box-sizing: border-box;
 }
 
-.team-card-job {
+.team-card-identity-job {
     font-family: var(--font-body);
-    font-size: var(--text-lg);
+    font-size: var(--text-2xs);
     color: #e0a86d;
-    line-height: 1;
+    line-height: 1.1;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 0 var(--s1);
-    box-sizing: border-box;
+}
+
+.team-card-identity-level {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    color: var(--accent);
+    line-height: 1.1;
+    white-space: nowrap;
 }
 
 .team-data-head {
@@ -3158,8 +3172,9 @@ f2ca50 // acento
 .tactical-menu-caption,
 .squad-card-title,
 .squad-card-text,
-.team-card-name,
-.team-card-job,
+.team-card-identity-name,
+.team-card-identity-job,
+.team-card-identity-level,
 .position-unit-name,
 /* --------------------------------------------------------------------------- The dialogs dev page: text inputs, the line editor rows and the dialogue player (portrait + bubble, side by side). --------------------------------------------------------------------------- */ .dev-input,
 /* The dialog list titles: mission/chat names are long, so they use the terminal font at a size that fits the 320px rows (the menu's Press Start 2P titles overflowed here). */ .dlg-row-title,
@@ -3211,8 +3226,9 @@ f2ca50 // acento
 .tactical-menu-caption,
 .squad-card-title,
 .squad-card-text,
-.team-card-name,
-.team-card-job,
+.team-card-identity-name,
+.team-card-identity-job,
+.team-card-identity-level,
 /* The dialog list titles: mission/chat names are long, so they use the terminal font at a size that fits the 320px rows (the menu's Press Start 2P titles overflowed here). */ .dlg-row-title,
 .item-page-name,
 .item-page-desc,

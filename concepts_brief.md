@@ -1,60 +1,100 @@
-# Job Change Page (Oficio)
+# Squad Card Redesign (2-column card)
 
-- **Author:** Lead (EGM brainstorm, DSH)
-- **Date:** 2026-11-02
+* **Author:** Lead (EGM brainstorm, DSH)
+* **Date:** 2026-11-02
+* **Status:** concepts brief — revised scope after the owner gate (six Goldfish lenses reviewed)
 
 ## Overview
 
-The Oficio panel in the Team page answers "what does this job change cost me
-and what does it give me?" Today it only lists jobs and stat deltas. The
-player cannot see the target job's four skills, cannot tell which skills they
-already know, and the currently held job was only blocked at the confirm
-button.
-
-The change makes the page a preview: the target job's whole skill ladder on
-screen, unknown skill names masked as `????`, the already-held job
-unselectable, and the stat block shown as **Before → Change → After**.
+The squad cards on the Team page get a real 2-column layout: the 64 px idle
+sprite on the left, and on the right an identity column with three lines —
+**name**, **job + job level**, **character level**. The card stays 88 px tall and
+the grid keeps two cards per row. Navigation stays exactly as today: Party opens
+the party submenu and Squad opens the team page; no route or submenu change is
+part of this work.
 
 ## Analysis
 
-- The player's knowledge must survive characters leaving the party: it is a
-  **player-level memory**, persisted like the place flags (`knownSkills` on the
-  save), not derived per character.
-- The job page shows the **job definition's ladder** (`progression.skills`),
-  never `ownedJobSkills`: ownership decides who can cast a skill in combat;
-  knowledge decides whether the page reveals the name.
-- A recruit that arrives already trained (a `soldier_2` spawn at job level 3)
-  must backfill the memory: `syncKnownSkills()` runs on recruit/job change,
-  after reward xp, on load and when the page opens.
-- The stat columns must agree with each other: `Before` is the live value,
-  `Change = After − Before`, `After = Before − oldJobBonus + newJobBonus`.
+The six review lenses were run against the original (wider) hypothesis. The
+navigation findings are now out of scope, but the card findings still apply:
 
-## Goals vs Non-Goals
+**High — the sprite math must be stated through `SPRITE_BOX`.** Frames are
+16×16; `spriteScaleFor(box, frameWidth)` = box / 16, so a 64 px box is
+**scale 4**, not scale 1. `SPRITE_BOX.squadCard` is 48 today; it becomes 64, the
+sprite box gets `flex: none` so the row cannot shrink it, and the "3× (48 px)"
+comment in `spriteFrames.ts` is updated.
 
-- **In scope:** job ladder with levels; `????` masking; current job disabled;
-  Before/Change/After table; persisted known-skill memory (backfilled).
-- **Out of scope:** the skills catalog redesign (one skill with three levels)
-  — designed in `combat-and-stats.md`, not implemented in this change.
+**High — the selection ring does not render today.** `pixelUI.css` targets
+`.team-card.pixel-cell.is-selected`, but `TeamCard` emits only
+`team-card is-selected` (no `pixel-cell`). The redesign fixes the selector (add
+`pixel-cell` to the root or rename the rule) and verifies the ring visually.
+Note that selecting a card replaces the grid with `TeamData`, so the ring is
+only visible transiently — the redesign must state where it matters (e.g. keep
+the selected card ringed when returning from a detail view).
+
+**Medium — the width budget is tight at 2 cards per row.** Canvas 320 px, card
+~146 px (~142 px inside borders); a 64 px sprite leaves ~70 px for three lines.
+The owner accepted 64 px, so the identity lines use the smallest type sizes,
+`white-space: nowrap` + ellipsis per line, and a zeroed top margin; the risk of
+"Adventurer Lv.1" clipping is documented as accepted, with the 56 px fallback
+noted.
+
+**Medium — `.team-data-identity` is not the block to reuse.** It is a `flex: 1`
+panel column with `margin-top: var(--s3)`, 12 px type and absolutely-positioned
+children. The card gets a new `.team-card-identity` (gap + type + colours
+mirroring the panel), reusing only `.team-data-lv` for the level line.
+
+**Medium — the pending badge detaches.** `.team-card-badge` is absolute inside
+`.battle-card-sprite`, so a left-column sprite drags it into the card's middle.
+It moves to the `.team-card` corner.
+
+**Medium — "job + job level" is undefined for jobless characters.**
+`heldJobOf` is undefined for The Player and `jobLevelOf` falls back to the
+`'none'` bucket returning 1. Formats: job line = `${job.title} · Lv ${jobLevel}`
+when a job is held, otherwise `The Player`; level line = `Lv ${character.experience.level}`
+always. Pending level-up characters keep the ↑ badge.
+
+**Low — no overflow, no pagination needed.** The active party cap is 6 → 3 rows
+= 280 px inside a scrollable grid (~332 px); `.team-grid` already scrolls, so no
+arrows.
+
+**Low — the "THE SQUAD" header stays.** It is the page title and the only "tap a
+character" hint; removing it buys less than one card row. Dead `.squad-card*`
+selectors are not part of this change.
+
+**Low — verification has no DOM harness.** `test/` is engine-only; verification
+is a manual 320×640 walkthrough with the longest names/titles/levels, checking
+the 64 px sprite, no crop, no text overflow and the badge corner.
+
+## Goals vs. Non-Goals
+
+- **In-scope goals:** 2-column card (sprite | identity) at 88 px height; 64 px
+  sprite box via `SPRITE_BOX.squadCard` (scale 4); identity lines name / job +
+  job level / level with ellipsis; new `.team-card-identity` styles; badge on
+  the card corner; visible selection ring; jobless fallback format.
+- **Out-of-scope non-goals:** Party/navigation changes (submenu and Squad stay),
+  removing THE SQUAD header, pagination arrows, roster cap changes, new tests.
 
 ## Alternatives Weighed
 
-- *Derive knowledge from the party on every page load* — rejected: a character
-  that dies or leaves would erase names the player already saw.
-- *Hide unknown skills entirely* — rejected: the player should know a skill
-  exists at level 3/5, just not its name.
-- *Three separate skills per rank (disarm/disarm_2/disarm_3)* — the direction
-  chosen for the catalog redesign is one skill with a level; the page groups
-  the ranks under one row already.
+1. **58 px sprite / two lines** — rejected: the owner wants 64 px and three
+   lines; the risk is accepted with ellipsis and documented.
+2. **One wide card per row** — rejected: the 2-column grid stays.
+3. **Reuse `.team-data-identity`** — rejected: it carries panel spacing and
+   absolutely-positioned children; a dedicated identity block is clearer.
+4. **Remove THE SQUAD header** — rejected: it saves less than a row and loses
+   the only hint text.
+5. **Navigation restructure (Party → squad, Squad removed)** — raised in the
+   original ask, rejected at the owner gate: orphaned Inventory/Misiones and an
+   ambiguous Back target.
 
 ## Key Decisions & Staging
 
-1. `WorldSession.knownSkillIds` (persisted `knownSkills`), `knowsSkill()`,
-   `syncKnownSkills()`; called from `setJob`, reward settlement, save load
-   and the job-page open.
-2. `jobSkillRows()` renders `progression.skills` with name masking.
-3. `jobCompareRows()` renders the three columns.
-4. Dev roguelite flow (`screens/dev/RogueliteScreen.tsx`) exercises the loop:
-   team creation, escalating waves, weapon rewards — implemented and verified.
-5. Skills model redesign (one skill, 3-value arrays indexed by level,
-   description functions) is captured in `combat-and-stats.md` as the next
-   implementation stage.
+1. `SPRITE_BOX.squadCard = 64`; `SPRITE_BOX`-driven scale (4×); `flex: none`.
+2. `.team-card` becomes a 2-column flex row (sprite | identity); unchanged
+   height 88 px; grid unchanged (2 columns).
+3. New `.team-card-identity` with three lines; formats and jobless fallback as
+   above; per-line ellipsis.
+4. Badge anchored to `.team-card`; selection ring selector fixed.
+5. Verification: typecheck, lint, build, and a 320×640 headless screenshot of
+   the team grid with the longest data.
