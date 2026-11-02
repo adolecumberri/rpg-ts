@@ -1,9 +1,9 @@
-/* The job codex dev page: one card per job with the raw data tables.
-   Everything stacks vertically so the 320px canvas never overflows. */
+/* The job codex dev page: one card per job. The page fills the body and
+   scrolls on its own (the body clips overflow). */
 
 .jobdev-page {
-    flex: 1;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     gap: var(--s2);
@@ -69,34 +69,81 @@
     color: var(--text-dim-warm);
 }
 
-.jobdev-grid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s2);
-    min-width: 0;
+/* The stat table: Lv 1 value with the job's bonus, then the growth ratio
+   and the gain per level it resolves to. */
+.jobdev-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-2xs);
 }
 
-.jobdev-cell {
-    font-size: var(--text-2xs);
+.jobdev-th {
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--text-dim);
+    text-align: left;
+    padding: 2px var(--s1);
+    border-bottom: 1px solid var(--line-warm);
+}
+
+.jobdev-th--num {
+    text-align: right;
+}
+
+.jobdev-row:nth-child(even) {
+    background: var(--well-alt);
+}
+
+.jobdev-td {
+    padding: 2px var(--s1);
     color: var(--text-warm);
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-    min-width: 0;
+}
+
+.jobdev-td--num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.jobdev-bonus {
+    color: var(--success);
+    margin-left: var(--s1);
+}
+
+.jobdev-bonus--down {
+    color: var(--danger-soft);
+}
+
+.jobdev-ratio {
+    color: var(--gold-bright);
+}
+
+.jobdev-gain {
+    color: var(--text-dim-warm);
+    margin-left: var(--s1);
+}
+
+.jobdev-foot {
+    font-size: var(--text-2xs);
+    color: var(--text-dim-warm);
+    line-height: 1.4;
+}
+
+.jobdev-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .jobdev-cell--label {
     font-family: var(--font-display);
     font-size: var(--display-2xs);
     color: var(--text-dim);
-    margin-bottom: calc(-1 * var(--s1));
 }
 
-.jobdev-chip {
-    display: inline-block;
-    margin: 0 var(--s1) var(--s1) 0;
-    padding: 0 var(--s1);
-    background: var(--well-alt);
-    border: 1px solid var(--hairline);
+.jobdev-value {
+    font-size: var(--text-2xs);
+    color: var(--text-warm);
+    overflow-wrap: anywhere;
 }
 
 .jobdev-ladder {
@@ -112,7 +159,6 @@
     align-items: baseline;
     padding: 2px 0;
     border-bottom: 1px dotted var(--hairline);
-    min-width: 0;
 }
 
 .jobdev-ladder-level {
@@ -122,11 +168,7 @@
 }
 
 .jobdev-ladder-name {
-    color: var(--text-cream);
-}
-
-.jobdev-ladder-ranks {
-    color: var(--text-dim-warm);
     font-size: var(--text-2xs);
+    color: var(--text-cream);
     overflow-wrap: anywhere;
 }

@@ -2,8 +2,8 @@
    reward offers as the only big click targets. */
 
 .rogue-page {
-    flex: 1;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     gap: var(--s2);

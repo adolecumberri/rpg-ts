@@ -1,45 +1,30 @@
-import { ALL_JOBS, DEFAULT_BASE, resolveGrowth, specOf } from '@core';
-import type { Job } from '@core';
+import { ALL_JOBS, DEFAULT_BASE, DEFAULT_GROWTH_RATE, resolveGrowth, specOf } from '@core';
+import type { Job, StatKey } from '@core';
 import { STAT_CATALOG } from '../../game/statCatalog';
-import type { StatKey } from '../../game/statCatalog';
 import './JobsScreen.css';
 
 // ---------------------------------------------------------------------------
-// The job codex dev page: every job's identity, its level-1 stat bonuses,
-// its growth ratios (with the resolved per-level gain), its weapon/shield
-// rules and its full skill ladder with the three rank specs.
+// The job codex dev page: every job's identity, its stat table (level-1
+// value = DEFAULT_BASE + job bonus, with the growth ratio and its resolved
+// per-level gain) and its skill ladder (titles only).
 // ---------------------------------------------------------------------------
 
-type StatRow = { key: string; label: string };
+type StatRow = { key: StatKey; label: string };
 
 // The stats a job shows: the catalog entries plus the two hp keys that the
 // catalog does not carry.
 const JOB_STATS: StatRow[] = [
     { key: 'hp', label: 'HP' },
     { key: 'totalHp', label: 'Max HP' },
-    ...STAT_CATALOG.map((entry) => ({ key: entry.key as string, label: entry.label })),
+    ...STAT_CATALOG.map((entry) => ({ key: entry.key, label: entry.label })),
 ];
 
 const skillName = (id: string | undefined): string => (id ? specOf(id)?.name ?? id : '—');
-
-/** '4 mp · 1 target' style summary of one rank spec. */
-function rankSummary(id: string): string {
-    const spec = specOf(id);
-    if (!spec) return '—';
-    const parts: string[] = [];
-    parts.push(`${spec.manaCost ?? 0} mp`);
-    if (spec.numberOfTargets && spec.numberOfTargets > 1) parts.push(`${spec.numberOfTargets} targets`);
-    if (spec.hpCostPercent) parts.push(`${spec.hpCostPercent}% hp`);
-    if (spec.targeting !== 'ENEMY') parts.push(spec.targeting.toLowerCase());
-    return parts.join(' · ');
-}
 
 function JobCard({ job }: { job: Job }) {
     const growth = resolveGrowth(job.growth ?? {}).gainPerLevel;
     const ladder = job.progression?.skills ?? [];
     const enhancementAt = job.progression?.enhancementAt ?? [];
-    const bonusOf = (key: string): number => job.statBonuses[key as keyof typeof job.statBonuses] ?? 0;
-    const formatBonus = (value: number): string => (value > 0 ? `+${value}` : String(value));
 
     return (
         <section className="jobdev-card">
@@ -52,64 +37,76 @@ function JobCard({ job }: { job: Job }) {
                 </span>
             </header>
 
-            <div className="jobdev-grid">
-                <div className="jobdev-cell jobdev-cell--label">Level-1 bonuses</div>
-                <div className="jobdev-cell">
+            <table className="jobdev-table">
+                <thead>
+                    <tr>
+                        <th className="jobdev-th">Stat</th>
+                        <th className="jobdev-th jobdev-th--num">Lv 1</th>
+                        <th className="jobdev-th jobdev-th--num">Growth</th>
+                    </tr>
+                </thead>
+                <tbody>
                     {JOB_STATS.map((stat) => {
-                        const bonus = bonusOf(stat.key);
+                        const bonus = job.statBonuses[stat.key] ?? 0;
+                        const ratio = (job.growth ?? {})[stat.key] ?? 1;
+                        const levelOne = (DEFAULT_BASE[stat.key] ?? 0) + bonus;
+                        const gain = growth[stat.key] ?? 0;
                         return (
-                            <span className="jobdev-chip" key={stat.key}>
-                                {stat.label} {formatBonus(bonus)}
-                            </span>
+                            <tr className="jobdev-row" key={stat.key}>
+                                <td className="jobdev-td">{stat.label}</td>
+                                <td className="jobdev-td jobdev-td--num">
+                                    {Math.round(levelOne)}
+                                    {bonus !== 0 ? (
+                                        <span className={`jobdev-bonus${bonus < 0 ? ' jobdev-bonus--down' : ''}`}>
+                                            {bonus > 0 ? '+' : ''}{bonus}
+                                        </span>
+                                    ) : null}
+                                </td>
+                                <td className="jobdev-td jobdev-td--num">
+                                    <span className="jobdev-ratio">×{ratio.toFixed(2)}</span>
+                                    <span className="jobdev-gain">{gain.toFixed(2)}/lvl</span>
+                                </td>
+                            </tr>
                         );
                     })}
-                </div>
+                </tbody>
+            </table>
 
-                <div className="jobdev-cell jobdev-cell--label">Growth ratios</div>
-                <div className="jobdev-cell jobdev-growth">
-                    {JOB_STATS.map((stat) => {
-                        const key = stat.key as StatKey;
-                        const ratio = (job.growth ?? {})[key] ?? 1;
-                        const gain = growth[key] ?? 1;
-                        return (
-                            <span className="jobdev-chip" key={stat.key}>
-                                {stat.label} ×{ratio.toFixed(2)} → {gain.toFixed(1)}/lvl
-                            </span>
-                        );
-                    })}
-                </div>
+            <div className="jobdev-foot">
+                Lv 1 = DEFAULT_BASE + job bonus · Growth = DEFAULT_MAX × {DEFAULT_GROWTH_RATE} / 100
+                × ratio (the ratio multiplies the default gain; it is not added to it).
+            </div>
 
-                <div className="jobdev-cell jobdev-cell--label">Base kit</div>
-                <div className="jobdev-cell">
+            <div className="jobdev-section">
+                <span className="jobdev-cell--label">Base kit</span>
+                <span className="jobdev-value">
                     {job.skillIds.length > 0 ? job.skillIds.map((id) => skillName(id)).join(' · ') : '—'}
-                </div>
+                </span>
+            </div>
 
-                <div className="jobdev-cell jobdev-cell--label">Common base</div>
-                <div className="jobdev-cell">
-                    HP {DEFAULT_BASE.hp} · ATQ {DEFAULT_BASE.attack} · DEF {DEFAULT_BASE.defence}
-                </div>
-
-                <div className="jobdev-cell jobdev-cell--label">Ladder</div>
-                <div className="jobdev-cell jobdev-ladder">
+            <div className="jobdev-section">
+                <span className="jobdev-cell--label">Ladder</span>
+                <div className="jobdev-ladder">
                     {ladder.length === 0 ? (
-                        <span className="jobdev-chip">no ladder</span>
+                        <span className="jobdev-value">no ladder</span>
                     ) : ladder.map((plan) => (
                         <div className="jobdev-ladder-row" key={plan.skillId}>
                             <span className="jobdev-ladder-level">Lv {plan.atJobLevel}</span>
-                            <span className="jobdev-ladder-name">{skillName(plan.skillId)}</span>
-                            <span className="jobdev-ladder-ranks">
-                                {plan.ranks.map((id) => `${skillName(id)} (${rankSummary(id)})`).join('  →  ')}
+                            <span className="jobdev-ladder-name">
+                                {plan.ranks.map((id) => skillName(id)).join(' → ')}
                             </span>
                         </div>
                     ))}
                 </div>
+            </div>
 
-                <div className="jobdev-cell jobdev-cell--label">Mastery</div>
-                <div className="jobdev-cell">
+            <div className="jobdev-section">
+                <span className="jobdev-cell--label">Mastery</span>
+                <span className="jobdev-value">
                     {job.progression ?
                         `${job.progression.masteryTitle} · enhancement picks at levels ${enhancementAt.join(', ')}` :
                         '—'}
-                </div>
+                </span>
             </div>
         </section>
     );
