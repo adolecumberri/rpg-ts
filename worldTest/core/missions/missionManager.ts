@@ -213,7 +213,6 @@ export class MissionManager {
         for (const mission of this.missions.values()) {
             if (mission.hidden) continue; // parked content
             if (!this.monthAllows(mission)) continue; // not the season
-            const entry = this.boardEntry(mission.id);
             const repeatable = Boolean(mission.repeatable);
             const accepted = this.runners.has(mission.id);
             const completedBefore = this.completed.indexOf(mission.id) !== -1;

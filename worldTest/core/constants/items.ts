@@ -184,10 +184,10 @@ export const Items = {
         effects: [{ stat: 'defence', typeOfModification: 'BUFF_FIXED', value: 4 }],
         // The reactive skill travels with the item: equipping attaches
         // the spike shield reaction, unequipping removes it.
-        onEquip: (self, target) => {
+        onEquip: (_self, target) => {
             assignReactiveSkill(target, 'spike_shield');
         },
-        onUnEquip: (self, target) => {
+        onUnEquip: (_self, target) => {
             removeReactiveSkill(target, 'spike_shield');
         },
         skills: [

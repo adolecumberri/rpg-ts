@@ -4,7 +4,6 @@ import {
     hasteStatus,
     rageStatus,
     gateOpenedStatus,
-    berserkStatus,
     fastDrawStatus,
     perceptionStatus,
     weakPointAttackStatus,
@@ -453,7 +452,7 @@ export const Skills: Record<string, SkillSpec> = {
         description: 'Heals 60% of the target\'s hp, capped at 40 hp.',
         targeting: 'ANY',
         numberOfTargets: 1,
-        healFor: (actor, target) =>
+        healFor: (_actor, target) =>
             Math.min(40, Math.round(target.getStat('totalHp') * 0.6 * 100) / 100),
         // The healer answers wounds: whenever the most hurt ally drops
         // below 30% hp, Cure locks on the lowest-hp ally. The shared
@@ -705,7 +704,7 @@ export const Skills: Record<string, SkillSpec> = {
         numberOfTargets: 1,
         dispel: { onAlly: 'negative' },
         manaCost: 6,
-        healFor: (actor, target) => Math.round(target.getStat('totalHp') * 0.15 * 100) / 100,
+        healFor: (_actor, target) => Math.round(target.getStat('totalHp') * 0.15 * 100) / 100,
     },
     nature_salve_3: {
         id: 'nature_salve_3',
@@ -715,7 +714,7 @@ export const Skills: Record<string, SkillSpec> = {
         numberOfTargets: 1,
         dispel: { onAlly: 'negative' },
         manaCost: 4,
-        healFor: (actor, target) => Math.round(target.getStat('totalHp') * 0.25 * 100) / 100,
+        healFor: (_actor, target) => Math.round(target.getStat('totalHp') * 0.25 * 100) / 100,
     },
     focus_the_eyes_2: {
         id: 'focus_the_eyes_2',

@@ -66,6 +66,9 @@ export function JrpgBattleScreen() {
     // The two squads: regenerated whenever a control moves. The seed
     // only reshuffles the Random rows; Cycle and All front are stable.
     const roster = useMemo(() => {
+        // The seed is a re-roll trigger: bumping it rebuilds the squads
+        // (tierFor rolls Math.random for the Random mode).
+        void seed;
         const allies: Character[] = [];
         const enemies: Character[] = [];
         for (let index = 0; index < allyCount; index++) {

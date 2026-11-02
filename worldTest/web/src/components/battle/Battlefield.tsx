@@ -1,31 +1,11 @@
 import { ROWS, reachableRows } from '@core';
 import { BattleCard } from './BattleCard';
+import type { BattleUnit } from '../../game/battleUnits';
 
-/**
- * One fighter shown on the battlefield.
- */
-export type BattleUnit = {
-    id: string;
-    name: string;
-    icon?: string;
-    // A single idle sheet URL, or the unit's own animation set (idle +
-    // attack). The unit owns its references.
-    sprite?: string | { idle: string; attack?: string };
-    row: 'front' | 'center' | 'back';
-    hp: number;
-    maxHp: number;
-    level?: number;
-    // While true the ficha plays the one-shot attack animation.
-    attacking?: boolean;
-    // Extra line under the hp (reach, statuses...).
-    sub?: string;
-};
-
-const ROW_TITLES: Record<BattleUnit['row'], string> = {
-    front: '🛡️ Front',
-    center: '⚔️ Center',
-    back: '🏹 Back',
-};
+// The unit snapshot type lives in game/battleUnits (built by
+// battleUnitOf); re-exported here so battlefield consumers keep their
+// import path.
+export type { BattleUnit };
 
 /**
  * The battlefield panel: a team grouped by formation rows, rendered as
@@ -33,26 +13,20 @@ const ROW_TITLES: Record<BattleUnit['row'], string> = {
  * character highlighted. Screens just pass their data.
  */
 export function Battlefield({
-    title,
     units,
     selectedIds,
     activeId,
     shrink = false,
     side,
 }: {
-    title: string;
     units: BattleUnit[];
     selectedIds?: Set<string>;
     activeId?: string;
     shrink?: boolean;
     side?: 'left' | 'right';
 }) {
-    if (side) {
-
-    }
     return (
-        <div className={`battle-panel battle-panel-${side}`} >
-            {/* <div className="pixel-title">{title}</div> */}
+        <div className={`battle-panel battle-panel-${side}`}>
             {ROWS.map((row) => {
                 const members = units.filter((unit) => unit.row === row);
                 return members.length === 0 ? null : (
@@ -60,12 +34,11 @@ export function Battlefield({
                         {members.map((unit) => (
                             <BattleCard
                                 key={unit.id}
-                                name={unit.name}
                                 hp={unit.hp}
                                 maxHp={unit.maxHp}
-                                sub={unit.sub}
                                 icon={unit.icon}
                                 sprite={unit.sprite}
+                                attackSprite={unit.attackSprite}
                                 level={unit.level}
                                 selected={selectedIds?.has(unit.id) ?? false}
                                 active={unit.id === activeId}

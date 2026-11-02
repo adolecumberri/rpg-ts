@@ -12,7 +12,7 @@ import icons5 from '../../../assets/icons/icons_5.jpg';
  * any render size, so emojis can be replaced by real pixel icons.
  */
 
-export const ICON_SHEETS: Record<number, string> = {
+const ICON_SHEETS: Record<number, string> = {
     1: icons1,
     2: icons2,
     3: icons3,
@@ -20,8 +20,7 @@ export const ICON_SHEETS: Record<number, string> = {
     5: icons5,
 };
 
-export const ICON_SIZE = 32;
-export const ICON_GRID = 10;
+const ICON_GRID = 10;
 
 export type IconId =
     | 'atqFisico'
@@ -44,7 +43,7 @@ export type IconId =
 type IconRef = { sheet: number; row: number; col: number };
 
 // Content map: where each icon lives (1-based rows and cols).
-export const ICONS: Record<IconId, IconRef> = {
+const ICONS: Record<IconId, IconRef> = {
     atqFisico: { sheet: 1, row: 6, col: 3 },
     defence: { sheet: 1, row: 3, col: 1 },
     poderMagico: { sheet: 1, row: 9, col: 1 },

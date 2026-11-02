@@ -11,7 +11,7 @@ import timbretImg from '../../../../assets/maps/icons/timbret.webp';
  * union of its regions in the region mask, so the country index is
  * DERIVED from the region mask at load (see mask.ts).
  */
-export type CountryData = {
+type CountryData = {
     id: CountryId;
     name: string;
     description: string;

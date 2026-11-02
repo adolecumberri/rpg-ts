@@ -732,7 +732,7 @@ export class WorldSession {
 
     /** Moves a live npc from whatever place it is in to another one. */
     private moveNpc(npcId: string, toPlaceId: string): void {
-        for (const [placeId, list] of this.npcs) {
+        for (const [_placeId, list] of this.npcs) {
             const index = list.findIndex((npc) => npc.id === npcId);
             if (index === -1) continue;
             const [npc] = list.splice(index, 1);
@@ -1754,7 +1754,7 @@ export class WorldSession {
 
         // World npcs that are no longer around (recruited/defeated).
         const removedNpcs: string[] = [];
-        for (const [placeId, list] of buildNpcsFromPlaces(PLACES).npcs) {
+        for (const [_placeId, list] of buildNpcsFromPlaces(PLACES).npcs) {
             for (const npc of list) {
                 if (!this.findNpc(npc.id)) removedNpcs.push(npc.id);
             }

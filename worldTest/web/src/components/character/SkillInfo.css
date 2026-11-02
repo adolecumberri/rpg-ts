@@ -29,25 +29,25 @@
 .skill-info--empty {
     align-items: center;
     justify-content: center;
-    font-size: var(--s3);
+    font-size: var(--text-md);
     color: var(--muted);
     text-align: center;
 }
 
 .skill-info-name {
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: var(--s3);
+    font-family: var(--font-display);
+    font-size: var(--display-md);
     color: var(--accent);
     text-shadow: 1px 1px 0 #000;
 }
 
 .skill-info-desc {
-    font-size: var(--s3);
-    color: #d0c5af;
+    font-size: var(--text-md);
+    color: var(--text-muted-warm);
 }
 
 .skill-info-row {
-    font-size: var(--s3);
+    font-size: var(--text-md);
     color: #f6ded1;
 }
 
@@ -63,8 +63,8 @@
 }
 
 .skill-info-next-title {
-    font-size: var(--s2);
-    letter-spacing: 0.6px;
+    font-size: var(--text-2xs);
+    letter-spacing: 0.5px;
     text-transform: uppercase;
-    color: #4ade80;
+    color: var(--success);
 }

@@ -2,8 +2,7 @@
    pixelUI.css — the pixel-art design system.
    Everything here is designed against the fixed 320x640 canvas and sized
    in UI units: 1 unit (--u) = 4 canvas pixels, and the whole canvas is
-   multiplied by the live --ui-scale. Imported AFTER index.css so it
-   overrides the legacy layout.
+   multiplied by the live --ui-scale.
 
    CSS ownership rule:
    - A class used by TWO OR MORE components lives here (the design
@@ -108,6 +107,59 @@ f2ca50 // acento
     --def-true: #ffffff;
     --def-gold: #fde68a;
 
+    /* The warm browns used by the inventory wells, mission rows, modal
+       bodies and their text. One token per shade: every screen reads
+       the same palette. */
+    --well: #251911;            /* inventory rows, team page band */
+    --well-alt: #2a1d15;        /* mission rows */
+    --modal-bg: #1a0e08;        /* modal bodies */
+    --inset-warm: #45362d;      /* inset bevel highlight on warm rows */
+    --line-warm: #35271f;       /* warm separators and hover wells */
+    --hairline: #050202;        /* outer 1px hairline of the buttons */
+    --text-warm: #eedbcc;       /* body text on warm panels */
+    --text-dim: #99907c;        /* muted captions */
+    --text-muted-warm: #d0c5af; /* secondary warm text (table heads) */
+    --text-cream: #f6ded1;      /* inventory row text */
+    --paper: #f3e7be;           /* modal titles */
+    --gold-strong: #d4af37;     /* gold borders and active tabs */
+    --gold-bright: #ffd966;     /* tooltip / highlight gold */
+    /* The modal/pick overlay shade: every overlay dims the page with
+       the same alpha. */
+    --overlay: rgba(0, 0, 0, 0.5);
+
+    /* Typography: three faces for the whole UI (the brand face keeps the
+       FFTA outline, the body face is the reading font, the display face
+       is the chunky heading font). */
+    --font-display: 'Press Start 2P', var(--font-pixel);
+    --font-body: 'VT323', var(--font-pixel);
+    --font-icon: 'Material Symbols Outlined', sans-serif;
+
+    /* The type scale (2px steps). Body: 8/9/10/12/14/16/20.
+       Display (Press Start renders wider): micro chip 7, eyebrow 9,
+       small 10, md 13, lg 14, xl 16, hero 20. */
+    --text-2xs: 8px;
+    --text-xs: 9px;
+    --text-sm: 10px;
+    --text-md: 12px;
+    --text-lg: 14px;
+    --text-xl: 16px;
+    --text-2xl: 20px;
+    --display-2xs: 7px;
+    --display-xs: 9px;
+    --display-sm: 10px;
+    --display-md: 13px;
+    --display-lg: 14px;
+    --display-xl: 16px;
+    --display-hero: 20px;
+
+    /* Text colours that were raw hexes before the typography sweep. */
+    --success: #4ade80;
+    --danger-soft: #f87171;
+    --info: #60a5fa;
+    --text-link: #b7c6ee;
+    --text-warm-bright: #fef3c7;
+    --text-dim-warm: #6f6657;
+
 
 
     --radius: 14px;
@@ -171,8 +223,8 @@ f2ca50 // acento
 }
 
 .pixel-font {
-    font-family: var(--font-pixel, ui-monospace, 'Cascadia Mono', 'Courier New', monospace);
-    letter-spacing: 0.4px;
+    font-family: var(--font-pixel);
+    letter-spacing: 0.5px;
 
     text-shadow: 1px 0 0 #000,
         0 1px 0 #000,
@@ -188,8 +240,67 @@ f2ca50 // acento
     padding: var(--s2);
 }
 
+/* ---------------------------------------------------------------------------
+   THE TEXT ROLES. Every screen picks a role instead of styling text ad
+   hoc: one face, one size, one colour per role. The sizes come from the
+   type scale tokens; the faces from the font tokens.
+     .pixel-title    headings (display face, gold)
+     .pixel-subtitle small uppercase section labels (body face, muted)
+     .pixel-label    row/field labels (body face, warm)
+     .pixel-body     reading copy (body face, default)
+     .pixel-caption  secondary notes (body face, muted)
+     .pixel-value    numbers/inline values (body face, gold)
+--------------------------------------------------------------------------- */
+.pixel-text {
+    font-family: var(--font-body);
+    font-size-adjust: none;
+    text-shadow: none;
+    letter-spacing: 0;
+    color: var(--text);
+}
+
+.pixel-title {
+    font-family: var(--font-display);
+    font-size: var(--display-md);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+}
+
+.pixel-subtitle {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+}
+
+.pixel-label {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-warm);
+}
+
+.pixel-body {
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--text);
+}
+
+.pixel-caption {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--muted);
+}
+
+.pixel-value {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--gold-strong);
+}
+
 .pixel-panel .pixel-title {
-    font-size: calc(var(--u) * 2.5);
+    font-size: var(--text-sm);
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -219,7 +330,7 @@ f2ca50 // acento
         inset -2px -2px 0 0 #1a0a0a,
         inset 3px 3px 0 0 rgba(255, 255, 255, 0.08),
         inset -3px -3px 0 0 rgba(0, 0, 0, 0.6),
-        0 0 0 1px #050202;
+        0 0 0 1px var(--hairline);
     image-rendering: pixelated;
     transition: none;
     cursor: pointer;
@@ -238,7 +349,7 @@ f2ca50 // acento
     box-shadow:
         inset -2px -2px 0 0 #613333,
         inset 2px 2px 0 0 #0e0505,
-        0 0 0 1px #050202;
+        0 0 0 1px var(--hairline);
 }
 
 .pixel-btn:disabled {
@@ -253,7 +364,7 @@ f2ca50 // acento
     box-shadow:
         inset 2px 2px 0 0 #638c45,
         inset -2px -2px 0 0 #111a0c,
-        0 0 0 1px #050202;
+        0 0 0 1px var(--hairline);
 }
 
 .pixel-btn--primary:hover:not(:disabled) {
@@ -265,7 +376,7 @@ f2ca50 // acento
     box-shadow:
         inset -2px -2px 0 0 #527538,
         inset 2px 2px 0 0 #090e06,
-        0 0 0 1px #050202;
+        0 0 0 1px var(--hairline);
 }
 
 /* Danger: a hot red bevel. */
@@ -275,7 +386,7 @@ f2ca50 // acento
     box-shadow:
         inset 2px 2px 0 0 #8a4444,
         inset -2px -2px 0 0 #180707,
-        0 0 0 1px #050202;
+        0 0 0 1px var(--hairline);
 }
 
 .pixel-btn--danger:hover:not(:disabled) {
@@ -288,16 +399,16 @@ f2ca50 // acento
     box-shadow:
         inset -2px -2px 0 0 #613333,
         inset 2px 2px 0 0 #0e0505,
-        0 0 0 1px #050202;
+        0 0 0 1px var(--hairline);
 }
 
 .pixel-chip {
     display: inline-flex;
     align-items: center;
     gap: var(--s1);
-    font-size: var(--s3);
+    font-size: var(--text-md);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
     padding: calc(var(--s1) / 2) var(--s2);
     background: var(--card);
     color: var(--text);
@@ -310,9 +421,6 @@ f2ca50 // acento
     align-items: center;
     justify-content: center;
     font-size: var(--s8);
-    /* background: var(--card); */
-    /* border: var(--s1) solid #000; */
-    /* box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--border); */
     margin-top: var(--s1);
 }
 
@@ -323,7 +431,7 @@ f2ca50 // acento
 }
 
 /* A picked target: the panel cell mirrors the bar selection. */
-.pixel-cell--selected {
+.pixel-cell.is-selected {
     border-color: var(--accent);
     box-shadow: inset 0 0 0 calc(var(--s1) / 2) var(--accent), 0 0 0 var(--s1) rgba(245, 185, 66, 0.35);
 }
@@ -336,7 +444,7 @@ f2ca50 // acento
 .battle-card {
     flex-direction: column;
     gap: calc(var(--s1) / 2);
-    font-size: var(--s3);
+    font-size: var(--text-md);
 }
 
 .battle-card--dead {
@@ -344,37 +452,27 @@ f2ca50 // acento
 }
 
 .battle-card-icon {
-    font-size: var(--s4);
+    font-size: var(--text-xl);
     line-height: 1;
 }
 
-.battle-card-name {
-    font-size: calc(var(--u) * 2.25);
-    line-height: 1.1;
-}
+
 
 .battle-card-sub {
-    font-size: calc(var(--u) * 2.25);
+    font-size: var(--text-xs);
     color: var(--muted);
     line-height: 1.1;
 }
 
-/* The 64x16 idle sheet (4 frames of 16x16, side by side), rendered at
-   32x32 per frame with a stepped horizontal slide: 0, -32, -64, -96.
-   Fixed pixels in the keyframes (no var/calc): interpolating values
-   that depend on CSS variables can silently drop the steps() easing
-   and tween the slide instead of jumping between frames. The sprite
-   plays as two stacked layers â€” idle below, attack above â€” so both
-   sheets load once and the swing only flips opacity. */
+/* The sprite box: its size comes from the sprite data + SPRITE_BOX
+   (inline style); the CSS owns only the chrome. The sprite plays as
+   two stacked layers (idle below, attack above) so both sheets load
+   once and the swing only flips opacity. */
 .battle-card-sprite {
-    position: relative;
-    width: 32px;
-    height: 32px;
-    background-size: calc(var(--s8) * 4) var(--s8);
+    position: relative;
     background-repeat: no-repeat;
     background-position: 0 0;
     image-rendering: pixelated;
-    animation: sprite-idle 0.8s steps(4) infinite;
 }
 
 .battle-card--dead .battle-card-sprite {
@@ -387,15 +485,8 @@ f2ca50 // acento
     /* drop-shadow(0 0 4px #bcdfdf) drop-shadow(0 0 12px #f6ff00) drop-shadow(0 0 25px #e5ff00); */
 }
 
-@keyframes sprite-idle {
-    0% {
-        background-position: 0 0;
-    }
-
-    100% {
-        background-position: calc(var(--s8) * -4) 0;
-    }
-}
+/* The frame geometry (sheet width, frame size, stepping) comes from the
+   SpriteAnimation data via spriteFrameStyle: the CSS only owns the box. */
 
 .battle-grid-pixel {
     display: grid;
@@ -405,8 +496,7 @@ f2ca50 // acento
 }
 
 /* ---------------------------------------------------------------------------
-   The main UI shell: the clean-room chrome for the design, independent
-   from the legacy header/screens (which stay reachable at ?ui=0).
+   The main UI shell: the chrome every screen renders inside (the only UI � the old header/screens were removed).
 --------------------------------------------------------------------------- */
 .newui-shell {
     height: 100%;
@@ -476,18 +566,14 @@ f2ca50 // acento
 }
 
 .newui-header-region {
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 9px;
-    font-size-adjust: none;
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
     color: #ffbf60;
     letter-spacing: -0.5px;
-    text-shadow: none;
 }
 
 .newui-header-zone {
-    font-size: 8px;
-    font-size-adjust: none;
-    text-shadow: none;
+    font-size: var(--text-2xs);
     color: #ef4444;
     background: #450a0a;
     padding: 0 var(--s1);
@@ -498,11 +584,9 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     gap: var(--s2);
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: var(--s3);
-    font-size-adjust: none;
-    color: #fef3c7;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-warm-bright);
 }
 
 .newui-header-day {
@@ -524,7 +608,7 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     gap: calc(var(--s1) / 2);
-    color: #facc15;
+    color: var(--gold-bright);
 }
 
 .newui-header-season {
@@ -543,20 +627,17 @@ f2ca50 // acento
 
 .newui-header-logo-name {
     display: block;
-    font-size: 9px;
-    font-size-adjust: none;
+    font-size: var(--text-xs);
     line-height: 1.2;
     color: #f59e0b;
     text-shadow: 1px 1px 0 #000;
 }
 
 .newui-header-save {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 10px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
     letter-spacing: 0.5px;
     color: #6ee7b7;
-    text-shadow: none;
 }
 
 .newui-body {
@@ -566,12 +647,11 @@ f2ca50 // acento
     overflow-x: hidden;
 }
 
-/* The page container of the new UI (replaces the legacy .screen). */
+/* The page container of the UI: one column inside .newui-body. */
 .newui-page {
     display: flex;
     flex-direction: column;
     gap: var(--s2);
-    /* padding: var(--s2); */
 }
 
 /* The team page's central band (stitch view 1): the dark brown well
@@ -585,7 +665,7 @@ f2ca50 // acento
     flex-direction: column;
     justify-content: space-between;
     overflow: hidden;
-    background: #251911;
+    background: var(--well);
     padding: var(--s2) calc(var(--u) * 2.5);
 
 }
@@ -598,7 +678,7 @@ f2ca50 // acento
 .pixel-modal-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--overlay);
     z-index: calc(40 + var(--modal-layer, 0) * 2 - 2);
 }
 
@@ -627,7 +707,7 @@ f2ca50 // acento
 }
 
 .pixel-modal-title {
-    font-size: var(--s3);
+    font-size: var(--text-md);
     letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--accent);
@@ -640,7 +720,7 @@ f2ca50 // acento
     align-items: center;
     justify-content: center;
     font-family: inherit;
-    font-size: var(--s3);
+    font-size: var(--text-md);
     background: var(--card);
     color: var(--text);
     cursor: pointer;
@@ -706,12 +786,11 @@ f2ca50 // acento
 
 .action-bar--lg {
     --bar-row: var(--s12);
-    /* padding: var(--s4) 0; */
 }
 
 .action-bar-hint {
     margin: var(--s1) var(--s2) 0;
-    font-size: var(--s3);
+    font-size: var(--text-md);
     color: var(--accent);
     text-align: center;
     padding: var(--s1);
@@ -724,30 +803,24 @@ f2ca50 // acento
     display: grid;
     gap: 0;
     align-content: start;
+    /* Every bar row is the SAME fixed height, whatever the layout
+       (rows / grid / banner / pinned): the buttons take their height
+       from the row, never from their content — the source of the old
+       48px-vs-39.4px mismatch. */
+    grid-auto-rows: var(--bar-row, var(--s12));
 }
 
 .action-bar-grid--rows {
     /* minmax(0, 1fr): the track never grows with the content, so the
        buttons keep their fixed width and the labels ellipsize. */
     grid-template-columns: minmax(0, 1fr);
-    grid-auto-rows: var(--bar-row, var(--s12));
 }
 
 .action-bar-grid--grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    /* grid-auto-rows: var(--bar-row, var(--s16)); */
     gap: var(--s1);
     padding: var(--s1) var(--s1) 0;
     border-bottom: var(--s1) solid var(--border);
-
-}
-
-/* The fixed-row variant: empty rows keep their height, so a button
-   pinned to a lower slot (the mission page's wide AtrÃ¡s on slot 5)
-   stays at the bottom of the bar instead of closing up against the
-   row above. */
-.action-bar-grid--fixed-rows {
-    grid-auto-rows: var(--bar-row, var(--s12));
 }
 
 /* The banner: a text spanning the first two slots of the first page
@@ -760,7 +833,7 @@ f2ca50 // acento
     justify-content: center;
     height: var(--bar-row, var(--s12));
     padding: 0 var(--s2);
-    font-size: var(--s3);
+    font-size: var(--text-md);
     letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--accent);
@@ -800,15 +873,15 @@ f2ca50 // acento
 }
 
 .action-btn--sm {
-    font-size: var(--s3);
+    font-size: var(--text-md);
 }
 
 .action-btn--md {
-    font-size: calc(var(--u) * 3.5);
+    font-size: var(--text-lg);
 }
 
 .action-btn--lg {
-    font-size: var(--s5);
+    font-size: var(--text-2xl);
     /* No fixed height: the grid rows size the buttons (the design's
        tray lets the row own the height). */
 }
@@ -825,11 +898,11 @@ f2ca50 // acento
     background: #17100a;
     border: 1px solid var(--gold);
     padding: var(--s1) var(--s2);
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: calc(var(--u) * 3);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
     line-height: 1.15;
     text-align: center;
-    color: var(--gold-bright, #ffd966);
+    color: var(--gold-bright);
     white-space: normal;
     text-transform: none;
     opacity: 0;
@@ -870,15 +943,15 @@ f2ca50 // acento
 }
 
 .action-btn--sm .action-btn-icon {
-    font-size: var(--s3);
+    font-size: var(--text-md);
 }
 
 .action-btn--md .action-btn-icon {
-    font-size: var(--s4);
+    font-size: var(--text-xl);
 }
 
 .action-btn--lg .action-btn-icon {
-    font-size: var(--s4);
+    font-size: var(--text-xl);
 }
 
 /* The text column: main label + muted sub-label. */
@@ -911,12 +984,10 @@ f2ca50 // acento
 /* The button text typography (google-stitch): a big amber title and a
    small uppercase caption under it, in the VT323 terminal font. */
 .action-btn-title {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: calc(var(--u) * 4.5);
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
     line-height: 1;
-    color: #fef3c7;
-    text-shadow: none;
+    color: var(--text-warm-bright);
 }
 
 .action-btn:hover:not(:disabled) .action-btn-title {
@@ -924,29 +995,27 @@ f2ca50 // acento
 }
 
 .action-btn--sm .action-btn-title {
-    font-size: var(--s3);
+    font-size: var(--text-md);
 }
 
 .action-btn--md .action-btn-title {
-    font-size: calc(var(--u) * 3.5);
+    font-size: var(--text-lg);
 }
 
 .action-btn-caption {
     width: 100%;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: calc(var(--u) * 2.5);
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
     color: rgba(253, 230, 138, 0.5);
     text-transform: uppercase;
-    text-shadow: none;
-    letter-spacing: 0.025em;
+    letter-spacing: 0.5px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .action-btn--sm .action-btn-caption {
-    font-size: calc(var(--u) * 2.25);
+    font-size: var(--text-xs);
 }
 
 /* The icon box: a fixed 1em square so characters (emoji, â€¹, â€º) and
@@ -983,7 +1052,7 @@ f2ca50 // acento
 }
 
 .action-btn-check {
-    font-size: 0.9em;
+    font-size: var(--text-xs);
     margin-left: auto;
 }
 
@@ -997,9 +1066,9 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 7px;
-    color: #170c05;
+    font-family: var(--font-display);
+    font-size: var(--display-2xs);
+    color: var(--bg-darker);
     background: var(--accent);
     border: 2px solid #000;
     box-shadow: 0 0 6px rgba(242, 202, 80, 0.8);
@@ -1041,7 +1110,7 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     gap: var(--s1);
-    font-size: var(--s3);
+    font-size: var(--text-md);
     font-weight: 700;
     text-shadow: calc(var(--s1) / 2) calc(var(--s1) / 2) 0 #000;
     white-space: nowrap;
@@ -1054,7 +1123,6 @@ f2ca50 // acento
    inline from the component; the class only clips the text. */
 .floating-damage--composite {
     color: transparent;
-    text-shadow: none;
     filter: drop-shadow(calc(var(--s1) / 2) calc(var(--s1) / 2) 0 #000);
 }
 
@@ -1062,12 +1130,12 @@ f2ca50 // acento
 .floating-damage--text {
     color: #cfd8e3;
     font-style: italic;
-    letter-spacing: 0.08em;
+    letter-spacing: 1px;
 }
 
 .floating-damage-crit,
 .floating-damage-glyph {
-    font-size: var(--s3);
+    font-size: var(--text-md);
     line-height: 1;
 }
 
@@ -1097,47 +1165,13 @@ f2ca50 // acento
     position: relative;
 }
 
-.fight-arena {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-}
-
-/* Actions fights: the arena splits in two fixed half-page panels (one
-   team each) with the full-size fichas laid out in adaptive rows. */
-.fight-arena--actions {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s2);
-    overflow: hidden;
-}
-
-.actions-panel {
-    flex: 1 1 50%;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-    overflow-y: auto;
-    background: var(--card-2);
-    box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s1) var(--s1) 0 rgba(0, 0, 0, 0.55);
-    padding: var(--s2);
-}
-
-.actions-row {
-    display: flex;
-    justify-content: space-between;
-    margin: 0 var(--s2);
-    flex: none;
-}
-
 .fight-overlay {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--overlay);
     z-index: 10;
 }
 
@@ -1157,13 +1191,13 @@ f2ca50 // acento
     max-height: 80%;
     overflow-y: auto;
     padding: var(--s3);
-    background: #1a0e08;
+    background: var(--modal-bg);
 }
 
 .fight-end-title {
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 14px;
-    color: #f3e7be;
+    font-family: var(--font-display);
+    font-size: var(--display-lg);
+    color: var(--paper);
     text-shadow: 1px 1px 0 #000;
     margin-bottom: var(--s1);
 }
@@ -1176,7 +1210,7 @@ f2ca50 // acento
     display: flex;
     flex-direction: column;
     gap: 2px;
-    border-top: 1px solid #35271f;
+    border-top: 1px solid var(--line-warm);
     padding-top: var(--s1);
 }
 
@@ -1184,10 +1218,9 @@ f2ca50 // acento
     display: flex;
     justify-content: space-between;
     gap: var(--s2);
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 13px;
-    font-size-adjust: none;
-    color: #eedbcc;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--text-warm);
 }
 
 .fight-end-row-name {
@@ -1207,10 +1240,9 @@ f2ca50 // acento
 }
 
 .fight-end-message {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 12px;
-    font-size-adjust: none;
-    color: #99907c;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-dim);
     margin-top: var(--s1);
 }
 
@@ -1225,12 +1257,11 @@ f2ca50 // acento
 
 .pixel-input {
     font-family: inherit;
-    font-size: var(--s3);
+    font-size: var(--text-md);
     height: var(--s10);
     background: var(--card);
     color: var(--text);
     border: var(--s1) solid #000;
-    /* box-shadow: inset 0 0 0 var(--s1) var(--border); */
     padding: 0 var(--s2);
     width: var(--s14);
     box-sizing: border-box;
@@ -1239,24 +1270,6 @@ f2ca50 // acento
 .pixel-input:focus {
     outline: none;
     box-shadow: inset 0 0 0 var(--s1) var(--accent);
-}
-
-.army-line {
-    display: flex;
-    align-items: center;
-    gap: var(--s2);
-    margin-bottom: var(--s2);
-    padding: var(--s1) var(--s2);
-    background: var(--card);
-    font-size: var(--s3);
-}
-
-.army-line-text {
-    flex: 1;
-}
-
-.army-line-row {
-    color: var(--muted);
 }
 
 /* The damages test bench: the fixed preview panel where the spawned
@@ -1276,11 +1289,9 @@ f2ca50 // acento
 .battle-card-sprite-layer {
     position: absolute;
     inset: 0;
-    background-size: calc(var(--s8) * 4) var(--s8);
     background-repeat: no-repeat;
     background-position: 0 0;
     image-rendering: pixelated;
-    animation: sprite-idle 0.8s steps(4) infinite;
 }
 
 .battle-card-sprite-layer--attack {
@@ -1291,9 +1302,7 @@ f2ca50 // acento
     opacity: 1;
 }
 
-/* The game toast in the new UI (the legacy MessageBox is not mounted
-   here): floats under the header, above the pages, action bars AND
-   the modals (their layers sit at 40+). */
+/* The game toast: floats under the header, above the pages, the action bars AND the modals (their layers sit at 40+). */
 .newui-toast {
     position: absolute;
     left: 50%;
@@ -1306,7 +1315,7 @@ f2ca50 // acento
     color: var(--text);
     border: var(--s1) solid #000;
     box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s2) var(--s2) 0 rgba(0, 0, 0, 0.7);
-    font-size: var(--s3);
+    font-size: var(--text-md);
     text-align: center;
     pointer-events: none;
     white-space: normal;
@@ -1349,12 +1358,11 @@ f2ca50 // acento
 }
 
 .place-card-title {
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 13px;
+    font-family: var(--font-display);
+    font-size: var(--display-md);
     /* The pixel-font shell's font-size-adjust would shrink the 8x8
        grid font; the design renders it at its natural size. */
-    font-size-adjust: none;
-    letter-spacing: 0.025em;
+    letter-spacing: 0.5px;
     color: #fbbf24;
     text-shadow: 1px 1px 0 #000000;
     white-space: nowrap;
@@ -1363,24 +1371,20 @@ f2ca50 // acento
 }
 
 .place-card-subtitle {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: var(--s3);
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
     text-transform: uppercase;
-    letter-spacing: 0.025em;
-    text-shadow: none;
+    letter-spacing: 0.5px;
     color: rgba(253, 230, 138, 0.6);
     white-space: nowrap;
     flex: none;
 }
 
 .place-card-desc {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: calc(var(--u) * 3.75);
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
     line-height: var(--s4);
-    letter-spacing: 0.025em;
-    text-shadow: none;
+    letter-spacing: 0.5px;
     color: #dec7b5;
     margin: 0 0 var(--s2);
 }
@@ -1401,7 +1405,7 @@ f2ca50 // acento
     display: flex;
     flex-direction: column;
     background: rgba(23, 12, 5, 0.96);
-    box-shadow: inset 0 0 0 2px #403229, inset 0 0 0 4px #1c1109;
+    box-shadow: inset 0 0 0 2px var(--border-light), inset 0 0 0 4px #1c1109;
 }
 
 .menu-overlay-head {
@@ -1417,19 +1421,17 @@ f2ca50 // acento
     align-items: center;
     gap: var(--s1);
     min-width: 0;
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 12px;
-    font-size-adjust: none;
-    letter-spacing: 0.05em;
+    font-family: var(--font-display);
+    font-size: var(--display-md);
+    letter-spacing: 0.5px;
     color: var(--accent);
-    text-shadow: none;
     white-space: nowrap;
     overflow: hidden;
 }
 
 .menu-overlay-title .material-symbol {
     flex: none;
-    font-size: 12px;
+    font-size: var(--text-md);
 }
 
 /* The red error-container close square: hard 2px offset shadow that
@@ -1444,17 +1446,17 @@ f2ca50 // acento
     border: none;
     background: #93000a;
     color: #ffdad6;
-    font-size: 14px;
+    font-size: var(--text-lg);
     line-height: 1;
     font-family: inherit;
-    box-shadow: 2px 2px 0 #403229;
+    box-shadow: 2px 2px 0 var(--border-light);
     cursor: pointer;
     margin-right: calc(var(--s1) / 2);
 }
 
 .tactical-close-btn:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 #403229;
+    box-shadow: 1px 1px 0 var(--border-light);
 }
 
 /* The submenu back square in the overlay head: the same hard offset
@@ -1468,23 +1470,23 @@ f2ca50 // acento
     place-items: center;
     padding: 0;
     border: none;
-    background: #2a1d15;
+    background: var(--well-alt);
     color: var(--accent);
-    font-size: 14px;
+    font-size: var(--text-lg);
     line-height: 1;
     font-family: inherit;
-    box-shadow: 2px 2px 0 #403229;
+    box-shadow: 2px 2px 0 var(--border-light);
     cursor: pointer;
     margin-right: var(--s1);
 }
 
 .tactical-back-btn:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 #403229;
+    box-shadow: 1px 1px 0 var(--border-light);
 }
 
 .tactical-back-btn .material-symbol {
-    font-size: 14px;
+    font-size: var(--text-lg);
 }
 
 .menu-overlay-list {
@@ -1505,15 +1507,15 @@ f2ca50 // acento
     margin: 0;
     padding: 3px;
     border: none;
-    background: #2a1d15;
-    box-shadow: inset 1px 1px 0 #45362d, inset -1px -1px 0 var(--bg-darker);
+    background: var(--well-alt);
+    box-shadow: inset 1px 1px 0 var(--inset-warm), inset -1px -1px 0 var(--bg-darker);
     text-align: left;
     cursor: pointer;
     font-family: inherit;
 }
 
 .tactical-menu-row:hover {
-    background: #35271f;
+    background: var(--line-warm);
 }
 
 .tactical-menu-row:active {
@@ -1527,7 +1529,7 @@ f2ca50 // acento
 }
 
 .tactical-menu-row:disabled:hover {
-    background: #2a1d15;
+    background: var(--well-alt);
 }
 
 .tactical-menu-row:disabled .tactical-icon-frame,
@@ -1548,7 +1550,7 @@ f2ca50 // acento
     color: var(--accent);
     /* The glyph fills the 26px frame (the design's 13px glyph left the
        box half empty). */
-    font-size: calc(var(--u) * 5);
+    font-size: var(--text-2xl);
 }
 
 .tactical-menu-text {
@@ -1568,12 +1570,10 @@ f2ca50 // acento
 
 .tactical-menu-title {
     min-width: 0;
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 12px;
-    font-size-adjust: none;
-    letter-spacing: 0.025em;
+    font-family: var(--font-display);
+    font-size: var(--display-md);
+    letter-spacing: 0.5px;
     color: var(--accent);
-    text-shadow: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1581,22 +1581,18 @@ f2ca50 // acento
 
 .tactical-menu-number {
     flex: none;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 9px;
-    font-size-adjust: none;
-    letter-spacing: 0.05em;
-    color: #99907c;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
 }
 
 .tactical-menu-caption {
     min-width: 0;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 9px;
-    font-size-adjust: none;
-    letter-spacing: 0.025em;
-    color: #d0c5af;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    letter-spacing: 0.5px;
+    color: var(--text-muted-warm);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1635,22 +1631,18 @@ f2ca50 // acento
 }
 
 .squad-card-title {
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 9px;
-    font-size-adjust: none;
-    letter-spacing: 0.05em;
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    letter-spacing: 0.5px;
     color: #e5a840;
-    text-shadow: none;
     margin-bottom: var(--s1);
 }
 
 .squad-card-text {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
-    letter-spacing: 0.025em;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
+    letter-spacing: 0.5px;
     color: #d4b595;
-    text-shadow: none;
     line-height: 1;
 }
 
@@ -1681,9 +1673,9 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 8px;
-    color: #170c05;
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: var(--bg-darker);
     background: var(--accent);
     border: 2px solid #000;
     box-shadow: 0 0 6px rgba(242, 202, 80, 0.8);
@@ -1711,19 +1703,17 @@ f2ca50 // acento
 }
 
 /* The picked card keeps its bevels under a gold ring. */
-.team-card.pixel-cell--selected {
+.team-card.pixel-cell.is-selected {
     border-color: var(--accent);
     box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512, inset 0 0 0 2px var(--accent);
 }
 
 .team-card-name {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
     font-weight: 700;
-    letter-spacing: 0.05em;
-    color: #f7e6d4;
-    text-shadow: none;
+    letter-spacing: 0.5px;
+    color: var(--text-cream);
     line-height: 1;
     max-width: 100%;
     overflow: hidden;
@@ -1734,11 +1724,9 @@ f2ca50 // acento
 }
 
 .team-card-job {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 13px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
     color: #e0a86d;
-    text-shadow: none;
     line-height: 1;
     max-width: 100%;
     overflow: hidden;
@@ -1762,8 +1750,6 @@ f2ca50 // acento
     width: var(--s32);
     display: flex;
     flex-direction: column;
-    /* padding: var(--s1); */
-    /* margin: 0px var(--s3); */
     box-sizing: border-box;
     background: #552723;
     border: 2px solid #180908;
@@ -1781,7 +1767,7 @@ f2ca50 // acento
 .team-data-portrait-name {
     margin-bottom: var(--s1);
     text-align: center;
-    font-size: var(--s3);
+    font-size: var(--text-md);
     font-weight: 700;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1797,10 +1783,7 @@ f2ca50 // acento
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    /* background: var(--card-2); */
     padding: var(--s2);
-    /* box-shadow: inset 2px 2px 0 0 rgba(255, 200, 160, 0.28), inset -2px -2px 0 0 rgba(0, 0, 0, 0.75), inset 4px 4px 0 0 rgba(255, 255, 255, 0.1), inset -2px -2px 0 0 rgba(10, 2, 2, 0.9); */
-    /* border: 0px solid black; */
 }
 
 .team-data-identity {
@@ -1811,41 +1794,28 @@ f2ca50 // acento
     gap: var(--s1);
     color: var(--text);
     margin-top: var(--s3);
-    font-size: var(--s3);
+    font-size: var(--text-md);
 }
 
 .team-data-identity>div {
-    font-size: var(--s3);
+    font-size: var(--text-md);
 }
 
 .team-data-lv {
     color: var(--accent);
     font-weight: 700;
-    /* margin-right: var(--s1); */
 }
 
 .team-data-hp {
     color: var(--ally-hp-bar);
     font-weight: 700;
-    /* margin-right: var(--s1); */
 }
 
 .team-data-mp {
     color: var(--mana-bar);
     font-weight: 700;
-    /* margin-right: var(--s1); */
 }
 
-
-/* The vitals as the shared StatBar bars: hp, mana and the level
-   progress (xp / xp-to-next-level), stacked under the identity lines. */
-.team-data-bars {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s1);
-    width: calc(var(--u) * 24);
-    margin-top: 2px;
-}
 
 /* The formation view (the team page's Posición): the battlefield with
    the team's three columns standing on the ground; tapping a unit
@@ -1880,9 +1850,9 @@ f2ca50 // acento
 
 .position-column-title {
     text-align: center;
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 8px;
-    color: #d4af37;
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: var(--gold-strong);
     text-shadow: 1px 1px 0 #000;
 }
 
@@ -1914,7 +1884,7 @@ f2ca50 // acento
 }
 
 .position-unit--selected {
-    border-color: #d4af37;
+    border-color: var(--gold-strong);
     background: #2b1a0e;
     box-shadow: 0 0 6px rgba(212, 175, 55, 0.45);
 }
@@ -1922,7 +1892,7 @@ f2ca50 // acento
 .position-unit-sprite {
     width: 24px;
     height: 24px;
-    background-size: 96px 24px;
+    background-repeat: no-repeat;
     background-position: 0 0;
     image-rendering: pixelated;
 }
@@ -1932,10 +1902,9 @@ f2ca50 // acento
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 12px;
-    font-size-adjust: none;
-    color: #eedbcc;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-warm);
 }
 
 .team-data-split {
@@ -1956,14 +1925,14 @@ f2ca50 // acento
     gap: var(--s1);
     padding: var(--s2);
     background: var(--bg-darker);
-    box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 #35271f;
+    box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 var(--line-warm);
 }
 
 .team-data-stats-title {
-    font-size: calc(var(--u) * 2);
+    font-size: var(--text-2xs);
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: #99907c;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
     margin-bottom: 2px;
 }
 
@@ -1971,19 +1940,19 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     gap: var(--s1);
-    font-size: var(--s3);
+    font-size: var(--text-md);
     padding: 2px 0;
 }
 
 .team-stat-icon {
     flex: none;
-    font-size: var(--s2);
+    font-size: var(--text-2xs);
 }
 
 .team-stat-name {
     flex: 1;
     min-width: 0;
-    color: #b7c6ee;
+    color: var(--text-link);
 }
 
 .team-stat-value {
@@ -1991,14 +1960,14 @@ f2ca50 // acento
     width: var(--s5);
     text-align: right;
     font-weight: 700;
-    font-size: calc(var(--u) * 2.75);
+    font-size: var(--text-md);
     color: var(--accent);
 }
 
 /* A stat the item does not change reads flat/muted. */
 .team-stat-value--flat {
     font-weight: 400;
-    color: #99907c;
+    color: var(--text-dim);
 }
 
 /* The job-change delta next to a stat value: green when the new job
@@ -2007,16 +1976,16 @@ f2ca50 // acento
     flex: none;
     width: var(--s5);
     text-align: right;
-    font-size: calc(var(--u) * 2.75);
-    color: #99907c;
+    font-size: var(--text-md);
+    color: var(--text-dim);
 }
 
 .team-stat-delta--up {
-    color: #4ade80;
+    color: var(--success);
 }
 
 .team-stat-delta--down {
-    color: #f87171;
+    color: var(--danger-soft);
 }
 
 /* The job view (Oficio): the character's stats ledger under the
@@ -2036,9 +2005,9 @@ f2ca50 // acento
 }
 
 .job-view-title {
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 10px;
-    color: #f3e7be;
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    color: var(--paper);
     text-shadow: 1px 1px 0 #000;
 }
 
@@ -2056,7 +2025,7 @@ f2ca50 // acento
    (dark container, inverted bevel, hairline rows, gold names). */
 .team-data-block {
     background: var(--bg-darker);
-    box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 #35271f;
+    box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 var(--line-warm);
     padding: var(--s2);
     display: flex;
     flex-direction: column;
@@ -2064,10 +2033,10 @@ f2ca50 // acento
 }
 
 .team-data-block-title {
-    font-size: calc(var(--u) * 2);
-    color: #99907c;
+    font-size: var(--text-2xs);
+    color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     margin-bottom: 2px;
 }
 
@@ -2075,10 +2044,10 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     gap: var(--s1);
-    font-size: var(--s3);
+    font-size: var(--text-md);
     line-height: 1.4;
     padding: 2px 0;
-    box-shadow: 0 1px 0 0 #251911;
+    box-shadow: 0 1px 0 0 var(--well);
 }
 
 .equip-line:last-child {
@@ -2098,7 +2067,7 @@ f2ca50 // acento
 .equip-line-empty {
     flex: 1;
     min-width: 0;
-    color: #99907c;
+    color: var(--text-dim);
     font-style: italic;
 }
 
@@ -2130,7 +2099,7 @@ f2ca50 // acento
     width: var(--s6);
     height: var(--s8);
     padding: 0;
-    font-size: var(--s4);
+    font-size: var(--text-xl);
     box-shadow: none;
     border: none;
     background: none;
@@ -2144,7 +2113,6 @@ f2ca50 // acento
 
 .inv-tab.pixel-btn--primary {
     filter: none;
-    /* box-shadow: inset 0 0 0 var(--s1) var(--border); */
 }
 
 /* The centered full-width modal (the equipment picker). Full canvas
@@ -2184,11 +2152,11 @@ f2ca50 // acento
     gap: var(--s2);
     padding: var(--s1) 0;
     border-bottom: none;
-    box-shadow: 0 1px 0 0 #403229;
-    font-size: calc(var(--u) * 2.25);
-    color: #b7c6ee;
+    box-shadow: 0 1px 0 0 var(--border-light);
+    font-size: var(--text-xs);
+    color: var(--text-link);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.5px;
 }
 
 .inv-head-spacer {
@@ -2207,17 +2175,12 @@ f2ca50 // acento
     text-align: right;
 }
 
-.inv-head-action {
-    flex: none;
-    width: var(--s12);
-}
-
 .inv-count {
     flex: none;
     width: var(--s8);
     text-align: right;
-    color: #f6ded1;
-    font-size: calc(var(--u) * 2.75);
+    color: var(--text-cream);
+    font-size: var(--text-md);
 }
 
 /* The equipment view: the picker panel rendered inline at the top of
@@ -2273,7 +2236,7 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--s3);
+    font-size: var(--text-md);
     color: var(--muted);
     text-align: center;
 }
@@ -2286,7 +2249,7 @@ f2ca50 // acento
     gap: var(--s1);
     padding: var(--s2);
     background: var(--bg-darker);
-    box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 #35271f;
+    box-shadow: inset 2px 2px 0 #0e0703, inset -1px -1px 0 var(--line-warm);
     overflow-y: auto;
 }
 
@@ -2297,18 +2260,18 @@ f2ca50 // acento
 }
 
 .inventory-skill-name {
-    font-size: var(--s3);
+    font-size: var(--text-md);
     font-weight: 700;
     color: var(--accent);
 }
 
 .inventory-skill-desc {
-    font-size: var(--s3);
-    color: #d0c5af;
+    font-size: var(--text-md);
+    color: var(--text-muted-warm);
 }
 
 .inventory-skill-empty {
-    font-size: var(--s3);
+    font-size: var(--text-md);
     color: var(--muted);
 }
 
@@ -2317,10 +2280,9 @@ f2ca50 // acento
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: #251911;
+    background: var(--well);
     border: var(--s1) solid #000;
     box-sizing: border-box;
-    /* box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s2) var(--s2) 0 rgba(0, 0, 0, 0.7); */
 }
 
 /* ---- The shop styled as stitch view 1 ---- */
@@ -2332,8 +2294,8 @@ f2ca50 // acento
 }
 
 .equip-picker .pixel-modal-title {
-    font-size: calc(var(--u) * 2.75);
-    letter-spacing: 0.05em;
+    font-size: var(--text-md);
+    letter-spacing: 0.5px;
     color: var(--accent);
     text-transform: uppercase;
 }
@@ -2348,7 +2310,7 @@ f2ca50 // acento
     width: calc(var(--u) * 5);
     height: calc(var(--u) * 5);
     background: var(--bg-darker);
-    color: #d0c5af;
+    color: var(--text-muted-warm);
     filter: none;
 }
 
@@ -2357,7 +2319,7 @@ f2ca50 // acento
 }
 
 .equip-picker .inv-tab.pixel-btn--primary {
-    background: #35271f;
+    background: var(--line-warm);
     color: var(--accent);
     box-shadow: inset 1px 1px 0 var(--accent);
 }
@@ -2381,22 +2343,22 @@ f2ca50 // acento
 
 .equip-actions .pixel-btn {
     flex: 1;
-    font-size: calc(var(--u) * 2.25);
+    font-size: var(--text-xs);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 1px;
     padding: var(--s1) var(--s2);
 }
 
 .equip-actions .pixel-btn--danger {
-    background: #403229;
-    border-color: #403229;
-    color: #d0c5af;
+    background: var(--border-light);
+    border-color: var(--border-light);
+    color: var(--text-muted-warm);
     box-shadow: inset 1px 1px 0 #4d4635, inset -1px -1px 0 var(--bg-darker);
 }
 
 .equip-actions .pixel-btn--danger:hover:not(:disabled) {
-    background: #35271f;
-    border-color: #35271f;
+    background: var(--line-warm);
+    border-color: var(--line-warm);
 }
 
 .equip-actions .equip-go {
@@ -2408,8 +2370,8 @@ f2ca50 // acento
 }
 
 .equip-actions .equip-go:hover:not(:disabled) {
-    background: #d4af37;
-    border-color: #d4af37;
+    background: var(--gold-strong);
+    border-color: var(--gold-strong);
 }
 
 /* Item rows (view 1): dark wells with a 1px groove inset, gold names.
@@ -2419,10 +2381,10 @@ f2ca50 // acento
     align-items: center;
     gap: var(--s2);
     padding: var(--s1);
-    background: #251911;
+    background: var(--well);
     box-shadow: inset 1px 1px 0 var(--bg-darker);
-    font-size: calc(var(--u) * 2.5);
-    color: #f6ded1;
+    font-size: var(--text-sm);
+    color: var(--text-cream);
     cursor: pointer;
 }
 
@@ -2433,14 +2395,14 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--s2);
+    font-size: var(--text-2xs);
     background: none;
 }
 
 /* A raw Material Symbol inside the icon box (the skills rows) keeps
    the same visual size as the pixel Icon component. */
 .inv-item-icon .material-symbol {
-    font-size: var(--s4);
+    font-size: var(--text-xl);
 }
 
 .inv-item-info {
@@ -2470,29 +2432,10 @@ f2ca50 // acento
 
 /* The tapped row: a gold accent bar on the left marks the preview,
    even when the item cannot be equipped. */
-.inv-item-row--preview {
+.inv-item-row.is-selected,
+.item-page-row.is-selected {
     background: rgba(245, 185, 66, 0.15);
     box-shadow: inset var(--s1) 0 0 var(--accent);
-}
-
-/* ---------------------------------------------------------------------------
-   The skills view (the character section): the skill rows take the top
-   half, the SkillInfo panel the inferior part of the middle container.
-   (Owned by components/character/SkillInfo.css.)
---------------------------------------------------------------------------- */
-
-.status-row {
-    margin-bottom: var(--s2);
-}
-
-.status-name {
-    font-size: var(--s3);
-    font-weight: 700;
-}
-
-.status-desc {
-    font-size: 11px;
-    color: var(--muted);
 }
 
 /* The game's pixel fonts (bundled from worldTest/assets/fonts).
@@ -2502,7 +2445,7 @@ f2ca50 // acento
 @font-face {
     font-family: 'FFTA';
     src: url('../../assets/fonts/ffta.ttf') format('truetype');
-    font-weight: normal;
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
@@ -2510,7 +2453,7 @@ f2ca50 // acento
 @font-face {
     font-family: 'FFTA2';
     src: url('../../assets/fonts/ffta2.otf') format('opentype');
-    font-weight: normal;
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
@@ -2523,7 +2466,7 @@ f2ca50 // acento
     font-family: 'FFTA';
     src: url('../../assets/fonts/Zilvertype.ttf') format('truetype');
     unicode-range: U+0030-0039, U+002B-002F, U+0025, U+00D7;
-    font-weight: normal;
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
@@ -2538,10 +2481,9 @@ f2ca50 // acento
     background: #1a0c0c;
     border: var(--s1) solid #522929;
     border-radius: 0;
-    color: #eedbcc;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 13px;
-    font-size-adjust: none;
+    color: var(--text-warm);
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
     padding: var(--s1) var(--s2);
     outline: none;
 }
@@ -2564,11 +2506,9 @@ f2ca50 // acento
 .dlg-row-title {
     flex: 1;
     min-width: 0;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
     color: var(--accent);
-    text-shadow: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2590,17 +2530,18 @@ f2ca50 // acento
 /* The dev items page: one row per catalog item (icon frame, name,
    description and the compact stat line), grouped by category. */
 .item-page-row {
+    /* The warm section-row recipe (shared with the mission rows). */
+    background: var(--well-alt);
+    box-shadow: inset 1px 1px 0 var(--inset-warm), inset -1px -1px 0 var(--bg-darker);
+    padding: var(--s1);
+    box-sizing: border-box;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
     display: flex;
     align-items: flex-start;
     gap: 6px;
-    width: 100%;
     margin: 0 0 var(--s1);
-    padding: var(--s1);
-    box-sizing: border-box;
-    background: #2a1d15;
-    box-shadow: inset 1px 1px 0 #45362d, inset -1px -1px 0 #170c05;
-    text-align: left;
-    font-family: inherit;
 }
 
 .item-page-row:last-child {
@@ -2613,10 +2554,10 @@ f2ca50 // acento
     height: 26px;
     display: grid;
     place-items: center;
-    background: #170c05;
+    background: var(--bg-darker);
     box-shadow: inset 1px 1px 0 #000;
     color: var(--accent);
-    font-size: var(--s4);
+    font-size: var(--text-xl);
 }
 
 .item-page-info {
@@ -2628,22 +2569,18 @@ f2ca50 // acento
 }
 
 .item-page-name {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
     color: var(--accent);
-    text-shadow: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .item-page-desc {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
-    color: #d0c5af;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-muted-warm);
 }
 
 /* The definition mark-language colors (LoL-style item text):
@@ -2670,13 +2607,11 @@ f2ca50 // acento
 }
 
 .item-page-stats {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 10px;
-    font-size-adjust: none;
-    color: #99907c;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-shadow: none;
+    letter-spacing: 0.5px;
 }
 
 /* The mission page: the three tabs and the mission table (Title, Lvl,
@@ -2692,12 +2627,10 @@ f2ca50 // acento
     justify-content: center;
     text-align: center;
     /* The white design text on the beveled buttons. */
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
-    color: #f7e6d4;
-    letter-spacing: 0.05em;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
+    color: var(--text-cream);
+    letter-spacing: 0.5px;
 }
 
 .mission-table {
@@ -2711,38 +2644,39 @@ f2ca50 // acento
     grid-template-columns: minmax(0, 1fr) 36px 60px 48px;
     gap: var(--s1);
     padding: 0 var(--s1);
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
-    color: #99907c;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-shadow: none;
+    letter-spacing: 0.5px;
 }
 
 .mission-row {
+    /* The warm section-row recipe (shared with the dev item rows):
+       the same well and double inset hairlines, only the layout
+       differs. */
+    background: var(--well-alt);
+    box-shadow: inset 1px 1px 0 var(--inset-warm), inset -1px -1px 0 var(--bg-darker);
+    padding: var(--s1);
+    box-sizing: border-box;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 36px 60px 48px;
     gap: var(--s1);
     align-items: center;
-    width: 100%;
     margin: 0;
-    padding: var(--s1);
-    box-sizing: border-box;
     border: none;
-    background: #2a1d15;
-    box-shadow: inset 1px 1px 0 #45362d, inset -1px -1px 0 #170c05;
-    text-align: left;
     cursor: pointer;
-    font-family: inherit;
 }
 
 .mission-row:hover {
-    background: #35271f;
+    background: var(--line-warm);
 }
 
 .mission-row:active {
-    background: #f2ca50;
+    background: var(--accent);
 }
 
 .mission-cell {
@@ -2753,11 +2687,9 @@ f2ca50 // acento
     display: flex;
     align-items: center;
     gap: var(--s1);
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
-    color: #f2ca50;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
+    color: var(--accent);
 }
 
 .mission-title-text {
@@ -2768,28 +2700,24 @@ f2ca50 // acento
 
 .mission-check {
     flex: none;
-    color: #f2ca50;
+    color: var(--accent);
 }
 
 .mission-cell--num {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 13px;
-    font-size-adjust: none;
-    color: #eedbcc;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--text-warm);
     text-align: right;
 }
 
 .mission-cell--gold {
-    color: #f2ca50;
+    color: var(--accent);
 }
 
 .mission-table-empty {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 13px;
-    font-size-adjust: none;
-    color: #99907c;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--text-dim);
     padding: var(--s2) var(--s1);
 }
 
@@ -2801,12 +2729,10 @@ f2ca50 // acento
 }
 
 .mission-detail-line {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 14px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
     line-height: 1.2;
-    color: #eedbcc;
-    text-shadow: none;
+    color: var(--text-warm);
 }
 
 .mission-detail-section {
@@ -2814,39 +2740,33 @@ f2ca50 // acento
 }
 
 .mission-detail-label {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
-    color: #99907c;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-shadow: none;
+    letter-spacing: 0.5px;
     margin-bottom: 2px;
 }
 
 .mission-detail-item {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 14px;
-    font-size-adjust: none;
-    color: #eedbcc;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--text-warm);
 }
 
 .mission-detail-gold {
-    color: #f2ca50;
+    color: var(--accent);
 }
 
 .mission-detail-text {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 13px;
-    font-size-adjust: none;
-    color: #d0c5af;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--text-muted-warm);
     margin-bottom: var(--s1);
 }
 
 .mission-detail-season {
-    color: #f2ca50;
+    color: var(--accent);
 }
 
 .mission-detail-place {
@@ -2856,11 +2776,9 @@ f2ca50 // acento
 }
 
 .mission-detail-place-name {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
-    color: #f2ca50;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
+    color: var(--accent);
 }
 
 .mission-members {
@@ -2870,16 +2788,14 @@ f2ca50 // acento
 }
 
 .mission-member-icon {
-    color: #f2ca50;
-    font-size: 14px;
+    color: var(--accent);
+    font-size: var(--text-lg);
 }
 
 .mission-members-count {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 14px;
-    font-size-adjust: none;
-    color: #f2ca50;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--accent);
 }
 
 /* One editable line: side toggle + text row, img row under it. */
@@ -2909,12 +2825,10 @@ f2ca50 // acento
 .dlg-editor-label {
     flex: none;
     width: var(--s6);
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
     color: rgba(253, 230, 138, 0.5);
-    letter-spacing: 0.05em;
-    text-shadow: none;
+    letter-spacing: 0.5px;
 }
 
 /* The dev player: a relative anchor the shared MessageLineView (the
@@ -2992,17 +2906,17 @@ f2ca50 // acento
 }
 
 .dialog-prompt-speaker {
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: var(--s3);
+    font-family: var(--font-display);
+    font-size: var(--display-md);
     color: var(--accent);
     text-shadow: 2px 2px 0 #000;
 }
 
 .dialog-prompt-text {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: var(--s5);
+    font-family: var(--font-body);
+    font-size: var(--text-2xl);
     line-height: 1.2;
-    color: #f3e7be;
+    color: var(--paper);
     text-shadow: 1px 1px 0 #000;
 }
 
@@ -3017,7 +2931,6 @@ f2ca50 // acento
     gap: var(--s2);
     padding: var(--s2) var(--s3);
     background: rgba(23, 12, 5, 0.96);
-    /* box-shadow: inset 0 0 0 2px #403229, inset 0 0 0 4px #1c1109; */
     cursor: pointer;
     text-align: left;
 }
@@ -3032,17 +2945,15 @@ f2ca50 // acento
     object-fit: cover;
     image-rendering: pixelated;
     background: var(--bg-darker);
-    box-shadow: inset 0 0 0 2px #403229;
+    box-shadow: inset 0 0 0 2px var(--border-light);
 }
 
 .messagebox--side-left .messagebox-portrait {
-    /* left: var(--s2); */
     left: 0px;
 
 }
 
 .messagebox--side-right .messagebox-portrait {
-    /* right: var(--s2); */
     right: 0px;
 }
 
@@ -3059,7 +2970,7 @@ f2ca50 // acento
     display: grid;
     place-items: center;
     color: var(--accent);
-    font-size: var(--s5);
+    font-size: var(--text-2xl);
 }
 
 .messagebox-body {
@@ -3079,13 +2990,11 @@ f2ca50 // acento
 
 .messagebox-speaker {
     min-width: 0;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
     color: var(--accent);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
-    text-shadow: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3099,27 +3008,23 @@ f2ca50 // acento
 }
 
 .messagebox-counter {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
-    color: #99907c;
-    letter-spacing: 0.05em;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
 }
 
 .messagebox-next {
     color: var(--accent);
-    font-size: var(--s4);
+    font-size: var(--text-xl);
 }
 
 .messagebox-text {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
     line-height: 1.25;
-    letter-spacing: 0.025em;
-    color: #eedbcc;
-    text-shadow: none;
+    letter-spacing: 0.5px;
+    color: var(--text-warm);
     white-space: pre-wrap;
     max-height: calc(var(--s16) * 2);
     overflow-y: auto;
@@ -3130,7 +3035,7 @@ f2ca50 // acento
 @font-face {
     font-family: 'VT323';
     src: url('../../assets/fonts/VT323.woff2') format('woff2');
-    font-weight: normal;
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
@@ -3139,7 +3044,7 @@ f2ca50 // acento
 @font-face {
     font-family: 'Press Start 2P';
     src: url('../../assets/fonts/PressStart2P.woff2') format('woff2');
-    font-weight: normal;
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
@@ -3149,17 +3054,117 @@ f2ca50 // acento
 @font-face {
     font-family: 'Material Symbols Outlined';
     src: url('../../assets/fonts/MaterialSymbolsOutlined.woff2') format('woff2');
-    font-weight: normal;
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
 
+
+/* The body-text base: every rule below renders the reading face
+   (VT323) and needs no size adjust — one declaration instead of one
+   per rule. */
+.newui-header-region,
+.newui-header-zone,
+.newui-header-stats,
+.newui-header-logo-name,
+.newui-header-save,
+/* The button text typography (google-stitch): a big amber title and a small uppercase caption under it, in the VT323 terminal font. */ .action-btn-title,
+.action-btn-caption,
+.fight-end-row,
+.fight-end-message,
+.place-card-title,
+.place-card-subtitle,
+.place-card-desc,
+.menu-overlay-title,
+.tactical-menu-title,
+.tactical-menu-number,
+.tactical-menu-caption,
+.squad-card-title,
+.squad-card-text,
+.team-card-name,
+.team-card-job,
+.position-unit-name,
+/* --------------------------------------------------------------------------- The dialogs dev page: text inputs, the line editor rows and the dialogue player (portrait + bubble, side by side). --------------------------------------------------------------------------- */ .dev-input,
+/* The dialog list titles: mission/chat names are long, so they use the terminal font at a size that fits the 320px rows (the menu's Press Start 2P titles overflowed here). */ .dlg-row-title,
+.item-page-name,
+.item-page-desc,
+.item-page-stats,
+.mission-tabs .pixel-btn,
+.mission-table-head,
+.mission-cell--title,
+.mission-cell--num,
+.mission-table-empty,
+.mission-detail-line,
+.mission-detail-label,
+.mission-detail-item,
+.mission-detail-text,
+.mission-detail-place-name,
+.mission-members-count,
+.dlg-editor-label,
+.messagebox-speaker,
+.messagebox-counter,
+.messagebox-text,
+.report-title,
+.report-close,
+/* The design's button heights: 20px team tabs, 16px section tabs. */ .report-tabs .pixel-btn,
+/* The active team's totals, under the team tabs. */ .report-side-total,
+.report-columns,
+.report-col,
+.report-row,
+.report-total,
+.report-detail,
+.report-empty {
+    font-size-adjust: none;
+}
+
+/* The body-text base: no outline shadow on the reading face
+   (only the brand face keeps its FFTA outline). */
+.newui-header-region,
+.newui-header-zone,
+.newui-header-stats,
+.newui-header-save,
+/* The button text typography (google-stitch): a big amber title and a small uppercase caption under it, in the VT323 terminal font. */ .action-btn-title,
+.action-btn-caption,
+/* The composite hit (guinsoo): one final number whose fill is a gradient split by each component's share. The gradient itself comes inline from the component; the class only clips the text. */ .floating-damage--composite,
+.place-card-subtitle,
+.place-card-desc,
+.menu-overlay-title,
+.tactical-menu-title,
+.tactical-menu-number,
+.tactical-menu-caption,
+.squad-card-title,
+.squad-card-text,
+.team-card-name,
+.team-card-job,
+/* The dialog list titles: mission/chat names are long, so they use the terminal font at a size that fits the 320px rows (the menu's Press Start 2P titles overflowed here). */ .dlg-row-title,
+.item-page-name,
+.item-page-desc,
+.item-page-stats,
+.mission-tabs .pixel-btn,
+.mission-table-head,
+.mission-cell--title,
+.mission-cell--num,
+.mission-table-empty,
+.mission-detail-line,
+.mission-detail-label,
+.mission-detail-item,
+.mission-detail-text,
+.mission-detail-place-name,
+.mission-members-count,
+.dlg-editor-label,
+.messagebox-speaker,
+.messagebox-counter,
+.messagebox-text,
+.report-row,
+.report-detail {
+    text-shadow: none;
+}
 .material-symbol {
-    font-family: 'Material Symbols Outlined';
-    font-weight: normal;
+    font-family: var(--font-icon);
+    font-weight: 400;
     font-style: normal;
     line-height: 1;
-    letter-spacing: normal;
+    letter-spacing: 0;
     text-transform: none;
     display: inline-block;
     white-space: nowrap;
@@ -3246,11 +3251,10 @@ f2ca50 // acento
 }
 
 .report-title {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xl);
     color: var(--accent);
-    letter-spacing: 0.1em;
+    letter-spacing: 1px;
     text-transform: uppercase;
 }
 
@@ -3265,10 +3269,9 @@ f2ca50 // acento
     background: #2d1313;
     border: 1px solid #5a2e2e;
     box-shadow: inset 0 1px 0 0 #542727, inset 0 -1px 0 0 #140606;
-    color: #f87171;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 14px;
-    font-size-adjust: none;
+    color: var(--danger-soft);
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
     cursor: pointer;
 }
 
@@ -3287,29 +3290,27 @@ f2ca50 // acento
     justify-content: center;
     height: var(--s5);
     padding: 0 var(--s2);
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 12px;
-    font-size-adjust: none;
-    color: #f7e6d4;
-    letter-spacing: 0.05em;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-cream);
+    letter-spacing: 0.5px;
     text-align: center;
     white-space: nowrap;
 }
 
 .report-tabs--sections .pixel-btn {
     height: var(--s4);
-    font-size: 10px;
-    letter-spacing: 0.03em;
-    color: #d0c5af;
+    font-size: var(--text-sm);
+    letter-spacing: 0.5px;
+    color: var(--text-muted-warm);
 }
 
 /* The active team's totals, under the team tabs. */
 .report-side-total {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 12px;
-    font-size-adjust: none;
-    color: #99907c;
-    letter-spacing: 0.02em;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
     text-align: right;
     white-space: nowrap;
     margin-bottom: var(--s1);
@@ -3329,11 +3330,10 @@ f2ca50 // acento
     padding: 2px var(--s1);
     background: #260f0f;
     border-bottom: 1px solid #3e1616;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 9px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
     color: #9e7a60;
-    letter-spacing: 0.08em;
+    letter-spacing: 1px;
     text-transform: uppercase;
 }
 
@@ -3346,9 +3346,8 @@ f2ca50 // acento
     min-width: 26px;
     text-align: right;
     white-space: nowrap;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 12px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
 }
 
 .report-row {
@@ -3359,11 +3358,9 @@ f2ca50 // acento
     cursor: pointer;
     text-align: left;
     box-sizing: border-box;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 13px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
     color: #e8c69c;
-    text-shadow: none;
 }
 
 .report-row:hover {
@@ -3395,7 +3392,7 @@ f2ca50 // acento
 }
 
 .report-bar--magical {
-    background: #60a5fa;
+    background: var(--info);
 }
 
 .report-bar--true {
@@ -3403,7 +3400,7 @@ f2ca50 // acento
 }
 
 .report-bar--heal {
-    background: #4ade80;
+    background: var(--success);
 }
 
 /* The column value colors. */
@@ -3412,7 +3409,7 @@ f2ca50 // acento
 }
 
 .report-mag {
-    color: #60a5fa;
+    color: var(--info);
 }
 
 .report-true {
@@ -3420,7 +3417,7 @@ f2ca50 // acento
 }
 
 .report-heal {
-    color: #4ade80;
+    color: var(--success);
 }
 
 .report-total {
@@ -3428,9 +3425,8 @@ f2ca50 // acento
     padding: var(--s1);
     background: #250d0d;
     border-top: 1px solid #441a1a;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
 }
 
 .report-total .report-col {
@@ -3440,7 +3436,7 @@ f2ca50 // acento
 .report-total-label {
     color: #b48c68;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 1px;
 }
 
 .report-kinds {
@@ -3455,15 +3451,13 @@ f2ca50 // acento
     margin: 2px 0 var(--s1);
     padding: var(--s1) var(--s2);
     background: var(--bg-darker);
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
-    color: #99907c;
-    text-shadow: none;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-dim);
 }
 
 .report-detail-label {
-    color: #6f6657;
+    color: var(--text-dim-warm);
 }
 
 .report-detail> :not(.report-detail-label) {
@@ -3472,728 +3466,8 @@ f2ca50 // acento
 }
 
 .report-empty {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 12px;
-    font-size-adjust: none;
-    color: #6f6657;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-dim-warm);
     padding: 2px var(--s1);
-}
-
-/* Story dialogue choices: the prompt and its option buttons, shown by
-   the message box when the current line carries choices. */
-.messagebox-choice-box {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s2);
-    padding: var(--s3);
-    background: var(--card-2);
-    border: var(--s1) solid #000;
-    box-shadow: inset 0 0 0 var(--s1) var(--border), var(--s1) var(--s1) 0 rgba(0, 0, 0, 0.55);
-}
-
-.messagebox-choice-speaker {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 12px;
-    font-size-adjust: none;
-    color: var(--accent);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.messagebox-choice-prompt {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 15px;
-    font-size-adjust: none;
-    color: #f7e6d4;
-    line-height: 1.35;
-    text-shadow: none;
-}
-
-.messagebox-choices {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s2);
-}
-
-.messagebox-choices .pixel-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--s1) var(--s2);
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 14px;
-    font-size-adjust: none;
-    color: #f7e6d4;
-    letter-spacing: 0.04em;
-}
-
-/* ---------------------------------------------------------------------------
-   The JRPG pseudo-3D tactical arena (the small-battle view, adapted from
-   the design-stitch code_fight reference): tilted FFTA2-grid floor, three
-   depth tiers for the combatant sprites, micro hp bars, the active-turn
-   cursor, the turn-order strip and the 2x2 tactical command tray.
---------------------------------------------------------------------------- */
-.jrpg-fight .floating-damage-layer {
-    z-index: 45;
-}
-
-.jrpg-combat {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    background: #0c0604;
-    overflow: hidden;
-}
-
-.jrpg-arena {
-    position: relative;
-    flex: 1;
-    min-height: var(--s100);
-    overflow: hidden;
-    background: radial-gradient(circle at 50% 30%, #2a150c 0%, #120904 65%, #080302 100%);
-    perspective: 500px;
-    perspective-origin: 50% 25%;
-}
-
-/* The camera: a GPU-composited CSS transform over the scenery and the
-   sprites. It zooms out to fit the whole formation (the fighter count
-   drives it), while the turn strip and the vignette stay fixed. */
-.jrpg-camera {
-    position: absolute;
-    inset: 0;
-    transform-origin: 0 0;
-    transition: transform 0.35s cubic-bezier(0.34, 1.3, 0.64, 1);
-}
-
-.jrpg-backdrop-wall {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: var(--s48);
-    background:
-        radial-gradient(circle at 20% 40%, rgba(229, 155, 35, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
-        linear-gradient(to bottom, #110804 0%, #1a0e07 60%, transparent 100%);
-    pointer-events: none;
-    z-index: 1;
-}
-
-.jrpg-ember {
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    background: #ffb703;
-    box-shadow: 0 0 4px #fb8500;
-    opacity: 0.8;
-    pointer-events: none;
-    animation: jrpg-ember-float 6s infinite linear;
-}
-
-@keyframes jrpg-ember-float {
-    0% {
-        transform: translateY(180px) translateX(0);
-        opacity: 0;
-    }
-
-    30% {
-        opacity: 0.8;
-    }
-
-    80% {
-        opacity: 0.6;
-    }
-
-    100% {
-        transform: translateY(-20px) translateX(25px);
-        opacity: 0;
-    }
-}
-
-.jrpg-ground {
-    position: absolute;
-    width: 380px;
-    height: 380px;
-    left: -30px;
-    top: 50px;
-    transform: rotateX(60deg) translateZ(0);
-    transform-origin: 50% 65%;
-    background:
-        repeating-linear-gradient(0deg, rgba(70, 38, 20, 0.85) 0px, rgba(70, 38, 20, 0.85) 24px, rgba(50, 26, 13, 0.85) 24px, rgba(50, 26, 13, 0.85) 48px),
-        repeating-linear-gradient(90deg, rgba(212, 175, 55, 0.08) 0px, rgba(212, 175, 55, 0.08) 1px, transparent 1px, transparent 24px);
-    border: 2px solid #5a3016;
-    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8), 0 15px 30px rgba(0, 0, 0, 0.9);
-}
-
-.jrpg-skirmish-line {
-    position: absolute;
-    width: 2px;
-    height: 100%;
-    left: 50%;
-    background: linear-gradient(to bottom, transparent, rgba(212, 175, 55, 0.4) 30%, rgba(255, 217, 102, 0.8) 50%, rgba(212, 175, 55, 0.4) 70%, transparent);
-    box-shadow: 0 0 6px rgba(255, 217, 102, 0.5);
-}
-
-.jrpg-sprites-layer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 10;
-}
-
-/* The debug sections overlay (the dev battle page): one translucent
-   colored box per depth tier and side, drawn over the sprites, where
-   the current formation places its fighters. Clicks pass through. */
-.jrpg-sections-layer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 20;
-}
-
-.jrpg-section {
-    position: absolute;
-    border: 1px dashed rgba(255, 255, 255, 0.65);
-}
-
-.jrpg-section--front {
-    background: rgba(239, 68, 68, 0.14);
-}
-
-.jrpg-section--center {
-    background: rgba(59, 130, 246, 0.14);
-}
-
-.jrpg-section--back {
-    background: rgba(34, 197, 94, 0.14);
-}
-
-.jrpg-section-label {
-    position: absolute;
-    top: 2px;
-    left: 4px;
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow: 1px 1px 0 #000;
-}
-
-.jrpg-active-tile {
-    position: absolute;
-    width: 48px;
-    height: 48px;
-    /* The tile lies on the tilted ground (rotateX 60deg squashes the
-       vertical axis by cos60 = 0.5); centered on the unit's feet. */
-    transform: translate(-50%, -50%) scaleY(0.5);
-    border: 2px solid #ffd966;
-    background: rgba(212, 175, 55, 0.25);
-    box-shadow: 0 0 10px rgba(255, 217, 102, 0.5);
-    animation: jrpg-tile-pulse 1.6s infinite ease-in-out;
-    pointer-events: none;
-    z-index: 1;
-}
-
-/* The actor tile's spot is set inline from the unit's real arena
-   position (tier fan included), so it always sits under the acting
-   character's feet. */
-.jrpg-active-tile--actor {}
-
-.jrpg-active-tile--target {
-    border-color: #ef4444;
-    background: rgba(239, 68, 68, 0.25);
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-}
-
-@keyframes jrpg-tile-pulse {
-
-    0%,
-    100% {
-        border-color: rgba(255, 217, 102, 0.9);
-    }
-
-    50% {
-        border-color: rgba(255, 217, 102, 0.4);
-    }
-}
-
-.jrpg-entity {
-    position: absolute;
-    transform: translate(-50%, -100%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-    pointer-events: auto;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s;
-}
-
-/* The entity's total scale is floored at 1.5: the sprites are 16x16px
-   native and render at 24x24px, and neither the crowd shrink
-   (--jrpg-unit-scale) nor the section collapse (--jrpg-shrink) may
-   ever render them smaller. */
-.jrpg-depth-far {
-    transform: translate(-50%, -100%) scale(max(1.5, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
-    z-index: 12;
-    filter: brightness(0.85) contrast(0.95);
-}
-
-.jrpg-depth-mid {
-    transform: translate(-50%, -100%) scale(max(1.5, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
-    z-index: 15;
-    filter: brightness(0.95);
-}
-
-.jrpg-depth-front {
-    transform: translate(-50%, -100%) scale(max(1.5, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
-    z-index: 20;
-    filter: brightness(1.1);
-}
-
-.jrpg-entity--active {
-    filter: drop-shadow(0 0 6px #ffe066) brightness(1.2);
-}
-
-.jrpg-entity--targeted {
-    filter: drop-shadow(0 0 6px #ff5a5a) brightness(1.1);
-}
-
-.jrpg-entity--dead {
-    filter: grayscale(1) brightness(0.55);
-    pointer-events: none;
-}
-
-.jrpg-entity-shadow {
-    position: absolute;
-    bottom: -3px;
-    width: 22px;
-    height: 8px;
-    background: rgba(0, 0, 0, 0.65);
-    border-radius: 50%;
-    filter: blur(1px);
-    z-index: 1;
-}
-
-.jrpg-cursor-arrow {
-    position: absolute;
-    top: -18px;
-    width: 10px;
-    height: 10px;
-    clip-path: polygon(50% 100%, 0 20%, 100% 20%);
-    background: #ffd966;
-    animation: jrpg-cursor-bounce 0.8s infinite alternate ease-in-out;
-    z-index: 10;
-}
-
-/* The red marker over the SELECTED enemy's head (the target pick). */
-.jrpg-target-arrow {
-    position: absolute;
-    top: -18px;
-    width: 10px;
-    height: 10px;
-    clip-path: polygon(50% 100%, 0 20%, 100% 20%);
-    background: #ef4444;
-    filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.9));
-    animation: jrpg-cursor-bounce 0.8s infinite alternate ease-in-out;
-    z-index: 10;
-}
-
-@keyframes jrpg-cursor-bounce {
-    0% {
-        transform: translateY(0);
-    }
-
-    100% {
-        transform: translateY(-4px);
-    }
-}
-
-/* The unit's micro bars: the shared StatBar pair (hp + mana) stacked
-   above the sprite, hp green for allies / red for enemies, mana blue. */
-.jrpg-entity-bars {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    /* gap: 1px; */
-    margin-bottom: 2px;
-    position: relative;
-    z-index: 5;
-}
-
-.jrpg-sprite-box {
-    position: relative;
-    z-index: 3;
-    width: 16px;
-    height: 16px;
-    background-size: 64px 16px;
-    background-position: 0 0;
-    image-rendering: pixelated;
-    animation: jrpg-idle-breathe 1.8s infinite ease-in-out;
-}
-
-/* The battle effects (the physical slash, the magical blast): one-shot
-   frame-stepped sprites played over their target, above the sprites. */
-.jrpg-effects-layer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 25;
-}
-
-.jrpg-effect {
-    position: absolute;
-    image-rendering: pixelated;
-}
-
-.jrpg-enemy-side .jrpg-sprite-box {
-    transform: scaleX(-1);
-}
-
-@keyframes jrpg-idle-breathe {
-
-    0%,
-    100% {
-        transform: translateY(0) scaleY(1);
-    }
-
-    50% {
-        transform: translateY(-1.5px) scaleY(1.03);
-    }
-}
-
-.jrpg-arena-vignette {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 70px;
-    background: linear-gradient(to bottom, transparent 0%, rgba(12, 6, 4, 0.7) 60%, #120905 100%);
-    pointer-events: none;
-    z-index: 22;
-}
-
-.jrpg-turn-order-strip {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    gap: 3px;
-    background: rgba(22, 11, 6, 0.85);
-    border: 1px solid #5a3016;
-    padding: 2px 4px;
-    z-index: 28;
-}
-
-/* The chip renders the fighter's own sprite (16px, pixelated): the
-   icon marks who is who in the queue. */
-.jrpg-order-chip {
-    width: 16px;
-    height: 16px;
-    border: 1px solid #733c1a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    font-family: 'Space Mono', monospace;
-    background-color: #1c0e07;
-    background-size: 64px 16px;
-    background-position: 0 0;
-    background-repeat: no-repeat;
-    image-rendering: pixelated;
-    color: #d4af37;
-}
-
-/* Enemies face left in the arena: the chip mirrors them too. */
-.jrpg-order-chip--enemy {
-    border-color: #991b1b;
-    background-color: #450a0a;
-    color: #fca5a5;
-    transform: scaleX(-1);
-}
-
-.jrpg-order-chip--current {
-    border-color: #ffd966;
-    background-color: #543315;
-    color: #fff;
-    box-shadow: 0 0 4px #ffd966;
-}
-
-/* The battle header: the acting character's info plus the battle menu
-   (Huir). Replaces the app header while a fight is on. */
-.jrpg-header {
-    flex: none;
-    height: 48px;
-    background: #190e08;
-    border-bottom: 2px solid #381e10;
-    padding: 0 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    z-index: 30;
-}
-
-.jrpg-header-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.jrpg-menu-wrap {
-    position: relative;
-}
-
-.jrpg-menu-btn {
-    width: 32px;
-    height: 32px;
-    background: #2b180d;
-    border: 2px solid #5a341b;
-    border-top-color: #7b4725;
-    border-left-color: #7b4725;
-    border-bottom-color: #150a04;
-    border-right-color: #150a04;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 3px;
-    cursor: pointer;
-}
-
-.jrpg-menu-btn span {
-    width: 16px;
-    height: 2px;
-    background: #d4af37;
-    display: block;
-}
-
-.jrpg-menu {
-    position: absolute;
-    top: 36px;
-    right: 0;
-    background: #190e08;
-    border: 1px solid #542d17;
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    z-index: 60;
-}
-
-.jrpg-menu .pixel-btn {
-    white-space: nowrap;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 14px;
-    font-size-adjust: none;
-}
-
-/* The party panel (the menu's Party entry): the roster list with
-   vitals, speed/interval and the queue place, plus the selected
-   member's full stat sheet — the turn-order check. */
-.jrpg-party-panel {
-    position: absolute;
-    top: 44px;
-    right: 8px;
-    width: 236px;
-    background: #190e08;
-    border: 1px solid #542d17;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    z-index: 60;
-}
-
-.jrpg-party-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.jrpg-party-title {
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 9px;
-    color: #f3e7be;
-    text-shadow: 1px 1px 0 #000;
-}
-
-.jrpg-party-close {
-    height: 20px;
-    min-width: 20px;
-    font-size: 11px;
-}
-
-.jrpg-party-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.jrpg-party-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1px;
-    padding: 3px 5px;
-    background: #221209;
-    border: 1px solid #3d2110;
-    color: #eedbcc;
-    text-align: left;
-    cursor: pointer;
-}
-
-.jrpg-party-row:hover {
-    border-color: #7b4725;
-}
-
-.jrpg-party-row--selected {
-    border-color: #d4af37;
-    background: #2b1a0e;
-}
-
-.jrpg-party-name {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 14px;
-    font-size-adjust: none;
-    line-height: 1;
-}
-
-.jrpg-party-meta,
-.jrpg-party-vitals,
-.jrpg-party-speed {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
-    line-height: 1.05;
-    color: #b8ab93;
-}
-
-.jrpg-party-speed {
-    color: #f2ca50;
-}
-
-.jrpg-party-stats {
-    border-top: 1px solid #542d17;
-    padding-top: 4px;
-}
-
-.jrpg-party-stats-title {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 14px;
-    font-size-adjust: none;
-    color: #f3e7be;
-    margin-bottom: 3px;
-}
-
-.jrpg-party-stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px 8px;
-}
-
-.jrpg-party-stat {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
-    color: #eedbcc;
-}
-
-.jrpg-party-stat-icon {
-    flex: none;
-    width: 12px;
-    height: 12px;
-}
-
-.jrpg-party-stat-label {
-    flex: 1;
-    min-width: 0;
-    color: #b7c6ee;
-}
-
-.jrpg-party-stat-value {
-    flex: none;
-    width: var(--s5);
-    text-align: right;
-    color: var(--accent);
-}
-
-.jrpg-turn-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.jrpg-turn-avatar {
-    width: 22px;
-    height: 22px;
-    flex: none;
-    background: #140904;
-    background-size: 88px 22px;
-    background-position: 0 0;
-    image-rendering: pixelated;
-    border: 1px solid #7c4420;
-}
-
-.jrpg-turn-name-group {
-    display: flex;
-    flex-direction: column;
-    line-height: 1;
-}
-
-.jrpg-turn-name {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 14px;
-    font-size-adjust: none;
-    color: #ffd966;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    text-shadow: none;
-}
-
-.jrpg-turn-tag {
-    color: #22c55e;
-    font-size: 11px;
-}
-
-.jrpg-info-tag {
-    color: #ffd966;
-    font-size: 11px;
-}
-
-.jrpg-turn-class {
-    font-family: 'VT323', var(--font-pixel, monospace);
-    font-size: 11px;
-    font-size-adjust: none;
-    color: #e59b23;
-    text-shadow: none;
-}
-
-.jrpg-turn-stats {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.jrpg-stat-pill {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 11px;
-    font-family: 'Space Mono', monospace;
-}
-
-.jrpg-stat-pill--hp {
-    color: #4ade80;
-}
-
-.jrpg-stat-pill--mana {
-    color: #60a5fa;
 }

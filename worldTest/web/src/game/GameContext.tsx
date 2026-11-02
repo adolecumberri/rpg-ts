@@ -237,6 +237,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
             load,
             reset,
         }),
+        // The api is rebuilt only when the observable state changes; the
+        // handler functions are stable closures over the session.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [version, currentPlace, npcsAtCurrent, routes, current, toast],
     );
 

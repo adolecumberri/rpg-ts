@@ -1,19 +1,19 @@
+import { SPRITE_BOX, spriteBoxStyle, spriteScaleFor, useSpriteFrames } from '../../assets/spriteFrames';
+import type { SpriteAnimation } from '../../assets/sprites';
+
 /**
  * The battle ficha: one character card on the battlefield. Isolated
  * component — the panel only passes data. Supports either an animated
- * sprite (a 64x16 sheet, 4 idle frames side by side, rendered at
- * 32x32) or a plain icon fallback, plus the selection/turn/death
- * states. While `attacking`, the card swaps to the unit's one-shot
- * attack sheet; when the flag clears (the damage was applied) it
- * returns to the idle loop.
+ * sprite (the unit's SpriteAnimation: idle loop + one-shot attack) or a
+ * plain icon fallback, plus the selection/turn/death states. The frame
+ * size, count and timing all come from the sprite data.
  */
 export function BattleCard({
-    name,
     hp,
     maxHp,
-    sub,
     icon,
     sprite,
+    attackSprite,
     level,
     selected,
     active,
@@ -22,13 +22,13 @@ export function BattleCard({
     attacking = false,
     dataId,
 }: {
-    name: string;
     hp: number;
     maxHp: number;
-    sub?: string;
     icon?: string;
-    // A single idle sheet URL, or a set with the attack sheet too.
-    sprite?: string | { idle: string; attack?: string };
+    // The unit's animation set (from battleUnitOf): the card owns the
+    // frame stepping.
+    sprite?: SpriteAnimation;
+    attackSprite?: SpriteAnimation;
     level?: number;
     selected?: boolean;
     active?: boolean;
@@ -39,19 +39,30 @@ export function BattleCard({
     // card in the DOM (floating damage positioning).
     dataId?: string;
 }) {
-    const idle = typeof sprite === 'string' ? sprite : sprite?.idle;
-    const attack = typeof sprite === 'string' ? undefined : sprite?.attack;
-    const sheet = attacking && attack ? attack : idle;
+    // The fichas render the 16px frames at the battlefield box size
+    // (the shrink variant keeps a 16px badge-sized frame).
+    const box = shrink ? 16 : SPRITE_BOX.ficha;
+    const scale = (animation: SpriteAnimation | undefined) =>
+        animation ? spriteScaleFor(box, animation) : 1;
+    // The attack pose is optional (the new archer/warrior art has no
+    // attack sheet): without it the idle loop keeps playing.
+    const hasAttackPose = Boolean(attackSprite);
+    const idle = useSpriteFrames(sprite, {
+        scale: scale(sprite),
+        playing: !(attacking && hasAttackPose),
+    });
+    const attack = useSpriteFrames(attackSprite, { scale: scale(attackSprite), loop: false, playing: attacking });
+    const hasSprite = Boolean(sprite);
 
     return (
         <div
             data-unit-id={dataId}
             className={[
                 'pixel-cell battle-card',
-                selected ? 'pixel-cell--selected' : '',
+                selected ? 'is-selected' : '',
                 dead ? 'battle-card--dead' : '',
                 shrink ? 'battle-card--shrink' : '',
-                attacking && attack ? 'battle-card--attacking' : '',
+                attacking && attackSprite ? 'battle-card--attacking' : '',
             ].join(' ')}
         >
             {!shrink && (
@@ -61,27 +72,27 @@ export function BattleCard({
             )}
             {dead ? (
                 <span className="battle-card-icon">💀</span>
-            ) : sheet ? (
+            ) : hasSprite ? (
                 <div
                     className={['battle-card-sprite',
                         active ? 'battle-card-sprite--active' : ''].join(' ')}
+                    style={spriteBoxStyle(sprite, box)}
                 >
                     <div
                         className="battle-card-sprite-layer battle-card-sprite-layer--idle"
-                        style={{ backgroundImage: `url(${idle})` }}
+                        style={idle.style}
                     />
-                    {attack ? (
+                    {attackSprite ? (
                         <div
                             className={['battle-card-sprite-layer battle-card-sprite-layer--attack',
                                 attacking ? 'battle-card-sprite-layer--attack-on' : ''].join(' ')}
-                            style={{ backgroundImage: `url(${attack})` }}
+                            style={attack.style}
                         />
                     ) : null}
                 </div>
             ) : (
                 <span className="battle-card-icon">{icon ?? '❔'}</span>
             )}
-            {/* <span className="battle-card-name">{name}</span> */}
             {!shrink && <span className="battle-card-sub">
                 {hp}/{maxHp}
             </span>}

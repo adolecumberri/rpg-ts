@@ -7,6 +7,8 @@ import type { TargetSpec } from '../../components/chrome/TargetBar';
 import { Battlefield } from '../../components/battle/Battlefield';
 import type { ActionBarSize } from '../../components/chrome/ActionBar';
 import { selectionRulesOf, toggleTarget } from '../../game/targeting';
+import { auditActionButtons } from './buttonAudit';
+import type { ButtonSizeReport } from './buttonAudit';
 
 type TargetSide = 'ENEMY' | 'ALLY' | 'ANY' | 'ALL_ENEMIES' | 'ALL_ALLIES' | 'SELF';
 
@@ -103,6 +105,9 @@ export function ActionBarTestScreen() {
     const [size, setSize] = useState<ActionBarSize>('lg');
     const [reach, setReach] = useState<'short' | 'long' | 'all'>('short');
     const [log, setLog] = useState<string[]>([]);
+    // The dev size audit: every bar button measured, the distinct
+    // heights reported (a layout drift shows up here immediately).
+    const [audit, setAudit] = useState<ButtonSizeReport | null>(null);
 
     const logLine = (text: string) => setLog((lines) => [text, ...lines].slice(0, 6));
 
@@ -219,8 +224,29 @@ export function ActionBarTestScreen() {
                         >
                             Hide bar
                         </button>
+                        <button
+                            className="pixel-btn"
+                            onClick={() => setAudit(auditActionButtons())}
+                        >
+                            Measure buttons
+                        </button>
                     </div>
                 </div>
+
+                {audit ? (
+                    <div className="pixel-panel">
+                        <div className="pixel-title">
+                            {audit.uniform ?
+                                `Button sizes OK — ${audit.total} buttons at ${audit.heights.join(' / ')}px` :
+                                `MISMATCH — heights ${audit.heights.join(' / ')}px`}
+                        </div>
+                        {audit.lines.map((line, index) => (
+                            <div key={`${line.label}-${index}`} style={{ fontSize: 11, color: 'var(--muted)' }}>
+                                {line.label}: {line.width} × {line.height}
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
 
                 {phase ? (
                     <div className="pixel-panel">
@@ -254,7 +280,6 @@ export function ActionBarTestScreen() {
                             Spells (Cover, Cure, Fire Breath, Rally, Defend) default to reach 'all'.
                         </div>
                         <Battlefield
-                            title="Enemies"
                             units={ENEMY_TEAM.map((member) => ({
                                 id: member.id,
                                 name: member.name,

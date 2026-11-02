@@ -7,7 +7,18 @@ import type { SpriteAnimation } from './sprites';
 import autoAttack from '../../../assets/skills/auto_atttack.webp';
 import pernoMagico from '../../../assets/skills/perno_magico.webp';
 
-export const DEFAULT_EFFECTS: Record<'physical' | 'magical', SpriteAnimation> = {
+/**
+ * One one-shot battle effect: the animation and the combatant it plays
+ * over. Screens build it when an action resolves and the arena renders
+ * it at the target's arena spot.
+ */
+export type BattleEffect = {
+    id: string;
+    targetId: string;
+    animation: SpriteAnimation;
+};
+
+const DEFAULT_EFFECTS: Record<'physical' | 'magical', SpriteAnimation> = {
     physical: { sheet: autoAttack, frames: 2, frameWidth: 25, frameHeight: 16, frameMs: 90 },
     magical: { sheet: pernoMagico, frames: 9, frameWidth: 48, frameHeight: 48, frameMs: 80 },
 };

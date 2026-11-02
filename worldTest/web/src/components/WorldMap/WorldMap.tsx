@@ -5,7 +5,6 @@ import mapaSrc from '../../../../assets/maps/mapa.webp';
 import regionMaskSrc from '../../../../assets/maps/mapa_detalles.webp';
 import indicatorSrc from '../../../../assets/maps/icons/map_indicator.webp';
 import { REGIONS, REGION_BY_ID } from './regions';
-import type { RegionData } from './regions';
 import { MAP_PLACES, MARKER_SPRITE } from './mapPlaces';
 import type { MapPlace } from './mapPlaces';
 import type { RegionId } from './ids';
@@ -460,7 +459,7 @@ const distBetween = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - 
 
 const midOf = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
-export type WorldMapProps = {
+type WorldMapProps = {
     discoveredRegions: RegionId[];
     selectedRegion: RegionId | null;
     onRegionSelect?: (regionId: RegionId | null) => void;
@@ -659,6 +658,9 @@ export function WorldMap({
         return () => {
             alive = false;
         };
+        // discoveredRegionSet is derived from discoveredRegions (a new Set
+        // each render); depending on discoveredRegions is the stable trigger.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mask, discoveredRegions, showMapa, hasClouds]);
 
     // Steady-state reveal draw: whenever the precomputed band canvases

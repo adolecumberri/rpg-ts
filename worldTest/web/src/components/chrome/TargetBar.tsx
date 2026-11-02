@@ -1,16 +1,12 @@
 import { ActionBar } from './ActionBar';
 import type { ActionBarCell, ActionBarSize } from './ActionBar';
-import type { ActionIcon } from './ActionButton';
 import { CombatForecastCard } from '../battle/CombatForecast';
 import type { ForecastCombatant } from '../battle/CombatForecast';
 import { isValidSelection } from '../../game/targeting';
 import type { SelectionRules } from '../../game/targeting';
 
-/** A pickable target: character or enemy. */
-export type TargetSpec = {
-    id: string;
-    label: string;
-    icon?: ActionIcon;
+/** A pickable target: character or enemy (a cell with reach info). */
+export type TargetSpec = Pick<ActionBarCell, 'id' | 'label' | 'icon'> & {
     // Attack reach: unreachable targets render dimmed and disabled
     // with an "out of reach" reason instead of disappearing.
     reachable?: boolean;

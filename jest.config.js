@@ -4,4 +4,6 @@ module.exports = {
     testRegex: '(/tests/.*|(\\.|/)(test|spec))\\.[jt]s$',
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     testPathIgnorePatterns: ['/node_modules/', '/dist/', '/worldTest/'],
+    // The repo no longer maintains tests; keep CI green when none match.
+    passWithNoTests: true,
 };

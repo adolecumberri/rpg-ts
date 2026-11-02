@@ -86,7 +86,6 @@ export function ActionBar({
     accept,
     pinLast = false,
     banner,
-    fixedRows = false,
 }: {
     cells: ActionBarCell[];
     size?: ActionBarSize;
@@ -104,10 +103,6 @@ export function ActionBar({
     // world map shows the place name there; any node fits, so screens
     // can drop a compact card into the slot).
     banner?: ReactNode;
-    // The grid keeps its fixed row heights even for empty rows, so a
-    // button pinned to a lower row (e.g. slot 5) stays at the bottom
-    // of the bar instead of closing up against the row above.
-    fixedRows?: boolean;
 }) {
     const [page, setPage] = useState(0);
     const [hint, setHint] = useState<string | null>(null);
@@ -150,11 +145,6 @@ export function ActionBar({
         'grid' :
         layoutFor(pages === 1 ? visible.length + special + (pinned ? 1 : 0) : mode.capacity);
 
-    // Static cells (the forecast cards) lock the grid to the fixed row
-    // height so they render at the same size as the buttons.
-    const hasCustom = cells.some((cell) => cell.custom !== undefined) ||
-        Boolean(pinned?.custom);
-
     const press = (cell: ActionBarCell) => {
         if (cell.disabled) {
             setHint(cell.disabledReason ?? `${cell.label} is unavailable.`);
@@ -167,7 +157,7 @@ export function ActionBar({
     // The banner occupies the first two slots of the first page. Text
     // banners keep the slot's centered label chrome; node banners (a
     // card, an item) own the full slot so they align with the buttons.
-    const bannerIsNode = typeof banner !== 'string';
+    const bannerIsNode = banner !== undefined && typeof banner !== 'string';
     if (banner && page === 0) {
         rendered.push(
             <div
@@ -289,12 +279,7 @@ export function ActionBar({
                 </div>
             ) : null}
             {hint ? <div className="action-bar-hint pixel-inset">{hint}</div> : null}
-            <div
-                className={
-                    `action-bar-grid action-bar-grid--${layout}` +
-                    `${fixedRows || bannerIsNode || hasCustom ? ' action-bar-grid--fixed-rows' : ''}`
-                }
-            >
+            <div className={`action-bar-grid action-bar-grid--${layout}`}>
                 {rendered}
             </div>
         </div>

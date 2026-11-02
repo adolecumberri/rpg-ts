@@ -13,7 +13,7 @@ export type StatKey =
     | 'critChance'
     | 'critMultiplier';
 
-export type StatEntry = {
+type StatEntry = {
     key: StatKey;
     icon: IconId;
     label: string;

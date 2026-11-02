@@ -16,10 +16,10 @@ import {
 import type { BattleReport, HybridAutoEvent, HybridEvent, SkillSpec } from '@core';
 import { Battlefield } from '../../components/battle/Battlefield';
 import type { BattleUnit } from '../../components/battle/Battlefield';
+import { battleUnitOf } from '../../game/battleUnits';
 import { BattleReportPanel } from '../../components/battle/BattleReportPanel';
 import { FloatingDamageLayer } from '../../components/battle/FloatingDamage';
 import type { DamagePart, FloatingHit } from '../../components/battle/FloatingDamage';
-import { SPRITES } from '../../assets/sprites';
 import type { SpriteRole } from '../../assets/sprites';
 
 const TICK_MS = 120;
@@ -89,15 +89,7 @@ function battleSpecsOf(character: Character): SkillSpec[] {
 
 /** The battlefield card snapshot of a live character. */
 function unitOf(entry: ArmyEntry): BattleUnit {
-    return {
-        id: entry.character.id,
-        name: entry.character.name,
-        sprite: SPRITES[entry.role].idle.sheet,
-        row: entry.row,
-        hp: Math.round(entry.character.stats.hp),
-        maxHp: Math.round(entry.character.stats.totalHp),
-        level: entry.character.experience.level,
-    };
+    return battleUnitOf(entry.character, { role: entry.role, row: entry.row });
 }
 
 /**
@@ -286,8 +278,8 @@ export function StressFightScreen() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'row' }}>
-                <Battlefield title="Enemies" units={units.right} shrink side="left" />
-                <Battlefield title="Allies" units={units.left} shrink side="right" />
+                <Battlefield units={units.right} shrink side="left" />
+                <Battlefield units={units.left} shrink side="right" />
             </div>
 
             {showReport && report ? (

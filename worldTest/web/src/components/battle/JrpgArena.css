@@ -1,0 +1,672 @@
+
+/* The body-text base: every rule below renders the reading face
+   (VT323) and needs no size adjust — one declaration instead of one
+   per rule. */
+.jrpg-menu .pixel-btn,
+.jrpg-party-name,
+.jrpg-party-meta, .jrpg-party-vitals, .jrpg-party-speed,
+.jrpg-party-stats-title,
+.jrpg-party-stat,
+.jrpg-turn-name,
+.jrpg-turn-class {
+    font-size-adjust: none;
+}
+
+/* The body-text base: no outline shadow on the reading face
+   (only the brand face keeps its FFTA outline). */
+.jrpg-turn-name,
+.jrpg-turn-class {
+    text-shadow: none;
+}
+
+/* ---------------------------------------------------------------------------
+   The JRPG pseudo-3D tactical arena (the small-battle view, adapted from
+   the design-stitch code_fight reference): tilted FFTA2-grid floor, three
+   depth tiers for the combatant sprites, micro hp bars, the active-turn
+   cursor, the turn-order strip and the 2x2 tactical command tray.
+--------------------------------------------------------------------------- */
+.jrpg-fight .floating-damage-layer {
+    z-index: 45;
+}
+
+.jrpg-combat {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #0c0604;
+    overflow: hidden;
+}
+
+.jrpg-arena {
+    position: relative;
+    flex: 1;
+    min-height: var(--s100);
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 30%, #2a150c 0%, #120904 65%, #080302 100%);
+    perspective: 500px;
+    perspective-origin: 50% 25%;
+}
+
+/* The camera: a GPU-composited CSS transform over the scenery and the
+   sprites. It zooms out to fit the whole formation (the fighter count
+   drives it), while the turn strip and the vignette stay fixed. */
+.jrpg-camera {
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
+    transition: transform 0.35s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+.jrpg-backdrop-wall {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--s48);
+    background:
+        radial-gradient(circle at 20% 40%, rgba(229, 155, 35, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
+        linear-gradient(to bottom, #110804 0%, #1a0e07 60%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.jrpg-ember {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: #ffb703;
+    box-shadow: 0 0 4px #fb8500;
+    opacity: 0.8;
+    pointer-events: none;
+    animation: jrpg-ember-float 6s infinite linear;
+}
+
+@keyframes jrpg-ember-float {
+    0% {
+        transform: translateY(180px) translateX(0);
+        opacity: 0;
+    }
+
+    30% {
+        opacity: 0.8;
+    }
+
+    80% {
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: translateY(-20px) translateX(25px);
+        opacity: 0;
+    }
+}
+
+.jrpg-ground {
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    left: -30px;
+    top: 50px;
+    transform: rotateX(60deg) translateZ(0);
+    transform-origin: 50% 65%;
+    background:
+        repeating-linear-gradient(0deg, rgba(70, 38, 20, 0.85) 0px, rgba(70, 38, 20, 0.85) 24px, rgba(50, 26, 13, 0.85) 24px, rgba(50, 26, 13, 0.85) 48px),
+        repeating-linear-gradient(90deg, rgba(212, 175, 55, 0.08) 0px, rgba(212, 175, 55, 0.08) 1px, transparent 1px, transparent 24px);
+    border: 2px solid #5a3016;
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8), 0 15px 30px rgba(0, 0, 0, 0.9);
+}
+
+.jrpg-skirmish-line {
+    position: absolute;
+    width: 2px;
+    height: 100%;
+    left: 50%;
+    background: linear-gradient(to bottom, transparent, rgba(212, 175, 55, 0.4) 30%, rgba(255, 217, 102, 0.8) 50%, rgba(212, 175, 55, 0.4) 70%, transparent);
+    box-shadow: 0 0 6px rgba(255, 217, 102, 0.5);
+}
+
+.jrpg-sprites-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* The debug sections overlay (the dev battle page): one translucent
+   colored box per depth tier and side, drawn over the sprites, where
+   the current formation places its fighters. Clicks pass through. */
+.jrpg-sections-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.jrpg-section {
+    position: absolute;
+    border: 1px dashed rgba(255, 255, 255, 0.65);
+}
+
+.jrpg-section--front {
+    background: rgba(239, 68, 68, 0.14);
+}
+
+.jrpg-section--center {
+    background: rgba(59, 130, 246, 0.14);
+}
+
+.jrpg-section--back {
+    background: rgba(34, 197, 94, 0.14);
+}
+
+.jrpg-section-label {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 1px 1px 0 #000;
+}
+
+.jrpg-active-tile {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    /* The tile lies on the tilted ground (rotateX 60deg squashes the
+       vertical axis by cos60 = 0.5); centered on the unit's feet. */
+    transform: translate(-50%, -50%) scaleY(0.5);
+    border: 2px solid var(--gold-bright);
+    background: rgba(212, 175, 55, 0.25);
+    box-shadow: 0 0 10px rgba(255, 217, 102, 0.5);
+    animation: jrpg-tile-pulse 1.6s infinite ease-in-out;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* The actor tile's spot is set inline from the unit's real arena
+   position (tier fan included), so it always sits under the acting
+   character's feet. */
+.jrpg-active-tile--actor {}
+
+@keyframes jrpg-tile-pulse {
+
+    0%,
+    100% {
+        border-color: rgba(255, 217, 102, 0.9);
+    }
+
+    50% {
+        border-color: rgba(255, 217, 102, 0.4);
+    }
+}
+
+.jrpg-entity {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s;
+}
+
+/* The entity's total scale is floored at 2: the sprites are 16x16px
+   native and render at 32x32px, and neither the crowd shrink
+   (--jrpg-unit-scale) nor the section collapse (--jrpg-shrink) may
+   ever render them smaller. */
+.jrpg-depth-far {
+    transform: translate(-50%, -100%) scale(max(2, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
+    z-index: 12;
+    filter: brightness(0.85) contrast(0.95);
+}
+
+.jrpg-depth-mid {
+    transform: translate(-50%, -100%) scale(max(2, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
+    z-index: 15;
+    filter: brightness(0.95);
+}
+
+.jrpg-depth-front {
+    transform: translate(-50%, -100%) scale(max(2, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
+    z-index: 20;
+    filter: brightness(1.1);
+}
+
+.jrpg-entity--active {
+    filter: drop-shadow(0 0 6px #ffe066) brightness(1.2);
+}
+
+.jrpg-entity--targeted {
+    filter: drop-shadow(0 0 6px #ff5a5a) brightness(1.1);
+}
+
+.jrpg-entity--dead {
+    filter: grayscale(1) brightness(0.55);
+    pointer-events: none;
+}
+
+.jrpg-entity-shadow {
+    position: absolute;
+    bottom: -3px;
+    width: 22px;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 50%;
+    filter: blur(1px);
+    z-index: 1;
+}
+
+.jrpg-cursor-arrow {
+    position: absolute;
+    top: -18px;
+    width: 10px;
+    height: 10px;
+    clip-path: polygon(50% 100%, 0 20%, 100% 20%);
+    background: var(--gold-bright);
+    animation: jrpg-cursor-bounce 0.8s infinite alternate ease-in-out;
+    z-index: 10;
+}
+
+/* The red marker over the SELECTED enemy's head (the target pick). */
+.jrpg-target-arrow {
+    position: absolute;
+    top: -18px;
+    width: 10px;
+    height: 10px;
+    clip-path: polygon(50% 100%, 0 20%, 100% 20%);
+    background: #ef4444;
+    filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.9));
+    animation: jrpg-cursor-bounce 0.8s infinite alternate ease-in-out;
+    z-index: 10;
+}
+
+@keyframes jrpg-cursor-bounce {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-4px);
+    }
+}
+
+/* The unit's micro bars: the shared StatBar pair (hp + mana) stacked
+   above the sprite, hp green for allies / red for enemies, mana blue. */
+.jrpg-entity-bars {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* gap: 1px; */
+    margin-bottom: 2px;
+    position: relative;
+    z-index: 5;
+}
+
+.jrpg-sprite-box {
+    position: relative;
+    z-index: 3;
+    width: 16px;
+    height: 16px;
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    image-rendering: pixelated;
+    animation: jrpg-idle-breathe 1.8s infinite ease-in-out;
+}
+
+/* The battle effects (the physical slash, the magical blast): one-shot
+   frame-stepped sprites played over their target, above the sprites. */
+.jrpg-effects-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 25;
+}
+
+.jrpg-effect {
+    position: absolute;
+    image-rendering: pixelated;
+}
+
+.jrpg-enemy-side .jrpg-sprite-box {
+    transform: scaleX(-1);
+}
+
+@keyframes jrpg-idle-breathe {
+
+    0%,
+    100% {
+        transform: translateY(0) scaleY(1);
+    }
+
+    50% {
+        transform: translateY(-1.5px) scaleY(1.03);
+    }
+}
+
+.jrpg-arena-vignette {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: linear-gradient(to bottom, transparent 0%, rgba(12, 6, 4, 0.7) 60%, #120905 100%);
+    pointer-events: none;
+    z-index: 22;
+}
+
+.jrpg-turn-order-strip {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 3px;
+    background: rgba(22, 11, 6, 0.85);
+    border: 1px solid #5a3016;
+    padding: 2px 4px;
+    z-index: 28;
+}
+
+/* The chip renders the fighter's own sprite (16px, pixelated): the
+   icon marks who is who in the queue. */
+.jrpg-order-chip {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #733c1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--display-xs);
+    font-family: var(--font-display);
+    background-color: #1c0e07;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    color: var(--gold-strong);
+}
+
+/* Enemies face left in the arena: the chip mirrors them too. */
+.jrpg-order-chip--enemy {
+    border-color: #991b1b;
+    background-color: #450a0a;
+    color: #fca5a5;
+    transform: scaleX(-1);
+}
+
+.jrpg-order-chip--current {
+    border-color: var(--gold-bright);
+    background-color: #543315;
+    color: #fff;
+    box-shadow: 0 0 4px var(--gold-bright);
+}
+
+/* The battle header: the acting character's info plus the battle menu
+   (Huir). Replaces the app header while a fight is on. */
+.jrpg-header {
+    flex: none;
+    height: 48px;
+    background: #190e08;
+    border-bottom: 2px solid #381e10;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 30;
+}
+
+.jrpg-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.jrpg-menu-wrap {
+    position: relative;
+}
+
+.jrpg-menu-btn {
+    width: 32px;
+    height: 32px;
+    background: #2b180d;
+    border: 2px solid #5a341b;
+    border-top-color: #7b4725;
+    border-left-color: #7b4725;
+    border-bottom-color: #150a04;
+    border-right-color: #150a04;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+}
+
+.jrpg-menu-btn span {
+    width: 16px;
+    height: 2px;
+    background: var(--gold-strong);
+    display: block;
+}
+
+.jrpg-menu {
+    position: absolute;
+    top: 36px;
+    right: 0;
+    background: #190e08;
+    border: 1px solid #542d17;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 60;
+}
+
+.jrpg-menu .pixel-btn {
+    white-space: nowrap;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+}
+
+/* The party panel (the menu's Party entry): the roster list with
+   vitals, speed/interval and the queue place, plus the selected
+   member's full stat sheet — the turn-order check. */
+.jrpg-party-panel {
+    position: absolute;
+    top: 44px;
+    right: 8px;
+    width: 236px;
+    background: #190e08;
+    border: 1px solid #542d17;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 60;
+}
+
+.jrpg-party-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.jrpg-party-title {
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    color: var(--paper);
+    text-shadow: 1px 1px 0 #000;
+}
+
+.jrpg-party-close {
+    height: 20px;
+    min-width: 20px;
+    font-size: var(--text-md);
+}
+
+.jrpg-party-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.jrpg-party-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding: 3px 5px;
+    background: #221209;
+    border: 1px solid #3d2110;
+    color: var(--text-warm);
+    text-align: left;
+    cursor: pointer;
+}
+
+.jrpg-party-row:hover {
+    border-color: #7b4725;
+}
+
+.jrpg-party-row--selected {
+    border-color: var(--gold-strong);
+    background: #2b1a0e;
+}
+
+.jrpg-party-name {
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    line-height: 1;
+}
+
+.jrpg-party-meta,
+.jrpg-party-vitals,
+.jrpg-party-speed {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    line-height: 1.05;
+    color: #b8ab93;
+}
+
+.jrpg-party-speed {
+    color: var(--accent);
+}
+
+.jrpg-party-stats {
+    border-top: 1px solid #542d17;
+    padding-top: 4px;
+}
+
+.jrpg-party-stats-title {
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--paper);
+    margin-bottom: 3px;
+}
+
+.jrpg-party-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 8px;
+}
+
+.jrpg-party-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--text-warm);
+}
+
+.jrpg-party-stat-icon {
+    flex: none;
+    width: 12px;
+    height: 12px;
+}
+
+.jrpg-party-stat-label {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-link);
+}
+
+.jrpg-party-stat-value {
+    flex: none;
+    width: var(--s5);
+    text-align: right;
+    color: var(--accent);
+}
+
+.jrpg-turn-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.jrpg-turn-avatar {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    background: #140904;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    border: 1px solid #7c4420;
+}
+
+.jrpg-turn-name-group {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.jrpg-turn-name {
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    color: var(--gold-bright);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.jrpg-turn-tag {
+    color: #22c55e;
+    font-size: var(--text-md);
+}
+
+.jrpg-info-tag {
+    color: var(--gold-bright);
+    font-size: var(--text-md);
+}
+
+.jrpg-turn-class {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: #e59b23;
+}
+
+.jrpg-turn-stats {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.jrpg-stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--display-sm);
+    font-family: var(--font-display);
+}
+
+.jrpg-stat-pill--hp {
+    color: var(--success);
+}
+
+.jrpg-stat-pill--mana {
+    color: var(--info);
+}

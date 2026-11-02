@@ -175,9 +175,4 @@ export class Combat {
         char.stats.isAlive = normalizedHp > 0 ? 1 : 0;
         return char.stats.isAlive > 0;
     }
-
-    private normalize(value: number): number {
-        if (!Number.isFinite(value)) return 0;
-        return Math.max(0, Math.round(value * 100) / 100);
-    }
 }

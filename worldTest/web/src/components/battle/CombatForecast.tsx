@@ -10,7 +10,7 @@ import {
     statusModifierSummary,
 } from '@core';
 import type { SkillSpec } from '@core';
-import type { DamageComponent } from '@core';
+import type { DamageComponent, DamageKindTotals } from '@core';
 import './CombatForecast.css';
 
 /**
@@ -23,10 +23,10 @@ import './CombatForecast.css';
  * live inside the target screen's bar, in places 1 and 2.
  */
 
-export type ForecastDamageKind = 'physical' | 'magical' | 'true';
+export type ForecastDamageKind = keyof DamageKindTotals;
 
 // One resolved attack preview: what the HIT gauge shows.
-export type ForecastAttack = {
+type ForecastAttack = {
     // 0-100 hit chance.
     hitRate: number;
     // The expected damage after the defender's mitigation (the defence
@@ -141,7 +141,7 @@ function skillStatusEffects(spec: SkillSpec): string[] {
 
 /** The pure hit chance of an attacker against a defender (accuracy vs
  *  evasion) — the same math every forecast shares. */
-export function hitRateOf(attacker: Character, defender: Character): number {
+function hitRateOf(attacker: Character, defender: Character): number {
     const evasion = Math.min(100, defender.getStat('evasion'));
     const accuracy = attacker.getStat('accuracy');
     return Math.max(0, Math.min(100, Math.round(accuracy * (1 - evasion / 100))));

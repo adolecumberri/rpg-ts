@@ -4,7 +4,7 @@
 // by the battle AI. No React here.
 // ---------------------------------------------------------------------------
 
-export type SelectionKind = 'single' | 'wide' | 'multiHit' | 'prefilled';
+type SelectionKind = 'single' | 'wide' | 'multiHit' | 'prefilled';
 
 export type SelectionRules = {
     kind: SelectionKind;
@@ -56,9 +56,4 @@ export function toggleTarget(selection: string[], id: string, rules: SelectionRu
 /** Whether the floating accept should appear for this selection. */
 export function isValidSelection(selection: string[], rules: SelectionRules): boolean {
     return selection.length === rules.max;
-}
-
-/** How many hits a target carries in the current selection. */
-export function hitsOn(selection: string[], id: string): number {
-    return selection.filter((entry) => entry === id).length;
 }

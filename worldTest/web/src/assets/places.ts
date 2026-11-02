@@ -4,7 +4,7 @@
 // groceries art, the default place image.
 import groceriesPlace from '../../../assets/groceries-pixel-art-320x200-px-v0-moqmtdttkrs11.png';
 
-export const DEFAULT_PLACE_IMAGE = groceriesPlace;
+const DEFAULT_PLACE_IMAGE = groceriesPlace;
 
 const PLACE_IMAGES: Record<string, string> = {
     groceries: groceriesPlace,

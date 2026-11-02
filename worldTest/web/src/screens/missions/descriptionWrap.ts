@@ -4,11 +4,11 @@
 // chunk only word-wraps at the column width as a safety net. Nothing is
 // truncated: the details panel scrolls its own rows.
 
-export const DESCRIPTION_COLS = 50;
+const DESCRIPTION_COLS = 50;
 
 /** Wraps one chunk of the description to at most DESCRIPTION_COLS
  *  characters per line (the safety net for author break points). */
-export function wrapChunk(text: string): string[] {
+function wrapChunk(text: string): string[] {
     const words = text.split(/\s+/);
     const lines: string[] = [];
     let line = '';

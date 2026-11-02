@@ -20,7 +20,7 @@ export class DamageResolver {
         }
     }
 
-    static calculate(packet: DamagePacket, target: Character): number {
+    static calculate(packet: DamagePacket, _target: Character): number {
         if (packet.type === 'heal') {
             return -packet.amount;
         }

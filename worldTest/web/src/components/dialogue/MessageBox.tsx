@@ -23,7 +23,7 @@ export type PendingBattle = {
 
 // A portrait key ('warrior') resolves to its asset; anything else is
 // treated as a URL. Empty = the generic placeholder frame.
-export function resolvePortrait(raw?: string): string {
+function resolvePortrait(raw?: string): string {
     if (!raw) return '';
     return PORTRAIT_URLS[raw] ?? raw;
 }
@@ -168,7 +168,6 @@ export function MessageBox({
     const bar = hasChoices ? (
         <OptionsBar
             size="lg"
-            fixedRows
             options={line.choices!.map((choice, index) => ({
                 id: `choice_${index}`,
                 label: choice.label,
@@ -179,7 +178,6 @@ export function MessageBox({
     ) : (
         <OptionsBar
             size="lg"
-            fixedRows
             options={[{
                 id: 'next',
                 label: 'Next',

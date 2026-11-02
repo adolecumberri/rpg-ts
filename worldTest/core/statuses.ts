@@ -542,7 +542,7 @@ export function phantomStrikeStatus(): StatusDefinition {
         usageFrequency: 'PER_ACTION',
         statsAffected: [],
         consumedOnImpactHit: true,
-        onImpactHit: (character, payload) => {
+        onImpactHit: (_character, payload) => {
             const ctx = payload as ImpactHitContext;
             ctx.impactHits += 2;
         },

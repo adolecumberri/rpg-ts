@@ -1,17 +1,10 @@
-import { Component, useState } from 'react';
-import type { ReactNode } from 'react';
+import { Component, useEffect, useState } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { useGame } from '../../game/GameContext';
 import { PlacePage } from '../place/PlacePage';
 import { TeamPage } from '../team/TeamPage';
 import { WorldMapScreen } from '../map/WorldMapScreen';
-import { ActionBarTestScreen } from '../dev/ActionBarTestScreen';
-import { StressFightScreen } from '../dev/StressFightScreen';
-import { DamagesScreen } from '../dev/DamagesScreen';
-import { DialogsScreen } from '../dev/DialogsScreen';
-import { ItemsScreen } from '../dev/ItemsScreen';
 import { InventoryPage } from '../inventory/InventoryPage';
-import { FlagsScreen } from '../dev/FlagsScreen';
-import { JrpgBattleScreen } from '../dev/JrpgBattleScreen';
 import { MissionsPage } from '../missions/MissionsPage';
 import type { MissionTabId } from '../missions/MissionsPage';
 import { CombatScreen } from '../combat/CombatScreen';
@@ -48,7 +41,12 @@ const MAIN_PAGES = [
     { id: 'worldmap', label: 'World Map', symbol: 'map', caption: 'Regions & Exploration' },
 ] as const;
 
-// The dev/test screens, grouped under the Dev Tools submenu.
+// The dev/test screens, grouped under the Dev Tools submenu. They are
+// DEVELOPMENT ONLY: the loaders below are inlined by Vite as an empty
+// map in production (import.meta.env.DEV is folded to false), so the
+// dev screens are neither reachable nor bundled for players.
+const DEV_ENABLED = import.meta.env.DEV;
+
 const DEV_PAGES = [
     { id: 'actions', label: 'Actions', symbol: 'ads_click', caption: 'Action Bar Showcase' },
     { id: 'stress', label: 'Stress 80v80', symbol: 'swords', caption: 'Mass Battle Stress Test' },
@@ -67,9 +65,40 @@ const DEV_TOOLS_ENTRY: MenuEntry = {
     caption: 'Actions · Stress · JRPG',
 };
 
+type DevPageId = typeof DEV_PAGES[number]['id'];
+
+// The lazy dev-screen loaders (only defined in development).
+const DEV_LOADERS: Record<string, () => Promise<{ default: ComponentType<{ onBack?: () => void }> }>> =
+    DEV_ENABLED ? {
+        actions: () => import('../dev/ActionBarTestScreen').then((m) => ({ default: m.ActionBarTestScreen })),
+        stress: () => import('../dev/StressFightScreen').then((m) => ({ default: m.StressFightScreen })),
+        jrpg: () => import('../dev/JrpgBattleScreen').then((m) => ({ default: m.JrpgBattleScreen })),
+        damages: () => import('../dev/DamagesScreen').then((m) => ({ default: m.DamagesScreen })),
+        dialogs: () => import('../dev/DialogsScreen').then((m) => ({ default: m.DialogsScreen })),
+        items: () => import('../dev/ItemsScreen').then((m) => ({ default: m.ItemsScreen })),
+        flags: () => import('../dev/FlagsScreen').then((m) => ({ default: m.FlagsScreen })),
+    } : {};
+
 const PAGES = [...MAIN_PAGES, ...DEV_PAGES] as const;
 
 type PageId = typeof PAGES[number]['id'] | 'inventory';
+
+/** A dev-only screen, loaded on demand (null in production). */
+function DevScreen({ id, onBack }: { id: DevPageId; onBack?: () => void }) {
+    const [Screen, setScreen] = useState<ComponentType<{ onBack?:() => void }> | null>(null);
+    useEffect(() => {
+        const load = DEV_LOADERS[id];
+        if (!load) return;
+        let alive = true;
+        load().then((module) => {
+            if (alive) setScreen(() => module.default);
+        });
+        return () => {
+            alive = false;
+        };
+    }, [id]);
+    return Screen ? <Screen onBack={onBack} /> : null;
+}
 
 /**
  * The shell's error boundary: a page crash shows the error instead of
@@ -85,7 +114,10 @@ class PageBoundary extends Component<{ children: ReactNode }, { error: Error | n
     render() {
         if (this.state.error) {
             return (
-                <div className="pixel-font" style={{ padding: 'var(--s4)', color: '#f87171', fontSize: 'var(--s3)' }}>
+                <div
+                    className="pixel-font pixel-caption"
+                    style={{ padding: 'var(--s4)', color: 'var(--danger-soft)' }}
+                >
                     <div>Something broke: {String(this.state.error.message ?? this.state.error)}</div>
                 </div>
             );
@@ -304,14 +336,8 @@ export function NewUiRouter() {
                                     onBack={() => setPage(pageBeforeMap)}
                                 />
                             ) : null}
-                            {page === 'actions' ? <ActionBarTestScreen /> : null}
-                            {page === 'stress' ? <StressFightScreen /> : null}
-                            {page === 'jrpg' ? <JrpgBattleScreen /> : null}
-                            {page === 'damages' ? <DamagesScreen /> : null}
-                            {page === 'dialogs' ? <DialogsScreen /> : null}
-                            {page === 'items' ? <ItemsScreen /> : null}
-                            {page === 'flags' ? (
-                                <FlagsScreen onBack={() => setPage('place')} />
+                            {DEV_ENABLED && DEV_PAGES.some((entry) => entry.id === page) ? (
+                                <DevScreen id={page as DevPageId} onBack={() => setPage('place')} />
                             ) : null}
                         </>
                     )}
@@ -336,7 +362,7 @@ export function NewUiRouter() {
             {menuOpen ? (
                 <div className="menu-overlay" role="dialog" aria-label="Menu">
                     <div className="menu-overlay-head">
-                        {menuView === 'dev' ? (
+                        {DEV_ENABLED && menuView === 'dev' ? (
                             <span className="menu-overlay-title">
                                 <button
                                     type="button"
@@ -376,7 +402,9 @@ export function NewUiRouter() {
                                         lockedMap,
                                     );
                                 })}
-                                {renderRow(DEV_TOOLS_ENTRY, MAIN_PAGES.length, () => setMenuView('dev'))}
+                                {DEV_ENABLED ?
+                                    renderRow(DEV_TOOLS_ENTRY, MAIN_PAGES.length, () => setMenuView('dev')) :
+                                    null}
                                 {renderRow(saveEntry, MAIN_PAGES.length + 1, () => {
                                     api.save();
                                     closeMenu();

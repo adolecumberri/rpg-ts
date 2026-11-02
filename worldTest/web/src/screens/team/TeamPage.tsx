@@ -32,6 +32,7 @@ import { StatsColumn } from '../../components/character/StatsColumn';
 import type { StatRow } from '../../components/character/StatsColumn';
 import { ALL_SECTIONS, EquipPicker, SECTION_META } from '../../components/character/EquipPicker';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
+import { spriteFrameStyle } from '../../assets/spriteFrames';
 import { STAT_CATALOG } from '../../game/statCatalog';
 import type { StatKey } from '../../game/statCatalog';
 import type { IconId } from '../../components/chrome/Icon';
@@ -228,7 +229,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                     {skillEntries.map((entry) => (
                         <div
                             key={entry.baseId}
-                            className={`inv-item-row${entry.baseId === selectedSkillId ? ' inv-item-row--preview' : ''}`}
+                            className={`inv-item-row${entry.baseId === selectedSkillId ? ' is-selected' : ''}`}
                             onClick={() => setSelectedSkillId(entry.baseId)}
                         >
                             <span className="inv-item-icon">
@@ -267,7 +268,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                             const rowClass = [
                                 'inv-item-row',
                                 allowed.ok ? '' : 'inv-item-row--disabled',
-                                isPreview ? 'inv-item-row--preview' : '',
+                                isPreview ? 'is-selected' : '',
                             ].join(' ');
                             return (
                                 <div
@@ -326,7 +327,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                         </div>
                     </div>
                 )}
-                <StatsColumn rows={statsRows} title="ESTADÍSTICAS DEL PORTADOR" />
+                <StatsColumn rows={statsRows} />
             </div>
         ) : positionView ? (
             <div className="position-view">
@@ -348,9 +349,11 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                                         >
                                             <span
                                                 className="position-unit-sprite"
-                                                style={{
-                                                    backgroundImage: `url(${SPRITES[spriteRoleOf(member) ?? 'warrior'].idle.sheet})`,
-                                                }}
+                                                style={spriteFrameStyle(
+                                                    SPRITES[spriteRoleOf(member) ?? 'warrior'].idle,
+                                                    0,
+                                                    1.5,
+                                                )}
                                             />
                                             <span className="position-unit-name">{member.name}</span>
                                         </button>
@@ -369,7 +372,7 @@ export function TeamPage({ onBack }: { onBack?: () => void }) {
                         {jobTarget ? ` → ${jobTarget.title}` : ' · pick a job'}
                     </span>
                 </div>
-                <StatsColumn rows={jobVariationRows(selected, jobTarget)} title="VARIACIÓN DE ESTADÍSTICAS" />
+                <StatsColumn rows={jobVariationRows(selected, jobTarget)} />
             </div>
         ) : (
             <TeamData character={selected} />

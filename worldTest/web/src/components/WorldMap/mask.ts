@@ -19,11 +19,6 @@ export type MaskData = {
     countryIds: string[];
 };
 
-/** Numeric RGB key: (r << 16) | (g << 8) | b. */
-export function colorKey(r: number, g: number, b: number): number {
-    return ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
-}
-
 function hexToRgb(hex: string): [number, number, number] {
     const value = parseInt(hex.replace('#', ''), 16);
     return [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff];
@@ -121,10 +116,4 @@ export function regionAt(mask: MaskData, x: number, y: number): RegionId | null 
 }
 
 /** The country under a logical coordinate (O(1), derived index). */
-export function countryAt(mask: MaskData, x: number, y: number): string | null {
-    const xi = Math.floor(x);
-    const yi = Math.floor(y);
-    if (xi < 0 || yi < 0 || xi >= MAP_WIDTH || yi >= MAP_HEIGHT) return null;
-    const index = mask.countryIndexData[yi * MAP_WIDTH + xi];
-    return index === 0 ? null : mask.countryIds[index];
-}
+

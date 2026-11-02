@@ -10,7 +10,6 @@ import type {
 } from '@core';
 import { useGame } from '../../game/GameContext';
 import { Battlefield } from '../../components/battle/Battlefield';
-import type { BattleUnit } from '../../components/battle/Battlefield';
 import { JrpgArena } from '../../components/battle/JrpgArena';
 import { FloatingDamageLayer } from '../../components/battle/FloatingDamage';
 import type { DamagePart, FloatingHit } from '../../components/battle/FloatingDamage';
@@ -18,8 +17,9 @@ import { TargetBar } from '../../components/chrome/TargetBar';
 import { OptionsBar } from '../../components/chrome/OptionsBar';
 import { selectionRulesOf } from '../../game/targeting';
 import { SPRITES, spriteRoleOf, animationMsOf } from '../../assets/sprites';
-import type { SpriteAnimation } from '../../assets/sprites';
 import { effectAnimationFor } from '../../assets/effects';
+import type { BattleEffect } from '../../assets/effects';
+import { battleUnitOf } from '../../game/battleUnits';
 import type { PendingBattle } from '../../components/dialogue/MessageBox';
 
 /**
@@ -279,6 +279,8 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
         scheduleAfter(event);
     };
 
+    // The battle boots exactly once (StrictMode double-invokes effects):
+    // advance is stable enough for the mount-only boot.
     useEffect(() => {
         if (startedRef.current) return;
         startedRef.current = true;
@@ -286,6 +288,7 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
         return () => {
             if (stepTimerRef.current !== null) window.clearTimeout(stepTimerRef.current);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ---- the action animations ----------------------------------------
@@ -293,11 +296,7 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
     // effect over the target (physical slash / magical blast, stretched
     // to the skill's custom time). The next action waits for them.
     const effectIdRef = useRef(0);
-    const [effects, setEffects] = useState<{
-        id: string;
-        targetId: string;
-        animation: SpriteAnimation;
-    }[]>([]);
+    const [effects, setEffects] = useState<BattleEffect[]>([]);
     const [acting, setActing] = useState<{ actorId: string; nonce: number } | null>(null);
     const nonceRef = useRef(0);
 
@@ -311,7 +310,9 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
     const actionDurationOf = (event: HybridAutoEvent): number => {
         const actor = actorOf(event.actorId);
         const role = actor ? SPRITES[spriteRoleOf(actor) ?? 'warrior'] : SPRITES.warrior;
-        const poseMs = animationMsOf(role.attack);
+        // The attack pose is optional (the new archer/warrior art has no
+        // attack sheet): without it only the hit effect paces the turn.
+        const poseMs = role.attack ? animationMsOf(role.attack) : 0;
         const spec = event.skillId ? specOf(event.skillId) : undefined;
         const kind = event.damageByKind?.magical ? 'magical' : 'physical';
         const effectMs = event.damage > 0 || (event.heal ?? 0) > 0 ?
@@ -375,7 +376,7 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
                 <div className="action-bar-demo-content">
                     <div className="pixel-panel">
                         <div className="pixel-title">⚔ Combate</div>
-                        <div style={{ fontSize: 'var(--s3)', color: 'var(--muted)', marginBottom: 'var(--s2)' }}>
+                        <div className="pixel-caption" style={{ marginBottom: 'var(--s2)' }}>
                             Unknown fight: {battle.fightId}.
                         </div>
                     </div>
@@ -388,15 +389,8 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
         );
     }
 
-    const unitOf = (character: Character): BattleUnit => ({
-        id: character.id,
-        name: character.name,
-        sprite: SPRITES[spriteRoleOf(character) ?? 'warrior'].idle.sheet,
-        row: character.position === 'center' || character.position === 'back' ? character.position : 'front',
-        hp: Math.round(character.stats.hp),
-        maxHp: Math.round(character.stats.totalHp),
-        level: character.experience.level,
-    });
+    // The battlefield snapshots (battleUnitOf: sprite, row, hp, level).
+    const unitOf = battleUnitOf;
 
     const actor = prompt ? setup.allies.find((ally) => ally.id === prompt.actorId) : undefined;
     const promptTargets = prompt ? prompt.targets.map((id) => {
@@ -509,23 +503,31 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
             <FloatingDamageLayer hits={hits} onDone={removeHit} />
             <div className="pixel-panel">
                 <div className="pixel-title">⚔ {fight.id} · {fight.mode ?? 'turn'}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
+                <div className="pixel-caption" style={{ marginBottom: 4 }}>
                     {battle.placeId} · mission {battle.missionId || '—'}
                 </div>
                 {prompt && actor ? (
-                    <div style={{ fontSize: 12, color: 'var(--accent)', marginBottom: 4 }}>
+                    <div className="pixel-label" style={{ color: 'var(--accent)', marginBottom: 4 }}>
                         ▶ {actor.name} is up — pick a target.
                     </div>
                 ) : (
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
+                    <div className="pixel-caption" style={{ marginBottom: 4 }}>
                         The battle rages on…
                     </div>
                 )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'row', flex: 1, minHeight: 0 }}>
-                <Battlefield title="Enemies" units={setup.enemies.map(unitOf)} shrink side="left" />
-                <Battlefield title="Allies" units={setup.allies.map(unitOf)} shrink side="right" />
+                <Battlefield
+                    units={setup.enemies.map((character) => unitOf(character))}
+                    shrink
+                    side="left"
+                />
+                <Battlefield
+                    units={setup.allies.map((character) => unitOf(character))}
+                    shrink
+                    side="right"
+                />
             </div>
 
             {prompt ? (

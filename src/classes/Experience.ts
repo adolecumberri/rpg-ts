@@ -1,5 +1,3 @@
-import { Character } from './Character';
-
 export type ExperienceConstructor = {
     level?: number;
     currentXp?: number;

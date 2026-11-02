@@ -47,7 +47,7 @@ export type FloatingHit = {
 // "magical" family) blue, true white/grey, heal green; the physical
 // subtypes and the magical elements get their own tone, and the glyph
 // (from DEFAULT_ELEMENTS) disambiguates.
-export const DAMAGE_COLORS: Record<DamageKind, string> = {
+const DAMAGE_COLORS: Record<DamageKind, string> = {
     physical: '#f5d442',
     pierce: '#c9d4de',
     blunt: '#c08a5e',

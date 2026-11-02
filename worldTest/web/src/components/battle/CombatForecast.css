@@ -37,7 +37,7 @@
     }
 
     50% {
-        filter: drop-shadow(0 0 8px #facc15) drop-shadow(0 0 18px rgba(254, 240, 138, 0.95));
+        filter: drop-shadow(0 0 8px var(--gold-bright)) drop-shadow(0 0 18px rgba(254, 240, 138, 0.95));
     }
 }
 
@@ -58,10 +58,10 @@
     position: absolute;
     z-index: 4;
     margin-left: 64px;
-    font-family: 'Press Start 2P', var(--font-pixel, monospace);
-    font-size: 16px;
+    font-family: var(--font-display);
+    font-size: var(--display-xl);
     font-style: italic;
-    font-weight: 900;
+    font-weight: 700;
     letter-spacing: -1px;
     line-height: 1;
     transform: skewX(-16deg);
@@ -88,7 +88,7 @@
 .cf-hit.is-max-hit .cf-hit-logo {
     color: #ffffff;
     text-shadow:
-        0 0 10px #facc15,
+        0 0 10px var(--gold-bright),
         0 1px 0 #ffe088,
         1px 2px 0 #d97706,
         2px 3px 0 #78350f;
@@ -127,39 +127,39 @@
 .cf-hit-acc {
     position: absolute;
     margin: 12px 0 0 64px;
-    font-family: 'Space Mono', monospace;
-    font-size: 20px;
-    font-weight: bold;
+    font-family: var(--font-display);
+    font-size: var(--display-hero);
+    font-weight: 700;
     color: #f6ded1;
     text-shadow: 1px 1px 0 #000, 2px 2px 0 #3c2f00;
     letter-spacing: -0.5px;
 }
 
 .cf-hit-acc .cf-hit-pct {
-    font-size: 10px;
-    color: #d0c5af;
+    font-size: var(--text-sm);
+    color: var(--text-muted-warm);
 }
 
 /* The damage number, colored by its composition (hybrid mixes get
    their own mix color). */
 .cf-hit-dmg {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    font-weight: bold;
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    font-weight: 700;
     letter-spacing: -2.5px;
     text-shadow: 1px 1px 0 #000, 2px 2px 0 #3c2f00;
     right: 16px;
     position: absolute;
     top: 12px;
-    font-size: 20px;
+    font-size: var(--display-hero);
 }
 
 .cf-hit-dmg--physical {
-    color: #f87171;
+    color: var(--danger-soft);
 }
 
 .cf-hit-dmg--magical {
-    color: #60a5fa;
+    color: var(--info);
 }
 
 .cf-hit-dmg--true {
@@ -169,7 +169,7 @@
 /* The potential healing readout (heal skills): green, like the HP
    gauges. */
 .cf-hit-dmg--heal {
-    color: #4ade80;
+    color: var(--success);
 }
 
 .cf-hit-dmg--magical-physical {
@@ -187,19 +187,19 @@
 /* The pre-mitigation number ("raw → after defence"): muted and small,
    so the colored number reads as the real expected damage. */
 .cf-hit-dmg-raw {
-    font-size: 10px;
+    font-size: var(--text-sm);
     letter-spacing: 0.5px;
     color: #b8ab93;
     margin-right: 2px;
 }
 
 .cf-hit-dmg--magical-physical-true {
-    color: #facc15;
+    color: var(--gold-bright);
 }
 
 .cf-hit-pts {
-    font-size: 12px;
-    color: #d0c5af;
+    font-size: var(--text-md);
+    color: var(--text-muted-warm);
     margin-left: 8px;
 }
 
@@ -209,10 +209,10 @@
    display nothing). */
 .cf-hit-effects {
     margin: 0 0 2px 80px;
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.2px;
-    color: #d0c5af;
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    letter-spacing: 0;
+    color: var(--text-muted-warm);
     text-shadow: 1px 1px 0 #000;
 }
 
@@ -250,7 +250,7 @@
     display: flex;
     align-items: baseline;
     gap: 4px;
-    font-size: 13px;
+    font-size: var(--text-lg);
     color: #f3e7be;
     text-shadow: 1px 1px 0 #000;
     white-space: nowrap;
@@ -265,18 +265,18 @@
 }
 
 .cf-combatant-lvl {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
     color: #d4af37;
 }
 
 .cf-combatant-dot {
     flex: none;
-    color: #4ade80;
+    color: var(--success);
 }
 
 .cf-combatant--enemy .cf-combatant-dot {
-    color: #f87171;
+    color: var(--danger-soft);
 }
 
 .cf-gauge {
@@ -296,16 +296,16 @@
 }
 
 .cf-gauge--hp .cf-gauge-fill {
-    background: #4ade80;
+    background: var(--success);
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4);
 }
 
 .cf-combatant--enemy .cf-gauge--hp .cf-gauge-fill {
-    background: #f87171;
+    background: var(--danger-soft);
 }
 
 .cf-gauge--mana .cf-gauge-fill {
-    background: #60a5fa;
+    background: var(--info);
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25), inset 0 -2px 0 rgba(0, 0, 0, 0.35);
 }
 
@@ -315,9 +315,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    font-weight: bold;
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    font-weight: 700;
     color: #fff;
     text-shadow: 1px 1px 0 #000;
 }
@@ -357,11 +357,11 @@
     flex: 1;
     min-width: 0;
     align-items: center;
-    font-size: 11px;
+    font-size: var(--text-md);
 }
 
 .cf-combatant--compact .cf-combatant-lvl {
-    font-size: 8px;
+    font-size: var(--text-2xs);
 }
 
 .cf-combatant--compact .cf-combatant-gauges {
@@ -375,7 +375,7 @@
 }
 
 .cf-combatant--compact .cf-gauge-text {
-    font-size: 8px;
+    font-size: var(--text-2xs);
 }
 
 .cf-combatant--cell {
@@ -388,11 +388,11 @@
 .cf-combatant--cell .cf-combatant-head {
     width: 100%;
     align-items: baseline;
-    font-size: 11px;
+    font-size: var(--text-md);
 }
 
 .cf-combatant--cell .cf-combatant-lvl {
-    font-size: 8px;
+    font-size: var(--text-2xs);
 }
 
 .cf-combatant--cell .cf-combatant-gauges {
@@ -408,5 +408,5 @@
 }
 
 .cf-combatant--cell .cf-gauge-text {
-    font-size: 8px;
+    font-size: var(--text-2xs);
 }

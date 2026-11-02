@@ -17,7 +17,7 @@ export type StatRow = {
  * it with the equipped items' (or a previewed item's) bonuses; the job
  * page renders it with the job-change variation (the delta).
  */
-export function StatsColumn({ rows, title }: { rows: StatRow[]; title?: string }) {
+export function StatsColumn({ rows }: { rows: StatRow[] }) {
     return (
         <div className="team-data-stats">
             {/* {title ? <div className="team-data-stats-title">{title}</div> : null} */}

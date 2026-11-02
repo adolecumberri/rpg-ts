@@ -71,7 +71,7 @@ export function DamagesScreen() {
     const addPart = () => setParts((prev) => [...prev, { element: selected, amount: value }]);
 
     const removePart = (index: number) => setParts(
-        (prev) => prev.filter((entry, entryIndex) => entryIndex !== index),
+        (prev) => prev.filter((_entry, entryIndex) => entryIndex !== index),
     );
 
     const summary = parts.length > 0 ?
@@ -182,7 +182,6 @@ export function DamagesScreen() {
 
             <div className="damages-area">
                 <BattleCard
-                    name="Dummy"
                     hp={1000}
                     maxHp={1000}
                     level={1}

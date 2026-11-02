@@ -128,7 +128,7 @@ export function MissionsPage({
                 </span>
             ) : (
                 <span className="mission-members">
-                    {Array.from({ length: members }, (entry, index) => (
+                    {Array.from({ length: members }, (_entry, index) => (
                         <span
                             key={index}
                             className="mission-member-icon material-symbol"
@@ -211,7 +211,6 @@ export function MissionsPage({
                     </div>
 
                     <OptionsBar
-                        fixedRows
                         options={owned ? [{
                             id: 'cancel',
                             label: 'Cancelar',

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { BattleReport, BattleFighterStats, DamageKindTotals } from '@core';
 
-export type BattleReportSide = {
+type BattleReportSide = {
     name: string;
     // The fighter ids that fought on this side (order = display order).
     ids: string[];

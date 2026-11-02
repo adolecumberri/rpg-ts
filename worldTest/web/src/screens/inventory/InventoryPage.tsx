@@ -40,7 +40,7 @@ export function InventoryPage({ onBack }: { onBack?: () => void }) {
         .map((slot) => (
             <div
                 key={slot.id}
-                className={`inv-item-row${slot.item.id === selectedId ? ' inv-item-row--preview' : ''}`}
+                className={`inv-item-row${slot.item.id === selectedId ? ' is-selected' : ''}`}
                 onClick={() => setSelectedId(slot.item.id)}
             >
                 <span className="inv-item-icon">
@@ -74,7 +74,7 @@ export function InventoryPage({ onBack }: { onBack?: () => void }) {
                     <div className="inventory-data">
                         {selected ? (
                             <>
-                                <StatsColumn rows={statsOfItems([selected])} title="ESTADÍSTICAS" />
+                                <StatsColumn rows={statsOfItems([selected])} />
                                 <div className="inventory-skills">
                                     <div className="team-data-stats-title">HABILIDADES</div>
                                     {skills.length === 0 ? (

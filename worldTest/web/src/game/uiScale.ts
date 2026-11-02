@@ -7,9 +7,9 @@ import { useEffect, useState } from 'react';
 // layout never reflows per resolution.
 // ---------------------------------------------------------------------------
 
-export const UI_CANVAS = { width: 320, height: 640 } as const;
+const UI_CANVAS = { width: 320, height: 640 } as const;
 
-export const UI_MAX_SCALE = 4;
+const UI_MAX_SCALE = 4;
 
 /**
  * The canvas multiplier for the current window: always a whole number
@@ -17,7 +17,7 @@ export const UI_MAX_SCALE = 4;
  * UI_MAX_SCALE. Screens that cannot fit the next whole step letterbox
  * instead of stretching.
  */
-export function computeUiScale(windowWidth: number, windowHeight: number): number {
+function computeUiScale(windowWidth: number, windowHeight: number): number {
     if (windowWidth <= 0 || windowHeight <= 0) return 1;
     const fit = Math.min(
         windowWidth / UI_CANVAS.width,

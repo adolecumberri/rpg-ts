@@ -5,6 +5,8 @@ import { heldJobOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, 
 import type { SkillSpec } from '@core';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 import type { SpriteAnimation, SpriteSet } from '../../assets/sprites';
+import { spriteFrameStyle } from '../../assets/spriteFrames';
+import type { BattleEffect } from '../../assets/effects';
 import { OptionsBar } from '../chrome/OptionsBar';
 import type { OptionSpec } from '../chrome/OptionsBar';
 import { TargetBar } from '../chrome/TargetBar';
@@ -16,6 +18,7 @@ import { STAT_CATALOG } from '../../game/statCatalog';
 import type { StatKey } from '../../game/statCatalog';
 import { Icon } from '../chrome/Icon';
 import { StatBar } from '../chrome/StatBar';
+import './JrpgArena.css';
 
 /**
  * The JRPG pseudo-3D tactical arena (the small-battle view, per the
@@ -163,6 +166,10 @@ function ArenaEntity({
     const mana = Math.round(character.stats.mana ?? 0);
     const totalMana = Math.round(character.stats.totalMana ?? 0);
     const sheet: SpriteSet = SPRITES[spriteRoleOf(character) ?? 'warrior'];
+    // The attack pose is optional: the new archer/warrior art has only a
+    // 2-frame idle, so those roles hold the idle sprite (the hit effect
+    // still plays) until an attack sheet is added to the data.
+    const attackAnim = sheet.attack;
 
     // The attack pose: a one-shot over the attack sheet (stepped by JS
     // so frame offsets like the cow's shared sheet work), back to idle
@@ -170,7 +177,7 @@ function ArenaEntity({
     const [posing, setPosing] = useState(false);
     const [poseFrame, setPoseFrame] = useState(0);
     useEffect(() => {
-        if (!acting) {
+        if (!acting || !attackAnim) {
             setPosing(false);
             return;
         }
@@ -179,15 +186,15 @@ function ArenaEntity({
         let current = 0;
         const timer = window.setInterval(() => {
             current += 1;
-            if (current >= sheet.attack.frames) {
+            if (current >= attackAnim.frames) {
                 window.clearInterval(timer);
                 setPosing(false);
                 return;
             }
             setPoseFrame(current);
-        }, sheet.attack.frameMs);
+        }, attackAnim.frameMs);
         return () => window.clearInterval(timer);
-    }, [acting, actingNonce, sheet]);
+    }, [acting, actingNonce, attackAnim]);
 
     // The idle loop: steps through the idle sheet's frames forever
     // (paused while the attack pose plays). Single-frame idles sit on
@@ -200,13 +207,6 @@ function ArenaEntity({
         }, sheet.idle.frameMs);
         return () => window.clearInterval(timer);
     }, [posing, sheet]);
-
-    // The display helpers: the full sheet's background size and the
-    // frame's position (the offset lands mid-sheet on shared sheets).
-    const sheetSize = (animation: SpriteAnimation) =>
-        `${(animation.sheetFrames ?? animation.frames) * animation.frameWidth}px ${animation.frameHeight}px`;
-    const framePosition = (animation: SpriteAnimation, frame: number) =>
-        `${-((animation.frameOffset ?? 0) + frame) * animation.frameWidth}px 0`;
 
     return (
         <div
@@ -239,15 +239,10 @@ function ArenaEntity({
             </span>
             <span
                 className="jrpg-sprite-box"
-                style={posing ? {
-                    'backgroundImage': `url(${sheet.attack.sheet})`,
-                    'backgroundSize': sheetSize(sheet.attack),
-                    'backgroundPosition': framePosition(sheet.attack, poseFrame),
-                } as CSSProperties : {
-                    'backgroundImage': `url(${sheet.idle.sheet})`,
-                    'backgroundSize': sheetSize(sheet.idle),
-                    'backgroundPosition': framePosition(sheet.idle, 0),
-                }}
+                style={spriteFrameStyle(
+                    posing && attackAnim ? attackAnim : sheet.idle,
+                    posing && attackAnim ? poseFrame : idleFrame,
+                )}
             />
         </div>
     );
@@ -307,7 +302,7 @@ function TurnOrderStrip({
     chips,
     activeId,
 }: {
-    chips: { id: string; enemy: boolean; name?: string; sprite?: string }[];
+    chips: { id: string; enemy: boolean; name?: string; animation?: SpriteAnimation }[];
     activeId?: string;
 }) {
     return (
@@ -321,7 +316,7 @@ function TurnOrderStrip({
                         chip.enemy ? 'jrpg-order-chip--enemy' : '',
                         chip.id === activeId ? 'jrpg-order-chip--current' : '',
                     ].join(' ')}
-                    style={chip.sprite ? { backgroundImage: `url(${chip.sprite})` } : undefined}
+                    style={chip.animation ? spriteFrameStyle(chip.animation, 0) : undefined}
                 />
             ))}
         </div>
@@ -373,7 +368,7 @@ export function JrpgArena({
     // One-shot battle effects played over a target (the physical slash
     // or the magical blast); the arena positions them at the target's
     // arena spot and reports when each finishes.
-    effects?: { id: string; targetId: string; animation: SpriteAnimation }[];
+    effects?: BattleEffect[];
     onEffectDone?: (id: string) => void;
     // The acting fighter (its entity plays the attack pose one-shot per
     // nonce change).
@@ -438,6 +433,9 @@ export function JrpgArena({
 
     const arenaRef = useRef<HTMLDivElement | null>(null);
     const [arenaSize, setArenaSize] = useState({ w: 320, h: 320 });
+    // Measuring on every render is intentional: the arena is sized by
+    // the CSS grid around it, so the camera needs the live rect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useLayoutEffect(() => {
         const node = arenaRef.current;
         if (!node) return;
@@ -609,10 +607,10 @@ export function JrpgArena({
         let maxY = -Infinity;
         for (const spot of allySpots.concat(enemySpots)) {
             const { x, y } = positionOf(spot.tier, spot.side, spot.index, spot.count, spot.column);
-            minX = Math.min(minX, x - 30);
-            maxX = Math.max(maxX, x + 30);
-            minY = Math.min(minY, y - 34);
-            maxY = Math.max(maxY, y + 6);
+            minX = Math.min(minX, x - 36);
+            maxX = Math.max(maxX, x + 36);
+            minY = Math.min(minY, y - 56);
+            maxY = Math.max(maxY, y + 8);
         }
         const bboxW = Math.max(1, maxX - minX);
         const bboxH = Math.max(1, maxY - minY);
@@ -641,7 +639,7 @@ export function JrpgArena({
     const bannerLevel = bannerCharacter ? bannerCharacter.experience.level : 0;
     const bannerJob = bannerCharacter ? heldJobOf(bannerCharacter)?.title ?? '' : '';
     const bannerSprite = bannerCharacter ?
-        SPRITES[spriteRoleOf(bannerCharacter) ?? 'warrior'].idle.sheet :
+        SPRITES[spriteRoleOf(bannerCharacter) ?? 'warrior'].idle :
         undefined;
     const bannerName = bannerCharacter ? bannerCharacter.name : '—';
 
@@ -765,7 +763,10 @@ export function JrpgArena({
             {/* ---- the battle header: the acting character + menu ------ */}
             <div className="jrpg-header">
                 <div className="jrpg-turn-left">
-                    <div className="jrpg-turn-avatar" style={bannerSprite ? { backgroundImage: `url(${bannerSprite})` } : undefined} />
+                    <div
+                        className="jrpg-turn-avatar"
+                        style={bannerSprite ? spriteFrameStyle(bannerSprite, 0, 1.375) : undefined}
+                    />
                     <div className="jrpg-turn-name-group">
                         <div className="jrpg-turn-name">
                             {bannerName}
@@ -818,7 +819,9 @@ export function JrpgArena({
             >
                 <div
                     className="jrpg-camera"
-
+                    style={{
+                        transform: `translate(${camera.tx}px, ${camera.ty}px) scale(${camera.scale})`,
+                    }}
                 >
                     <div className="jrpg-backdrop-wall" />
                     <div className="jrpg-ember" style={{ left: '15%', animationDelay: '0s' }} />
@@ -895,14 +898,14 @@ export function JrpgArena({
                         return {
                             ...entry,
                             name: character?.name ?? entry.id,
-                            sprite: character ?
-                                SPRITES[spriteRoleOf(character) ?? 'warrior'].idle.sheet :
+                            animation: character ?
+                                SPRITES[spriteRoleOf(character) ?? 'warrior'].idle :
                                 undefined,
                         };
                     })
                         // Sprite-only: chips without a picture (no
                         // matching fighter) are dropped, never numbered.
-                        .filter((entry) => entry.sprite)}
+                        .filter((entry) => entry.animation)}
                     activeId={order?.[0]?.id ?? activeId}
                 />
 
@@ -990,7 +993,6 @@ export function JrpgArena({
             ) : (
                 <OptionsBar
                     size="lg"
-                    fixedRows
                     options={[
                         {
                             id: 'attack',

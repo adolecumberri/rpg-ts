@@ -1,4 +1,3 @@
-import { Character } from './Character';
 import { CombatContext } from './Combat/Combat.interfaces';
 
 export type EnemyTarget =

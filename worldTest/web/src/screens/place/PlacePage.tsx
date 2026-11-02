@@ -270,12 +270,12 @@ export function PlacePage({
                     {activeHere.length > 0 || markers.length > 0 ? (
                         <div style={{ marginTop: 8 }}>
                             {activeHere.map((mission) => (
-                                <div key={mission.missionId} style={{ fontSize: 'var(--s3)' }}>
+                                <div key={mission.missionId} className="pixel-label">
                                     ❗ {mission.title}
                                 </div>
                             ))}
                             {markers.length > 0 ? (
-                                <div style={{ fontSize: 'var(--s3)' }}>❗ Mission here</div>
+                                <div className="pixel-label">❗ Mission here</div>
                             ) : null}
                             {activeHere.length > 0 ? (
                                 <button
@@ -293,7 +293,7 @@ export function PlacePage({
                         </div>
                     ) : null}
                     {place.menu === false && corpses === 0 ? (
-                        <div style={{ fontSize: 'var(--s3)', color: 'var(--muted)', marginTop: 8 }}>
+                        <div className="pixel-caption" style={{ marginTop: 8 }}>
                             There is nothing to do here.
                         </div>
                     ) : null}

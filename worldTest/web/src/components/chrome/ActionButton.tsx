@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Icon } from './Icon';
+import type { ActionBarCell } from './ActionBar';
 
 /**
  * The icon of an action button: a single character (emoji, '✓'), an
@@ -24,6 +25,16 @@ const ICON_SIZES: Record<'sm' | 'md' | 'lg', number> = {
 };
 
 /**
+ * The button's props: the bar cell WITHOUT its identity fields (the
+ * cell owns id/custom; the button owns size and click). One shape, not
+ * a parallel copy.
+ */
+export type ActionButtonProps = Omit<ActionBarCell, 'id' | 'custom' | 'onClick'> & {
+    size?: 'sm' | 'md' | 'lg';
+    onClick?: () => void;
+};
+
+/**
  * One cell of the action bar: a button component (not raw HTML) that
  * receives its presentation through props. The bar decides the grid
  * slot, size mode, tone and variant.
@@ -43,36 +54,7 @@ export function ActionButton({
     sub,
     tip,
     onClick,
-}: {
-    label: string;
-    icon?: ActionIcon;
-    size?: 'sm' | 'md' | 'lg';
-    tone?: 'default' | 'primary' | 'danger';
-    // The left border accent color (the battle commands: attack red,
-    // skill blue, defend yellow, flee red).
-    accent?: string;
-    disabled?: boolean;
-    // Multi-target picking: the cell shows the selected state.
-    selected?: boolean;
-    // The badge on a picked cell: '✓' by default, or '✓×2' for
-    // multi-hit skills that may stack hits on one target.
-    mark?: string;
-    // A corner chip next to the label (the gold ↑ level-up badge:
-    // guides the player to the bar entry that resolves it).
-    badge?: string;
-    // The grid slot (1-based): row 3 col 2 for slot 6, etc. Keeps the
-    // page controls pinned to their slots on short pages.
-    slot?: number;
-    // The cell spans the whole row (both grid columns).
-    wide?: boolean;
-    // The muted sub-label under the main label (the design's buttons:
-    // icon slot + text + subtext).
-    sub?: string;
-    // The hover tooltip: shown over the button (skills show only their
-    // stat changes here — the label already carries the name).
-    tip?: string;
-    onClick?: () => void;
-}) {
+}: ActionButtonProps) {
     const toneClass = tone === 'primary' ?
         'pixel-btn--primary' :
         tone === 'danger' ? 'pixel-btn--danger' : '';

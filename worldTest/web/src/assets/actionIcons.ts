@@ -3,8 +3,6 @@
  * WITHOUT the black outline (the smooth look of the .html), shown
  * inside the button icon slots.
  */
-export type ActionSvgIcon = { svg: string; color?: string };
-
 export const ACTION_ICONS = {
     map: {
         svg: 'M1 2.5L5.5 1L10.5 3L15 1.5V13.5L10.5 15L5.5 13L1 14.5V2.5ZM6 2.5V11.8L10 13.4V4.1L6 2.5Z',

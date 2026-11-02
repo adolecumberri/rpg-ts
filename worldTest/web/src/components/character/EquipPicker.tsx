@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { EquipmentSection } from '@core';
 import { Icon } from '../chrome/Icon';
 
@@ -77,7 +77,7 @@ export function EquipPicker<Section extends string>({
             </div>
             <div className="pixel-modal-body">
                 {rows.length === 0 ? (
-                    <div style={{ fontSize: 'var(--s3)', color: 'var(--muted)' }}>{emptyText}</div>
+                    <div className="pixel-caption">{emptyText}</div>
                 ) : (
                     <div>
                         <div className="inv-table-head">

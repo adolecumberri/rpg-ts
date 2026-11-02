@@ -3,7 +3,6 @@ import { ACTION_HANDLER, STATUS_DURATIONS, STATUS_USAGE_FREQUENCY } from '../con
 import { uniqueID } from '../helpers/common.helpers';
 import { EventMoment } from '../types/generalEvents.types';
 import { Character } from './Character';
-import { CombatTrigger } from './Combat/Combat.interfaces';
 import { AnyStat, Stats } from './Stats';
 
 export type StatusInstanceConstructor = {

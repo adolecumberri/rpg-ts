@@ -173,7 +173,7 @@
     z-index: 20;
     width: var(--s10);
     height: var(--s10);
-    font-size: var(--s4);
+    font-size: var(--text-xl);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -200,13 +200,13 @@
 }
 
 .worldmap-dev-coords {
-    font-size: var(--s4);
+    font-size: var(--text-xl);
     font-weight: 700;
     color: var(--accent);
 }
 
 .worldmap-dev-region {
-    font-size: var(--s3);
+    font-size: var(--text-md);
     color: var(--muted);
 }
 

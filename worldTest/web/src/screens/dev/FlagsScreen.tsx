@@ -54,7 +54,7 @@ export function FlagsScreen({ onBack }: { onBack?: () => void }) {
                         <button
                             key={name}
                             type="button"
-                            className={`item-page-row${isOn(value) ? ' inv-item-row--preview' : ''}`}
+                            className={`item-page-row${isOn(value) ? ' is-selected' : ''}`}
                             onClick={() => toggle(value)}
                         >
                             <span className="item-page-info">
