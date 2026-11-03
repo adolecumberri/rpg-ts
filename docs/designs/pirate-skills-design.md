@@ -110,8 +110,8 @@ must also run on win/lost/fled (single `dispose()` path).
 - **Knife Mastery** passive: at battle start the passive applies a
   `weaponDamageBonus` status (`{ weaponType: 'knife', percent: 20 }`). The
   general attack resolver (`damage/general.ts`) reads the attacker's statuses
-  and multiplies final weapon damage by `1 + sum(percent)/100` when the
-  attacker's weapon type matches. Only the general attack pipeline is affected
+  and multiplies final weapon damage by `1 + sum(percent)/100` when any equipped hole holds a
+  matching weapon type (owner rule: a knife anywhere counts). Only the general attack pipeline is affected
   (documented; skill damage is not a weapon attack).
 - Name the passive definition `knife_mastery`; `maxLevel 1` until growth.
 

@@ -194,13 +194,19 @@ export function resolveGeneralAttack(
             }
         }
         // Weapon-class bonuses (Knife Mastery): the bearer's statuses may
-        // scale damage while a matching weapon type is wielded.
-        const weapon = equippedItemsOf(attacker).find((item) => item.definition.weaponType);
-        if (weapon) {
+        // scale damage when ANY equipped hole holds a matching weapon type
+        // (the owner's rule: a knife anywhere in the loadout counts). The
+        // legacy equipment manager is included by equippedItemsOf.
+        const weaponTypes = new Set<string>(
+            equippedItemsOf(attacker)
+                .map((item) => item.definition.weaponType)
+                .filter((weaponType): weaponType is NonNullable<typeof weaponType> => Boolean(weaponType)),
+        );
+        if (weaponTypes.size > 0) {
             let percent = 0;
             for (const status of attacker.statusManager.statuses.values()) {
                 for (const bonus of status.definition.weaponDamageBonus ?? []) {
-                    if (bonus.weaponType === weapon.definition.weaponType) percent += bonus.percent;
+                    if (weaponTypes.has(bonus.weaponType)) percent += bonus.percent;
                 }
             }
             if (percent !== 0) {
