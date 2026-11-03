@@ -26,7 +26,8 @@ import {
 } from './constants/jobs';
 import { FaintRegistry, applyCarryStatus, clearCarryStatus } from './fainting';
 import { syncPositionToWeapon } from './combat/range';
-import { grantJobXp, ownedJobSkills } from './jobs/progression';
+import { grantJobXp, heldJobsOf, ownedJobSkills, secondaryJobSkillsOf } from './jobs/progression';
+import { jobUnlockState } from './jobs/unlock';
 import type { BattleReport, BattleTracker } from './combat/battleTracker';
 import { equipInto, equippedItemsOf, firstFreeHole, migrateLegacyEquipment, unequipHole } from './equipment/loadout';
 import type { CharacterLoadout } from './equipment/loadout';
@@ -1290,8 +1291,74 @@ export class WorldSession {
         }
 
         const removedNote = removed.length > 0 ? ` Unequipped: ${removed.join(', ')}.` : '';
+        // The job change is remembered: the second skill slot may pick any
+        // job the character has held, and can never repeat the held one.
+        if (!character.heldJobs) character.heldJobs = [];
+        if (character.heldJobs.indexOf(job.id) === -1) character.heldJobs.push(job.id);
+        if (character.secondaryJobId === job.id) character.secondaryJobId = undefined;
         this.syncKnownSkills();
         return { ok: true, message: `${character.name} is now ${jobLabel}.${removedNote}` };
+    }
+
+    /**
+     * The player-facing job change: checks the job's unlock requirements
+     * (world discovery flag + the viewed character's held-job levels)
+     * before applying it. Story effects keep using setJob directly, so
+     * content can create characters with any job.
+     */
+    changeJob(characterId: string, jobId: string): { ok: boolean; message: string } {
+        const character = this.team.getCharacter(characterId) ?? this.roster.character(characterId);
+        const job = jobById(jobId);
+        if (!character || !job) {
+            return { ok: false, message: 'Unknown character or job.' };
+        }
+        const state = jobUnlockState(
+            character,
+            job,
+            (flag) => this.hasFlag(flag),
+            (id) => jobById(id)?.title ?? id,
+        );
+        if (!state.visible) {
+            return { ok: false, message: `${job.title} is not known yet.` };
+        }
+        if (!state.ok) {
+            return { ok: false, message: state.reason };
+        }
+        return this.setJob(characterId, jobId);
+    }
+
+    /**
+     * Chooses the job whose ladder feeds the character's SECOND skill
+     * slot (null clears it). Only jobs the character has held qualify,
+     * and the currently held job never does: its skills are already the
+     * first slot's kit.
+     */
+    setSecondaryJob(
+        characterId: string,
+        jobId: string | null,
+    ): { ok: boolean; message: string } {
+        const character = this.team.getCharacter(characterId) ?? this.roster.character(characterId);
+        if (!character) {
+            return { ok: false, message: 'Unknown character.' };
+        }
+        if (jobId === null) {
+            character.secondaryJobId = undefined;
+            this.syncKnownSkills();
+            return { ok: true, message: 'Second skill slot cleared.' };
+        }
+        const job = jobById(jobId);
+        if (!job) {
+            return { ok: false, message: 'Unknown job.' };
+        }
+        if (heldJobOf(character)?.id === jobId) {
+            return { ok: false, message: `${job.title} is the held job already.` };
+        }
+        if (heldJobsOf(character).indexOf(jobId) === -1) {
+            return { ok: false, message: `${character.name} has never held ${job.title}.` };
+        }
+        character.secondaryJobId = jobId;
+        this.syncKnownSkills();
+        return { ok: true, message: `Second skill slot: ${job.title}.` };
     }
 
     /**
@@ -1343,7 +1410,13 @@ export class WorldSession {
         const tree = this.skillTreeOf(character.id);
         const learned = tree ? tree.learnedSkillIds() : [];
         const ids: string[] = [];
-        for (const id of [...defaultSkillIds(), ...base, ...ownedJobSkills(character), ...learned]) {
+        for (const id of [
+            ...defaultSkillIds(),
+            ...base,
+            ...ownedJobSkills(character),
+            ...secondaryJobSkillsOf(character),
+            ...learned,
+        ]) {
             if (ids.indexOf(id) === -1) ids.push(id);
         }
         return ids;
@@ -1362,7 +1435,7 @@ export class WorldSession {
      */
     syncKnownSkills(): void {
         for (const character of [...this.team.getAll(), ...this.roster.all()]) {
-            for (const skillId of ownedJobSkills(character)) {
+            for (const skillId of [...ownedJobSkills(character), ...secondaryJobSkillsOf(character)]) {
                 this.knownSkillIds.add(skillId);
             }
         }
@@ -1848,6 +1921,10 @@ export class WorldSession {
             currentXp: character.experience.currentXp,
             jobId: character.jobId,
             portraitId: character.portraitId,
+            // The jobs the character has held (the second-slot picker
+            // only offers them) and the second slot's job.
+            heldJobs: character.heldJobs,
+            secondaryJobId: character.secondaryJobId,
             // The worldTest stats are part of the enhanced Statistics:
             // read them straight from the stats object.
             extraStats: {

@@ -34,3 +34,15 @@ export function portraitIdOf(character: Character): string {
     if (jobId === 'healer') return 'mage';
     return 'warrior';
 }
+
+/** The portrait key for a job (its class picture: soldier → warrior). */
+export function portraitIdOfJob(jobId?: string): string {
+    if (jobId === 'archer') return 'archer';
+    if (jobId === 'healer') return 'mage';
+    return 'warrior';
+}
+
+/** The portrait asset URL for a job (the class picture of that job). */
+export function portraitUrlOfJob(jobId?: string): string {
+    return portraitUrl(portraitIdOfJob(jobId));
+}

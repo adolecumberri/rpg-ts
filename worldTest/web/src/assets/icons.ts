@@ -38,6 +38,9 @@ export type IconId =
     | 'armadura'
     | 'bota'
     | 'atras'
+    | 'eye'
+    | 'mana'
+    | 'turn'
     | 'default';
 
 type IconRef = { sheet: number; row: number; col: number };
@@ -62,6 +65,15 @@ const ICONS: Record<IconId, IconRef> = {
 
     // The back/close X: icons_4 (5,1).
     atras: { sheet: 4, row: 5, col: 1 },
+
+    // The skill "details" eye: icons_1 (row 7, col 5).
+    eye: { sheet: 1, row: 7, col: 5 },
+
+    // The turns/duration clock: icons_2 (row 1, col 1).
+    turn: { sheet: 2, row: 1, col: 1 },
+
+    // The mana drop: icons_3 (row 5, col 1).
+    mana: { sheet: 3, row: 5, col: 1 },
 
     // icons_4 (1,1): the fallback for unknown ids.
     default: { sheet: 4, row: 1, col: 1 },

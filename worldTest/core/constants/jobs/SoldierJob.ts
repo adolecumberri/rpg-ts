@@ -21,4 +21,9 @@ export const SOLDIER_JOB = new Job(
         enhancementAt: [2, 4, 6, 7],
         masteryTitle: 'Master Soldier',
     },
+    {
+        // The base trio share the same requirement ladder, evaluated
+        // against the character being viewed (ORDER_JOB_LADDER).
+        requirements: [{ kind: 'orderLadder' }],
+    },
 );

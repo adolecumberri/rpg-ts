@@ -292,7 +292,7 @@ const RAW_SKILLS = {
     foot_shot: {
         id: 'foot_shot',
         name: 'Foot Shot',
-        description: 'The enemy\'s speed -80%, defence -20% for 2 turns.',
+        description: 'The enemy\'s [speed]speed -80%[/speed], [armor]defence -20%[/armor] for 2 turns.',
         targeting: 'ENEMY',
         statusOnTargets: footShotStatus(),
         manaCost: 16,
@@ -308,7 +308,7 @@ const RAW_SKILLS = {
     perno_magico: {
         id: 'perno_magico',
         name: 'Perno Mágico',
-        description: 'Deals 80% of your magic as magical damage.',
+        description: 'Deals [magical]80% of your magic[/magical] as magical damage.',
         targeting: 'ENEMY',
         numberOfTargets: 1,
         damageFor: (actor) => [{
@@ -561,7 +561,7 @@ const RAW_SKILLS = {
     foot_shot_2: {
         id: 'foot_shot_2',
         name: 'Foot Shot +',
-        description: 'The enemy\'s speed -80% and defence -30% for 3 turns.',
+        description: 'The enemy\'s [speed]speed -80%[/speed] and [armor]defence -30%[/armor] for 3 turns.',
         targeting: 'ENEMY',
         statusOnTargets: footShotStatus(3, 80, 30),
         manaCost: 18,
@@ -569,7 +569,7 @@ const RAW_SKILLS = {
     foot_shot_3: {
         id: 'foot_shot_3',
         name: 'Foot Shot ++',
-        description: 'The enemy\'s speed -80% and defence -30% for 3 turns.',
+        description: 'The enemy\'s [speed]speed -80%[/speed] and [armor]defence -30%[/armor] for 3 turns.',
         targeting: 'ENEMY',
         numberOfTargets: 2,
         statusOnTargets: footShotStatus(3, 80, 30),
@@ -781,7 +781,7 @@ const RAW_SKILLS = {
     captain_discipline: {
         id: 'captain_discipline',
         name: "Captain's Discipline",
-        description: 'Passive: the captain holds the line with +20% defence and +10% magic defence.',
+        description: 'Passive: the captain holds the line with [armor]+20% defence[/armor] and [mr]+10% magic defence[/mr].',
         targeting: 'SELF',
         statusOnSelf: defenceStandStatus(99, 20, 10),
         passive: true,

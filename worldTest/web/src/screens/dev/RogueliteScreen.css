@@ -30,7 +30,7 @@
 
 .rogue-wave {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--gold);
 }
 
@@ -58,7 +58,7 @@
 
 .rogue-slot-index {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--text-dim);
     width: var(--s4);
 }
@@ -87,7 +87,7 @@
 
 .rogue-btn {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--text-cream);
     background: var(--inset-warm);
     border: 1px solid var(--line-warm);
@@ -134,7 +134,7 @@
 
 .rogue-offer-name {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--gold-bright);
 }
 

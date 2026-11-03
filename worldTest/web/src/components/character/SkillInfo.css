@@ -68,3 +68,57 @@
     text-transform: uppercase;
     color: var(--success);
 }
+.skill-info-cost {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+}
+
+.skill-info-mana {
+    color: var(--def-mana);
+    font-weight: 700;
+}
+
+.skill-info-effect {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+.skill-info-effect-part {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.skill-info-effect-sep {
+    color: var(--muted);
+}
+
+.skill-info-head {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+}
+
+.skill-info-head .skill-info-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.skill-info-cost-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+}
+
+.skill-info-cost-free {
+    font-size: var(--text-2xs);
+    color: var(--muted);
+    text-transform: uppercase;
+}

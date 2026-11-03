@@ -30,7 +30,7 @@
     align-items: center;
     justify-content: center;
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     font-weight: 700;
     border: 1px solid #000;
     cursor: help;
@@ -62,7 +62,7 @@
     right: -2px;
     bottom: -3px;
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     line-height: 1;
     color: #ffe9a8;
     text-shadow: 1px 1px 0 #000;

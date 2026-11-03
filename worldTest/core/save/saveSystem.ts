@@ -56,6 +56,10 @@ export function buildCharacterFromSave(saved: SavedCharacter): Character {
             };
         }
     }
+    // The second skill slot and the held-jobs memory (optional: old
+    // saves load with an empty slot and no history).
+    if (saved.heldJobs && saved.heldJobs.length > 0) character.heldJobs = [...saved.heldJobs];
+    if (saved.secondaryJobId) character.secondaryJobId = saved.secondaryJobId;
 
     return character;
 }

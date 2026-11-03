@@ -74,7 +74,7 @@ const JOB_SPRITE_ROLES: Record<string, SpriteRole> = {
     adventurer: 'warrior',
 };
 
-function spriteRoleOfJob(jobId?: string): SpriteRole | undefined {
+export function spriteRoleOfJob(jobId?: string): SpriteRole | undefined {
     return jobId ? JOB_SPRITE_ROLES[jobId] : undefined;
 }
 

@@ -62,6 +62,33 @@ export type JobProgressState = {
     pendingPicks: number;
 };
 
+// One requirement a character must meet to TAKE a job it has never held.
+export type JobRequirement =
+    // A specific held job must have reached this level.
+    | { kind: 'jobLevel'; jobId: string; level: number }
+    // A specific held job must be mastered (Lv.7).
+    | { kind: 'jobMastered'; jobId: string }
+    // The base trio's shared ladder: the character's held jobs must have
+    // the levels ORDER_JOB_LADDER asks for their current job count.
+    | { kind: 'orderLadder' };
+
+// What a job needs to become available: the world flag a mission sets
+// (unknown jobs stay hidden from the Oficio) and the character's own
+// progress requirements.
+export type JobUnlock = {
+    // The global flag that reveals the job exists.
+    knownBy?: string;
+    // What the character must have done to take the job.
+    requirements?: JobRequirement[];
+};
+
+// The base trio's ladder (Soldier, Archer and Mage share these
+// constants): index = jobs already held before taking the new one.
+export const ORDER_JOB_LADDER: number[][] = [
+    [3],      // taking job #2: one held job at Lv.3
+    [5, 3],   // taking job #3: held jobs at Lv.5 and Lv.3
+];
+
 export class Job {
     constructor(
         readonly id: string,
@@ -82,6 +109,9 @@ export class Job {
         // its learning level, cap and passive flag), the enhancement levels
         // and the mastery title. Undefined = no ladder (the Adventurer).
         readonly progression?: JobProgression,
+        // What the player must know and the character must have done to
+        // TAKE this job. Undefined = always available (no discovery).
+        readonly unlock?: JobUnlock,
     ) { }
 
     /** Whether the job may wield a weapon of the given type. Untyped

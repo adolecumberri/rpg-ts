@@ -7,12 +7,16 @@ import {
     equipFromInventory,
     equippedItemsOf,
     heldJobOf,
+    heldJobsOf,
     jobById,
     jobLevelOf,
+    jobUnlockState,
     jobProgressOf,
     loadoutOf,
+    ownedJobSkills,
     pendingJobPicks,
     sectionOfItem,
+    secondaryJobOf,
     specForSkill,
     specOf,
     unequipToInventory,
@@ -29,10 +33,12 @@ import { TeamCard } from '../../components/character/TeamCard';
 import { TeamData } from '../../components/character/TeamData';
 import { Icon } from '../../components/chrome/Icon';
 import { SkillInfo } from '../../components/character/SkillInfo';
+import { Modal } from '../../components/chrome/Modal';
 import { StatsColumn } from '../../components/character/StatsColumn';
 import { ALL_SECTIONS, EquipPicker, SECTION_META } from '../../components/character/EquipPicker';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 import { spriteFrameStyle } from '../../assets/spriteFrames';
+import { portraitUrlOfJob } from '../../constants/portraits';
 import { STAT_CATALOG } from '../../game/statCatalog';
 import type { StatKey } from '../../game/statCatalog';
 import type { IconId } from '../../components/chrome/Icon';
@@ -49,16 +55,16 @@ const JOB_COMPARE_STATS: {
     prefix?: string;
     suffix?: string;
 }[] = [
-    { key: 'hp', label: 'HP', icon: 'default' },
-    { key: 'totalHp', label: 'Max HP', icon: 'default' },
-    ...STAT_CATALOG.map((entry) => ({
-        key: entry.key,
-        label: entry.label,
-        icon: entry.icon,
-        prefix: entry.prefix,
-        suffix: entry.suffix,
-    })),
-];
+        { key: 'hp', label: 'HP', icon: 'default' },
+        { key: 'totalHp', label: 'Max HP', icon: 'default' },
+        ...STAT_CATALOG.map((entry) => ({
+            key: entry.key,
+            label: entry.label,
+            icon: entry.icon,
+            prefix: entry.prefix,
+            suffix: entry.suffix,
+        })),
+    ];
 
 /** One row of the job comparison: the value under the held job, the
  *  change the target job brings and the value under the target job. */
@@ -95,22 +101,28 @@ function jobCompareRows(character: Character, target?: Job): JobCompareRow[] {
 }
 
 /** One skill of the target job's ladder: its name masked to '????'
- *  until the player has seen any party member learn it. */
+ *  until the player has seen any party member learn it, and the
+ *  character's CURRENT level in that job (hidden while unknown). */
 type JobSkillRow = {
     baseId: string;
     name: string;
     known: boolean;
-    atJobLevel: number;
+    level: number;
 };
 
-function jobSkillRows(job: Job, knows: (skillId: string) => boolean): JobSkillRow[] {
+function jobSkillRows(
+    character: Character,
+    job: Job,
+    knows: (skillId: string) => boolean,
+): JobSkillRow[] {
+    const progress = jobProgressOf(character, job.id);
     return (job.progression?.skills ?? []).map((plan) => {
         const known = knows(plan.skillId);
         return {
             baseId: plan.skillId,
             name: known ? (specOf(plan.skillId)?.name ?? plan.skillId) : '????',
             known,
-            atJobLevel: plan.atJobLevel,
+            level: progress.skillLevels[plan.skillId] ?? 1,
         };
     });
 }
@@ -129,7 +141,15 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
     // The party panel can open the team page with a card already picked
     // (its inline squad cards carry the character id).
     const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
-    const [skillsView, setSkillsView] = useState(false);
+    // The skills flow: null (closed), the hub with the four slots, the two
+    // job-skill pages, the second-slot job picker and the passive flow
+    // (job list -> that job's passive skills).
+    const [skillsView, setSkillsView] = useState<
+        'hub' | 'current' | 'secondary' | 'picker' | 'passiveJobs' | 'passiveSkills' | null
+    >(null);
+    // Which passive slot is being configured (0 = Passive 1, 1 = Passive 2).
+    const [passiveSlot, setPassiveSlot] = useState<number | null>(null);
+    const [passiveJobId, setPassiveJobId] = useState<string | null>(null);
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
     const [equipView, setEquipView] = useState(false);
     const [selectedHole, setSelectedHole] = useState<number | null>(null);
@@ -144,6 +164,8 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
     // one previews the stats variation, then Accept/Back decides.
     const [jobView, setJobView] = useState(false);
     const [jobTargetId, setJobTargetId] = useState<string | null>(null);
+    // The skill whose details modal is open in the job view (null = closed).
+    const [jobSkillInfoId, setJobSkillInfoId] = useState<string | null>(null);
 
     const activeIds = api.session.roster.activeIds();
     const members = activeIds
@@ -152,6 +174,31 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
     const selected = selectedId ? members.find((entry) => entry.id === selectedId) : undefined;
     // The job the Oficio flow previews (undefined = no pick yet).
     const jobTarget = jobTargetId ? jobById(jobTargetId) : undefined;
+    // The Oficio's job cards: only the jobs the player knows about
+    // (global discovery flags), each with the unlock state for this
+    // character (levels/masteries of the jobs it has held).
+    const jobPickerRows = selected ?
+        OFFERED_JOBS
+            .map((job) => ({
+                job,
+                state: jobUnlockState(
+                    selected,
+                    job,
+                    (flag) => api.session.hasFlag(flag),
+                    (id) => jobById(id)?.title ?? id,
+                ),
+            }))
+            .filter((row) => row.state.visible) :
+        [];
+    // The previewed job's unlock state (shown on the comparison page).
+    const jobTargetState = selected && jobTarget ?
+        jobUnlockState(
+            selected,
+            jobTarget,
+            (flag) => api.session.hasFlag(flag),
+            (id) => jobById(id)?.title ?? id,
+        ) :
+        undefined;
 
     const loadout = selected ? loadoutOf(selected) : undefined;
     // The five holes: each holds an item or nothing (Vacío). Any hole
@@ -165,12 +212,19 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
         item,
     }));
 
-    // The character's skills: the live kit (job ladder skills at their
-    // current rank + defaults + skill tree), resolved through the
-    // catalog, each entry keeping its BASE id (the enhancement pick
-    // targets the base skill).
+    // The skills slots: the held job's page (first slot), the second job
+    // page (a job the character has held before) and the two passive
+    // placeholders. The hub is the entry page.
+    const heldJob = selected ? heldJobOf(selected) : undefined;
+    const heldJobLevel = selected ? jobLevelOf(selected) : 1;
+    const secondaryJob = selected ? secondaryJobOf(selected) : undefined;
+    const secondarySkillIds = selected && secondaryJob ? ownedJobSkills(selected, secondaryJob.id) : [];
+    // The page's skill rows: the second slot's job only, or the live kit
+    // (held job + own + tree) WITHOUT the second slot's duplicates. Each
+    // entry keeps its BASE id (the enhancement pick targets the base skill).
     const skillEntries: { baseId: string; spec: SkillSpec }[] = selected ?
-        api.session.availableSkillIds(selected)
+        (skillsView === 'secondary' ? secondarySkillIds : api.session.availableSkillIds(selected)
+            .filter((id) => secondarySkillIds.indexOf(id) === -1))
             .map((id) => ({ baseId: id, spec: specForSkill(selected, id) }))
             .filter((entry): entry is { baseId: string; spec: SkillSpec } => Boolean(entry.spec)) :
         [];
@@ -179,6 +233,68 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
     // skills the player may raise by one rank.
     const pendingPicks = selected ? pendingJobPicks(selected) : 0;
     const enhanceable = selected ? enhanceableSkillsOf(selected) : [];
+    // The jobs the second slot may pick: the ones this character has held,
+    // never the held job itself.
+    const pickableJobs = selected ?
+        heldJobsOf(selected)
+            .map((id) => jobById(id))
+            .filter((job): job is Job => job !== undefined && job.id !== heldJob?.id) :
+        [];
+    // The hub's four slot summaries (passives stay empty until the game
+    // ships passive skills).
+    const passiveSlotValue = 'None';
+    const slotRows: Array<{ id: string; label: string; value: string; disabled?: boolean }> = [
+        {
+            id: 'current',
+            label: 'Current job skills',
+            value: heldJob ? `${heldJob.title} Lv.${heldJobLevel}` : '—',
+        },
+        {
+            id: 'secondary',
+            label: 'Other job skills',
+            value: secondaryJob && selected ?
+                `${secondaryJob.title} Lv.${jobLevelOf(selected, secondaryJob.id)}` :
+                'None — pick a held job',
+        },
+        { id: 'passive1', label: 'Passive 1', value: passiveSlotValue },
+        { id: 'passive2', label: 'Passive 2', value: passiveSlotValue },
+    ];
+
+    // The passive flow: pick one of the jobs the character can hold, then
+    // a passive skill of that job (none exist in the game yet, so the
+    // skill list renders its empty state).
+    const passiveJob = passiveJobId ? jobById(passiveJobId) : undefined;
+    const passiveSkillsOf = (job: Job | undefined) => (job?.progression?.skills ?? [])
+        .filter((plan) => plan.passive || Boolean(specOf(plan.skillId)?.passive));
+    const passiveSkillRows = selected ?
+        passiveSkillsOf(passiveJob).map((plan) => ({
+            id: plan.skillId,
+            spec: specForSkill(selected, plan.skillId),
+        })) :
+        [];
+
+    const openSlot = (slotId: string) => {
+        if (!selected) return;
+        setSelectedSkillId(null);
+        if (slotId === 'passive1' || slotId === 'passive2') {
+            setPassiveSlot(slotId === 'passive1' ? 0 : 1);
+            setPassiveJobId(null);
+            setSkillsView('passiveJobs');
+            return;
+        }
+        if (slotId === 'current') {
+            setSkillsView('current');
+            return;
+        }
+        setSkillsView(secondaryJob ? 'secondary' : 'picker');
+    };
+
+    const chooseSecondary = (jobId: string | null) => {
+        if (!selected) return;
+        api.setSecondaryJob(selected.id, jobId);
+        setSelectedSkillId(null);
+        setSkillsView(jobId ? 'secondary' : 'hub');
+    };
     // The selected skill's next rank (the SkillInfo comparison), only
     // while a pick is actually available to spend.
     const enhanceChoice = selected && selectedSkillId && pendingPicks > 0 ?
@@ -261,7 +377,35 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
     };
 
     const content = selected ? (
-        skillsView ? (
+        skillsView === 'hub' ? (
+            <div className="equip-view inventory-page">
+                <div className="skill-list">
+                    {slotRows.map((row) => (
+                        <div
+                            key={row.id}
+                            className={`inv-item-row skill-slot-row${row.disabled ? ' inv-item-row--disabled' : ''}`}
+                            onClick={() => openSlot(row.id)}
+                        >
+                            <span className="inv-item-icon">
+                                <span className="material-symbol">
+                                    {row.id === 'current' ? 'auto_awesome' :
+                                        row.id === 'secondary' ? 'swap_horiz' : 'shield'}
+                                </span>
+                            </span>
+                            <span className="inv-item-info">
+                                <span className="inv-item-name">{row.label}</span>
+                                <span className="inv-item-sub">{row.value}</span>
+                            </span>
+                            {row.id === 'current' && pendingPicks > 0 ?
+                                <span className="inv-count">{`↑${pendingPicks}`}</span> : null}
+                        </div>
+                    ))}
+                </div>
+                <div className="skill-info skill-info--empty">
+                    Select a slot to see its skills.
+                </div>
+            </div>
+        ) : skillsView === 'current' || skillsView === 'secondary' ? (
             <div className="equip-view inventory-page">
                 <div className="skill-list">
                     {skillEntries.map((entry) => (
@@ -282,10 +426,123 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                 </div>
                 <SkillInfo
                     spec={selectedSkill}
-                    nextSpec={enhanceChoice?.nextSpec}
-                    rankFrom={enhanceChoice?.currentRank}
-                    rankTo={enhanceChoice?.nextRank}
+                    nextSpec={skillsView === 'current' ? enhanceChoice?.nextSpec : undefined}
+                    rankFrom={skillsView === 'current' ? enhanceChoice?.currentRank : undefined}
+                    rankTo={skillsView === 'current' ? enhanceChoice?.nextRank : undefined}
                 />
+            </div>
+        ) : skillsView === 'picker' ? (
+            <div className="equip-view inventory-page">
+                <div className="skill-list">
+                    {pickableJobs.length === 0 ? (
+                        <div className="inv-item-row inv-item-row--disabled">
+                            <span className="inv-item-info">
+                                <span className="inv-item-name">No held jobs to add yet</span>
+                                <span className="inv-item-sub">Hold a job first, then swap back.</span>
+                            </span>
+                        </div>
+                    ) : pickableJobs.map((job) => (
+                        <div
+                            key={job.id}
+                            className={`inv-item-row${secondaryJob?.id === job.id ? ' is-selected' : ''}`}
+                            onClick={() => chooseSecondary(job.id)}
+                        >
+                            <span className="inv-item-icon">
+                                <span className="material-symbol">work</span>
+                            </span>
+                            <span className="inv-item-info">
+                                <span className="inv-item-name">{job.title}</span>
+                                <span className="inv-item-sub">{`Lv.${jobLevelOf(selected, job.id)}`}</span>
+                            </span>
+                        </div>
+                    ))}
+                    {secondaryJob ? (
+                        <div className="inv-item-row" onClick={() => chooseSecondary(null)}>
+                            <span className="inv-item-icon">
+                                <span className="material-symbol">block</span>
+                            </span>
+                            <span className="inv-item-info">
+                                <span className="inv-item-name">Clear slot</span>
+                            </span>
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+        ) : skillsView === 'passiveJobs' ? (
+            <div className="equip-view inventory-page">
+                <div className="skill-list">
+                    {OFFERED_JOBS.map((job) => {
+                        const passives = passiveSkillsOf(job);
+                        // A job without passive skills is not pickable: there
+                        // is nothing to put in the slot from it.
+                        const pickable = passives.length > 0;
+                        return (
+                            <div
+                                key={job.id}
+                                className={`inv-item-row${pickable ? '' : ' inv-item-row--disabled'}`}
+                                aria-disabled={!pickable}
+                                onClick={() => {
+                                    if (!pickable) return;
+                                    setPassiveJobId(job.id);
+                                    setSkillsView('passiveSkills');
+                                }}
+                            >
+                                <span className="inv-item-icon">
+                                    <span className="material-symbol">work</span>
+                                </span>
+                                <span className="inv-item-info">
+                                    <span className="inv-item-name">{job.title}</span>
+                                    <span className="inv-item-sub">
+                                        {pickable ?
+                                            `${passives.length} passive${passives.length > 1 ? 's' : ''}` :
+                                            'No passive skills'}
+                                    </span>
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="skill-info skill-info--empty">
+                    {`Passive ${(passiveSlot ?? 0) + 1}: pick a job to see its passive skills.`}
+                </div>
+            </div>
+        ) : skillsView === 'passiveSkills' ? (
+            <div className="equip-view inventory-page">
+                <div className="skill-list">
+                    {passiveSkillRows.length === 0 ? (
+                        <div className="inv-item-row inv-item-row--disabled">
+                            <span className="inv-item-icon">
+                                <span className="material-symbol">shield</span>
+                            </span>
+                            <span className="inv-item-info">
+                                <span className="inv-item-name">No passive skills yet</span>
+                                <span className="inv-item-sub">
+                                    {`${passiveJob?.title ?? 'This job'} has no passives in the game yet.`}
+                                </span>
+                            </span>
+                        </div>
+                    ) : passiveSkillRows.map((row) => (
+                        <div
+                            key={row.id}
+                            className="inv-item-row"
+                            onClick={() => setSelectedSkillId(row.id)}
+                        >
+                            <span className="inv-item-icon">
+                                <span className="material-symbol">shield</span>
+                            </span>
+                            <span className="inv-item-info">
+                                <span className="inv-item-name">{row.spec?.name ?? row.id}</span>
+                            </span>
+                        </div>
+                    ))}
+                </div>
+                {passiveSkillRows.length > 0 ? (
+                    <SkillInfo spec={selectedSkill} />
+                ) : (
+                    <div className="skill-info skill-info--empty">
+                        {`No passive skills exist in the game yet. ${passiveSlot !== null ? `Passive ${passiveSlot + 1}` : ''}`}
+                    </div>
+                )}
             </div>
         ) : equipView ? (
             <div className="equip-view">
@@ -402,14 +659,107 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                     })}
                 </div>
             </div>
+        ) : jobView && !jobTarget ? (
+            <div className="job-pick">
+                <div className="job-pick-head">
+                    <span className="job-pick-title">Jobs · {selected.name}</span>
+                </div>
+                <div className="job-pick-grid">
+                    {jobPickerRows.map(({ job, state }) => {
+                        const level = jobLevelOf(selected, job.id);
+                        const mastered = jobProgressOf(selected, job.id).mastered;
+                        const isCurrent = job.id === heldJobOf(selected)?.id;
+                        const locked = !state.ok;
+                        return (
+                            <button
+                                key={job.id}
+                                type="button"
+                                className={[
+                                    'job-pick-card',
+                                    isCurrent ? 'job-pick-card--current' : '',
+                                    locked ? 'job-pick-card--locked' : '',
+                                ].join(' ')}
+                                disabled={locked}
+                                onClick={() => setJobTargetId(job.id)}
+                            >
+
+                                {!isCurrent && !state.ok ? (
+                                    <div style={{ width: "var(--s34)", height: "var(--s5)", position: "absolute", top: "50%", backgroundColor: "#eaeaea" }}>
+                                        <span className="job-pick-req">{state.requirementText}</span>
+                                    </div>
+                                ) : null}
+
+                                <span className="job-pick-name">
+                                    <span className="job-pick-level">Lv.{level}</span> {job.title}{mastered ? ' ★' : ''}
+                                </span>
+                                <div style={{ display: "flex", width: 'var(--s24)', }}>
+
+                                    <img
+                                        className="job-pick-portrait"
+                                        src={portraitUrlOfJob(job.id)}
+                                        alt={job.title}
+                                    />
+                                    <div style={{ width: 'var(--s16)', }}>
+                                        {isCurrent ? <span className="job-pick-current">Current</span> : null}
+
+
+
+
+                                    </div>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div >
         ) : jobView ? (
             <div className="job-view">
                 <div className="job-view-head">
-                    <span className="job-view-title">
-                        {heldJobOf(selected)?.title ?? ''}
-                        {jobTarget ? ` → ${jobTarget.title}` : ' · pick a job'}
-                    </span>
+                    <span className="job-view-title">{jobTarget?.title ?? 'Job'}</span>
                 </div>
+                {jobTarget && jobTargetState && !jobTargetState.ok ? (
+                    <div className="job-view-requirement">{jobTargetState.reason}</div>
+                ) : null}
+                {jobTarget ? (
+                    <div className="job-detail">
+                        <div className="job-detail-image">
+                            <img
+                                className="job-detail-portrait"
+                                src={portraitUrlOfJob(jobTarget.id)}
+                                alt={jobTarget.title}
+                            />
+                        </div>
+                        <div className="job-detail-side">
+                            <div className="job-detail-level">
+                                Lv.{jobLevelOf(selected, jobTarget.id)}
+                            </div>
+                            <div className="job-skills">
+                                <div className="job-skills-title">Skills</div>
+                                {jobSkillRows(selected, jobTarget, (id) => api.session.knowsSkill(id)).map((row) => (
+                                    <div
+                                        className={`job-skill-row${row.known ? '' : ' job-skill-row--unknown'}`}
+                                        key={row.baseId}
+                                    >
+                                        <span className="job-skill-name">{row.name}</span>
+                                        {row.known ? (
+                                            <span className="job-skill-level">Lv {row.level}</span>
+                                        ) : null}
+                                        {row.known ? (
+                                            <button
+                                                type="button"
+                                                className="job-skill-eye"
+                                                aria-label={`Details of ${row.name}`}
+                                                onClick={() => setJobSkillInfoId(row.baseId)}
+                                            >
+                                                <Icon id="eye" size={4} />
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
                 <div className="job-compare">
                     <div className="job-compare-head">
                         <span className="job-compare-label">Stat</span>
@@ -427,7 +777,7 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                             <span
                                 className={`job-compare-delta${row.delta > 0 ? ' job-compare-delta--up' :
                                     row.delta < 0 ? ' job-compare-delta--down' : ''
-                                }`}
+                                    }`}
                             >
                                 {row.delta > 0 ? '+' : ''}{row.delta}
                             </span>
@@ -435,21 +785,15 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                         </div>
                     ))}
                 </div>
-                {jobTarget ? (
-                    <div className="job-skills">
-                        <div className="job-skills-title">Skills · {jobTarget.title}</div>
-                        {jobSkillRows(jobTarget, (id) => api.session.knowsSkill(id)).map((row) => (
-                            <div
-                                className={`job-skill-row${row.known ? '' : ' job-skill-row--unknown'}`}
-                                key={row.baseId}
-                            >
-                                <span className="job-skill-name">{row.name}</span>
-                                <span className="job-skill-level">Lv {row.atJobLevel}</span>
-                            </div>
-                        ))}
-                    </div>
-                ) : null}
-            </div>
+                <Modal
+                    title={jobSkillInfoId ? specOf(jobSkillInfoId)?.name ?? 'Skill' : 'Skill'}
+                    open={jobSkillInfoId !== null}
+                    onClose={() => setJobSkillInfoId(null)}
+                    centered
+                >
+                    <SkillInfo spec={jobSkillInfoId ? specOf(jobSkillInfoId) : undefined} />
+                </Modal>
+            </div >
         ) : (
             <TeamData character={selected} />
         )
@@ -489,7 +833,7 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                     badge: pendingPicks > 0 ? '↑' : undefined,
                     onClick: () => {
                         setSelectedSkillId(null);
-                        setSkillsView(true);
+                        setSkillsView('hub');
                     },
                 },
                 {
@@ -529,7 +873,51 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                 },
             }}
         />
-    ) : selected && skillsView ? (
+    ) : selected && skillsView === 'hub' ? (
+        <OptionsBar
+            size="lg"
+            options={[
+                {
+                    id: 'current',
+                    label: 'Current job',
+                    icon: { symbol: 'auto_awesome', color: 'var(--accent)' },
+                    sub: heldJob ? `${heldJob.title} Lv.${heldJobLevel}` : '—',
+                    badge: pendingPicks > 0 ? '↑' : undefined,
+                    onClick: () => openSlot('current'),
+                },
+                {
+                    id: 'secondary',
+                    label: 'Other job',
+                    icon: { symbol: 'swap_horiz', color: 'var(--accent)' },
+                    sub: secondaryJob ?
+                        `${secondaryJob.title} Lv.${jobLevelOf(selected, secondaryJob.id)}` :
+                        'Pick a held job',
+                    onClick: () => openSlot('secondary'),
+                },
+                {
+                    id: 'passive1',
+                    label: 'Passive 1',
+                    icon: { symbol: 'shield', color: 'var(--accent)' },
+                    sub: 'None',
+                    onClick: () => openSlot('passive1'),
+                },
+                {
+                    id: 'passive2',
+                    label: 'Passive 2',
+                    icon: { symbol: 'shield', color: 'var(--accent)' },
+                    sub: 'None',
+                    onClick: () => openSlot('passive2'),
+                },
+            ]}
+            back={{
+                label: 'Atrás',
+                onClick: () => {
+                    setSkillsView(null);
+                    setSelectedSkillId(null);
+                },
+            }}
+        />
+    ) : selected && skillsView === 'current' ? (
         <OptionsBar
             size="lg"
             options={[{
@@ -551,8 +939,75 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
             back={{
                 label: 'Atrás',
                 onClick: () => {
-                    setSkillsView(false);
+                    setSkillsView('hub');
                     setSelectedSkillId(null);
+                },
+            }}
+        />
+    ) : selected && skillsView === 'secondary' ? (
+        <OptionsBar
+            size="lg"
+            options={[{
+                id: 'change-job',
+                label: 'Change slot job',
+                icon: { symbol: 'swap_horiz', color: 'var(--accent)' },
+                sub: secondaryJob?.title,
+                onClick: () => {
+                    setSelectedSkillId(null);
+                    setSkillsView('picker');
+                },
+            }]}
+            back={{
+                label: 'Atrás',
+                onClick: () => {
+                    setSkillsView('hub');
+                    setSelectedSkillId(null);
+                },
+            }}
+        />
+    ) : selected && skillsView === 'picker' ? (
+        <OptionsBar
+            size="lg"
+            options={[]}
+            back={{
+                label: 'Atrás',
+                onClick: () => {
+                    setSkillsView('hub');
+                    setSelectedSkillId(null);
+                },
+            }}
+        />
+    ) : selected && skillsView === 'passiveJobs' ? (
+        <OptionsBar
+            size="lg"
+            options={[]}
+            back={{
+                label: 'Atrás',
+                onClick: () => {
+                    setSkillsView('hub');
+                    setPassiveSlot(null);
+                    setPassiveJobId(null);
+                },
+            }}
+        />
+    ) : selected && skillsView === 'passiveSkills' ? (
+        <OptionsBar
+            size="lg"
+            options={[{
+                id: 'change-job',
+                label: 'Change job',
+                icon: { symbol: 'swap_horiz', color: 'var(--accent)' },
+                sub: passiveJob?.title,
+                onClick: () => {
+                    setPassiveJobId(null);
+                    setSkillsView('passiveJobs');
+                },
+            }]}
+            back={{
+                label: 'Atrás',
+                onClick: () => {
+                    setPassiveJobId(null);
+                    setSkillsView('passiveJobs');
                 },
             }}
         />
@@ -618,20 +1073,7 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
     ) : selected && jobView && !jobTarget ? (
         <OptionsBar
             size="lg"
-            options={OFFERED_JOBS.map((job) => {
-                const mastered = jobProgressOf(selected, job.id).mastered;
-                // The already-held job cannot be selected again.
-                const isCurrent = job.id === heldJobOf(selected)?.id;
-                return {
-                    id: job.id,
-                    label: `${job.title}${mastered ? ' ★' : ''}`,
-                    icon: { symbol: 'person', color: 'var(--accent)' },
-                    sub: isCurrent ? 'Current job' : `Lv.${jobLevelOf(selected, job.id)}`,
-                    disabled: isCurrent,
-                    disabledReason: 'Current job',
-                    onClick: () => setJobTargetId(job.id),
-                };
-            })}
+            options={[]}
             back={{
                 label: 'Atrás', onClick: () => {
                     setJobView(false);
@@ -648,21 +1090,25 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                     label: 'Accept',
                     icon: { symbol: 'check', color: '#fff' },
                     tone: 'primary',
-                    disabled: !jobTarget || jobTarget.id === heldJobOf(selected)?.id,
+                    disabled: !jobTarget || jobTarget.id === heldJobOf(selected)?.id ||
+                        (jobTargetState ? !jobTargetState.ok : true),
                     disabledReason: jobTarget && jobTarget.id === heldJobOf(selected)?.id ?
                         'Current job' :
-                        'Pick a job',
+                        jobTargetState && !jobTargetState.ok ?
+                            jobTargetState.reason :
+                            'Pick a job',
                     onClick: () => {
                         if (!jobTarget) return;
-                        api.setJob(selected.id, jobTarget.id);
+                        api.changeJob(selected.id, jobTarget.id);
                         setJobView(false);
                         setJobTargetId(null);
                     },
                 },
                 {
                     id: 'back',
-                    label: 'Back',
-                    icon: { symbol: 'chevron_left', color: 'var(--accent)' },
+                    label: 'Jobs',
+                    icon: { symbol: 'grid_view', color: 'var(--accent)' },
+                    sub: 'Back to the job list',
                     onClick: () => setJobTargetId(null),
                 },
             ]}

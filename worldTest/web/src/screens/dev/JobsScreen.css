@@ -31,7 +31,7 @@
 
 .jobdev-page-sub {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--gold);
 }
 
@@ -79,7 +79,7 @@
 
 .jobdev-th {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--text-dim);
     text-align: left;
     padding: 2px var(--s1);
@@ -136,7 +136,7 @@
 
 .jobdev-cell--label {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--text-dim);
 }
 
@@ -163,7 +163,7 @@
 
 .jobdev-ladder-level {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--gold);
 }
 

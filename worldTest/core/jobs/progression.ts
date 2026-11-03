@@ -1,7 +1,7 @@
 import type { Character } from '../../../src';
 import type { SkillSpec } from '../skills';
 import { definitionOf, resolveSkill, specOf } from '../skills';
-import { heldJobOf } from '../constants/jobs';
+import { heldJobOf, jobById } from '../constants/jobs';
 import type { Job, JobProgressState, JobSkillPlan } from './Job';
 
 // ---------------------------------------------------------------------------
@@ -75,10 +75,19 @@ function planOf(job: Job, skillId: string): JobSkillPlan | undefined {
     return job.progression?.skills.find((plan) => plan.skillId === skillId);
 }
 
-/** The skills the character's held job has taught it so far (the base
- *  kit plus the level-3 and level-5 unlocks). */
-export function ownedJobSkills(character: Character): string[] {
-    const job = heldJobOf(character);
+/** Every job the character has held (the current one included). */
+export function heldJobsOf(character: Character): string[] {
+    const held = character.heldJobs ? [...character.heldJobs] : [];
+    const current = heldJobOf(character)?.id;
+    if (current && held.indexOf(current) === -1) held.push(current);
+    return held;
+}
+
+/** The skills the given job has taught the character so far (the held
+ *  job by default): ladder skills unlocked at the character's job level
+ *  in THAT job. */
+export function ownedJobSkills(character: Character, jobId?: string): string[] {
+    const job = jobId ? jobById(jobId) : heldJobOf(character);
     if (!job) return [];
     const level = jobLevelOf(character, job.id);
     const owned: string[] = [];
@@ -90,10 +99,33 @@ export function ownedJobSkills(character: Character): string[] {
     return owned;
 }
 
-/** The current level (1..3) of one of the character's job skills,
- *  stored per (character, job, skill) in the job's bucket. */
-export function skillRankOf(character: Character, skillId: string): number {
-    const state = jobProgressOf(character, heldJobOf(character)?.id);
+/** The job feeding the second skill slot (undefined = empty slot). */
+export function secondaryJobOf(character: Character): Job | undefined {
+    return character.secondaryJobId ? jobById(character.secondaryJobId) : undefined;
+}
+
+/** The skills the second slot's job has taught the character. */
+export function secondaryJobSkillsOf(character: Character): string[] {
+    return character.secondaryJobId ? ownedJobSkills(character, character.secondaryJobId) : [];
+}
+
+/** The job that teaches the skill: the held job first, then the second
+ *  slot's job. Undefined for own/tree/default skills. */
+export function jobTeaching(character: Character, skillId: string): Job | undefined {
+    const held = heldJobOf(character);
+    if (held && planOf(held, skillId)) return held;
+    const secondary = secondaryJobOf(character);
+    if (secondary && planOf(secondary, skillId)) return secondary;
+    return undefined;
+}
+
+/** The current level (1..3) of a job skill, stored per
+ *  (character, job, skill) in the teaching job's bucket. */
+export function skillRankOf(character: Character, skillId: string, jobId?: string): number {
+    const state = jobProgressOf(
+        character,
+        jobId ?? jobTeaching(character, skillId)?.id ?? heldJobOf(character)?.id,
+    );
     return state.skillLevels[skillId] ?? 1;
 }
 
@@ -105,9 +137,9 @@ export function skillRankOf(character: Character, skillId: string): number {
 export function specForSkill(character: Character, skillId: string): SkillSpec | undefined {
     const definition = definitionOf(skillId);
     if (!definition) return specOf(skillId);
-    const job = heldJobOf(character);
-    const plan = job ? planOf(job, skillId) : undefined;
-    return resolveSkill(definition, plan ? skillRankOf(character, skillId) : 1);
+    const job = jobTeaching(character, skillId);
+    if (!job) return resolveSkill(definition, 1);
+    return resolveSkill(definition, skillRankOf(character, skillId, job.id));
 }
 
 export type EnhancementChoice = {

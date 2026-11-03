@@ -5,11 +5,17 @@ import type { ReactNode } from 'react';
 // the pieces of a description. The renderer turns them into spans, so a
 // tagged string can go anywhere React renders text.
 //
-//   [impact]every impact hit[/impact]   → yellow
-//   [physical]10 + 20% defence[/physical] → red
-//   [magical]+5 magic damage[/magical] → blue-purple
-//   [true]100 true damage[/true]       → white
+//   [impact]every impact hit[/impact]   → gold
+//   [physical]10 + 20% defence[/physical] → AD orange
+//   [magical]+5 magic damage[/magical] → AP indigo
+//   [true]100 true damage[/true]       → true-damage coral
 //   [gold]Phantom Strike[/gold]        → amber (passive/active names)
+//   [hp]120 health[/hp]                → HP green
+//   [mana]16 mana[/mana]               → mana blue
+//   [armor]+20 armour[/armor]          → armour gold
+//   [mr]+15 magic resist[/mr]          → magic-resist lilac
+//   [heal]+30 healing[/heal]           → omnivamp crimson
+//   [speed]-80% speed[/speed]          → movement-speed lime
 // ---------------------------------------------------------------------------
 
 const TAGS: Record<string, string> = {
@@ -18,6 +24,12 @@ const TAGS: Record<string, string> = {
     magical: 'def-color def-color--magical',
     true: 'def-color def-color--true',
     gold: 'def-color def-color--gold',
+    hp: 'def-color def-color--hp',
+    mana: 'def-color def-color--mana',
+    armor: 'def-color def-color--armor',
+    mr: 'def-color def-color--mr',
+    heal: 'def-color def-color--heal',
+    speed: 'def-color def-color--speed',
 };
 
 /** Parses one (possibly nested) slice of the text. */

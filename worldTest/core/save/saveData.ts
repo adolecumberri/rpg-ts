@@ -25,6 +25,12 @@ export type SavedCharacter = {
     // existed load with the default job derived from the id, and its
     // stat bonuses are applied once as a self-heal).
     jobId?: string;
+    // The jobs the character has held, in learning order (optional:
+    // saves made before the second skill slot load with only the held
+    // job remembered).
+    heldJobs?: string[];
+    // The job feeding the second skill slot (optional: empty slot).
+    secondaryJobId?: string;
     // The picture override (optional: characters without one follow
     // the held job's portrait).
     portraitId?: string;

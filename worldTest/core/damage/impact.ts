@@ -3,7 +3,7 @@ import { DAMAGE_TYPES, MAGICAL_ELEMENTS, PHYSICAL_ELEMENTS } from '../config/dam
 import type { DamageComponent } from './composer';
 import { equippedItemsOf } from '../equipment/loadout';
 import { skillIdsOf } from '../skills';
-import { ownedJobSkills, specForSkill } from '../jobs/progression';
+import { ownedJobSkills, secondaryJobSkillsOf, specForSkill } from '../jobs/progression';
 
 // ---------------------------------------------------------------------------
 // The impact-hit pipeline. Every attack carries a number of impact hits:
@@ -52,13 +52,18 @@ function bump(character: Character, key: string): number {
 }
 
 /** The procs of the attacker's equipment and passive skills (own kit plus
- *  the held job's learned skills, each at its current level). */
+ *  the held job's and the second slot's learned skills, each at its
+ *  current level). */
 function impactProcsOf(attacker: Character): ImpactProc[] {
     const procs: ImpactProc[] = [];
     for (const item of equippedItemsOf(attacker)) {
         for (const proc of item.definition.impactProcs ?? []) procs.push(proc);
     }
-    const skillIds = new Set<string>([...skillIdsOf(attacker), ...ownedJobSkills(attacker)]);
+    const skillIds = new Set<string>([
+        ...skillIdsOf(attacker),
+        ...ownedJobSkills(attacker),
+        ...secondaryJobSkillsOf(attacker),
+    ]);
     for (const skillId of skillIds) {
         for (const proc of specForSkill(attacker, skillId)?.impactProcs ?? []) procs.push(proc);
     }

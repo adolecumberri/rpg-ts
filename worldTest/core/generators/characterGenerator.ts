@@ -94,6 +94,9 @@ export function characterGenerator(config: CharacterGeneratorConfig): Character 
     }
     if (config.job) {
         character.jobId = config.job.id;
+        // The first held job: the second skill slot may only offer jobs
+        // the character has held, never the one it currently holds.
+        character.heldJobs = [config.job.id];
         applyJobBonuses(character, config.job);
     }
 

@@ -122,6 +122,14 @@ declare module '@rpg' {
         // Job progression: one bucket per job id (xp, enhancement
         // picks, mastery). The jobs/progression helpers own it.
         jobProgress?: Record<string, import('../jobs/Job').JobProgressState>;
+        // worldTest extension: every job the character has held, in
+        // learning order (the current one included). The second skill
+        // slot only offers jobs from this list.
+        heldJobs?: string[];
+        // worldTest extension: the job whose ladder feeds the second
+        // skill slot (undefined = empty slot). Its skills are the ones
+        // that job taught the character while it was held.
+        secondaryJobId?: string;
     }
 }
 

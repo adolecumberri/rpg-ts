@@ -51,6 +51,8 @@
 
     --s24: calc(var(--u) * 24);
 
+    --s34: calc(var(--u) * 34);
+
     --s36: calc(var(--u) * 36);
 
     /* los battlefield. */
@@ -102,10 +104,16 @@ f2ca50 // acento
        [impact] yellow, [physical] red, [magical] blue-purple,
        [true] white, [gold] amber. */
     --def-impact: #f2ca50;
-    --def-physical: #ef5350;
-    --def-magical: #7f8cff;
-    --def-true: #ffffff;
-    --def-gold: #fde68a;
+    --def-physical: #ff8c34;
+    --def-magical: #7a6dff;
+    --def-true: #f9966b;
+    --def-gold: #ffcc00;
+    --def-hp: #21b053;
+    --def-mana: #0099cc;
+    --def-armor: #ffcc00;
+    --def-mr: #aa77ff;
+    --def-heal: #cc2051;
+    --def-speed: #9fff4d;
 
     /* The warm browns used by the inventory wells, mission rows, modal
        bodies and their text. One token per shade: every screen reads
@@ -157,7 +165,6 @@ f2ca50 // acento
     --text-lg: 14px;
     --text-xl: 16px;
     --text-2xl: 20px;
-    --display-2xs: 7px;
     --display-xs: 9px;
     --display-sm: 10px;
     --display-md: 13px;
@@ -829,6 +836,11 @@ f2ca50 // acento
     /* minmax(0, 1fr): the track never grows with the content, so the
        buttons keep their fixed width and the labels ellipsize. */
     grid-template-columns: minmax(0, 1fr);
+    /* Same chrome as the two-column grid: the stacked buttons keep the
+       same inset, gaps and bottom rule as the 2x3 layout. */
+    gap: var(--s1);
+    padding: var(--s1) var(--s1) 0;
+    border-bottom: var(--s1) solid var(--border);
 }
 
 .action-bar-grid--grid {
@@ -1082,7 +1094,7 @@ f2ca50 // acento
     align-items: center;
     justify-content: center;
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--bg-darker);
     background: var(--accent);
     border: 2px solid #000;
@@ -2061,6 +2073,12 @@ f2ca50 // acento
     font-size: var(--display-sm);
     color: var(--paper);
     text-shadow: 1px 1px 0 #000;
+    /* Two job titles + levels must fit the 320px head: ellipsize
+       instead of wrapping or spilling. */
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* The job-change comparison: before ? change ? after, plus the
@@ -2130,20 +2148,28 @@ f2ca50 // acento
 
 .job-skills-title {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--text-cream);
 }
 
 .job-skill-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: var(--s1);
     font-family: var(--font-body);
     font-size: var(--text-md);
     color: var(--text-warm);
     padding: var(--s1) var(--s2);
     background: var(--well);
     border: 1px solid var(--line-warm);
+}
+
+.job-skill-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .job-skill-row--unknown .job-skill-name {
@@ -2153,8 +2179,9 @@ f2ca50 // acento
 
 .job-skill-level {
     font-family: var(--font-display);
-    font-size: var(--display-2xs);
+    font-size: var(--display-xs);
     color: var(--gold);
+    flex: none;
 }
 
 
@@ -2751,6 +2778,30 @@ f2ca50 // acento
 
 .def-color--gold {
     color: var(--def-gold);
+}
+
+.def-color--hp {
+    color: var(--def-hp);
+}
+
+.def-color--mana {
+    color: var(--def-mana);
+}
+
+.def-color--armor {
+    color: var(--def-armor);
+}
+
+.def-color--mr {
+    color: var(--def-mr);
+}
+
+.def-color--heal {
+    color: var(--def-heal);
+}
+
+.def-color--speed {
+    color: var(--def-speed);
 }
 
 .item-page-stats {
@@ -3645,4 +3696,163 @@ f2ca50 // acento
 .party-squad-view .team-grid {
     flex: 1;
     min-height: 0;
+}
+
+/* The job-view skill detail eye: a small frameless icon button. */
+.job-skill-eye {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: var(--s1);
+    background: none;
+    border: none;
+    cursor: pointer;
+    flex: none;
+}
+
+.job-skill-eye:active {
+    transform: translate(1px, 1px);
+}
+
+/* The skills hub: the second line of a slot row (job/level/slot state). */
+.inv-item-sub {
+    display: block;
+    font-size: var(--text-2xs);
+    letter-spacing: 0.5px;
+    color: var(--muted);
+}
+
+/* The job change picker: one card per job with its sprite and level. */
+.job-pick {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    /* padding: var(--s2); */
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.job-pick-title {
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: var(--text-cream);
+}
+
+.job-pick-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s2);
+}
+
+.job-pick-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    padding: var(--s1) var(--s1) 0px;
+    background: var(--well);
+    border: 1px solid var(--line-warm);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    font-size: var(--display-lg);
+    position: relative;
+}
+
+.job-pick-card--current {
+    border-color: var(--accent);
+}
+
+.job-pick-portrait {
+    display: block;
+    width: var(--s16);
+    height: var(--s16);
+    object-fit: cover;
+    object-position: center 30%;
+    image-rendering: pixelated;
+    /* border: 1px solid var(--line-warm);
+    background: var(--card); */
+}
+
+
+
+.job-pick-name {
+    font-family: var(--font-display);
+    color: var(--text-cream);
+    text-align: center;
+}
+
+.job-pick-level {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    color: var(--gold);
+}
+
+.job-pick-current {
+    /* font-size: var(--text-2xs); */
+    color: var(--accent);
+    text-transform: uppercase;
+}
+
+/* The Oficio comparison page: job name on top, then the two columns
+   (portrait | level + skills), then the stats ledger. */
+.job-view-requirement {
+    flex: none;
+    padding: var(--s1) var(--s2);
+    font-size: var(--text-md);
+    color: var(--danger-soft);
+    background: var(--card);
+    border: 1px solid var(--line-warm);
+}
+
+.job-detail {
+    flex: none;
+    display: flex;
+    gap: var(--s2);
+    align-items: stretch;
+}
+
+.job-detail-image {
+    flex: none;
+    width: 72px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.job-detail-portrait {
+    display: block;
+    width: 72px;
+    height: auto;
+    image-rendering: pixelated;
+    background: var(--card);
+    border: 1px solid var(--line-warm);
+    object-fit: cover;
+    object-position: center 30%;
+}
+
+.job-detail-side {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+}
+
+.job-detail-level {
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: var(--gold);
+}
+
+/* A job card the character cannot take yet. */
+.job-pick-card--locked {
+    cursor: default;
+    opacity: 0.65;
+}
+
+.job-pick-req {
+    font-size: var(--text-lg);
+    text-align: center;
 }
