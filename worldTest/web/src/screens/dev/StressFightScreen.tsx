@@ -223,6 +223,7 @@ export function StressFightScreen() {
                 }
                 // 'auto' events are handled by the onAction observer.
             }
+            if (finished) combat.dispose();
 
             const armies = armiesRef.current;
             setUnits({

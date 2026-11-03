@@ -214,3 +214,44 @@ on `docs/designs/pirate-skills-brief.md`.
 4. Weapon disable vs true unequip final scope.
 
 **Confirmed applied:** items 1–16 and 19's folded parts.
+
+---
+
+## Round 2 — Revision v2 review (six lenses)
+
+The second round reviewed the system-first plan. Result: the original P1–P4
+platform was over-scoped (it was designed for the eight abandoned skills);
+the corrected scope is the four signed-off Pirate skills plus the minimum
+systems they need.
+
+**Applied fixes (PROPOSE FIX, now in design v3 and code)**
+- Battle lifecycle: `HybridCombat.dispose()` clears non-persistent statuses and
+  restores detached equipment; `CombatScreen` calls it before settling, dev
+  drivers dispose at end, and `finishCombat` clears statuses as a safety net.
+- Passives are applied after `this.combatants` exists, so team-aware effects can
+  see both sides.
+- Crew: the passive now counts living combatants on the holder's side whose
+  `jobId` matches the crew config and rebuilds the `Crew X` status when the count
+  changes; it does not depend on `syncAuras`.
+- Disarm: `disarm_weapon` detaches the primary weapon through `unequipHole`
+  (never into the inventory), records a battle-end restore, and restores on
+  `dispose()` for win/lost/flee.
+- Knife Mastery: `knife` weapon type added to the job and item types; a
+  `weaponDamageBonus` status is read by the general attack resolver (+20%
+  matching weapon damage). "Allows wearing knives" is the Pirate job's
+  `weaponTypes`, not a passive.
+- Escorbuto: first version is a defence/accuracy debuff status; DoT deferred.
+- Enhancement: the four skills ship `maxLevel 1`; rank registration is deferred
+  with the growth pass.
+- Naming: new skill id `disarm_weapon` (no collision with the Soldier `disarm`
+  and its status name).
+
+**ESCALATE (owner decisions, unchanged)**
+- Pirate stat/growth values, skill level scaling, discovery mission content.
+- DoT version for Escorbuto; channel/multi-target attack are next-branch
+  systems, not part of this one.
+- `blunt` stays a physical element; no new damage kind was added.
+
+**DECLINE**: speculative hooks from the first brief that the four skills do not
+need (channel, statusForTarget, multi-target pipeline, stun repair, mana regen
+field). They remain documented for the next system branch.

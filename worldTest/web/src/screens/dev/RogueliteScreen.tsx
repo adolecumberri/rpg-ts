@@ -136,6 +136,7 @@ function simulate(allies: Character[], enemies: Character[]): FightResult {
         }
         event = combat.next();
     }
+    combat.dispose();
     return {
         winner: event.kind === 'end' ? (event.winner === 'left' ? 'allies' : event.winner === 'right' ? 'enemies' : 'draw') : 'draw',
         ticks: event.kind === 'end' ? event.ticks : 0,
