@@ -64,6 +64,10 @@ export function PlacePage({
     // team page, so both views stay one design).
     const members = api.session.roster.activeCharacters();
 
+    // The party bar only offers Misiones when there is an accepted mission
+    // to show (the Aceptadas view would otherwise open empty).
+    const hasOwnedMissions = api.session.missions.ownedMissions().length > 0;
+
     const place = api.currentPlace;
     const options: OptionSpec[] = [];
 
@@ -267,7 +271,7 @@ export function PlacePage({
                 <div className="party-squad-view">
                     <div className="squad-card">
                         <div className="squad-card-title">THE SQUAD</div>
-                        <div className="squad-card-text">Tap a character to open their data.</div>
+                        {/* <div className="squad-card-text">Tap a character to open their data.</div> */}
                     </div>
                     <div className="team-grid">
                         {members.map((character) => (
@@ -294,7 +298,7 @@ export function PlacePage({
                             <div style={{ marginTop: 8 }}>
                                 {activeHere.map((mission) => (
                                     <div key={mission.missionId} className="pixel-label">
-                                    ❗ {mission.title}
+                                        ❗ {mission.title}
                                     </div>
                                 ))}
                                 {markers.length > 0 ? (
@@ -310,14 +314,14 @@ export function PlacePage({
                                             missionId: activeHere[0].missionId,
                                         })}
                                     >
-                                    Open
+                                        Open
                                     </button>
                                 ) : null}
                             </div>
                         ) : null}
                         {place.menu === false && corpses === 0 ? (
                             <div className="pixel-caption" style={{ marginTop: 8 }}>
-                            There is nothing to do here.
+                                There is nothing to do here.
                             </div>
                         ) : null}
                     </div>
@@ -344,7 +348,9 @@ export function PlacePage({
                             id: 'missions',
                             label: 'Misiones',
                             icon: { symbol: 'assignment', color: '#f2ca50' },
-                            sub: 'Aceptadas',
+                            sub: hasOwnedMissions ? 'Aceptadas' : 'No missions',
+                            disabled: !hasOwnedMissions,
+                            disabledReason: 'No accepted missions',
                             onClick: () => {
                                 if (onOpenMissions) {
                                     onOpenMissions('accepted');

@@ -425,9 +425,8 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                             </span>
                             <span className="job-compare-before">{row.before}</span>
                             <span
-                                className={`job-compare-delta${
-                                    row.delta > 0 ? ' job-compare-delta--up' :
-                                        row.delta < 0 ? ' job-compare-delta--down' : ''
+                                className={`job-compare-delta${row.delta > 0 ? ' job-compare-delta--up' :
+                                    row.delta < 0 ? ' job-compare-delta--down' : ''
                                 }`}
                             >
                                 {row.delta > 0 ? '+' : ''}{row.delta}
@@ -458,7 +457,7 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
         <>
             <div className="squad-card">
                 <div className="squad-card-title">THE SQUAD</div>
-                <div className="squad-card-text">Tap a character to open their data.</div>
+                {/* <div className="squad-card-text">Tap a character to open their data.</div> */}
             </div>
             <div className="team-grid">
                 {members.map((character) => (
@@ -516,7 +515,19 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                     },
                 },
             ]}
-            back={{ label: 'Atrás', onClick: () => setSelectedId(null) }}
+            back={{
+                label: 'Atrás',
+                onClick: () => {
+                    // Opened from the party panel's inline squad: Back
+                    // returns to that squad (the place page), not to the
+                    // team page grid.
+                    if (initialSelectedId && onBack) {
+                        onBack();
+                        return;
+                    }
+                    setSelectedId(null);
+                },
+            }}
         />
     ) : selected && skillsView ? (
         <OptionsBar

@@ -18,7 +18,6 @@ import {
     blindStatus,
 } from './statuses';
 import { FATIGUE } from './combat/fatigue';
-import { heldJobOf } from './constants/jobs';
 import { statusModifierSummary } from './statuses';
 import type { DamageComponent } from './damage/composer';
 import type { ConditionInput } from './combat/conditions';
@@ -159,13 +158,16 @@ export type SkillSpec = {
     // Impact pipeline: counter-driven effects the bearer's hits run
     // while the character knows this skill (Silver Bullets).
     impactProcs?: ImpactProc[];
+    // Passive skills are always applied in battle and never castable:
+    // the battle kits filter them out of the action menus.
+    passive?: boolean;
 };
 
 // The global skill dictionary: EVERY skill that exists in the app is
 // declared here, once, keyed by its id (the key and the spec's id are
 // the same value). Content references skills only through ids; the
 // catalog resolves them in O(1).
-export const Skills: Record<string, SkillSpec> = {
+const RAW_SKILLS = {
     spike_shield: {
         id: 'spike_shield',
         name: 'Spike Shield',
@@ -776,11 +778,118 @@ export const Skills: Record<string, SkillSpec> = {
         statusOnTargets: astraStatus(),
         manaCost: 10,
     },
+    captain_discipline: {
+        id: 'captain_discipline',
+        name: "Captain's Discipline",
+        description: 'Passive: the captain holds the line with +20% defence and +10% magic defence.',
+        targeting: 'SELF',
+        statusOnSelf: defenceStandStatus(99, 20, 10),
+        passive: true,
+    },
+} satisfies Record<string, SkillSpec>;
+
+// ---------------------------------------------------------------------------
+// Skill levels: one definition per skill. The rank entries in the raw
+// dictionary (disarm_2, disarm_3...) are folded into `levels` (index 0 =
+// level 1) and stay reachable through LEGACY_SKILL_ALIASES so old content,
+// skill trees and saves keep resolving.
+// ---------------------------------------------------------------------------
+
+export type SkillDefinition = {
+    id: string;
+    name: string;
+    // Hard cap on the level this skill may reach (1 = never enhanceable).
+    maxLevel: number;
+    // Passive skills are always applied in battle and never castable.
+    passive?: boolean;
+    // The spec of each level, index 0 = level 1.
+    levels: SkillSpec[];
 };
 
+// The ladder skills: base id -> its rank ids in level order.
+const RANK_FAMILIES: Record<string, string[]> = {
+    disarm: ['disarm', 'disarm_2', 'disarm_3'],
+    stand: ['stand', 'stand_2', 'stand_3'],
+    shield_bash: ['shield_bash', 'shield_bash_2', 'shield_bash_3'],
+    derribo: ['derribo', 'derribo_2', 'derribo_3'],
+    foot_shot: ['foot_shot', 'foot_shot_2', 'foot_shot_3'],
+    concentration: ['concentration', 'concentration_2', 'concentration_3'],
+    nature_salve: ['nature_salve', 'nature_salve_2', 'nature_salve_3'],
+    focus_the_eyes: ['focus_the_eyes', 'focus_the_eyes_2', 'focus_the_eyes_3'],
+    perno_magico: ['perno_magico', 'perno_magico_2', 'perno_magico_3'],
+    healing_whispers: ['healing_whispers', 'healing_whispers_2', 'healing_whispers_3'],
+    astra: ['astra', 'astra_2', 'astra_3'],
+    double_strike: ['double_strike', 'double_strike_2', 'double_strike_3'],
+};
+
+// The legacy rank ids resolve to (base id, level).
+export const LEGACY_SKILL_ALIASES: Record<string, { id: string; level: number }> = {};
+for (const [baseId, rankIds] of Object.entries(RANK_FAMILIES)) {
+    rankIds.forEach((rankId, index) => {
+        if (index > 0) LEGACY_SKILL_ALIASES[rankId] = { id: baseId, level: index + 1 };
+    });
+}
+
+/** The display title of a skill at a level: Name, Name +, Name ++. */
+export function skillTitle(name: string, level: number): string {
+    return level > 1 ? `${name} ${'+'.repeat(level - 1)}` : name;
+}
+
+/** The level-resolved runtime spec of a definition (clamped 1..maxLevel). */
+export function resolveSkill(definition: SkillDefinition, level: number): SkillSpec {
+    const clamped = Math.min(definition.maxLevel, Math.max(1, Math.round(level)));
+    const spec = definition.levels[clamped - 1] ?? definition.levels[0];
+    return {
+        ...spec,
+        id: definition.id,
+        name: skillTitle(definition.name, clamped),
+        passive: definition.passive ?? spec.passive,
+    };
+}
+
+// One definition per ladder skill: the base spec plus its rank specs.
+export const SKILL_DEFINITIONS: Record<string, SkillDefinition> = {};
+for (const [baseId, rankIds] of Object.entries(RANK_FAMILIES)) {
+    const base = RAW_SKILLS[baseId as keyof typeof RAW_SKILLS];
+    if (!base) continue;
+    SKILL_DEFINITIONS[baseId] = {
+        id: baseId,
+        name: base.name,
+        maxLevel: rankIds.length,
+        levels: rankIds.map((rankId) => RAW_SKILLS[rankId as keyof typeof RAW_SKILLS] ?? base),
+    };
+}
+
+// Every other skill is a definition too, with a single level (its level is
+// always 1 and it is never enhanceable). This keeps the whole catalog
+// level-aware, so the UI/resolver never special-cases a skill.
+for (const [id, spec] of Object.entries(RAW_SKILLS)) {
+    if (SKILL_DEFINITIONS[id] || LEGACY_SKILL_ALIASES[id]) continue;
+    SKILL_DEFINITIONS[id] = {
+        id,
+        name: spec.name,
+        maxLevel: 1,
+        passive: (spec as SkillSpec).passive,
+        levels: [spec],
+    };
+}
+
+/** The definition of a skill (accepting legacy rank ids). */
+export function definitionOf(skillId: string): SkillDefinition | undefined {
+    const alias = LEGACY_SKILL_ALIASES[skillId];
+    return SKILL_DEFINITIONS[alias?.id ?? skillId];
+}
+
+// The public dictionary: every spec (including the legacy rank ids, which
+// resolve through the aliases so old content keeps working).
+export const Skills = RAW_SKILLS;
+
 // The typed skill id: every id reference in content (job kits, kits
-// maps, the defaults) is one of these, derived from the dictionary —
+// maps, the defaults) is one of these, derived from the dictionary.
 // no magic strings survive, and a typo fails the build.
+// The typed skill id: every id reference in content (kits, defaults) is one
+// of these, derived from the dictionary; legacy rank ids resolve through
+// LEGACY_SKILL_ALIASES but are not part of the typed content surface.
 export type SkillId = keyof typeof Skills;
 
 // Skills every character knows by default (the fatigue management kit).
@@ -803,9 +912,10 @@ export const CHARACTER_SKILLS: Record<string, SkillId[]> = {
 };
 
 export function skillIdsOf(character: Character): string[] {
-    // The generator's explicit kit wins over the content map, which
-    // wins over the held job's kit.
-    return character.skillIds ?? CHARACTER_SKILLS[character.id] ?? heldJobOf(character)?.skillIds ?? [];
+    // The character's own skills: the generator's explicit kit wins over the
+    // content map. Job skills come from the job ladder instead
+    // (ownedJobSkills), never from here.
+    return character.skillIds ?? CHARACTER_SKILLS[character.id] ?? [];
 }
 
 /** Whether the character carries a status with the given name. */
@@ -841,6 +951,8 @@ export function battleSkillSpecs(character: Character, base: SkillSpec[]): Skill
     const specs: SkillSpec[] = [];
     const add = (spec: SkillSpec | undefined) => {
         if (!spec) return;
+        // Passive skills are always on: they never take an action slot.
+        if (spec.passive) return;
         if (specs.some((entry) => entry.id === spec.id)) return;
         if (spec.hideWhenStatus && hasStatusNamed(character, spec.hideWhenStatus)) return;
         specs.push(spec);
@@ -850,8 +962,11 @@ export function battleSkillSpecs(character: Character, base: SkillSpec[]): Skill
     return specs;
 }
 
-export function specOf(skillId: string): SkillSpec | undefined {
-    return Skills[skillId];
+export function specOf(skillId: string, level?: number): SkillSpec | undefined {
+    const alias = LEGACY_SKILL_ALIASES[skillId];
+    const definition = definitionOf(skillId);
+    if (definition) return resolveSkill(definition, alias?.level ?? level ?? 1);
+    return (Skills as Record<string, SkillSpec>)[skillId];
 }
 
 /**

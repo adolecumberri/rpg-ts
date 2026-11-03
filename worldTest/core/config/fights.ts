@@ -120,7 +120,14 @@ export const FIGHTS: Record<string, FightDefinition> = {
         mode: 'turn',
         placeId: 'camp',
         enemies: () => [
-            characterGenerator({ job: SOLDIER_JOB, level: 4, id: 'sparring_captain', name: 'Captain Rodrigo' }),
+            characterGenerator({
+                job: SOLDIER_JOB,
+                level: 4,
+                id: 'sparring_captain',
+                name: 'Captain Rodrigo',
+                // The captain's passive: applied as a status at battle start.
+                skills: ['captain_discipline'],
+            }),
         ],
         onWin: (mission) => mission?.takeFlag(FLAGS.TRAINING_WON_CAPTAIN),
     },

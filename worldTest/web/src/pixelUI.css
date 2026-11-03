@@ -110,19 +110,32 @@ f2ca50 // acento
     /* The warm browns used by the inventory wells, mission rows, modal
        bodies and their text. One token per shade: every screen reads
        the same palette. */
-    --well: #251911;            /* inventory rows, team page band */
-    --well-alt: #2a1d15;        /* mission rows */
-    --modal-bg: #1a0e08;        /* modal bodies */
-    --inset-warm: #45362d;      /* inset bevel highlight on warm rows */
-    --line-warm: #35271f;       /* warm separators and hover wells */
-    --hairline: #050202;        /* outer 1px hairline of the buttons */
-    --text-warm: #eedbcc;       /* body text on warm panels */
-    --text-dim: #99907c;        /* muted captions */
-    --text-muted-warm: #d0c5af; /* secondary warm text (table heads) */
-    --text-cream: #f6ded1;      /* inventory row text */
-    --paper: #f3e7be;           /* modal titles */
-    --gold-strong: #d4af37;     /* gold borders and active tabs */
-    --gold-bright: #ffd966;     /* tooltip / highlight gold */
+    --well: #251911;
+    /* inventory rows, team page band */
+    --well-alt: #2a1d15;
+    /* mission rows */
+    --modal-bg: #1a0e08;
+    /* modal bodies */
+    --inset-warm: #45362d;
+    /* inset bevel highlight on warm rows */
+    --line-warm: #35271f;
+    /* warm separators and hover wells */
+    --hairline: #050202;
+    /* outer 1px hairline of the buttons */
+    --text-warm: #eedbcc;
+    /* body text on warm panels */
+    --text-dim: #99907c;
+    /* muted captions */
+    --text-muted-warm: #d0c5af;
+    /* secondary warm text (table heads) */
+    --text-cream: #f6ded1;
+    /* inventory row text */
+    --paper: #f3e7be;
+    /* modal titles */
+    --gold-strong: #d4af37;
+    /* gold borders and active tabs */
+    --gold-bright: #ffd966;
+    /* tooltip / highlight gold */
     /* The modal/pick overlay shade: every overlay dims the page with
        the same alpha. */
     --overlay: rgba(0, 0, 0, 0.5);
@@ -1617,7 +1630,7 @@ f2ca50 // acento
     overflow-y: auto;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--s2);
+    gap: var(--s1);
     align-content: start;
 }
 
@@ -1628,8 +1641,8 @@ f2ca50 // acento
     margin-bottom: var(--s2);
     padding: calc(var(--s1) * 1.5) var(--s2);
     background: #3b1b17;
-    border: 2px solid #140705;
-    box-shadow: inset 2px 2px 0 #522722, inset -2px -2px 0 #240f0c;
+    /* border: 2px solid #140705;
+    box-shadow: inset 2px 2px 0 #522722, inset -2px -2px 0 #240f0c; */
 }
 
 .squad-card-title {
@@ -1654,16 +1667,17 @@ f2ca50 // acento
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    gap: var(--s2);
+    /* gap: var(--s2); */
     width: 100%;
     max-width: 150px;
-    height: 88px;
-    padding: var(--s1) var(--s2);
+    /* height: 88px; */
+    height: var(--s24);
+    padding: 0px;
     box-sizing: border-box;
     font-family: inherit;
     background: #552723;
     border: 2px solid #180908;
-    box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512;
+    /* box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512; */
     cursor: pointer;
     transition: transform 0.05s ease, filter 0.05s ease;
 }
@@ -1702,8 +1716,8 @@ f2ca50 // acento
 
 /* The pressed card sinks 1px and inverts its bevel, like the design. */
 .team-card:active {
-    transform: translate(1px, 1px);
-    box-shadow: inset 2px 2px 0 #240f0c, inset -2px -2px 0 #703631;
+    /* transform: translate(1px, 1px);
+    box-shadow: inset 2px 2px 0 #240f0c, inset -2px -2px 0 #703631; */
     filter: brightness(1.1);
 }
 
@@ -1716,20 +1730,19 @@ f2ca50 // acento
 /* The portrait frame: the same language as the data panel's portrait. */
 .team-card-portrait-wrap {
     flex: none;
-    width: var(--s16);
-    height: var(--s16);
+    width: var(--s32);
     display: flex;
+    flex-direction: column;
     box-sizing: border-box;
-    overflow: hidden;
     background: #552723;
-    border: 2px solid #180908;
-    box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512;
+    /* border: 2px solid #180908;
+    box-shadow: inset 2px 2px 0 #703631, inset -2px -2px 0 #311512; */
 }
 
 .team-card-portrait {
     display: block;
-    width: 100%;
-    height: 100%;
+    width: var(--s16);
+    height: var(--s16);
     object-fit: cover;
     object-position: center 30%;
     image-rendering: pixelated;
@@ -1792,8 +1805,7 @@ f2ca50 // acento
     flex-direction: column;
     box-sizing: border-box;
     background: #552723;
-    border: 2px solid #180908;
-    box-shadow: inset 2px 2px 0 #703631, inset -2px 0px 0 #311512;
+    align-self: end;
 }
 
 .team-data-portrait {
@@ -1838,7 +1850,7 @@ f2ca50 // acento
 }
 
 .team-data-identity>div {
-    font-size: var(--text-md);
+    font-size: var(--text-lg);
 }
 
 .team-data-lv {
@@ -2065,7 +2077,7 @@ f2ca50 // acento
 .job-compare-head,
 .job-compare-row {
     display: grid;
-    grid-template-columns: 1fr var(--s16) var(--s16) var(--s16);
+    grid-template-columns: 1fr var(--s12) var(--s12) var(--s12);
     align-items: center;
     gap: var(--s1);
     font-family: var(--font-body);
@@ -2085,11 +2097,28 @@ f2ca50 // acento
     gap: var(--s1);
 }
 
-.job-compare-before { text-align: right; color: var(--text-dim); }
-.job-compare-after { text-align: right; color: var(--paper); }
-.job-compare-delta { text-align: right; font-weight: bold; }
-.job-compare-delta--up { color: var(--success); }
-.job-compare-delta--down { color: var(--danger-soft); }
+.job-compare-before {
+    text-align: right;
+    color: var(--text-dim);
+}
+
+.job-compare-after {
+    text-align: right;
+    color: var(--paper);
+}
+
+.job-compare-delta {
+    text-align: right;
+    font-weight: bold;
+}
+
+.job-compare-delta--up {
+    color: var(--success);
+}
+
+.job-compare-delta--down {
+    color: var(--danger-soft);
+}
 
 .job-skills {
     flex: none;
@@ -2117,7 +2146,10 @@ f2ca50 // acento
     border: 1px solid var(--line-warm);
 }
 
-.job-skill-row--unknown .job-skill-name { color: var(--text-dim-warm); letter-spacing: 2px; }
+.job-skill-row--unknown .job-skill-name {
+    color: var(--text-dim-warm);
+    letter-spacing: 2px;
+}
 
 .job-skill-level {
     font-family: var(--font-display);
@@ -3183,7 +3215,8 @@ f2ca50 // acento
 .newui-header-stats,
 .newui-header-logo-name,
 .newui-header-save,
-/* The button text typography (google-stitch): a big amber title and a small uppercase caption under it, in the VT323 terminal font. */ .action-btn-title,
+/* The button text typography (google-stitch): a big amber title and a small uppercase caption under it, in the VT323 terminal font. */
+.action-btn-title,
 .action-btn-caption,
 .fight-end-row,
 .fight-end-message,
@@ -3200,8 +3233,10 @@ f2ca50 // acento
 .team-card-identity-job,
 .team-card-identity-level,
 .position-unit-name,
-/* --------------------------------------------------------------------------- The dialogs dev page: text inputs, the line editor rows and the dialogue player (portrait + bubble, side by side). --------------------------------------------------------------------------- */ .dev-input,
-/* The dialog list titles: mission/chat names are long, so they use the terminal font at a size that fits the 320px rows (the menu's Press Start 2P titles overflowed here). */ .dlg-row-title,
+/* --------------------------------------------------------------------------- The dialogs dev page: text inputs, the line editor rows and the dialogue player (portrait + bubble, side by side). --------------------------------------------------------------------------- */
+.dev-input,
+/* The dialog list titles: mission/chat names are long, so they use the terminal font at a size that fits the 320px rows (the menu's Press Start 2P titles overflowed here). */
+.dlg-row-title,
 .item-page-name,
 .item-page-desc,
 .item-page-stats,
@@ -3222,8 +3257,10 @@ f2ca50 // acento
 .messagebox-text,
 .report-title,
 .report-close,
-/* The design's button heights: 20px team tabs, 16px section tabs. */ .report-tabs .pixel-btn,
-/* The active team's totals, under the team tabs. */ .report-side-total,
+/* The design's button heights: 20px team tabs, 16px section tabs. */
+.report-tabs .pixel-btn,
+/* The active team's totals, under the team tabs. */
+.report-side-total,
 .report-columns,
 .report-col,
 .report-row,
@@ -3239,9 +3276,11 @@ f2ca50 // acento
 .newui-header-zone,
 .newui-header-stats,
 .newui-header-save,
-/* The button text typography (google-stitch): a big amber title and a small uppercase caption under it, in the VT323 terminal font. */ .action-btn-title,
+/* The button text typography (google-stitch): a big amber title and a small uppercase caption under it, in the VT323 terminal font. */
+.action-btn-title,
 .action-btn-caption,
-/* The composite hit (guinsoo): one final number whose fill is a gradient split by each component's share. The gradient itself comes inline from the component; the class only clips the text. */ .floating-damage--composite,
+/* The composite hit (guinsoo): one final number whose fill is a gradient split by each component's share. The gradient itself comes inline from the component; the class only clips the text. */
+.floating-damage--composite,
 .place-card-subtitle,
 .place-card-desc,
 .menu-overlay-title,
@@ -3253,7 +3292,8 @@ f2ca50 // acento
 .team-card-identity-name,
 .team-card-identity-job,
 .team-card-identity-level,
-/* The dialog list titles: mission/chat names are long, so they use the terminal font at a size that fits the 320px rows (the menu's Press Start 2P titles overflowed here). */ .dlg-row-title,
+/* The dialog list titles: mission/chat names are long, so they use the terminal font at a size that fits the 320px rows (the menu's Press Start 2P titles overflowed here). */
+.dlg-row-title,
 .item-page-name,
 .item-page-desc,
 .item-page-stats,
@@ -3276,6 +3316,7 @@ f2ca50 // acento
 .report-detail {
     text-shadow: none;
 }
+
 .material-symbol {
     font-family: var(--font-icon);
     font-weight: 400;

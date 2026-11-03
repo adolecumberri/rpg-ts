@@ -288,7 +288,6 @@ export function createInitialWorld(): InitialWorld {
         name: 'Player',
     });
     team.addCharacter(player);
-    player.equipment.equipOrReplace(DEFAULT_ITEM_TABLE.createItem('sack'), player);
     // The player's starting loadout: just the farmer outfit in the
     // second hole. No weapon and no items — the branch choice grants
     // the class weapon and the bag starts empty.

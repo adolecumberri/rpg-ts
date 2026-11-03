@@ -8,7 +8,7 @@ import { syncAuras } from './aura';
 import { pickSkillTargets } from './autoSkills';
 import { resolveSkillEffect } from './skillEffects';
 import { consumeFaintTurn } from './fatigue';
-import { consumeStunTurn } from '../statuses';
+import { consumeStunTurn, applyStatus } from '../statuses';
 import { canAffordSkill, hpCostOf } from './skillGating';
 import { battleSkillSpecs } from '../skills';
 import type { SkillSpec } from '../skills';
@@ -132,6 +132,13 @@ export class HybridCombat {
             // Mana: every fighter starts the battle at startOfBattle.
             const totalMana = combatant.character.stats.totalMana ?? 0;
             combatant.character.stats.mana = Math.min(totalMana, MANA.startOfBattle);
+            // Passive skills apply their battle-start statuses (the captain's
+            // discipline, future boss auras) before the first tick.
+            for (const spec of combatant.skills ?? []) {
+                if (spec.passive && spec.statusOnSelf) {
+                    applyStatus(combatant.character, spec.statusOnSelf);
+                }
+            }
         }
         this.combatants = combatants;
         this.maxTicks = options.maxTicks ?? 1000;
@@ -531,12 +538,16 @@ export type HybridSetup = {
     enemies: Character[];
 };
 
-/** The SkillSpecs a character knows (base skills plus tree nodes),
- *  with job-ladder skills at their current enhanced rank. */
+/** The SkillSpecs a character knows (own skills plus job-ladder skills at
+ *  their current level). Passives are included: the engine applies their
+ *  battle-start statuses and the menus filter them out. */
 function skillSpecsOf(session: WorldSession, character: Character): SkillSpec[] {
-    return session.availableSkillIds(character)
-        .map((id) => specForSkill(character, id))
-        .filter((spec): spec is SkillSpec => Boolean(spec));
+    const specs: SkillSpec[] = [];
+    for (const id of session.availableSkillIds(character)) {
+        const spec = specForSkill(character, id);
+        if (spec) specs.push(spec);
+    }
+    return specs;
 }
 
 /**

@@ -76,7 +76,10 @@ function JobCard({ job }: { job: Job }) {
             <div className="jobdev-section">
                 <span className="jobdev-cell--label">Base kit</span>
                 <span className="jobdev-value">
-                    {job.skillIds.length > 0 ? job.skillIds.map((id) => skillName(id)).join(' · ') : '—'}
+                    {(job.progression?.skills ?? [])
+                        .filter((plan) => plan.atJobLevel === 1)
+                        .map((plan) => skillName(plan.skillId))
+                        .join(' · ') || '—'}
                 </span>
             </div>
 

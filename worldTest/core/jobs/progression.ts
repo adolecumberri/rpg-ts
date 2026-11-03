@@ -1,6 +1,6 @@
 import type { Character } from '../../../src';
 import type { SkillSpec } from '../skills';
-import { specOf } from '../skills';
+import { definitionOf, resolveSkill, specOf } from '../skills';
 import { heldJobOf } from '../constants/jobs';
 import type { Job, JobProgressState, JobSkillPlan } from './Job';
 
@@ -24,7 +24,7 @@ export function jobProgressOf(character: Character, jobId?: string): JobProgress
     if (!character.jobProgress) character.jobProgress = {};
     let state = character.jobProgress[id];
     if (!state) {
-        state = { xp: 0, enhancements: [], mastered: false, pendingPicks: 0 };
+        state = { xp: 0, skillLevels: {}, mastered: false, pendingPicks: 0 };
         character.jobProgress[id] = state;
     }
     return state;
@@ -90,25 +90,24 @@ export function ownedJobSkills(character: Character): string[] {
     return owned;
 }
 
-/** The current rank (1..3) of one of the character's job skills: 1
- *  plus the enhancement picks spent on it. */
+/** The current level (1..3) of one of the character's job skills,
+ *  stored per (character, job, skill) in the job's bucket. */
 export function skillRankOf(character: Character, skillId: string): number {
     const state = jobProgressOf(character, heldJobOf(character)?.id);
-    const picks = state.enhancements.filter((id) => id === skillId).length;
-    return 1 + picks;
+    return state.skillLevels[skillId] ?? 1;
 }
 
 /**
- * Resolves a skill id against the character's job progression: the
- * rank spec the character currently uses (rank 1 = the base). Skills
- * outside the job's ladder resolve to their plain spec.
+ * Resolves a skill id against the character's job progression: the spec of
+ * the level the character currently has in its held job (level 1 for skills
+ * the job does not teach). Own skills are always level 1.
  */
 export function specForSkill(character: Character, skillId: string): SkillSpec | undefined {
+    const definition = definitionOf(skillId);
+    if (!definition) return specOf(skillId);
     const job = heldJobOf(character);
     const plan = job ? planOf(job, skillId) : undefined;
-    if (!plan || plan.ranks.length === 0) return specOf(skillId);
-    const rank = Math.min(plan.ranks.length, skillRankOf(character, skillId));
-    return specOf(plan.ranks[rank - 1]) ?? specOf(skillId);
+    return resolveSkill(definition, plan ? skillRankOf(character, skillId) : 1);
 }
 
 export type EnhancementChoice = {
@@ -119,7 +118,7 @@ export type EnhancementChoice = {
     nextSpec?: SkillSpec;
 };
 
-/** The owned skills the player may enhance right now (rank < 3). */
+/** The owned skills the player may enhance right now (level < maxLevel). */
 export function enhanceableSkillsOf(character: Character): EnhancementChoice[] {
     const job = heldJobOf(character);
     if (!job) return [];
@@ -127,14 +126,16 @@ export function enhanceableSkillsOf(character: Character): EnhancementChoice[] {
     const choices: EnhancementChoice[] = [];
     for (const plan of job.progression?.skills ?? []) {
         if (plan.atJobLevel > level) continue;
+        const definition = definitionOf(plan.skillId);
+        const maxLevel = plan.maxLevel ?? definition?.maxLevel ?? 3;
         const rank = skillRankOf(character, plan.skillId);
-        if (rank >= plan.ranks.length) continue;
+        if (rank >= maxLevel) continue;
         choices.push({
             skillId: plan.skillId,
             currentRank: rank,
             nextRank: rank + 1,
-            currentSpec: specOf(plan.ranks[rank - 1]),
-            nextSpec: specOf(plan.ranks[rank]),
+            currentSpec: definition ? resolveSkill(definition, rank) : specOf(plan.skillId, rank),
+            nextSpec: definition ? resolveSkill(definition, rank + 1) : specOf(plan.skillId, rank + 1),
         });
     }
     return choices;
@@ -148,7 +149,7 @@ export function applyEnhancement(character: Character, skillId: string): boolean
     if (state.pendingPicks <= 0) return false;
     const eligible = enhanceableSkillsOf(character).some((choice) => choice.skillId === skillId);
     if (!eligible) return false;
-    state.enhancements.push(skillId);
+    state.skillLevels[skillId] = (state.skillLevels[skillId] ?? 1) + 1;
     state.pendingPicks -= 1;
     return true;
 }

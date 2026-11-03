@@ -3,7 +3,7 @@ import type { TeamPosition } from '../../../src';
 import type { FaintedEntry } from '../fainting';
 import type { StorySnapshot } from '../story';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export type SavedCharacter = {
     id: string;
@@ -50,7 +50,9 @@ export type SavedCharacter = {
     jobProgress?: Array<{
         jobId: string;
         xp: number;
-        enhancements: string[];
+        // The level of each job skill (base id -> 1..3). v2 replaced the
+        // old repeated-ids `enhancements` array.
+        skillLevels: Record<string, number>;
         mastered: boolean;
         pendingPicks: number;
     }>;

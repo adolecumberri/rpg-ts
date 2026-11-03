@@ -1,6 +1,7 @@
-import type { Character } from '@rpg';
-import { heldJobOf, jobLevelOf, pendingJobPicks } from '@core';
+import type { Character, Item } from '@rpg';
+import { heldJobOf, jobLevelOf, loadoutOf, pendingJobPicks } from '@core';
 import { portraitIdOf, portraitUrl } from '../../constants/portraits';
+import { Icon } from '../chrome';
 
 /**
  * One squad card: the character's portrait (the story picture, framed like
@@ -21,7 +22,14 @@ export function TeamCard({
     const job = heldJobOf(character);
     const jobLine = job ? `${job.title} · Lv ${jobLevelOf(character, job.id)}` : 'The Player';
     const pending = pendingJobPicks(character) > 0;
+    const experience = character.experience;
 
+    const loadout = loadoutOf(character);
+    const lines: Array<{ key: string; icon: string; item?: Item }> = loadout.holes.map((item, index) => ({
+        key: `hole_${index}`,
+        icon: item?.definition.icon ?? 'default',
+        item,
+    }));
     return (
         <button
             type="button"
@@ -29,17 +37,61 @@ export function TeamCard({
             onClick={onClick}
         >
             {pending ? <span className="team-card-badge" title="Level up available">↑</span> : null}
-            <div className="team-card-portrait-wrap">
-                <img
-                    className="team-card-portrait"
-                    src={portraitUrl(portraitIdOf(character))}
-                    alt={character.name}
-                />
+            <div className="team-data-portrait-wrap">
+                <span className="team-data-portrait-name">{character.name}</span>
+                <img className="team-card-portrait" src={portraitUrl(portraitIdOf(character))} alt={character.name} />
             </div>
-            <div className="team-card-identity">
-                <span className="team-card-identity-name">{character.name}</span>
-                <span className="team-card-identity-job">{jobLine}</span>
-                <span className="team-card-identity-level">Lv {character.experience.level}</span>
+            <div className="team-data-identity">
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <span className="team-data-lv" >Lv. {experience.level}</span>
+
+                </div>
+
+                <span style={{ color: 'var(--muted)', marginBottom: 'var(--s2)' }}>
+                    <div style={{ position: 'absolute' }}>
+                        {/* <Icon id="default" size={4} /> */}
+                        {jobLine}
+                    </div>
+                    {/* <StatBar
+                        // value={experience.currentXp}
+                        value={jobXpInLevelOf(character)}
+                        max={100}
+                        type="xp"
+                        width={100}
+                        height={8}
+                    /> */}
+
+                </span>
+
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                }}>
+                    <div style={{ minWidth: '60px' }}>
+                        <span className="team-data-hp">HP. </span>{' '}
+                        {Math.round(character.getStat('hp'))}/{Math.round(character.getStat('totalHp'))}
+                    </div>
+
+                </div>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                }}>
+                    <div style={{ minWidth: '60px' }}>
+                        <span className="team-data-mp">MP</span>{' '}
+                        {Math.round(character.stats.mana ?? 0)}/{Math.round(character.stats.totalMana ?? 0)}
+                    </div>
+
+                </div>
+
+                <div>
+                    {lines.map((line) => (
+
+                        <Icon id={line.icon} size={4} />
+
+                    ))}
+                </div>
+
             </div>
         </button>
     );

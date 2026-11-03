@@ -50,7 +50,7 @@ export function buildCharacterFromSave(saved: SavedCharacter): Character {
         for (const entry of saved.jobProgress) {
             character.jobProgress[entry.jobId] = {
                 xp: entry.xp,
-                enhancements: [...entry.enhancements],
+                skillLevels: { ...entry.skillLevels },
                 mastered: entry.mastered,
                 pendingPicks: entry.pendingPicks,
             };

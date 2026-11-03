@@ -1,5 +1,5 @@
 import type { ItemTableEntry } from '../loot/itemTable';
-import { applyStatus, bleedingStatus, phantomStrikeStatus } from '../statuses';
+import { applyStatus, phantomStrikeStatus } from '../statuses';
 import { assignReactiveSkill, removeReactiveSkill } from '../skills';
 import { CATEGORIES } from './categories';
 import { EQUIPMENT_SLOTS } from './equipmentSlots';
@@ -18,39 +18,8 @@ import { RANGES } from './ranges';
 
 export type ItemRef = ItemTableEntry;
 
-// Stress-test blades: more swords in the shop so the item list scrolls.
-const stressSword = (index: '1' | '2' | '3' | '4', name: string): ItemTableEntry => ({
-    id: `sword_${index}`,
-    name,
-    category: CATEGORIES.weapon,
-    slot: EQUIPMENT_SLOTS.weapon,
-    loadoutSlot: LOADOUT_SLOTS.weapon,
-    arms: 1,
-    icon: 'espada',
-    description: 'Stress-test blade. +4 attack.',
-    effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 4 }],
-    rangeOf: RANGES.short,
-    weaponType: WEAPON_TYPES.sword,
-});
-
-const stressSwords = {
-    sword_1: stressSword('1', 'Sword 1'),
-    sword_2: stressSword('2', 'Sword 2'),
-    sword_3: stressSword('3', 'Sword 3'),
-    sword_4: stressSword('4', 'Sword 4'),
-};
-
 export const Items = {
-    sack: {
-        id: 'sack',
-        name: 'Sack',
-        category: CATEGORIES.equipment,
-        slot: EQUIPMENT_SLOTS.bag,
-        description: 'A sturdy farmer sack.',
-        bagSlots: 5,
-        buyValue: 30,
-        sellValue: 15,
-    },
+
     farmer_outfit: {
         id: 'farmer_outfit',
         name: 'Farmer Outfit',
@@ -63,48 +32,9 @@ export const Items = {
         buyValue: 10,
         sellValue: 5,
     },
-    wood: {
-        id: 'wood',
-        name: 'Wood',
-        category: CATEGORIES.utility,
-        description: 'Chopped from the forest edge.',
-    },
-    hay: {
-        id: 'hay',
-        name: 'Hay',
-        category: CATEGORIES.utility,
-        description: 'Collected from the fields.',
-    },
-    sickle: {
-        id: 'sickle',
-        name: 'Sickle',
-        category: CATEGORIES.weapon,
-        slot: EQUIPMENT_SLOTS.weapon,
-        description: 'A curved blade for cutting hay. Hits inflict bleeding.',
-        effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 4 }],
-        // Every real hit (damage > 0 after reactions) applies Bleeding to
-        // the defender. Reapplying replaces the current instance, so the 3
-        // turn countdown restarts instead of stacking. Astra blocks it.
-        onHit: (context) => {
-            applyStatus(context.defender, bleedingStatus());
-        },
-        skills: [
-            {
-                name: 'Bleeding',
-                description: 'Real hits inflict Bleeding: 1 hp per turn for 3 turns.',
-            },
-        ],
-        buyValue: 5,
-        sellValue: 2,
-    },
-    stick: {
-        id: 'stick',
-        name: 'Stick',
-        category: CATEGORIES.weapon,
-        slot: EQUIPMENT_SLOTS.weapon,
-        description: "A goblin's club. +1 attack.",
-        effects: [{ stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 1 }],
-    },
+
+
+
     sword: {
         id: 'sword',
         name: 'Sword',
@@ -118,7 +48,6 @@ export const Items = {
         rangeOf: RANGES.short,
         weaponType: WEAPON_TYPES.sword,
     },
-    ...stressSwords,
     bow: {
         id: 'bow',
         name: 'Bow',

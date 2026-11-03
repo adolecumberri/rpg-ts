@@ -26,12 +26,14 @@ export type JobStatKey =
 
 export type JobStatBonuses = Partial<Record<JobStatKey, number>>;
 
-// One skill the job teaches: learned at a job level, with its rank
-// ladder — 1 to 3 normal catalog specs (base, enhanced, mastered).
+// One skill the job teaches: unlocked at a job level, levelled from 1 to
+// its own maxLevel by the job's enhancement picks (maxLevel 1 = the skill
+// cannot be enhanced; passives are always on and never castable).
 export type JobSkillPlan = {
     skillId: SkillId;
     atJobLevel: number;
-    ranks: SkillId[];
+    maxLevel?: number;
+    passive?: boolean;
 };
 
 // The job's progression ladder: what each job level teaches or grants.
@@ -50,9 +52,10 @@ export type JobProgression = {
 export type JobProgressState = {
     // Total job xp: 100 per level, 7 levels max.
     xp: number;
-    // The player's enhancement picks (base skill ids; each entry = +1
-    // rank, max rank 3).
-    enhancements: string[];
+    // The level of each of the job's skills the character has raised (base id
+    // -> 1..3; a missing id means level 1). Levels are per (character, job,
+    // skill): the same skill can be level 3 in one job and level 1 in another.
+    skillLevels: Record<string, number>;
     // Reached job level 7.
     mastered: boolean;
     // Enhancement picks waiting for the player's choice.
@@ -63,7 +66,6 @@ export class Job {
     constructor(
         readonly id: string,
         readonly title: string,
-        readonly skillIds: SkillId[],
         readonly weaponTypes: WeaponType[],
         // Stat modifiers applied to the bearer while the job is held
         // (added on assignment, removed on swap). Plain numbers, not
@@ -76,9 +78,9 @@ export class Job {
         // The job's per-stat growth ratios (1 = the default gains;
         // missing stats use 1). The base values live in statBonuses.
         readonly growth?: GrowthProfile,
-        // The job's progression ladder: the skills it teaches (with
-        // their rank specs), the enhancement levels and the mastery
-        // title. Undefined = no ladder (the Adventurer).
+        // The job's progression ladder: the skills it teaches (each with
+        // its learning level, cap and passive flag), the enhancement levels
+        // and the mastery title. Undefined = no ladder (the Adventurer).
         readonly progression?: JobProgression,
     ) { }
 

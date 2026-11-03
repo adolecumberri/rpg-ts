@@ -7,7 +7,6 @@ import { WEAPON_TYPES } from '../weaponTypes';
 export const ADVENTURER_JOB = new Job(
     'adventurer',
     'Adventurer',
-    [],
     [WEAPON_TYPES.sword, WEAPON_TYPES.bow, WEAPON_TYPES.staff],
     { hp: 10, totalHp: 10, attack: 5, defence: 5, magicDefence: 0, speed: 2 },
     false,
