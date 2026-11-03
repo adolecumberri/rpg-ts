@@ -16,6 +16,8 @@ import {
     astraStatus,
     stunStatus,
     blindStatus,
+    knifeMasteryStatus,
+    scorbutoStatus,
 } from './statuses';
 import { FATIGUE } from './combat/fatigue';
 import { statusModifierSummary } from './statuses';
@@ -161,6 +163,12 @@ export type SkillSpec = {
     // Passive skills are always applied in battle and never castable:
     // the battle kits filter them out of the action menus.
     passive?: boolean;
+    // Disarm (Weapon Disarm): detach the target's primary weapon for the
+    // rest of the battle; the engine restores it at battle end.
+    disarmWeapon?: boolean;
+    // Crew passive: count living allies whose held job is jobId and give
+    // each of them attack + count * attackPerMember.
+    crew?: { jobId: string; attackPerMember: number };
 };
 
 // The global skill dictionary: EVERY skill that exists in the app is
@@ -784,6 +792,41 @@ const RAW_SKILLS = {
         description: 'Passive: the captain holds the line with [armor]+20% defence[/armor] and [mr]+10% magic defence[/mr].',
         targeting: 'SELF',
         statusOnSelf: defenceStandStatus(99, 20, 10),
+        passive: true,
+    },
+    // --- Pirate job skills (maxLevel 1 until growth values land) --------
+    knife_mastery: {
+        id: 'knife_mastery',
+        name: 'Knife Mastery',
+        description: 'Passive: knife attacks deal [physical]+20%[/physical] more damage.',
+        targeting: 'SELF',
+        statusOnSelf: knifeMasteryStatus(20),
+        passive: true,
+    },
+    disarm_weapon: {
+        id: 'disarm_weapon',
+        name: 'Weapon Disarm',
+        description: 'Knocks the target\'s weapon out of its hands until the end of the fight.',
+        targeting: 'ENEMY',
+        numberOfTargets: 1,
+        manaCost: 12,
+        disarmWeapon: true,
+    },
+    escorbuto: {
+        id: 'escorbuto',
+        name: 'Scorbuto',
+        description: 'Scurvy: [armor]defence[/armor] and accuracy down for 3 actions.',
+        targeting: 'ENEMY',
+        numberOfTargets: 1,
+        manaCost: 10,
+        statusOnTargets: scorbutoStatus(3),
+    },
+    crew: {
+        id: 'crew',
+        name: 'Crew',
+        description: 'Passive: every Pirate in the party gains [physical]+3 attack[/physical] per living Pirate.',
+        targeting: 'SELF',
+        crew: { jobId: 'pirate', attackPerMember: 3 },
         passive: true,
     },
 } satisfies Record<string, SkillSpec>;

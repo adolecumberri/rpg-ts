@@ -1,230 +1,177 @@
-# Pirate Job — Skills Design (Draft v2)
+# Pirate Job — System Support Design (v3)
 
-* **Author:** Lead (EGM draft, after Goldfish brainstorm review)
+* **Author:** Lead (EGM draft, Revision v2 + Goldfish synthesis v2)
 * **Date:** 2026-11-03
-* **Status:** draft resolved against `pirate-skills-brief.md` reviews
-* **Inputs:** `docs/designs/pirate-skills-brief.md`
+* **Status:** implementation-ready for the P1 slice; growth values deferred
 
-## 1. Summary and Scope Decisions
+## 1. Scope
 
-The eight requested skills were checked against the engine. The review changed
-the plan: two engine prerequisites are missing today (battle-end cleanup and a
-working stun), and several skills depend on mechanics that do not exist yet.
-The first Pirate ladder therefore ships four skills after the prerequisites,
-with the heavy mechanics staged behind them.
+The signed-off Pirate skills are **Knife Mastery** (passive), **Disarm**
+(active), **Escorbuto** (active debuff) and **Crew** (passive). None has growth
+values, and the four skills do not have a final ladder yet. This design enables
+the four skills with the smallest system surface and defers the rest.
 
-**Decisions**
-- The first Pirate ladder has four skills (matching the existing three jobs):
-  **Lateral Swing** (L1), **Silence** (L1), **Eter Syphon** (L3),
-  **Blunt Edge** (L5, passive). Eter Syphon and Blunt Edge require the
-  prerequisites below.
-- **Dispel** is not new content: it already exists (`dispel`, worldTest/core/
-  skills.ts) but no ladder teaches it. Wire it into the Healer ladder and fix
-  its auto-policy/mana cost instead of duplicating it.
-- **Mana Flow** is a passive for a caster job (Healer or a future caster job),
-  not the Pirate; it is in the first wave of engine support but not the Pirate
-  ladder.
-- **Disarm** is re-themed for now: a weapon-disable status (remove the item's
-  stat modifier source, restore on status removal) instead of detaching the
-  item from the loadout. True unequip waits for the battle teardown.
-- **Crew** is deferred: a live count of Pirates cannot be expressed with the
-  current aura system, and stacking four Pirates conflicts with the job-mixing
-  ladder rules.
-- **Cuff** (a "Crew" team buff) is out of this draft; it needs a dynamic aura
-  value and a team-wide passive hook.
+Ship in this branch:
+1 battle lifecycle/teardown + status cleanup;
+2 battle-start passives with team context;
+3 Crew X team status with recompute;
+4 Disarm detach/restore;
+5 knife weapon type + `weaponDamageBonus`;
+6 Escorbuto debuff status + skill data;
+7 Pirate job (4-skill ladder, `maxLevel 1` for now) and `ALL_JOBS` entry;
+8 tests for each invariant.
 
-## 2. Goals and Non-Goals
+Deferred: channel/action-lock, multi-target attack pipeline, `statusForTarget`,
+stun repair, rank scaffolding (all four skills stay maxLevel 1), growth values,
+discovery mission wiring, IntervalCombat parity.
 
-**Goals**
-- Correct the two engine holes that block control/persistent effects.
-- Add the four first-wave skills as leveled catalog data with tests.
-- Keep the changes inside existing owners: `worldTest/core/skills.ts`,
-  `statuses.ts`, `config/damage.ts` augmentation, `combat/hybridCombat.ts`,
-  `combat/skillEffects.ts`, `combat/skillGating.ts`, `combat/aura.ts`,
-  `jobs/`, `save/` (no format change).
-- Make every duration visible and countable in actions, not rounds.
+## 2. Battle lifecycle and teardown (P1)
 
-**Non-Goals**
-- Balance numbers (X, %, costs) — placeholders in this draft.
-- Pirate discovery mission content (only the unlock flag contract).
-- True weapon removal from the loadout (deferred).
-- Dynamic team-composition auras (deferred).
-- IntervalCombat parity for mana regen; the shipped game uses HybridCombat.
+Today: `clearStatuses` (worldTest/core/statuses.ts) has no production caller;
+`Session.finishCombat` never clears statuses or restores equipment; the real
+driver (`CombatScreen`) never calls `HybridCombat.next()`, so an `end` event
+cannot be the teardown trigger.
 
-## 3. Prerequisites (P0, before the first skill)
+Design:
+- `HybridCombat` owns a **teardown registry**: `dispose(): void` (idempotent)
+  which (a) calls `clearStatuses(character, { keepPersistent: true })` for every
+  combatant, (b) runs every registered restore callback, (c) empties the
+  registry. The status cleanup keeps `persistent` statuses (Corpse Carrying).
+- `HybridCombat` gains `registerBattleRestore(callback)`; systems that detach
+  gear use it.
+- Every battle driver calls `dispose()` exactly once when the battle ends:
+  `web/src/screens/combat/CombatScreen.tsx` (settle path, win/lost/fled),
+  `web/src/screens/dev/StressFightScreen.tsx`,
+  `web/src/screens/dev/RogueliteScreen.tsx`.
+- `Session.finishCombat` (session.ts:1518) runs `clearStatuses` over its
+  `participants`/`fighters`/team as a **safety net** before the existing
+  won/lost/fled branches, so a driver that forgot `dispose()` cannot leak
+  statuses into the world. Equipment restore remains the combat's job.
+- `HybridEndEvent` stays for dev drivers; production does not depend on it.
 
-### P0.1 Battle teardown and status cleanup
-`HybridCombat.next()` only returns an end event. `Session.finishCombat`
-(`session.ts:1518`) never clears statuses; `clearStatuses`
-(`statuses.ts:454`) is test-only. Consequences today: any status applied by a
-skill survives on a persistent party character after the fight, and a detach
-strategy would lose items on flee/defeat.
+## 3. Status clock and new status fields (P1)
 
-Fix: a `completed`/teardown hook in the combat engine (idempotent) that calls
-`clearStatuses` on every combatant and runs registered cleanup callbacks
-(equipment restore later). `finishCombat` calls it before its won/lost/fled
-branches, and every UI/dev driver that owns the battle (CombatScreen, dev
-screens) must call the same path.
+HybridCombat triggers only `after_attack` and `after_turn`; the latter fires for
+the attacker and the defender of an action. Rules for new statuses:
+- Use `applyOn: 'after_turn'` plus `triggersOnAdd: true` when a stat effect must
+  exist from application (otherwise a status can be inert for a turn).
+- Permanent statuses used as markers (Crew) do not tick.
+- "Turns" in descriptions mean the bearer's actions; tooltips say "actions".
+New fields live in the worldTest augmentation (`config/damage.ts`), not in the
+library: `weaponDamageBonus?: { weaponType: string; percent: number }[]`,
+`crew?: { jobId: string; attackPerMember: number }`, and a marker field if
+needed. No `blocksSkills`/`manaRegenBonus` in this branch.
 
-### P0.2 Repair the stun status
-`stunStatus` (`statuses.ts`) is `applyOn: 'after_turn'`, ONCE, duration 1; the
-same `after_turn` trigger pass cleans it before `consumeStunTurn` sees it, so
-Shield Bash's stun is dead. Fix: make stun expire on the bearer's own action
-(the engine's turn-start check), add a test that a stunned fighter loses one
-action, then build Blunt Edge on top.
+## 4. Crew (P1)
 
-### P0.3 Status flags in the worldTest augmentation
-New flags (`blocksSkills`, `blocksActions`, `manaRegenBonus`, `disarmWeapon`
-markers, `persistent`) belong in `config/damage.ts`'s `declare module` block,
-where `polarity`, `aura` and `grantsSkills` already live. The library
-`StatusDefinition` stays generic.
+Crew is a **passive skill** (`crew`, passive) on the Pirate ladder. At battle
+start, after `this.combatants` is assigned, the engine:
+1. finds every passive spec with `crew` config among both sides;
+2. counts living combatants on the holder's side whose `character.jobId`
+   equals `crew.jobId` (the Pirate);
+3. applies a permanent positive status `Crew X` (name unique per source) to each
+   of those combatants, with `attack + X * crew.attackPerMember` as a
+   `BUFF_FIXED` modifier;
+4. re-syncs after every action: if X changed, remove the previous `Crew X`
+   status and apply the new one (do **not** rely on `syncAuras`, which adds only
+   missing names and applies to all teammates).
+Membership rule: "Crew" = holding the crew-granting job. The passive does not
+require a separate marker status. Fainted combatants are excluded from X.
+Count scope: living combatants of the holder's side (includes allied NPCs
+present in the battle, not just the session team).
 
-### P0.4 Per-cast status factory
-`SkillSpec.statusOnTargets` is a static `StatusDefinition`. Eter Syphon needs a
-definition built at cast time that captures the caster. Add
-`statusForTarget?: (actor: Character, target: Character) => StatusDefinition`
-and use it in `resolveSkillEffect` in place of the static status when present.
+## 5. Disarm (P1)
 
-### P0.5 Action-owner duration model
-The hybrid engine triggers `after_turn` on both attacker and defender of every
-action, so a status using `after_turn` can tick multiple times per round.
-Silence, the Eter Syphon drain and the channel must decrement on the **bearer's
-own action only** (a new per-turn check in `actOnce`), and tooltips must say
-"actions", not "turns". Add a duration owner in the turn loop
-(`consumeActionTurn(status)`), mirroring the faint/stun consumption.
+New skill id `disarm_weapon` (display "Weapon Disarm") to avoid the existing
+`disarm` id and status name (StatusManager replaces same-name statuses).
+`SkillSpec.disarmWeapon?: true`.
 
-### P0.6 Engine-side target validation for multi-target skills
-`resolveManualSkill` only validates "living fighter in this battle", so a
-manual cast can pass an ally or the same target twice for an `ENEMY` skill.
-Validate against the spec's `targeting`/side, drop duplicates and reject ally
-targets before resolving.
+Resolution (engine, after the skill effect):
+1. pick the target's primary weapon: the lowest weapon hole in the loadout,
+   else the legacy weapon slot; weaponless targets are unaffected (cost is still
+   spent);
+2. detach it with `unequipHole` (never `unequipToInventory`), recording
+   `{ characterId, container: 'hole' | 'legacy', hole?, item }`;
+3. register a restore callback in the combat teardown registry;
+4. restore in `dispose()` with the inverse container: `equipInto` for a hole,
+   the legacy equipment manager for the legacy slot. The item never enters the
+   inventory; ownership counters are untouched; HP clamps if a total-HP-granting
+   weapon is removed.
+No save can occur between detach and restore in the current flow; the restore
+must also run on win/lost/fled (single `dispose()` path).
 
-### P0.7 Ladder rank registration
-`enhanceableSkillsOf` caps a skill at `plan.maxLevel ?? definition.maxLevel`;
-skills absent from `RANK_FAMILIES` are maxLevel 1 and cannot spend enhancement
-picks. Every ladder skill needs its RAW_SKILLS rank entries and a
-`RANK_FAMILIES` row (or the rank factory from the structural review).
+## 6. Knife and Knife Mastery (P1)
 
-## 4. First Wave — Skill Specifications
+- Add `knife` to `WEAPON_TYPES` (constants/weaponTypes.ts), the `WeaponType`
+  union in `jobs/Job.ts` and the config augmentation, the equipment sections
+  (`EquipmentSection`, `sectionOfItem`), and the item table section.
+- The Pirate job lists `knife` in `weaponTypes`; equippability stays a job
+  allowlist (`allowsWeapon`, `canEquipItem`), not a passive effect.
+- **Knife Mastery** passive: at battle start the passive applies a
+  `weaponDamageBonus` status (`{ weaponType: 'knife', percent: 20 }`). The
+  general attack resolver (`damage/general.ts`) reads the attacker's statuses
+  and multiplies final weapon damage by `1 + sum(percent)/100` when the
+  attacker's weapon type matches. Only the general attack pipeline is affected
+  (documented; skill damage is not a weapon attack).
+- Name the passive definition `knife_mastery`; `maxLevel 1` until growth.
 
-| Skill | Kind | Target | Cost | Levels | Effect |
-|---|---|---|---|---|---|
-| `lateral_swing` | active | `ENEMY`, `numberOfTargets: X` | hp? | 3 | Player-cast wide swing: hits `min(X, living enemies)` distinct enemies, never allies. Damage via `damageFor` from `attack`; no weapon `onAttack` hooks, no impact/crit pipeline (documented limit). |
-| `silence` | active | `ENEMY`, 1 | mana | 3 | Applies `Silenced` for X of the bearer's actions: no skills; passives unaffected; basic attack still available. |
-| `eter_syphon` | active | `ENEMY`, 1 | mana | 3 | Applies `Syphon` (X actions, `statusForTarget` closure holding the caster) and `Channeling` (X actions, `blocksActions`) to the caster. Each bearer action: transfer Y hp and Z mana from enemy to caster; ends early if either dies. |
-| `blunt_edge` | passive | self | — | 1 (not enhancable) | On-hit proc: when a hit lands, roll the combat's `random`; on success apply the (repaired) stun to the defender. Uses `ImpactProc.onTrigger(ctx)` with `ctx.random`; no new chance field. |
+## 7. Escorbuto (P1, content)
 
-Durations: `X` = base + step × (skill level − 1); values live in
-`SkillDefinition.levels`. The statuses use the new action-owner decay (P0.5).
+First version is a **stat debuff**, no DoT: `statusOnTargets` applying a
+negative permanent-or-temporal status (e.g. `Scorbuto`: defence and accuracy
+down for N actions) to enemies; `targeting: 'ENEMY'`, `numberOfTargets` 1, mana
+cost, `maxLevel 1`. A damage-over-time version needs a per-turn effect system
+that does not exist; it is documented as a later upgrade.
 
-**Dispel** (Healer ladder): keep the existing `dispel` spec id; add its three
-rank entries and `RANK_FAMILIES` row so it can be levelled. Add `manaCost`
-(today it is free, so manual casting is unlimited). Fix its auto-policy so it
-can target enemies as well as allies (today `pickSkillTargets` returns only the
-policy side for `ANY`). Note: `syncAuras` re-adds positive aura effects each
-action, so dispelling an aura looks like nothing happened; treat that as an
-explicit rule (auras are not dispellable; only timed statuses are). Passives
-implemented as positive statuses would be stripped; prefer `persistent` statuses
-for passives.
+## 8. Enhancement and rank deferral
 
-**Mana Flow** (caster passive): new `manaRegenBonus` in the status augmentation;
-`HybridCombat.actOnce` sums it at turn start (`hybridCombat.ts:317-320`) and
-clamps to total. It works only in HybridCombat; IntervalCombat has no mana path
-— state that limit in the skill description.
+All four skills ship with `maxLevel 1`: `enhanceableSkillsOf` will not offer
+picks for them (it caps at `min(plan.maxLevel, definition.maxLevel)`), and no
+RAW_SKILLS rank entries / RANK_FAMILIES rows are added yet. When growth values
+are defined, each enhancable skill needs its rank entries registered (otherwise
+`resolveSkill` clamps to level 1 and picks are spent with no effect). This is a
+known, documented follow-up.
 
-## 5. Second Wave — Deferred Mechanics
+## 9. Pirate job data (P1)
 
-- **Blunt Edge** waits for P0.2 (stun). Its passive proc already fits
-  `ImpactProc.moment: 'hit'`; impacts only run through `resolveGeneralAttack`,
-  so the passive does nothing for skills that never use that pipeline.
-- **Eter Syphon** waits for P0.4 + P0.5 + P0.1.
-- **Disarm** (re-themed now): a status whose `onAdd` removes the weapon's stat
-  modifier source and whose `onRemove` restores it, self-cleaning with the
-  battle teardown. Name it `weapon_bind`/`broken_grip` to avoid colliding with
-  the existing `disarm`/`disarmStatus` (attack −40%, taught by Soldier Lv.1).
-  True loadout unequip is a later feature; it needs a deterministic "primary
-  weapon" rule (five unordered holes, no hand concept) and restore-on-end.
-- **Crew** is deferred: it needs a Pirate job, a live count of living Pirates,
-  an aura that re-emits when the count changes (`syncAuras` currently skips
-  existing names, `aura.ts:83-89`), a team-wide passive hook (passives are
-  applied in the constructor before `this.combatants` exists), and a decision on
-  whether "Crew" membership is the job or a status.
+`constants/jobs/PirateJob.ts`: id `pirate`, title `Pirate`, weaponTypes
+`[knife]`, statBonuses (placeholders), canShield false, growth placeholder,
+progression: skills at levels 1 (`knife_mastery` passive, `disarm_weapon`),
+3 (`escorbuto`), 5 (`crew` passive), `enhancementAt [2,4,6,7]`, masteryTitle.
+`unlock`: `knownBy: FLAGS.PIRATE_KNOWN` once the flag exists; until the
+discovery mission is written, the job is registered in `ALL_JOBS` with the
+`knownBy` flag and the dev tools can set it. The job is not offered by the
+Oficio until visible (`jobUnlockState` already filters by flag).
 
-## 6. Data Model Changes
+## 10. Files and order
 
-- `worldTest/core/skills.ts`: `lateral_swing`, `silence`, `eter_syphon`,
-  `blunt_edge` definitions + rank entries; `dispel` rank entries; new
-  `SkillSpec.statusForTarget` for per-cast statuses.
-- `worldTest/core/config/damage.ts`: status augmentation fields `blocksSkills`,
-  `blocksActions`, `manaRegenBonus`, `persistent`.
-- `worldTest/core/constants/jobs/PirateJob.ts`: four-skill ladder
-  (`lateral_swing` 1, `silence` 1, `eter_syphon` 3, `blunt_edge` 5 passive),
-  `enhancementAt [2,4,6,7]`, `masteryTitle`, and `unlock`:
-  `knownBy: FLAGS.PIRATE_KNOWN`, `requirements: [{ kind: 'jobLevel', jobId:
-  <a base job>, level: (owner decision) }]`. Add it to `ALL_JOBS`.
-- Healer ladder: add `dispel` at the appropriate level (owner choice) instead
-  of duplicating the skill.
+1. `worldTest/core/statuses.ts` + `config/damage.ts`: augmentation fields,
+   `clearStatuses` wiring, status factories (`crewStatus`, `knifeMasteryStatus`,
+   `scorbutoStatus`).
+2. `worldTest/core/combat/hybridCombat.ts`: teardown registry + `dispose()`,
+   passives after combatants, Crew sync, Disarm resolution/restore.
+3. `worldTest/core/session.ts`: `finishCombat` status safety net.
+4. `web/src/screens/combat/CombatScreen.tsx`, dev screens: call `dispose()`.
+5. `worldTest/core/constants/weaponTypes.ts`, `jobs/Job.ts`, equipment/inventory
+   section, item table, `PirateJob.ts`, `constants/jobs/index.ts`.
+6. `worldTest/web` job page: knife section/meta only if the UI enumerates
+   weapon types.
+7. Tests: lifecycle, Crew X recompute, disarm restore on win/lost/flee, knife
+   damage bonus, status cleanup keeps persistent.
 
-## 7. Engine Changes by Owner
+## 11. Tests
 
-- `combat/hybridCombat.ts`: battle teardown hook; action-owner status decay;
-  `blocksSkills` filter in `skillsOf` (covers menu, prompt and planner);
-  `blocksActions` skip in `actOnce`; mana-regen bonus; disarm-status self-clean
-  via teardown.
-- `combat/skillGating.ts`: single gating entry point for silence checks
-  (`canCastSkill`), used by UI, manual and auto.
-- `combat/skillEffects.ts`: `statusForTarget` and the re-themed disarm status.
-- `combat/autoSkills.ts`: multi-target policy for Lateral Swing; no silenced
-  skills in the plan.
-- `combat/aura.ts`: leave unchanged in wave one; wave two must re-emit effects
-  when the computed value changes.
-- `session.ts` (`finishCombat`): clear statuses and run cleanup before its
-  won/lost/fled returns; shared by all battle drivers.
-- `skills.ts`: `battleSkillSpecs` is the filter point for passive/blocked
-  skills; rank registration for every ladder skill.
-- `web/src/components/battle/JrpgArena.tsx`: silenced state in the skill list;
-  multi-target selection UI for Lateral Swing; status chips must show
-  "actions".
+- `dispose()` clears all non-persistent statuses and is idempotent.
+- Crew: 2 Pirates give Crew +6 attack each; one dies → +3; no Pirates → none.
+- Disarm: weapon removed from stats, restored after win/lost/flee, inventory
+  counts unchanged, weaponless target unaffected.
+- Knife Mastery: knife damage +20%; bow damage unchanged.
+- Escorbuto: debuff applied to enemy, expires/cleans at battle end.
+- `finishCombat` clears leaked statuses even if a driver skipped `dispose()`.
 
-## 8. Save and Compatibility
+## 12. Open decisions
 
-- No `SAVE_VERSION` change. Statuses and battle-scoped state are not saved;
-  the new teardown guarantees they do not leak between battles.
-- Existing jobs and saves load unchanged. Adding `dispel` ranks is additive.
-- A mastered job with a freshly added ladder skill starts it at rank 1 with no
-  pending pick (existing rule); it can be enhanced only through later picks.
-  Document that new ladder entries will look unenhanced on old mastered jobs.
-
-## 9. Testing
-
-- Stun: a stunned fighter loses exactly one action; Shield Bash applies it.
-- Teardown: silence and drain statuses are gone after win, loss and flee.
-- Silence: menus/prompt/planner hide skills; attack and passives still work.
-- Eter Syphon: one drain per bearer action; caster locked; death ends it;
-  dispel of the channel clears the drain.
-- Lateral Swing: no allies, no duplicate targets, min(X, enemies); damage
-  scaled from attack; no impact procs.
-- Mana Flow: regen base + N, clamped; no effect in interval battles (documented).
-- Dispel: strips timed buffs/debuffs on the right side; auras unaffected by rule;
-  has a mana cost; auto policy can pick enemies and allies.
-- Weapon disable: the attack drop is restored at battle end; inventory counts
-  unchanged.
-
-## 10. Staging
-
-0. Prerequisites P0.1–P0.7 (engine + tests).
-1. Content: lateral_swing, silence, mana_flow, dispel + Healer ladder wiring.
-2. Content: eter_syphon after P0.4/P0.5; blunt_edge after P0.2.
-3. Pirate job data + unlock flag + first ladder integration.
-4. Second wave: weapon bind (Disarm), Crew research (job + dynamic aura).
-
-## 11. Risks and Open Questions (owner decisions)
-
-- Does the Pirate ladder include Eter Syphon and Blunt Edge at launch, or ship
-  only Lateral Swing + Silence first?
-- Which job levels gate the Pirate unlock (`jobLevel` on which base job, at what
-  level), and which mission sets `PIRATE_KNOWN`?
-- Is Dispel's home the Healer ladder (recommended by review) or a shared skill?
-- Weapon disable vs true unequip final scope; true unequip needs the teardown
-  and a primary-weapon rule.
-- Should passives be `persistent` (not dispellable) by default?
+- Pirate stat bonuses/growth and skill growth values (balance pass later).
+- Discovery mission flag name/content.
+- Whether Escorbuto becomes a DoT (needs the per-turn status effect system).
+- Channel and multi-target attack: next system branch, not this one.

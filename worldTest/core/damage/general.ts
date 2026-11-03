@@ -193,6 +193,23 @@ export function resolveGeneralAttack(
                 components = hook({ attacker, defender, item, components });
             }
         }
+        // Weapon-class bonuses (Knife Mastery): the bearer's statuses may
+        // scale damage while a matching weapon type is wielded.
+        const weapon = equippedItemsOf(attacker).find((item) => item.definition.weaponType);
+        if (weapon) {
+            let percent = 0;
+            for (const status of attacker.statusManager.statuses.values()) {
+                for (const bonus of status.definition.weaponDamageBonus ?? []) {
+                    if (bonus.weaponType === weapon.definition.weaponType) percent += bonus.percent;
+                }
+            }
+            if (percent !== 0) {
+                components = components.map((component) => ({
+                    ...component,
+                    amount: Math.round(component.amount * (1 + percent / 100) * 100) / 100,
+                }));
+            }
+        }
     }
 
     // Impact hits: a basic attack applies exactly one. The bearer's

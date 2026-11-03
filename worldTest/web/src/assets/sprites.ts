@@ -71,6 +71,7 @@ const JOB_SPRITE_ROLES: Record<string, SpriteRole> = {
     soldier: 'warrior',
     archer: 'archer',
     healer: 'mage',
+    pirate: 'warrior',
     adventurer: 'warrior',
 };
 

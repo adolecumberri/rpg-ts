@@ -15,6 +15,7 @@ import type { DropTable } from './loot/dropTable';
 import { EncounterTracker } from './encounters/encounterTracker';
 import { SPECIAL_ENCOUNTERS, buildSpecialNpc } from './encounters/specialEncounter';
 import { defaultSkillIds, skillIdsOf } from './skills';
+import { clearStatuses } from './statuses';
 import {
     applyGrowthLevels,
     applyJobBonuses,
@@ -1519,6 +1520,18 @@ export class WorldSession {
         // Fight constants carry outcome hooks: they receive the mission
         // that triggered the fight (on_flee -> mission.fail()).
         const fight = context.fightId ? FIGHTS[context.fightId] : undefined;
+        // Battle-end safety net: transient statuses never survive a fight,
+        // even when a driver forgot to dispose its combat instance.
+        // Persistent statuses (Corpse Carrying) stay.
+        const cleanupTargets = [
+            ...(context.participants ?? this.team.getAll()),
+            ...(context.fighters ?? []),
+            ...this.team.getAll(),
+            ...(fight?.enemyIds ?? []).map((id) => this.findNpc(id)?.character),
+        ].filter((character): character is NonNullable<typeof character> => Boolean(character));
+        for (const character of cleanupTargets) {
+            clearStatuses(character, { keepPersistent: true });
+        }
         const fightMission = context.missionId ? this.missions.runner(context.missionId) : undefined;
         if (fight && fightMission) {
             if (result === 'won') fight.onWin?.(fightMission);

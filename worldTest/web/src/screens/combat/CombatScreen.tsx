@@ -137,6 +137,10 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
     const settle = (result: 'won' | 'lost' | 'fled') => {
         if (settledRef.current || !setup) return;
         settledRef.current = true;
+        // Battle-scoped teardown first: statuses are cleared (persistent
+        // ones stay) and disarmed weapons are restored before the world
+        // updates. Idempotent, so finishCombat's safety net is cheap.
+        setup.combat.dispose();
         const fighters = setup.allies.filter((ally) => !session.team.getCharacter(ally.id));
         const outcome = session.finishCombat(result, {
             placeId: battle.placeId,

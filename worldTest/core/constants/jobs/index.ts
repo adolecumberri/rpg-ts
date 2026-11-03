@@ -8,12 +8,13 @@ import '../../config/damage';
 import { ADVENTURER_JOB } from './AdventurerJob';
 import { ARCHER_JOB } from './ArcherJob';
 import { HEALER_JOB } from './HealerJob';
+import { PIRATE_JOB } from './PirateJob';
 import { SOLDIER_JOB } from './SoldierJob';
 
-export { ADVENTURER_JOB, ARCHER_JOB, HEALER_JOB, SOLDIER_JOB };
+export { ADVENTURER_JOB, ARCHER_JOB, HEALER_JOB, PIRATE_JOB, SOLDIER_JOB };
 
 // Every job a character may hold, in picker order.
-export const ALL_JOBS: Job[] = [SOLDIER_JOB, ARCHER_JOB, HEALER_JOB, ADVENTURER_JOB];
+export const ALL_JOBS: Job[] = [SOLDIER_JOB, ARCHER_JOB, HEALER_JOB, PIRATE_JOB, ADVENTURER_JOB];
 
 const JOBS_BY_ID: Record<string, Job> = ALL_JOBS.reduce(
     (acc: Record<string, Job>, job) => {

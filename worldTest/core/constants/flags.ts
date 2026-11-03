@@ -31,6 +31,8 @@ export const FLAGS = {
     TRAINING_WON_CAPTAIN: 'training_won_captain',
     TRAINING_COMPLETED: 'training_completed',
     CAZA_COMPLETED: 'caza_completed',
+    // The Pirate job exists only after its discovery mission.
+    PIRATE_KNOWN: 'pirate_known',
 } as const;
 
 export type FlagId = typeof FLAGS[keyof typeof FLAGS];

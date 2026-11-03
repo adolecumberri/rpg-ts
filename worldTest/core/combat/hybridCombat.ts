@@ -1,4 +1,4 @@
-import type { Character, IntervalDamageResolver } from '../../../src';
+import type { Character, IntervalDamageResolver, Item } from '../../../src';
 import { generalAttackResolver } from '../damage/general';
 import { intervalFromSpeed } from '../config/speed';
 import { MANA } from '../config/mana';
@@ -8,7 +8,8 @@ import { syncAuras } from './aura';
 import { pickSkillTargets } from './autoSkills';
 import { resolveSkillEffect } from './skillEffects';
 import { consumeFaintTurn } from './fatigue';
-import { consumeStunTurn, applyStatus } from '../statuses';
+import { consumeStunTurn, applyStatus, clearStatuses, crewStatus } from '../statuses';
+import { equipInto, unequipHole } from '../equipment/loadout';
 import { canAffordSkill, hpCostOf } from './skillGating';
 import { battleSkillSpecs } from '../skills';
 import type { SkillSpec } from '../skills';
@@ -132,27 +133,136 @@ export class HybridCombat {
             // Mana: every fighter starts the battle at startOfBattle.
             const totalMana = combatant.character.stats.totalMana ?? 0;
             combatant.character.stats.mana = Math.min(totalMana, MANA.startOfBattle);
-            // Passive skills apply their battle-start statuses (the captain's
-            // discipline, future boss auras) before the first tick.
-            for (const spec of combatant.skills ?? []) {
-                if (spec.passive && spec.statusOnSelf) {
-                    applyStatus(combatant.character, spec.statusOnSelf);
-                }
-            }
         }
         this.combatants = combatants;
         this.maxTicks = options.maxTicks ?? 1000;
         this.random = options.random ?? Math.random;
         this.damageResolver = options.damageResolver ?? generalAttackResolver;
         this.onAction = options.onAction;
-        // Team auras apply from the first action on.
+        // Passive skills apply their battle-start statuses AFTER the
+        // combatants are assigned, so team-aware passives (Crew) can see
+        // both sides.
+        for (const combatant of this.combatants) {
+            for (const spec of combatant.skills ?? []) {
+                if (spec.passive && spec.statusOnSelf) {
+                    applyStatus(combatant.character, spec.statusOnSelf);
+                }
+            }
+        }
+        // Team auras and crew bonuses apply from the first action on.
         this.syncAllAuras();
+        this.syncCrew();
     }
 
     /** Applies/removes aura effects on both sides (cheap, idempotent). */
     private syncAllAuras(): void {
         syncAuras(this.combatants.filter((entry) => entry.side === 'left').map((entry) => entry.character));
         syncAuras(this.combatants.filter((entry) => entry.side === 'right').map((entry) => entry.character));
+        this.syncCrew();
+    }
+
+    /**
+     * Crew: every living ally whose held job matches a crew passive's
+     * jobId carries a "Crew X" status with X = living members of that job.
+     * The status is rebuilt when X changes (a Pirate died, a side changed).
+     */
+    private syncCrew(): void {
+        for (const side of ['left', 'right'] as HybridSide[]) {
+            const living = this.combatants.filter(
+                (entry) => entry.side === side && entry.character.stats.hp > 0,
+            );
+            const configs = new Map<string, { jobId: string; attackPerMember: number }>();
+            for (const member of living) {
+                for (const spec of member.skills ?? []) {
+                    if (spec.passive && spec.crew) configs.set(spec.crew.jobId, spec.crew);
+                }
+            }
+            for (const config of configs.values()) {
+                const count = living.filter(
+                    (entry) => entry.character.jobId === config.jobId,
+                ).length;
+                for (const member of living) {
+                    // Drop the previous Crew status; it is rebuilt from the
+                    // live count below (StatusManager refreshes by name).
+                    for (const status of Array.from(member.character.statusManager.statuses.values())) {
+                        if (status.definition.name === 'Crew') {
+                            member.character.statusManager.removeStatusInstance(status.id);
+                        }
+                    }
+                    if (member.character.jobId === config.jobId && count > 0) {
+                        applyStatus(member.character, crewStatus(count, config.attackPerMember));
+                    }
+                }
+            }
+        }
+    }
+
+    /** Battle-scoped state cleanup and equipment restoration registry. */
+    private restoreCallbacks: Array<() => void> = [];
+    private disposed = false;
+
+    /** Registers a battle-end restoration (e.g. a disarmed weapon). */
+    registerBattleRestore(callback: () => void): void {
+        this.restoreCallbacks.push(callback);
+    }
+
+    /**
+     * Ends the battle's transient state: clears statuses (keeping
+     * persistent ones) and restores detached equipment. Idempotent; every
+     * battle driver must call it exactly once.
+     */
+    dispose(): void {
+        if (this.disposed) return;
+        this.disposed = true;
+        for (const combatant of this.combatants) {
+            clearStatuses(combatant.character, { keepPersistent: true });
+        }
+        const callbacks = this.restoreCallbacks;
+        this.restoreCallbacks = [];
+        for (const callback of callbacks) callback();
+    }
+
+    /**
+     * Weapon Disarm: detaches the target's primary weapon for the rest of
+     * the battle and records its restoration. The item never reaches the
+     * inventory; ownership counts stay untouched.
+     */
+    private disarmWeapons(targets: Character[]): void {
+        for (const target of targets) {
+            const weapon = this.primaryWeaponOf(target);
+            if (!weapon) continue;
+            if (weapon.hole >= 0) {
+                const result = unequipHole(target, weapon.hole);
+                if (!result.ok) continue;
+                for (const removed of result.removed) {
+                    this.registerBattleRestore(() => {
+                        equipInto(target, weapon.hole, removed);
+                    });
+                }
+            } else {
+                target.equipment.unequip('weapon', target);
+                this.registerBattleRestore(() => {
+                    target.equipment.equipOrReplace(weapon.item, target);
+                });
+            }
+        }
+    }
+
+    /** The first wielded weapon: lowest weapon hole, then the legacy slot. */
+    private primaryWeaponOf(character: Character): { item: Item; hole: number } | undefined {
+        const loadout = character.loadout;
+        if (loadout) {
+            for (let hole = 0; hole < loadout.holes.length; hole++) {
+                const item = loadout.holes[hole];
+                if (!item) continue;
+                if (item.definition.loadoutSlot === 'weapon' || item.definition.slot === 'weapon') {
+                    return { item, hole };
+                }
+            }
+        }
+        const legacy = character.equipment.get('weapon');
+        if (legacy) return { item: legacy, hole: -1 };
+        return undefined;
     }
 
     allCombatants(): HybridCombatant[] {
@@ -477,6 +587,7 @@ export class HybridCombat {
             isEnemy: (character) => enemyIds.has(character.id),
             breakdown: true,
         });
+        if (spec.disarmWeapon) this.disarmWeapons(targets);
 
         const kills: { targetId: string; killerId: string }[] = [];
         for (const effect of result.effects) {

@@ -679,3 +679,51 @@ export function statusTooltip(definition: StatusDefinition): string {
 
     return parts.join(' · ');
 }
+
+/** Crew X: the Pirate team bonus (attack + X * per member). */
+export function crewStatus(pirates: number, attackPerMember = 3): StatusDefinition {
+    const bonus = pirates * attackPerMember;
+    return {
+        name: 'Crew',
+        polarity: 'positive',
+        description: `Crew ${pirates}: +${bonus} attack while the crew sails together.`,
+        applyOn: 'after_turn',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: bonus > 0 ? [{ from: 'attack', to: 'attack', value: bonus, typeOfModification: 'BUFF_FIXED' }] : [],
+    };
+}
+
+/** Knife Mastery: +percent knife weapon damage (read by the attack resolver). */
+export function knifeMasteryStatus(percent = 20): StatusDefinition {
+    return {
+        name: 'Knife Mastery',
+        polarity: 'positive',
+        description: `Knife attacks deal ${percent}% more damage.`,
+        applyOn: 'after_turn',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [],
+        weaponDamageBonus: [{ weaponType: 'knife', percent }],
+    };
+}
+
+/** Scorbuto: defence and accuracy down for N actions. */
+export function scorbutoStatus(turns = 3): StatusDefinition {
+    return {
+        name: 'Scorbuto',
+        polarity: 'negative',
+        description: `Scurvy: defence and accuracy down for ${turns} actions.`,
+        applyOn: 'after_turn',
+        duration: { type: 'TEMPORAL', value: turns },
+        turns,
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [
+            { from: 'defence', to: 'defence', value: 20, typeOfModification: 'DEBUFF_PERCENTAGE' },
+            { from: 'accuracy', to: 'accuracy', value: 15, typeOfModification: 'DEBUFF_PERCENTAGE' },
+        ],
+    };
+}

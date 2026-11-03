@@ -8,8 +8,8 @@
 import type { GrowthProfile } from '../config/growth';
 import type { SkillId } from '../skills';
 
-// The weapon triangle for now; armors and other slots will join later.
-export type WeaponType = 'sword' | 'bow' | 'staff';
+// The weapon triangle for now; knives join for the Pirate.
+export type WeaponType = 'sword' | 'bow' | 'staff' | 'knife';
 
 // The numeric stats a job may raise or lower: the library stats plus
 // the worldTest ones. rangeOf stays out: it is a string stat.

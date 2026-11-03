@@ -242,3 +242,125 @@ consensus changes the plan in three ways.
   ladder; the kit was four denial effects with no pirate-specific payoff.
   The first Pirate ladder should be four skills: Lateral Swing, Blunt Edge,
   Silence, Eter Syphon (the last two only after their prerequisites).
+
+## Revision v2 — Pirate skill set and system-first direction
+
+The owner clarified the actual first four Pirate skills and the priority order.
+
+### The four Pirate skills (target set, no growth values yet)
+
+1. **Knife Mastery** — Passive: allows wearing knives, +20% knife damage.
+2. **Disarm** — active: the target loses a wielded weapon until the fight ends.
+3. **Escorbuto** — active: debuff applied to enemies (disease/decay theme).
+4. **Crew** — Passive: applies "Crew X" to team members with Crew, X = living
+   Pirates; Crew grants X × 3 attack.
+
+All four are meant to be enhancable; level scaling is explicitly deferred.
+The immediate goal is not the four skills: it is the **system support** the new
+job needs.
+
+### Answers to the owner's four questions
+
+1. **Crew X / parameterized statuses.** Yes, a battle-start hook that builds a
+   status with a computed value is the right shape. There is no
+   parameterized-status type today, but a status definition is a plain object,
+   so a factory can compute `X` when the fight starts or whenever the team
+   composition changes. The missing pieces are: (a) a battle-start passive hook
+   that can see both teams, (b) an "aura-like" re-sync that **recomputes** the
+   value when a Pirate dies (today `syncAuras` only adds missing effects), and
+   (c) a decision on whether "Crew" membership is the Pirate job or a marker
+   status. Proposal: Crew is a positive permanent status whose attack modifier
+   is rebuilt from the live count.
+2. **Disarm via the battle-end queue.** Yes. The effect can look up the target's
+   weapon through `equippedItemsOf`/loadout, detach it, and push a restore
+   callback onto a battle-end queue. The missing infrastructure is the queue and
+   the teardown: `HybridCombat` has no end hook, `finishCombat` never restores,
+   and every battle driver (CombatScreen, dev screens) must run it. A
+   deterministic "primary weapon" rule is needed because the five holes are
+   unordered. The item stays owned; inventory counters are untouched.
+3. **Channel / occupied caster.** Feasible with a new action-lock: a status on
+   the caster that consumes the caster's turn for X actions while a linked
+   effect keeps draining. The engine currently has no generic lock (only faint
+   and stun are hardcoded), so the lock must become a first-class check in the
+   turn loop, be skipped by stun handling, and interact with dispel/death
+   (ending the channel ends the drain).
+4. **Lateral Swing / multi-target attack.** `numberOfTargets` already exists and
+   the auto planner samples distinct enemies without replacement. For "apply a
+   normal attack to X targets", the engine should route each target through the
+   attack resolver (so crit/impact/on-hit hooks apply) and validate the manual
+   target list (enemy side, distinct ids). Today manual resolution accepts any
+   living combatant and there is no attack-pipeline shortcut for multi-target
+   skills.
+
+### Revised scope
+
+- **P1 system (this branch):** battle lifecycle (start/end hooks + status and
+  equipment teardown), stun repair, status flags in the worldTest augmentation,
+  engine-side target validation.
+- **P2 system:** dynamic/parameterized battle-start statuses + recomputing
+  aura-like sync (Crew X), passive battle-start hook with team context.
+- **P3 system:** channel action-lock; multi-target attack resolution; weapon
+  detach/restore queue (Disarm).
+- **P4 content:** the four Pirate skills and the Pirate job ladder, growth
+  values after a balance pass.
+
+### Combat-process brainstorm needed
+
+The owner asked whether the fight process itself needs a brainstorm. Yes:
+on-hit timing, impact hits, damage types ("Blunt" as a physical damage type),
+status application order, channel/teardown, and the two-engine split
+(HybridCombat vs IntervalCombat) are cross-cutting. This brief covers only the
+skills' hooks; a dedicated combat-process brainstorm should map every hook and
+damage type before content scales. That is a separate artifact, not part of
+this branch.
+
+## Goldfish Synthesis v2 (six lenses, Revision v2)
+
+The reviewers rejected the P1–P4 platform as written: it was built for the
+eight-skill list, while only four skills are signed off. The corrected plan:
+
+**Required for the four Pirate skills**
+1. A **battle lifecycle owner** — one `dispose()`/teardown that clears statuses
+   (keeping `persistent` ones) and restores detached gear, called by every
+   driver (CombatScreen, dev screens) and by `finishCombat` as a safety net.
+   Today `clearStatuses` has no production caller and `finishCombat` never
+   cleans.
+2. **Battle-start passives with team context**: passives are applied in the
+   constructor before `this.combatants` is assigned; move that after the
+   assignment (no new catalog hook needed for the first step).
+3. **A recomputable team status** (Crew X): count living left-side combatants
+   whose `jobId` is the Pirate; the value must be re-emitted (remove then add),
+   because `syncAuras` only adds missing names and Crew is not an aura for all
+   teammates.
+4. **Weapon behaviour**: a `knife` weapon type (Job type, weapon dictionary,
+   equipment section, item table); equippability comes from the job's
+   `weaponTypes`, not from a passive; a `weaponDamageBonus` status field read by
+   the attack resolver for +20% knife damage.
+5. **Disarm**: battle-owned detach/restore. Detach through `unequipHole` (never
+   to the inventory), record `{characterId, container, hole, item}`, restore in
+   `dispose()`; primary weapon = lowest weapon hole, else the legacy slot.
+6. **Escorbuto**: define it before content. First version: a stat debuff
+   (defence/accuracy) via `statusOnTargets`, because a DoT has no per-turn
+   effect path today; DoT is a separate system.
+7. **Enhancement**: the four skills ship at `maxLevel 1` until level values
+   exist. Every rank needs RAW_SKILLS entries + `RANK_FAMILIES`; that work is
+   deferred with the growth pass.
+
+**Deferred (not needed by the four; keep documented)**
+Channel/action-lock, multi-target attack pipeline, `statusForTarget`, stun
+repair, rank scaffolding, IntervalCombat parity.
+
+**Status clock rule**
+HybridCombat only fires `after_attack` and `after_turn` (twice per action: once
+for attacker, once for defender). Any new status must use `after_turn` with
+`triggersOnAdd` or the engine's per-owner tick; "turns" are documented as the
+bearer's actions.
+
+**Knife Mastery / Crew / Disarm names**
+`disarm`/`disarmStatus` already own the id and display name (Soldier's attack
+debuff); the new skill uses a different id (`disarm_weapon` / display
+"Weapon Disarm") and cannot rely on the same status name (StatusManager
+replaces by name). Knife Mastery is job data (Pirate wields knives) plus the
+weapon-damage bonus status; "allows wearing knives" is not a passive effect.
+'blunt' is already a physical element used by Shield Bash, not a third damage
+kind.

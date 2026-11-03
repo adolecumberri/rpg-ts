@@ -74,9 +74,9 @@ declare module '@rpg' {
         // The attack reach the weapon grants its bearer (overrides the
         // character's own rangeOf).
         rangeOf?: 'short' | 'long' | 'all';
-        // The weapon triangle type (sword/bow/staff): jobs declare which
-        // types they may wield.
-        weaponType?: 'sword' | 'bow' | 'staff';
+        // The weapon triangle type (sword/bow/staff/knife): jobs declare
+        // which types they may wield.
+        weaponType?: 'sword' | 'bow' | 'staff' | 'knife';
         // Bags add inventory slots to the party capacity.
         bagSlots?: number;
         // Impact pipeline: damage added once per impact hit the bearer's
@@ -176,6 +176,12 @@ declare module '@rpg/classes/StatusInstance' {
         // Carrying travels with the character between battles). Dispel
         // and the cleanup skip them.
         persistent?: boolean;
+        // Weapon-class damage multiplier read by the general attack
+        // resolver when the bearer's weapon type matches (Knife Mastery).
+        weaponDamageBonus?: Array<{ weaponType: string; percent: number }>;
+        // Crew passive: count living allies whose held job is jobId and
+        // grant each of them attack + count * attackPerMember.
+        crew?: { jobId: string; attackPerMember: number };
         // Team aura: while the holder lives, every member of its team
         // (the holder included) receives these fixed bonuses. The
         // holder's death ends the aura.
