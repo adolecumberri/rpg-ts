@@ -135,43 +135,6 @@
     z-index: 10;
 }
 
-/* The debug sections overlay (the dev battle page): one translucent
-   colored box per depth tier and side, drawn over the sprites, where
-   the current formation places its fighters. Clicks pass through. */
-.jrpg-sections-layer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 20;
-}
-
-.jrpg-section {
-    position: absolute;
-    border: 1px dashed rgba(255, 255, 255, 0.65);
-}
-
-.jrpg-section--front {
-    background: rgba(239, 68, 68, 0.14);
-}
-
-.jrpg-section--center {
-    background: rgba(59, 130, 246, 0.14);
-}
-
-.jrpg-section--back {
-    background: rgba(34, 197, 94, 0.14);
-}
-
-.jrpg-section-label {
-    position: absolute;
-    top: 2px;
-    left: 4px;
-    font-family: var(--font-display);
-    font-size: var(--display-sm);
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow: 1px 1px 0 #000;
-}
-
 .jrpg-active-tile {
     position: absolute;
     width: 48px;
@@ -206,35 +169,15 @@
 
 .jrpg-entity {
     position: absolute;
-    transform: translate(-50%, -100%);
+    /* Feet anchor: the flex column's bottom is the feet. The 2x is a
+       uniform render scale (the sprite box is in design px). */
+    transform: translate(-50%, -100%) scale(2);
     display: flex;
     flex-direction: column;
     align-items: center;
     cursor: pointer;
     pointer-events: auto;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s;
-}
-
-/* The entity's total scale is floored at 2: the sprites are 16x16px
-   native and render at 32x32px, and neither the crowd shrink
-   (--jrpg-unit-scale) nor the section collapse (--jrpg-shrink) may
-   ever render them smaller. */
-.jrpg-depth-far {
-    transform: translate(-50%, -100%) scale(max(2, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
-    z-index: 12;
-    filter: brightness(0.85) contrast(0.95);
-}
-
-.jrpg-depth-mid {
-    transform: translate(-50%, -100%) scale(max(2, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
-    z-index: 15;
-    filter: brightness(0.95);
-}
-
-.jrpg-depth-front {
-    transform: translate(-50%, -100%) scale(max(2, var(--jrpg-unit-scale, 1) * var(--jrpg-shrink, 1)));
-    z-index: 20;
-    filter: brightness(1.1);
 }
 
 .jrpg-entity--active {
@@ -310,8 +253,6 @@
 .jrpg-sprite-box {
     position: relative;
     z-index: 3;
-    width: 16px;
-    height: 16px;
     background-repeat: no-repeat;
     background-position: 0 0;
     image-rendering: pixelated;
@@ -356,7 +297,7 @@
     height: 70px;
     background: linear-gradient(to bottom, transparent 0%, rgba(12, 6, 4, 0.7) 60%, #120905 100%);
     pointer-events: none;
-    z-index: 22;
+    z-index: 5;
 }
 
 .jrpg-turn-order-strip {

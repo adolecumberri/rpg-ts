@@ -9,3 +9,4 @@
 The brainstorm brief that fed the job-page work is [`concepts_brief.md`](../../concepts_brief.md).
 | [pirate-skills-design.md](pirate-skills-design.md) | 2026-11-03 | draft | First-wave Pirate skills feasibility + design: Silence, Lateral Swing, Eter Syphon, Blunt Edge; engine prerequisites, staged plan, resolved findings. |
 | [pirate-skills-goldfish-report.md](pirate-skills-goldfish-report.md) | 2026-11-03 | review | Goldfish brainstorm findings (6 lenses) resolved against the draft: applied fixes, deferred mechanics, owner decisions. |
+| [battlefield-layout.md](battlefield-layout.md) | 2026-11-04 | draft | Count-driven mirrored formation arrays (1-12) for the JRPG arena: 1+2 for 3v3, frozen slots, full-ground spread, deferred position cleanup. |

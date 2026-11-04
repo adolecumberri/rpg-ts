@@ -1,12 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Character } from '@rpg';
 import { heldJobOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, skillUnavailableReason, intervalFromSpeed } from '@core';
 import type { SkillSpec } from '@core';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 import type { SpriteAnimation, SpriteSet } from '../../assets/sprites';
 import { spriteBoxStyle, spriteFrameStyle, spriteScaleFor } from '../../assets/spriteFrames';
-import { ANIMATION_TIMING } from '../../assets/animationTiming';
 import type { BattleEffect } from '../../assets/effects';
 import { OptionsBar } from '../chrome/OptionsBar';
 import type { OptionSpec } from '../chrome/OptionsBar';
@@ -17,20 +15,20 @@ import type { ForecastCombatant } from './CombatForecast';
 import { selectionRulesOf, toggleTarget } from '../../game/targeting';
 import { STAT_CATALOG } from '../../game/statCatalog';
 import type { StatKey } from '../../game/statCatalog';
+import { layoutFormation, spriteBoxFor } from '../../game/formation';
+import type { FormationPlacement, FormationSide } from '../../game/formation';
 import { Icon } from '../chrome/Icon';
 import { StatBar } from '../chrome/StatBar';
 import './JrpgArena.css';
 
 /**
  * The JRPG pseudo-3D tactical arena (the small-battle view, per the
- * design-stitch code_fight reference): a tilted FFTA2-grid floor with
- * three depth tiers for the combatant sprites, micro hp bars, the
- * active-turn cursor and tile, the turn-order chip strip, the active
- * unit banner and the 2x2 command tray. Pure presentation — the
- * CombatScreen keeps owning the hybrid engine.
+ * design-stitch code_fight reference): a tilted FFTA2-style floor with
+ * count-driven formation rows, micro hp bars, the active-turn cursor and
+ * tile, the turn-order chip strip, the active unit banner and the 2x2
+ * command tray. Pure presentation — the CombatScreen keeps owning the
+ * hybrid engine.
  */
-
-type DepthTier = 'front' | 'center' | 'back';
 
 // The party sheet order (the grid fills row by row): the STAT_CATALOG
 // keys arranged so each row pairs two stats that read naturally
@@ -43,47 +41,6 @@ const PARTY_STAT_ORDER: StatKey[] = [
     'critMultiplier',
 ];
 
-// The visible ground band the columns may occupy: the tilted floor's
-// projected top and bottom edges, in arena coordinates. Sections never
-// rise above its top — when a column needs more room than the band
-// provides, its fighters shrink (and their spacing with them) so the
-// section stays on the ground.
-const GROUND_TOP = 174;
-const GROUND_BOTTOM = 364;
-const GROUND_CENTER = (GROUND_TOP + GROUND_BOTTOM) / 2;
-// The sprite footprint of a column: from the top of the tallest
-// sprite to the feet, plus a small margin.
-const COLUMN_FOOTPRINT = 60;
-// A column holds at most this many fighters: the overflow forms a
-// second column behind the first (and a third behind that...).
-const COLUMN_MAX = 4;
-// The x offset of each overflow column, toward the side's back edge
-// (allies left, enemies right).
-const OVERFLOW_OFFSET = 28;
-
-// The three depth COLUMNS: each tier is a straight vertical column of
-// fighters, one x per column, all centered on the ground band. Every
-// tier renders its sprites at the SAME size for now (the CSS depth
-// scales are all 1×) — only the brightness tiers differ. Extra
-// fighters spread vertically around the column's center, evenly spaced
-// (`spacing`), and the column's x stays fixed.
-const TIERS: Record<DepthTier, {
-    cls: string;
-    ally: { x: number };
-    enemy: { x: number };
-    spacing: number;
-}> = {
-    back: { cls: 'jrpg-depth-far', ally: { x: 40 }, enemy: { x: 280 }, spacing: 34 },
-    center: { cls: 'jrpg-depth-mid', ally: { x: 88 }, enemy: { x: 232 }, spacing: 40 },
-    front: { cls: 'jrpg-depth-front', ally: { x: 132 }, enemy: { x: 188 }, spacing: 48 },
-};
-
-function tierOf(character: Character): DepthTier {
-    if (character.position === 'back') return 'back';
-    if (character.position === 'center') return 'center';
-    return 'front';
-}
-
 // Which side the pending action may pick targets on: a plain attack
 // picks enemies, a skill picks by its targeting (ENEMY/ALLY/ANY), and
 // SELF picks nobody — its target is the caster and never changes.
@@ -95,46 +52,19 @@ function pickableSideOf(spec: SkillSpec | undefined): 'enemy' | 'ally' | 'any' |
     return 'none';
 }
 
-// The fit of one depth column inside the ground band: when the
-// column's natural height (spacing × (count − 1) + the sprite
-// footprint) exceeds the band, the SPACING shrinks so the section
-// stays on the ground (the sprites themselves never drop below their
-// 24px render size — the CSS floors the total scale at 1.5).
-function columnFitOf(tier: DepthTier, count: number): { spacing: number; shrink: number } {
-    const spacing = TIERS[tier].spacing;
-    const needed = Math.max(1, (count - 1) * spacing + COLUMN_FOOTPRINT);
-    const available = GROUND_BOTTOM - GROUND_TOP;
-    const shrink = Math.min(1, available / needed);
-    return { spacing: spacing * shrink, shrink };
-}
-
-// The arena spot (the feet anchor) of a combatant: the tier's column
-// x (overflow columns sit behind it, offset toward the side's back),
-// with the fighter vertically spaced around the ground band's center —
-// index 0 is the topmost spot, the last index the bottommost. `shrink`
-// is the section's collapse factor (the sprites scale by it).
-function positionOf(
-    tier: DepthTier,
-    side: 'ally' | 'enemy',
-    index: number,
-    count: number,
-    column = 0,
-): { x: number; y: number; shrink: number } {
-    const base = TIERS[tier][side].x;
-    const direction = side === 'ally' ? -1 : 1;
-    const fit = columnFitOf(tier, count);
-    const offset = (index - (count - 1) / 2) * fit.spacing;
-    return { x: base + direction * column * OVERFLOW_OFFSET, y: GROUND_CENTER + offset, shrink: fit.shrink };
-}
-
 /** One combatant entity anchored in the tilted arena. */
+type ArenaSpot = {
+    character: Character;
+    side: FormationSide;
+    placement: FormationPlacement | undefined;
+};
+
 function ArenaEntity({
     character,
     side,
-    tier,
-    index,
-    count,
-    column,
+    x,
+    y,
+    spriteBox,
     active,
     targeted,
     inspected,
@@ -144,11 +74,12 @@ function ArenaEntity({
     onTip,
 }: {
     character: Character;
-    side: 'ally' | 'enemy';
-    tier: DepthTier;
-    index: number;
-    count: number;
-    column: number;
+    side: FormationSide;
+    // The feet anchor and the sprite render box computed by the arena's
+    // formation layout.
+    x: number;
+    y: number;
+    spriteBox: number;
     active?: boolean;
     targeted?: boolean;
     inspected?: boolean;
@@ -160,7 +91,6 @@ function ArenaEntity({
     // Forwarded to the status chips: the arena owns the tooltip overlay.
     onTip?: (tip: { text: string; anchor: Element } | null) => void;
 }) {
-    const { x, y, shrink } = positionOf(tier, side, index, count, column);
 
     const hp = Math.round(character.stats.hp);
     const maxHp = Math.round(character.stats.totalHp);
@@ -211,8 +141,8 @@ function ArenaEntity({
 
     // The animation being shown right now: the attack pose while it
     // plays, the idle loop otherwise. Every role renders at the same
-    // on-screen box (animationTiming.arenaSpriteBox), independent of its
-    // native sheet size (16px mage vs 64px archer).
+    // on-screen box (formation.spriteBoxFor), independent of its native
+    // sheet size (16px mage vs 64px archer).
     const spriteAnimation = posing && attackAnim ? attackAnim : sheet.idle;
 
     return (
@@ -221,13 +151,16 @@ function ArenaEntity({
             className={[
                 'jrpg-entity',
                 side === 'enemy' ? 'jrpg-enemy-side' : 'jrpg-ally-side',
-                TIERS[tier].cls,
                 active ? 'jrpg-entity--active' : '',
                 targeted ? 'jrpg-entity--targeted' : '',
                 inspected ? 'jrpg-entity--inspected' : '',
                 hp <= 0 ? 'jrpg-entity--dead' : '',
             ].join(' ')}
-            style={{ 'left': x, 'top': y, '--jrpg-shrink': shrink } as CSSProperties}
+            style={{
+                left: x,
+                top: y,
+                zIndex: 10 + Math.round(y) + (active || targeted ? 500 : 0),
+            }}
             onClick={onClick}
         >
             {active ? <span className="jrpg-cursor-arrow" /> : null}
@@ -249,11 +182,11 @@ function ArenaEntity({
                 style={{
                     // The element MUST be as big as the scaled frame;
                     // background-size alone gets cropped by the CSS box.
-                    ...spriteBoxStyle(spriteAnimation, ANIMATION_TIMING.arenaSpriteBox),
+                    ...spriteBoxStyle(spriteAnimation, spriteBox),
                     ...spriteFrameStyle(
                         spriteAnimation,
                         posing && attackAnim ? poseFrame : idleFrame,
-                        spriteScaleFor(ANIMATION_TIMING.arenaSpriteBox, spriteAnimation),
+                        spriteScaleFor(spriteBox, spriteAnimation),
                     ),
                 }}
             />
@@ -346,7 +279,6 @@ export function JrpgArena({
     skillIds,
     targets,
     extraOptions,
-    showSections,
     effects,
     onEffectDone,
     acting,
@@ -374,10 +306,6 @@ export function JrpgArena({
     // Extra options appended to the default command tray (Attack +
     // Skills) — the dev battle page enriches the tray through these.
     extraOptions?: OptionSpec[];
-    // The debug sections overlay: translucent colored boxes over each
-    // depth tier and side (the dev battle page shows them to check
-    // where the current formation places its fighters).
-    showSections?: boolean;
     // One-shot battle effects played over a target (the physical slash
     // or the magical blast); the arena positions them at the target's
     // arena spot and reports when each finishes.
@@ -437,13 +365,9 @@ export function JrpgArena({
     }, [activeId]);
 
     // ---- the arena camera ---------------------------------------------
-    // The view adapts to the fighter count: crowded battles shrink the
-    // sprites, and the camera zooms out to fit the whole formation (a
-    // CSS-transform camera over the DOM — no canvas, so targeting,
+    // The camera zooms out only when the formation does not fit the
+    // arena box (a CSS-transform camera over the DOM, so targeting,
     // tooltips and animations keep working).
-    const total = allies.length + enemies.length;
-    const unitScale = Math.max(0.72, 1 - Math.max(0, total - 4) * 0.05);
-
     const arenaRef = useRef<HTMLDivElement | null>(null);
     const [arenaSize, setArenaSize] = useState({ w: 320, h: 320 });
     // Measuring on every render is intentional: the arena is sized by
@@ -460,91 +384,36 @@ export function JrpgArena({
     });
 
     // ---- the arena entities -------------------------------------------
-    // One placement per combatant: everyone keeps their position tier
-    // (the acting unit no longer steps to the frontline — the turn
-    // cursor and the floor tile mark whose turn it is). Each tier is
-    // chunked into COLUMN_MAX-sized columns (the overflow forms
-    // further columns behind), and each placement knows its column
-    // index and size, shared by the entities, the active tile, the
-    // sections overlay and the camera so they always align.
-    const placementsOf = (side: 'ally' | 'enemy', pool: Character[]) => {
-        const byTier = new Map<DepthTier, Character[]>();
-        for (const character of pool) {
-            const tier: DepthTier = tierOf(character);
-            const list = byTier.get(tier) ?? [];
-            list.push(character);
-            byTier.set(tier, list);
-        }
-        const placements: {
-            character: Character;
-            side: 'ally' | 'enemy';
-            tier: DepthTier;
-            index: number;
-            count: number;
-            column: number;
-        }[] = [];
-        for (const tier of ['back', 'center', 'front'] as DepthTier[]) {
-            const list = byTier.get(tier) ?? [];
-            for (let start = 0; start < list.length; start += COLUMN_MAX) {
-                const chunk = list.slice(start, start + COLUMN_MAX);
-                const column = start / COLUMN_MAX;
-                chunk.forEach((character, index) => {
-                    placements.push({ character, side, tier, index, count: chunk.length, column });
-                });
-            }
-        }
-        return placements;
-    };
+    // Placement is frozen for the fight: it is computed from the count of
+    // combatants the arena was mounted with, in roster order. A death does
+    // not remove the character from these arrays, so no survivor moves.
+    const placementKey = allies.map((entry) => entry.id).join(',') +
+        '|' + enemies.map((entry) => entry.id).join(',');
+    const allyPlacements = useMemo(
+        () => layoutFormation(allies.length, 'ally') ?? [],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [placementKey],
+    );
+    const enemyPlacements = useMemo(
+        () => layoutFormation(enemies.length, 'enemy') ?? [],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [placementKey],
+    );
+    const allySpots: ArenaSpot[] = allies.map((character, index) => ({
+        character,
+        side: 'ally',
+        placement: allyPlacements[index],
+    }));
+    const enemySpots: ArenaSpot[] = enemies.map((character, index) => ({
+        character,
+        side: 'enemy',
+        placement: enemyPlacements[index],
+    }));
 
-    const allySpots = placementsOf('ally', allies);
-    const enemySpots = placementsOf('enemy', enemies);
-
-    // ---- the debug sections overlay -------------------------------
-    // One translucent box per depth tier, side and column, covering
-    // where the current formation stacks its fighters. The dev battle
-    // page shows them to check the layout.
-    const sectionBoxes = (spots: typeof allySpots, side: 'ally' | 'enemy') => {
-        const boxes: {
-            side: 'ally' | 'enemy';
-            tier: DepthTier;
-            column: number;
-            x: number;
-            y: number;
-            w: number;
-            h: number;
-        }[] = [];
-        for (const tier of ['front', 'center', 'back'] as DepthTier[]) {
-            const inTier = spots.filter((entry) => entry.tier === tier);
-            const byColumn = new Map<number, typeof inTier>();
-            for (const entry of inTier) {
-                const list = byColumn.get(entry.column) ?? [];
-                list.push(entry);
-                byColumn.set(entry.column, list);
-            }
-            for (const [column, list] of byColumn) {
-                const top = positionOf(tier, side, 0, list.length, column);
-                const bottom = positionOf(tier, side, list.length - 1, list.length, column);
-                // The sprite footprint, scaled by the section's collapse
-                // factor: ~40px to each side of the feet and ~52px up.
-                const padX = 40 * top.shrink;
-                const padTop = 52 * top.shrink;
-                const padBottom = 8 * top.shrink;
-                boxes.push({
-                    side,
-                    tier,
-                    column,
-                    x: top.x - padX,
-                    y: top.y - padTop,
-                    w: 2 * padX,
-                    h: bottom.y - top.y + padTop + padBottom,
-                });
-            }
-        }
-        return boxes;
-    };
-
-    const renderSide = (side: 'ally' | 'enemy', spots: typeof allySpots) => {
-        return spots.map(({ character, tier, index, count, column }) => {
+    const renderSide = (side: FormationSide, spots: ArenaSpot[]) => {
+        const spriteBox = spriteBoxFor(side === 'ally' ? allies.length : enemies.length);
+        return spots.map(({ character, placement }) => {
+            if (!placement) return null;
             // In target mode, tapping a valid target selects it (the
             // cards and the forecast follow); any other tap inspects.
             // The pickable side comes from the CURRENT action: plain
@@ -584,10 +453,9 @@ export function JrpgArena({
                     key={character.id}
                     character={character}
                     side={side}
-                    tier={tier}
-                    index={index}
-                    count={count}
-                    column={column}
+                    x={placement.x}
+                    y={placement.y}
+                    spriteBox={spriteBox}
                     active={character.id === activeId}
                     targeted={attacking && selection.includes(character.id)}
                     inspected={character.id === inspectedId}
@@ -600,31 +468,28 @@ export function JrpgArena({
         });
     };
 
-    // The tile under the acting unit's feet: its real arena spot (the
-    // column spacing included), so the marker never drifts off the
-    // sprite.
-    const actorPlacement = activeId ?
-        allySpots.find((entry) => entry.character.id === activeId) :
-        undefined;
-    const actorSpot = actorPlacement ?
-        positionOf(actorPlacement.tier, 'ally', actorPlacement.index, actorPlacement.count, actorPlacement.column) :
+    // The tile under the acting unit's feet: the same frozen placement
+    // the entity uses, so the marker never drifts off the sprite.
+    const actorSpot = activeId ?
+        allyPlacements[allies.findIndex((entry) => entry.id === activeId)] :
         undefined;
 
-    // The camera: zoom out until the whole formation (feet anchors
-    // plus the sprite margins) fits the arena box, centered on it.
-    // Zoom-out only: small battles keep the native scale.
+    // The camera: zoom out until the whole formation (feet anchors plus
+    // the sprite box and the attachment area above the head) fits.
     const camera = (() => {
         let minX = Infinity;
         let maxX = -Infinity;
         let minY = Infinity;
         let maxY = -Infinity;
-        for (const spot of allySpots.concat(enemySpots)) {
-            const { x, y } = positionOf(spot.tier, spot.side, spot.index, spot.count, spot.column);
-            minX = Math.min(minX, x - 36);
-            maxX = Math.max(maxX, x + 36);
-            minY = Math.min(minY, y - 56);
-            maxY = Math.max(maxY, y + 8);
+        for (const spot of [...allySpots, ...enemySpots]) {
+            if (!spot.placement) continue;
+            const box = spriteBoxFor(spot.side === 'ally' ? allies.length : enemies.length);
+            minX = Math.min(minX, spot.placement.x - box / 2 - 6);
+            maxX = Math.max(maxX, spot.placement.x + box / 2 + 6);
+            minY = Math.min(minY, spot.placement.y - box - 26);
+            maxY = Math.max(maxY, spot.placement.y + 8);
         }
+        if (!Number.isFinite(minX)) return { scale: 1, tx: 0, ty: 0 };
         const bboxW = Math.max(1, maxX - minX);
         const bboxH = Math.max(1, maxY - minY);
         const fit = Math.min(arenaSize.w / bboxW, arenaSize.h / bboxH);
@@ -828,7 +693,6 @@ export function JrpgArena({
             <div
                 className="jrpg-arena"
                 ref={arenaRef}
-                style={{ '--jrpg-unit-scale': unitScale } as CSSProperties}
             >
                 <div
                     className="jrpg-camera"
@@ -861,42 +725,19 @@ export function JrpgArena({
                     {(effects ?? []).length > 0 ? (
                         <div className="jrpg-effects-layer">
                             {(effects ?? []).map((effect) => {
-                                const placement = allySpots.concat(enemySpots)
+                                const placement = [...allySpots, ...enemySpots]
                                     .find((spot) => spot.character.id === effect.targetId);
-                                if (!placement) return null;
-                                const spot = positionOf(
-                                    placement.tier,
-                                    placement.side,
-                                    placement.index,
-                                    placement.count,
-                                    placement.column,
-                                );
+                                if (!placement?.placement) return null;
                                 return (
                                     <EffectPlayer
                                         key={effect.id}
                                         animation={effect.animation}
-                                        x={spot.x - effect.animation.frameWidth / 2}
-                                        y={spot.y - effect.animation.frameHeight}
+                                        x={placement.placement.x - effect.animation.frameWidth / 2}
+                                        y={placement.placement.y - effect.animation.frameHeight}
                                         onDone={() => onEffectDone?.(effect.id)}
                                     />
                                 );
                             })}
-                        </div>
-                    ) : null}
-
-                    {showSections ? (
-                        <div className="jrpg-sections-layer">
-                            {[...sectionBoxes(allySpots, 'ally'), ...sectionBoxes(enemySpots, 'enemy')].map((box) => (
-                                <div
-                                    key={`${box.side}-${box.tier}-${box.column}`}
-                                    className={`jrpg-section jrpg-section--${box.tier}`}
-                                    style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
-                                >
-                                    <span className="jrpg-section-label">
-                                        {box.side} {box.tier}{box.column > 0 ? ` ·${box.column + 1}` : ''}
-                                    </span>
-                                </div>
-                            ))}
                         </div>
                     ) : null}
                 </div>
