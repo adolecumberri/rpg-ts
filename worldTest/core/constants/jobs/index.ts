@@ -104,6 +104,7 @@ const STAT_LABELS: Record<JobStatKey, string> = {
     magic: 'Poder mágico',
     hp: 'HP',
     totalHp: 'Max HP',
+    taunt: 'Taunt',
 };
 
 // The bonus keys in a stable order, so the helpers below iterate the
@@ -119,6 +120,7 @@ const JOB_STAT_KEYS: JobStatKey[] = [
     'magic',
     'hp',
     'totalHp',
+    'taunt',
 ];
 
 /** The stat bonuses of a job as display lines, e.g. "+3 ⚔️ attack". */

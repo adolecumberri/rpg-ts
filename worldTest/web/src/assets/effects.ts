@@ -4,6 +4,7 @@
 // later bring their own sheets.
 import type { SkillSpec } from '@core';
 import type { SpriteAnimation } from './sprites';
+import { ANIMATION_TIMING } from './animationTiming';
 import autoAttack from '../../../assets/skills/auto_atttack.webp';
 import pernoMagico from '../../../assets/skills/perno_magico.webp';
 
@@ -19,8 +20,20 @@ export type BattleEffect = {
 };
 
 const DEFAULT_EFFECTS: Record<'physical' | 'magical', SpriteAnimation> = {
-    physical: { sheet: autoAttack, frames: 2, frameWidth: 25, frameHeight: 16, frameMs: 90 },
-    magical: { sheet: pernoMagico, frames: 9, frameWidth: 48, frameHeight: 48, frameMs: 80 },
+    physical: {
+        sheet: autoAttack,
+        frames: 2,
+        frameWidth: 25,
+        frameHeight: 16,
+        frameMs: ANIMATION_TIMING.effectFrameMs,
+    },
+    magical: {
+        sheet: pernoMagico,
+        frames: 9,
+        frameWidth: 48,
+        frameHeight: 48,
+        frameMs: ANIMATION_TIMING.effectFrameMs,
+    },
 };
 
 /**

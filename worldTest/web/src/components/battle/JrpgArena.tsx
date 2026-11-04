@@ -5,7 +5,8 @@ import { heldJobOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, 
 import type { SkillSpec } from '@core';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 import type { SpriteAnimation, SpriteSet } from '../../assets/sprites';
-import { spriteFrameStyle } from '../../assets/spriteFrames';
+import { spriteFrameStyle, spriteScaleFor } from '../../assets/spriteFrames';
+import { ANIMATION_TIMING } from '../../assets/animationTiming';
 import type { BattleEffect } from '../../assets/effects';
 import { OptionsBar } from '../chrome/OptionsBar';
 import type { OptionSpec } from '../chrome/OptionsBar';
@@ -208,6 +209,12 @@ function ArenaEntity({
         return () => window.clearInterval(timer);
     }, [posing, sheet]);
 
+    // The animation being shown right now: the attack pose while it
+    // plays, the idle loop otherwise. Every role renders at the same
+    // on-screen box (animationTiming.arenaSpriteBox), independent of its
+    // native sheet size (16px mage vs 64px archer).
+    const spriteAnimation = posing && attackAnim ? attackAnim : sheet.idle;
+
     return (
         <div
             data-unit-id={character.id}
@@ -240,8 +247,9 @@ function ArenaEntity({
             <span
                 className="jrpg-sprite-box"
                 style={spriteFrameStyle(
-                    posing && attackAnim ? attackAnim : sheet.idle,
+                    spriteAnimation,
                     posing && attackAnim ? poseFrame : idleFrame,
+                    spriteScaleFor(ANIMATION_TIMING.arenaSpriteBox, spriteAnimation),
                 )}
             />
         </div>

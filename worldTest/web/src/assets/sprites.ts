@@ -3,6 +3,7 @@
 // Vite resolves and serves them from the repo assets.
 import type { Character } from '@rpg';
 import { heldJobOf } from '@core';
+import { ANIMATION_TIMING } from './animationTiming';
 import archerIdle2 from '../../../assets/characters/archer_idle_2.webp';
 import mageIdle from '../../../assets/characters/mage_idle.webp';
 import mageAttack from '../../../assets/characters/mage_attack.webp';
@@ -39,22 +40,52 @@ export function animationMsOf(animation: SpriteAnimation): number {
 
 export const SPRITES: Record<'archer' | 'mage' | 'warrior' | 'cow', SpriteSet> = {
     archer: {
-        // 2-frame idle (the new art); no attack sheet yet.
-        idle: { sheet: archerIdle2, frames: 2, frameWidth: 16, frameHeight: 16, frameMs: 200 },
+        // 2-frame idle, 64x64 native frames (the new art); no attack sheet.
+        idle: {
+            sheet: archerIdle2,
+            frames: 2,
+            frameWidth: 64,
+            frameHeight: 64,
+            frameMs: ANIMATION_TIMING.idleFrameMs,
+        },
     },
     mage: {
-        idle: { sheet: mageIdle, frames: 4, frameWidth: 16, frameHeight: 16, frameMs: 180 },
-        attack: { sheet: mageAttack, frames: 4, frameWidth: 16, frameHeight: 16, frameMs: 110 },
+        // The mage art is still 16x16 native; the arena scales every role
+        // to the same on-screen box.
+        idle: { sheet: mageIdle, frames: 4, frameWidth: 16, frameHeight: 16, frameMs: ANIMATION_TIMING.mageIdleFrameMs },
+        attack: { sheet: mageAttack, frames: 4, frameWidth: 16, frameHeight: 16, frameMs: ANIMATION_TIMING.attackFrameMs },
     },
     warrior: {
-        // 2-frame idle (the new art); no attack sheet yet.
-        idle: { sheet: warriorIdle2, frames: 2, frameWidth: 16, frameHeight: 16, frameMs: 200 },
+        // 2-frame idle, 64x64 native frames (the new art); no attack sheet.
+        idle: {
+            sheet: warriorIdle2,
+            frames: 2,
+            frameWidth: 64,
+            frameHeight: 64,
+            frameMs: ANIMATION_TIMING.idleFrameMs,
+        },
     },
-    // The caza menor's cow: ONE 4-frame sheet — frames 1-2 idle,
-    // frames 3-4 attack.
+    // The caza menor's cow: ONE 4-frame sheet of 64x64 frames — frames
+    // 1-2 idle, frames 3-4 attack.
     cow: {
-        idle: { sheet: cowSheet, frames: 2, frameOffset: 0, sheetFrames: 4, frameWidth: 16, frameHeight: 16, frameMs: 200 },
-        attack: { sheet: cowSheet, frames: 2, frameOffset: 2, sheetFrames: 4, frameWidth: 16, frameHeight: 16, frameMs: 120 },
+        idle: {
+            sheet: cowSheet,
+            frames: 2,
+            frameOffset: 0,
+            sheetFrames: 4,
+            frameWidth: 64,
+            frameHeight: 64,
+            frameMs: ANIMATION_TIMING.idleFrameMs,
+        },
+        attack: {
+            sheet: cowSheet,
+            frames: 2,
+            frameOffset: 2,
+            sheetFrames: 4,
+            frameWidth: 64,
+            frameHeight: 64,
+            frameMs: ANIMATION_TIMING.attackFrameMs,
+        },
     },
 };
 

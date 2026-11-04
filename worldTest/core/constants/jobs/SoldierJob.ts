@@ -8,7 +8,7 @@ export const SOLDIER_JOB = new Job(
     'soldier',
     'Soldier',
     [WEAPON_TYPES.sword],
-    { hp: 30, totalHp: 30, attack: 9, defence: 10, magicDefence: 4, speed: 2 },
+    { hp: 30, totalHp: 30, attack: 9, defence: 10, magicDefence: 4, speed: 2, taunt: 2 },
     true,
     { hp: 1.6, totalHp: 1.6, attack: 1.3, defence: 1.3, magicDefence: 0.9, magic: 0.7, speed: 1.2 },
     {

@@ -8,7 +8,7 @@ export const HEALER_JOB = new Job(
     'healer',
     'Healer',
     [WEAPON_TYPES.staff],
-    { hp: 18, totalHp: 18, defence: 4, magic: 30, magicDefence: 20 },
+    { hp: 18, totalHp: 18, defence: 4, magic: 30, magicDefence: 20, taunt: 1 },
     false,
     { hp: 1, totalHp: 1, attack: 0.7, defence: 0.7, magicDefence: 1.6, magic: 2, speed: 1 },
     {

@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { SpriteAnimation } from './sprites';
+import { ANIMATION_TIMING } from './animationTiming';
 
 /**
- * The render box of a sprite in each place (px). The native frame is
- * 16px: the scale is always box / frameWidth, so making a sprite bigger
- * is a one-number change here.
- *   ficha    — the battlefield card sprite (the 32px cell)
+ * The render box of a sprite in each place (px). The scale is always
+ * box / frameWidth, so 16x16 and 64x64 native art render at the same
+ * on-screen size. Tune the boxes in animationTiming.ts.
+ *   ficha    — the battlefield card sprite
  *   squadCard— the party menu character card
  */
 export const SPRITE_BOX = {
-    ficha: 40,
-    squadCard: 64,
+    ficha: ANIMATION_TIMING.fichaSpriteBox,
+    squadCard: ANIMATION_TIMING.squadCardBox,
 } as const;
 
 /** The pixel scale for a box: the native frame width is 16px. */

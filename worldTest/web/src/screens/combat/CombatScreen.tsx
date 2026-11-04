@@ -17,6 +17,7 @@ import { TargetBar } from '../../components/chrome/TargetBar';
 import { OptionsBar } from '../../components/chrome/OptionsBar';
 import { selectionRulesOf } from '../../game/targeting';
 import { SPRITES, spriteRoleOf, animationMsOf } from '../../assets/sprites';
+import { ANIMATION_TIMING } from '../../assets/animationTiming';
 import { effectAnimationFor } from '../../assets/effects';
 import type { BattleEffect } from '../../assets/effects';
 import { battleUnitOf } from '../../game/battleUnits';
@@ -324,7 +325,10 @@ export function CombatScreen({ battle, onEnd }: { battle: PendingBattle; onEnd: 
             0;
         // The battle waits for the longer of the pose and the effect,
         // clamped so a slow sheet can never stall the fight.
-        return Math.min(1500, Math.max(300, Math.max(poseMs, effectMs)));
+        return Math.min(
+            ANIMATION_TIMING.maxActionWaitMs,
+            Math.max(ANIMATION_TIMING.minActionWaitMs, Math.max(poseMs, effectMs)),
+        );
     };
 
     const spawnEffect = (event: HybridAutoEvent) => {

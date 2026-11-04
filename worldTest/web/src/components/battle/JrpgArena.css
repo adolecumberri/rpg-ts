@@ -1,10 +1,11 @@
-
 /* The body-text base: every rule below renders the reading face
    (VT323) and needs no size adjust — one declaration instead of one
    per rule. */
 .jrpg-menu .pixel-btn,
 .jrpg-party-name,
-.jrpg-party-meta, .jrpg-party-vitals, .jrpg-party-speed,
+.jrpg-party-meta,
+.jrpg-party-vitals,
+.jrpg-party-speed,
 .jrpg-party-stats-title,
 .jrpg-party-stat,
 .jrpg-turn-name,
@@ -106,9 +107,9 @@
 .jrpg-ground {
     position: absolute;
     width: 380px;
-    height: 380px;
+    height: 440px;
     left: -30px;
-    top: 50px;
+    top: 10px;
     transform: rotateX(60deg) translateZ(0);
     transform-origin: 50% 65%;
     background:

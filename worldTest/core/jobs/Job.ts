@@ -27,7 +27,8 @@ export type JobStatKey =
     | 'speed'
     | 'magic'
     | 'hp'
-    | 'totalHp';
+    | 'totalHp'
+    | 'taunt';
 
 export type JobStatBonuses = Partial<Record<JobStatKey, number>>;
 
