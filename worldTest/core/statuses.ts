@@ -299,7 +299,7 @@ export function weakPointDefenceStatus(): StatusDefinition {
  */
 export function disarmStatus(turns = 5, amount = 40): StatusDefinition {
     return {
-        name: 'Disarm',
+        name: 'Hand Hit',
         polarity: 'negative',
         description: `Attack -${amount}% for ${turns} turns.`,
         applyOn: 'on_turn',

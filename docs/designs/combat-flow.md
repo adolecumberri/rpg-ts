@@ -17,10 +17,13 @@ flowchart TD
     B3 --> B4[syncCrew: Crew X attack statuses]
     B4 --> C{Round scheduler\n(next() or resolveAction)}
     C --> D[Act once for the due fighter]
-    D --> D1[Turn start: mana regen\nMANA.regenPerTurn]
-    D1 --> D2{Fainted?}\n -- yes --> D
-    D2 -->|no| D3{Stunned?}\n -- yes --> D
-    D3 -->|no| E{Manual fighter?}
+    D --> D0[Turn start: on_turn statuses tick]
+    D0 --> D1{Fainted?}
+    D1 -->|yes| D
+    D1 -->|no| D2{Stunned?}
+    D2 -->|yes| D
+    D2 -->|no| D3[Mana regen]
+    D3 --> E{Manual fighter?}
     E -->|yes| F[Manual prompt:\nattack or skill target]
     E -->|no| G[Auto planner:\nskills first, else attack]
     F --> H[performAttack / performSkill]
@@ -46,6 +49,7 @@ Both share `actOnce`.
 | Job stat bonuses | When a job is assigned/removed (job change), outside battle | `applyJobBonuses` / `removeJobBonuses` |
 | Item stats | When an item is equipped/unequipped, before battle | EquipmentManager / loadout |
 | Passive battle-start statuses | **Battle start**, after combatants exist | `HybridCombat` constructor |
+| X-mastery passives (Knife Mastery) | **Battle start**, only when the required weapon type is in any equipped hole; then a permanent battle status | `HybridCombat` constructor |
 | Aura statuses | Battle start and after every action | `syncAuras` |
 | Crew X attack bonus | Battle start and after every action (rebuilt when the count changes) | `syncCrew` |
 | Weapon-class bonus (+20% knives) | During each basic attack | `general.ts` (`weaponDamageBonus` statuses) |
@@ -106,7 +110,7 @@ or a weapon-damage bonus status.
 | Basic attack — physical components | Yes, per component | `rollCrits`: only `kind === PHYSICAL` |
 | Basic attack — magical components | No | `rollCrits` skips non-physical |
 | Basic attack — true components | No | same |
-| Counter-attacks (physical) | Yes | the same resolver runs with `isCounter` but crits are not skipped |
+| Counter-attacks (physical) | Yes | the same resolver runs with `isCounter`; they can also miss and be evaded like any attack |
 | Skill damage | No | `resolveSkillEffect` has no crit step |
 | Status damage (`onTrigger`, burn, etc.) | No | direct hp changes |
 | Weapon-class bonus (+20%) | It multiplies before crit, so a crit multiplies the boosted value | order in the resolver |
@@ -135,20 +139,21 @@ Accuracy/evasion rolls are skipped for counter-attacks; they always land.
 1. **Legacy `IntervalCombat`** (`src/classes/Combat/`) is not used by the app's
    battles; it survives through `worldTest/core/config/intervalBattle.ts` and
    the dev tools. It has no mana, passives, auras or teardown.
-2. **Statuses with `applyOn: 'on_turn'` never fire in HybridCombat** (it fires
-   only `after_attack` / `after_turn`). Affected: Faint (handled by name
-   separately), Berserk, Fast Draw, Perception, Weak Point: Attack/Defence,
-   the old Disarm, Defence Stand, Foot Shot, Impetu, Corpse Carrying. Many of
-   these are effectively inert or never decay in the real battle.
+2. **Status clock parity (partial)**: `HybridCombat` now fires `on_turn` at the
+   start of the bearer's action, so statuses written for that moment tick and
+   expire like they do in `IntervalCombat`. It still fires `after_attack` and
+   `after_turn`; the two engines do not yet share one moment table, and the
+   legacy engine has no mana/passives/teardown.
 3. **Stun is dead**: `stunStatus` is `after_turn`/ONCE/duration 1 and is cleaned
    in the same trigger pass before `consumeStunTurn` reads it — Shield Bash's
    stun does nothing.
-4. **Two Disarms**: the old `disarm` skill/status (attack −40%) and the new
-   `disarm_weapon` (real unequip). The old one should be retired or rethemed.
+4. **Two Disarms**: the old `disarm` skill is now displayed as **Hand Hit**
+   (attack −40%, status name "Hand Hit"); `disarm_weapon` is the real unequip.
 5. **Skills never run the attack pipeline**: weapon `onAttack`, impact procs,
    crit, and the knife `weaponDamageBonus` apply only to basic attacks.
-   A "normal attack on X targets" therefore needs an attack-pipeline route, not
-   a skill `damageFor`.
+   A "normal attack on X targets" is feasible as a multi-target skill routed
+   through the attack resolver per target (a small engine addition), not as a
+   skill `damageFor`.
 6. **`turns` vs internal duration**: status chip text displays the raw duration;
    the engine ticks decrement it once per matching trigger.
 7. **`JobSkillPlan.passive` is unread**; passive-ness comes from the spec only.

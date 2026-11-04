@@ -232,17 +232,18 @@ export function resolveGeneralAttack(
     // Accuracy: at less than 100 the attack rolls to hit. A miss
     // consumes one random call and deals nothing (no crit roll, no
     // on-hit effects, no reactions). At the default 100 every attack
-    // lands without consuming the roll. Counters always land.
+    // lands without consuming the roll. Counters are real attacks too:
+    // they can miss and be evaded, which also means their on-hit effects
+    // never run on a whiff.
     const accuracy = attacker.getStat('accuracy');
-    if (!options.isCounter && accuracy < 100 && random() * 100 >= accuracy) {
+    if (accuracy < 100 && random() * 100 >= accuracy) {
         return { damage: 0, note: 'missed' };
     }
 
     // Evasion: even a perfectly aimed attack (skills carry 100%
-    // accuracy) can be dodged by the defender. Counter-attacks always
-    // land.
+    // accuracy) can be dodged by the defender.
     const evasion = defender.getStat('evasion');
-    if (!options.isCounter && evasion > 0 && random() * 100 < evasion) {
+    if (evasion > 0 && random() * 100 < evasion) {
         return { damage: 0, note: 'evaded' };
     }
 

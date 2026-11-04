@@ -51,12 +51,15 @@ Design:
 
 ## 3. Status clock and new status fields (P1)
 
-HybridCombat triggers only `after_attack` and `after_turn`; the latter fires for
-the attacker and the defender of an action. Rules for new statuses:
-- Use `applyOn: 'after_turn'` plus `triggersOnAdd: true` when a stat effect must
-  exist from application (otherwise a status can be inert for a turn).
+HybridCombat fires `on_turn` at the start of the bearer's action (added in this
+branch) and also `after_attack` and `after_turn`; the latter fires for the
+attacker and the defender of an action. Rules for new statuses:
+- Per-turn statuses may use `applyOn: 'on_turn'` now; use `after_turn` plus
+  `triggersOnAdd: true` when a stat effect must exist from application.
 - Permanent statuses used as markers (Crew) do not tick.
 - "Turns" in descriptions mean the bearer's actions; tooltips say "actions".
+- Mana regenerates after the faint/stun gates, so a skipped turn regenerates
+  nothing.
 New fields live in the worldTest augmentation (`config/damage.ts`), not in the
 library: `weaponDamageBonus?: { weaponType: string; percent: number }[]`,
 `crew?: { jobId: string; attackPerMember: number }`, and a marker field if
@@ -107,12 +110,15 @@ must also run on win/lost/fled (single `dispose()` path).
   (`EquipmentSection`, `sectionOfItem`), and the item table section.
 - The Pirate job lists `knife` in `weaponTypes`; equippability stays a job
   allowlist (`allowsWeapon`, `canEquipItem`), not a passive effect.
-- **Knife Mastery** passive: at battle start the passive applies a
-  `weaponDamageBonus` status (`{ weaponType: 'knife', percent: 20 }`). The
-  general attack resolver (`damage/general.ts`) reads the attacker's statuses
-  and multiplies final weapon damage by `1 + sum(percent)/100` when any equipped hole holds a
-  matching weapon type (owner rule: a knife anywhere counts). Only the general attack pipeline is affected
-  (documented; skill damage is not a weapon attack).
+- **Knife Mastery** is an X-mastery passive (the model for future weapon
+  masteries): at battle start the engine checks the requirement (a matching
+  weapon type in any equipped hole). When it fits, it applies a permanent
+  battle status with `weaponDamageBonus` (`{ weaponType: 'knife', percent: 20 }`);
+  when it does not fit, no status is added. Generalizable through
+  `SkillSpec.mastery = { weaponType, status }`. The general attack resolver
+  (`damage/general.ts`) multiplies weapon damage by `1 + sum(percent)/100`
+  while any equipped hole holds that weapon type. Only the general attack
+  pipeline is affected (skill damage is not a weapon attack).
 - Name the passive definition `knife_mastery`; `maxLevel 1` until growth.
 
 ## 7. Escorbuto (P1, content)

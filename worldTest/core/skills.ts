@@ -166,6 +166,10 @@ export type SkillSpec = {
     // Disarm (Weapon Disarm): detach the target's primary weapon for the
     // rest of the battle; the engine restores it at battle end.
     disarmWeapon?: boolean;
+    // X-mastery passives: at battle start the engine checks the weapon
+    // requirement against the equipped holes and, when it fits, applies
+    // the permanent battle status.
+    mastery?: { weaponType?: string; status: StatusDefinition };
     // Crew passive: count living allies whose held job is jobId and give
     // each of them attack + count * attackPerMember.
     crew?: { jobId: string; attackPerMember: number };
@@ -282,7 +286,7 @@ const RAW_SKILLS = {
     },
     disarm: {
         id: 'disarm',
-        name: 'Disarm',
+        name: 'Hand Hit',
         description: 'The target\'s attack -40% for 5 turns.',
         targeting: 'ENEMY',
         numberOfTargets: 1,
@@ -534,7 +538,7 @@ const RAW_SKILLS = {
     // ------------------------------------------------------------------
     disarm_2: {
         id: 'disarm_2',
-        name: 'Disarm +',
+        name: 'Hand Hit +',
         description: 'The target\'s attack -65% for 5 turns.',
         targeting: 'ANY',
         numberOfTargets: 1,
@@ -543,7 +547,7 @@ const RAW_SKILLS = {
     },
     disarm_3: {
         id: 'disarm_3',
-        name: 'Disarm ++',
+        name: 'Hand Hit ++',
         description: 'The target\'s attack -65% for 6 turns.',
         targeting: 'ANY',
         numberOfTargets: 1,
@@ -798,9 +802,9 @@ const RAW_SKILLS = {
     knife_mastery: {
         id: 'knife_mastery',
         name: 'Knife Mastery',
-        description: 'Passive: knife attacks deal [physical]+20%[/physical] more damage.',
+        description: 'Passive: while a knife is equipped, knife attacks deal [physical]+20%[/physical] more damage.',
         targeting: 'SELF',
-        statusOnSelf: knifeMasteryStatus(20),
+        mastery: { weaponType: 'knife', status: knifeMasteryStatus(20) },
         passive: true,
     },
     disarm_weapon: {

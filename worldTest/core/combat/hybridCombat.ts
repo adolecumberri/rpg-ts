@@ -9,7 +9,7 @@ import { pickSkillTargets } from './autoSkills';
 import { resolveSkillEffect } from './skillEffects';
 import { consumeFaintTurn } from './fatigue';
 import { consumeStunTurn, applyStatus, clearStatuses, crewStatus } from '../statuses';
-import { equipInto, unequipHole } from '../equipment/loadout';
+import { equipInto, equippedItemsOf, unequipHole } from '../equipment/loadout';
 import { canAffordSkill, hpCostOf } from './skillGating';
 import { battleSkillSpecs } from '../skills';
 import type { SkillSpec } from '../skills';
@@ -139,13 +139,23 @@ export class HybridCombat {
         this.random = options.random ?? Math.random;
         this.damageResolver = options.damageResolver ?? generalAttackResolver;
         this.onAction = options.onAction;
-        // Passive skills apply their battle-start statuses AFTER the
+        // Passive skills apply their battle-start effects AFTER the
         // combatants are assigned, so team-aware passives (Crew) can see
-        // both sides.
+        // both sides. X-mastery passives check their equipment requirement
+        // here and only then add their permanent battle status.
         for (const combatant of this.combatants) {
             for (const spec of combatant.skills ?? []) {
-                if (spec.passive && spec.statusOnSelf) {
+                if (!spec.passive) continue;
+                if (spec.statusOnSelf) {
                     applyStatus(combatant.character, spec.statusOnSelf);
+                }
+                if (spec.mastery) {
+                    const equippedWeaponTypes = equippedItemsOf(combatant.character)
+                        .map((item) => item.definition.weaponType)
+                        .filter((weaponType): weaponType is NonNullable<typeof weaponType> => Boolean(weaponType));
+                    const fits = !spec.mastery.weaponType ||
+                        (equippedWeaponTypes as string[]).indexOf(spec.mastery.weaponType) !== -1;
+                    if (fits) applyStatus(combatant.character, spec.mastery.status);
                 }
             }
         }
@@ -425,15 +435,21 @@ export class HybridCombat {
      * planned automatic action.
      */
     private actOnce(actor: HybridCombatant): HybridAutoEvent | HybridManualEvent | null {
-        // Turn start: the fighter regains mana (capped at the pool).
-        const totalMana = actor.character.stats.totalMana ?? 0;
-        actor.character.stats.mana = Math.min(totalMana, (actor.character.stats.mana ?? 0) + MANA.regenPerTurn);
+        // Per-owner turn moment first: statuses written for `on_turn`
+        // (Defence Stand, Foot Shot, Impetu...) apply their stats and
+        // decay here, like they do in the interval engine.
+        actor.character.statusManager.trigger('on_turn');
 
         // Fainted fighters lose this action (their faint counts down).
         if (consumeFaintTurn(actor.character)) return null;
 
         // Stunned fighters lose this action too (the stun is consumed).
         if (consumeStunTurn(actor.character)) return null;
+
+        // Turn start: the fighter regains mana (capped at the pool).
+        // Skipped turns (faint/stun) do not regenerate.
+        const totalMana = actor.character.stats.totalMana ?? 0;
+        actor.character.stats.mana = Math.min(totalMana, (actor.character.stats.mana ?? 0) + MANA.regenPerTurn);
 
         if (actor.manual) {
             this.pendingManual = actor;
