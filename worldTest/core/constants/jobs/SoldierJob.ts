@@ -26,4 +26,5 @@ export const SOLDIER_JOB = new Job(
         // against the character being viewed (ORDER_JOB_LADDER).
         requirements: [{ kind: 'orderLadder' }],
     },
+    'front',
 );

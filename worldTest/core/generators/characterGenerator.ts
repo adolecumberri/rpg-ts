@@ -98,6 +98,8 @@ export function characterGenerator(config: CharacterGeneratorConfig): Character 
         // the character has held, never the one it currently holds.
         character.heldJobs = [config.job.id];
         applyJobBonuses(character, config.job);
+        // Visual battle row: the job owns it (no gameplay effect).
+        character.position = config.job.position;
     }
 
     // Equipment: the five-hole loadout is the canonical home; items it

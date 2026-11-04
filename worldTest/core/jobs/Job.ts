@@ -11,6 +11,11 @@ import type { SkillId } from '../skills';
 // The weapon triangle for now; knives join for the Pirate.
 export type WeaponType = 'sword' | 'bow' | 'staff' | 'knife';
 
+// The job's visual formation row in battle. It no longer has gameplay
+// effects: reach/rows were removed, the position only decides where the
+// card sits on the battlefield.
+export type JobPosition = 'front' | 'center' | 'back';
+
 // The numeric stats a job may raise or lower: the library stats plus
 // the worldTest ones. rangeOf stays out: it is a string stat.
 export type JobStatKey =
@@ -112,6 +117,9 @@ export class Job {
         // What the player must know and the character must have done to
         // TAKE this job. Undefined = always available (no discovery).
         readonly unlock?: JobUnlock,
+        // The visual battle row of the job (front/center/back). Purely
+        // cosmetic: it places the battlefield card and nothing else.
+        readonly position: JobPosition = 'front',
     ) { }
 
     /** Whether the job may wield a weapon of the given type. Untyped

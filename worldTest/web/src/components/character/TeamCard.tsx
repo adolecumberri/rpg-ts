@@ -84,14 +84,15 @@ export function TeamCard({
 
                 </div>
 
-                <div>
-                    {lines.map((line) => (
 
-                        <Icon id={line.icon} size={4} />
 
-                    ))}
-                </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+                {lines.map((line) => (
 
+                    <Icon id={line.icon} size={4} />
+
+                ))}
             </div>
         </button>
     );

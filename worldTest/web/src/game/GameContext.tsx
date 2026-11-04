@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
-import type { InventorySlot, Team, TeamPosition } from '@rpg';
+import type { InventorySlot, Team } from '@rpg';
 import { WorldSession } from '@core';
 import type { NPC, Place, SaveData, ShopEntry } from '@core';
 import { TOAST_MS } from '../constants/toast';
@@ -60,7 +60,6 @@ type GameApi = {
     sell: (slot: InventorySlot) => void;
     equipTo: (itemId: string, characterId: string) => void;
     useOn: (slot: InventorySlot, characterId: string) => void;
-    setPosition: (characterId: string, position: TeamPosition) => void;
     changeJob: (characterId: string, jobId: string) => void;
     setSecondaryJob: (characterId: string, jobId: string | null) => void;
     setPassiveSlot: (characterId: string, slotIndex: number, skillId: string | null) => void;
@@ -199,13 +198,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
         showToast(ok && character ? `${character.name} used ${slot.item.name}.` : 'Could not use that item.');
     };
 
-    const setPosition = (characterId: string, position: TeamPosition) => {
-        const character = session.team.getCharacter(characterId);
-        const ok = session.setPosition(characterId, position);
-        bump();
-        showToast(ok && character ? `${character.name} moved to the ${position} row.` : 'Could not change position.');
-    };
-
     const changeJob = (characterId: string, jobId: string) => {
         const result = session.changeJob(characterId, jobId);
         bump();
@@ -244,7 +236,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
             sell,
             equipTo,
             useOn,
-            setPosition,
             changeJob,
             setSecondaryJob,
             setPassiveSlot,

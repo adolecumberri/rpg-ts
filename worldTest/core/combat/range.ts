@@ -39,17 +39,6 @@ export function rowForRange(range: RangeOf): RowPosition {
 }
 
 /**
- * Moves the character to the row its reach belongs in. Called only
- * when the character is added to the team: the row comes from the
- * character's rangeOf (its weapon's reach, else its own stat) — 'all'
- * back, 'long' center, 'short' front. Anything the player arranges
- * afterwards (formation buttons, equips) is never overridden here.
- */
-export function syncPositionToWeapon(character: Character): void {
-    character.position = rowForRange(effectiveRangeOf(character));
-}
-
-/**
  * The enemy rows the given range can hit, given which enemy rows are
  * occupied. 'short': the closest filled row only. 'long': the closest
  * filled row plus the next filled one. 'all': every occupied row.

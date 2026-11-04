@@ -1,5 +1,5 @@
 import { Character, Item, Stats, Team } from '../../src';
-import type { InventorySlot, TeamPosition } from '../../src';
+import type { InventorySlot } from '../../src';
 import type { EquipmentSlot } from '../../src/classes/items/EquipmentManager';
 import { PLACES, PLACES_BY_ID, buildNpcsFromPlaces, createInitialMissions, createInitialWorld } from './world';
 import { buyItem, sellItem } from './shop';
@@ -26,7 +26,6 @@ import {
     wireCharacterGrowth,
 } from './constants/jobs';
 import { FaintRegistry, applyCarryStatus, clearCarryStatus } from './fainting';
-import { syncPositionToWeapon } from './combat/range';
 import { grantJobXp, heldJobsOf, masteryAllowsWeapon, ownedJobSkills, secondaryJobSkillsOf } from './jobs/progression';
 import { jobUnlockState } from './jobs/unlock';
 import type { BattleReport, BattleTracker } from './combat/battleTracker';
@@ -275,7 +274,7 @@ export class WorldSession {
             if (!this.roster.activate(effect.characterId)) return;
             this.roster.rebuildTeam(this.team);
             this.registerWornItems(character);
-            syncPositionToWeapon(character);
+            character.position = heldJobOf(character)?.position ?? 'front';
             return;
         }
         case 'skipBattle':
@@ -904,7 +903,7 @@ export class WorldSession {
             this.registerWornItems(character);
             // Adding to the team places the character in the row its
             // reach belongs to: 'all' back, 'long' center, 'short' front.
-            syncPositionToWeapon(character);
+            character.position = heldJobOf(character)?.position ?? 'front';
         }
         const names = this.team.getAll().map((character) => character.name).join(', ');
         return { ok: this.team.count() > 0, message: names ? `Active party: ${names}` : 'Active party is empty.' };
@@ -936,16 +935,7 @@ export class WorldSession {
         return ROSTER.maxActiveParty;
     }
 
-    /**
-     * Moves a team member to another formation row (front ×3 taunt,
-     * center ×2, back ×1). Unknown ids are refused.
-     */
-    setPosition(characterId: string, position: TeamPosition): boolean {
-        const character = this.team.getCharacter(characterId);
-        if (!character) return false;
-        character.position = position;
-        return true;
-    }
+
 
     // -----------------------------------------------------------------------
     // Fainting: fallen teammates become corpses at the battle place.
@@ -1261,6 +1251,7 @@ export class WorldSession {
         if (previous) removeJobBonuses(character, previous);
         character.jobId = job.id;
         applyJobBonuses(character, job);
+        character.position = job.position;
 
         // The new job may not wield everything the old one could: those
         // items go back to the shared inventory (loadout or legacy).
@@ -1433,7 +1424,7 @@ export class WorldSession {
         this.registerWornItems(character);
         // The class weapon decides the formation row: bows stand in the
         // back, staffs in the center, swords up front.
-        syncPositionToWeapon(character);
+        character.position = heldJobOf(character)?.position ?? 'front';
     }
 
     useOn(slot: InventorySlot, characterId: string): boolean {
@@ -1778,7 +1769,7 @@ export class WorldSession {
                 npc.character.stats.isAlive = 1;
                 this.team.addCharacter(npc.character);
                 // Added to the team: take the row its reach belongs to.
-                syncPositionToWeapon(npc.character);
+                npc.character.position = heldJobOf(npc.character)?.position ?? 'front';
                 this.removeNpcFromPlace(placeId, npc.id);
             } else if (npc.respawns) {
                 npc.character.stats.hp = npc.character.stats.totalHp;
@@ -2034,6 +2025,10 @@ export class WorldSession {
                 character.jobId = defaultJob.id;
                 applyJobBonuses(character, defaultJob);
             }
+            // The visual battle row belongs to the held job now (the old
+            // manual formation is gone), so the save's row is ignored.
+            const restoredJob = savedJob ?? defaultJob;
+            if (restoredJob) character.position = restoredJob.position;
             // The saved stats are authoritative (content-defined
             // characters keep their numbers): only the growth is
             // reattached for future level-ups — the live handler adds

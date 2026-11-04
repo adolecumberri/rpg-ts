@@ -27,4 +27,5 @@ export const PIRATE_JOB = new Job(
         // decided with the mission content.
         knownBy: FLAGS.PIRATE_KNOWN,
     },
+    'front',
 );

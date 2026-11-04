@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Character, InventorySlot, Item, TeamPosition } from '@rpg';
+import type { Character, InventorySlot, Item } from '@rpg';
 import {
     applyEnhancement,
     canEquipItem,
@@ -37,8 +37,6 @@ import { SkillInfo } from '../../components/character/SkillInfo';
 import { Modal } from '../../components/chrome/Modal';
 import { StatsColumn } from '../../components/character/StatsColumn';
 import { ALL_SECTIONS, EquipPicker, SECTION_META } from '../../components/character/EquipPicker';
-import { SPRITES, spriteRoleOf } from '../../assets/sprites';
-import { spriteFrameStyle } from '../../assets/spriteFrames';
 import { portraitUrlOfJob } from '../../constants/portraits';
 import { STAT_CATALOG } from '../../game/statCatalog';
 import type { StatKey } from '../../game/statCatalog';
@@ -157,10 +155,6 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
     const [pickerSection, setPickerSection] = useState<EquipmentSection>('espadas');
     // The item whose stats the column previews (tap a row to set it).
     const [previewItem, setPreviewItem] = useState<Item | null>(null);
-    // The formation view: the battlefield with the team's columns; the
-    // picked character moves with the Frente/Centro/Detrás buttons.
-    const [positionView, setPositionView] = useState(false);
-    const [positionTargetId, setPositionTargetId] = useState<string | null>(null);
     // The job view (Oficio): the bar lists the accessible jobs; picking
     // one previews the stats variation, then Accept/Back decides.
     const [jobView, setJobView] = useState(false);
@@ -385,12 +379,6 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
     const statsRows = previewItem ?
         statsOfItems([previewItem]) :
         selectedHole !== null ? statsOfItems([]) : equippedStats;
-
-    const movePosition = (position: TeamPosition) => {
-        if (!positionTargetId) return;
-        api.setPosition(positionTargetId, position);
-        api.refresh();
-    };
 
     const content = selected ? (
         skillsView === 'hub' ? (
@@ -664,41 +652,6 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                 )}
                 <StatsColumn rows={statsRows} />
             </div>
-        ) : positionView ? (
-            <div className="position-view">
-                <div className="position-field">
-                    {(['back', 'center', 'front'] as TeamPosition[]).map((row) => {
-                        const inRow = members.filter((member) => (member.position ?? 'front') === row);
-                        return (
-                            <div key={row} className={`position-column position-column--${row}`}>
-                                <div className="position-column-title">
-                                    {row === 'front' ? 'FRENTE' : row === 'center' ? 'CENTRO' : 'DETRÁS'}
-                                </div>
-                                <div className="position-column-units">
-                                    {inRow.map((member) => (
-                                        <button
-                                            key={member.id}
-                                            type="button"
-                                            className={`position-unit${member.id === positionTargetId ? ' position-unit--selected' : ''}`}
-                                            onClick={() => setPositionTargetId(member.id)}
-                                        >
-                                            <span
-                                                className="position-unit-sprite"
-                                                style={spriteFrameStyle(
-                                                    SPRITES[spriteRoleOf(member) ?? 'warrior'].idle,
-                                                    0,
-                                                    1.5,
-                                                )}
-                                            />
-                                            <span className="position-unit-name">{member.name}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
         ) : jobView && !jobTarget ? (
             <div className="job-pick">
                 <div className="job-pick-head">
@@ -856,7 +809,7 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
         </>
     );
 
-    const bar = selected && !equipView && !skillsView && !positionView && !jobView ? (
+    const bar = selected && !equipView && !skillsView && !jobView ? (
         <OptionsBar
             size="lg"
             options={[
@@ -874,15 +827,6 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                     onClick: () => {
                         setSelectedSkillId(null);
                         setSkillsView('hub');
-                    },
-                },
-                {
-                    id: 'position',
-                    label: 'Posición',
-                    icon: { symbol: 'grid_view', color: 'var(--accent)' },
-                    onClick: () => {
-                        setPositionTargetId(selectedId);
-                        setPositionView(true);
                     },
                 },
                 {
@@ -1075,40 +1019,6 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                     }
                 },
             }}
-        />
-    ) : selected && positionView ? (
-        <OptionsBar
-            size="lg"
-            options={[
-                {
-                    id: 'front',
-                    label: 'Frente',
-                    icon: { symbol: 'north', color: '#fff' },
-                    accent: '#ef4444',
-                    disabled: !positionTargetId,
-                    disabledReason: 'Pick a character',
-                    onClick: () => movePosition('front'),
-                },
-                {
-                    id: 'center',
-                    label: 'Centro',
-                    icon: { symbol: 'horizontal_rule', color: '#fff' },
-                    accent: '#f2ca50',
-                    disabled: !positionTargetId,
-                    disabledReason: 'Pick a character',
-                    onClick: () => movePosition('center'),
-                },
-                {
-                    id: 'back',
-                    label: 'Detrás',
-                    icon: { symbol: 'south', color: '#fff' },
-                    accent: '#3b82f6',
-                    disabled: !positionTargetId,
-                    disabledReason: 'Pick a character',
-                    onClick: () => movePosition('back'),
-                },
-            ]}
-            back={{ label: 'Atrás', onClick: () => setPositionView(false) }}
         />
     ) : selected && jobView && !jobTarget ? (
         <OptionsBar
