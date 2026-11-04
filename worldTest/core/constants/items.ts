@@ -35,6 +35,24 @@ export const Items = {
 
 
 
+    knife: {
+        id: 'knife',
+        name: 'Knife',
+        category: CATEGORIES.weapon,
+        slot: EQUIPMENT_SLOTS.weapon,
+        loadoutSlot: LOADOUT_SLOTS.weapon,
+        arms: 1,
+        icon: 'espada',
+        description: 'A pirate knife. +3 attack, +2 speed. Short reach.',
+        effects: [
+            { stat: 'attack', typeOfModification: 'BUFF_FIXED', value: 3 },
+            { stat: 'speed', typeOfModification: 'BUFF_FIXED', value: 2 },
+        ],
+        rangeOf: RANGES.short,
+        weaponType: WEAPON_TYPES.knife,
+        buyValue: 18,
+        sellValue: 9,
+    },
     sword: {
         id: 'sword',
         name: 'Sword',

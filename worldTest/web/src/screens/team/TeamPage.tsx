@@ -20,6 +20,7 @@ import {
     specForSkill,
     specOf,
     unequipToInventory,
+    ALL_JOBS,
     ARCHER_JOB,
     HEALER_JOB,
     SOLDIER_JOB,
@@ -240,9 +241,13 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
             .map((id) => jobById(id))
             .filter((job): job is Job => job !== undefined && job.id !== heldJob?.id) :
         [];
-    // The hub's four slot summaries (passives stay empty until the game
-    // ships passive skills).
-    const passiveSlotValue = 'None';
+    // The hub's four slot summaries: the passive rows name the equipped
+    // passive (or None).
+    const passiveSlotName = (index: number) => {
+        const id = selected?.passiveSlots?.[index];
+        if (!id || !selected) return 'None';
+        return specForSkill(selected, id)?.name ?? id;
+    };
     const slotRows: Array<{ id: string; label: string; value: string; disabled?: boolean }> = [
         {
             id: 'current',
@@ -256,8 +261,8 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                 `${secondaryJob.title} Lv.${jobLevelOf(selected, secondaryJob.id)}` :
                 'None — pick a held job',
         },
-        { id: 'passive1', label: 'Passive 1', value: passiveSlotValue },
-        { id: 'passive2', label: 'Passive 2', value: passiveSlotValue },
+        { id: 'passive1', label: 'Passive 1', value: passiveSlotName(0) },
+        { id: 'passive2', label: 'Passive 2', value: passiveSlotName(1) },
     ];
 
     // The passive flow: pick one of the jobs the character can hold, then
@@ -266,6 +271,17 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
     const passiveJob = passiveJobId ? jobById(passiveJobId) : undefined;
     const passiveSkillsOf = (job: Job | undefined) => (job?.progression?.skills ?? [])
         .filter((plan) => plan.passive || Boolean(specOf(plan.skillId)?.passive));
+    // Jobs whose passives may go in the two passive slots: only jobs the
+    // player knows about (the discovery flag filters hidden jobs).
+    const passiveJobRows = selected ? ALL_JOBS.filter((job) => {
+        if (passiveSkillsOf(job).length === 0) return false;
+        return jobUnlockState(
+            selected,
+            job,
+            (flag) => api.session.hasFlag(flag),
+            (id) => jobById(id)?.title ?? id,
+        ).visible;
+    }) : [];
     const passiveSkillRows = selected ?
         passiveSkillsOf(passiveJob).map((plan) => ({
             id: plan.skillId,
@@ -471,7 +487,7 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
         ) : skillsView === 'passiveJobs' ? (
             <div className="equip-view inventory-page">
                 <div className="skill-list">
-                    {OFFERED_JOBS.map((job) => {
+                    {passiveJobRows.map((job) => {
                         const passives = passiveSkillsOf(job);
                         // A job without passive skills is not pickable: there
                         // is nothing to put in the slot from it.
@@ -525,7 +541,13 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                         <div
                             key={row.id}
                             className="inv-item-row"
-                            onClick={() => setSelectedSkillId(row.id)}
+                            onClick={() => {
+                                if (!selected || passiveSlot === null) return;
+                                api.setPassiveSlot(selected.id, passiveSlot, row.id);
+                                setSkillsView('hub');
+                                setPassiveJobId(null);
+                                setPassiveSlot(null);
+                            }}
                         >
                             <span className="inv-item-icon">
                                 <span className="material-symbol">shield</span>
@@ -535,6 +557,24 @@ export function TeamPage({ onBack, initialSelectedId }: { onBack?: () => void; i
                             </span>
                         </div>
                     ))}
+                    {selected && passiveSlot !== null && selected.passiveSlots?.[passiveSlot] ? (
+                        <div
+                            className="inv-item-row"
+                            onClick={() => {
+                                api.setPassiveSlot(selected.id, passiveSlot, null);
+                                setSkillsView('hub');
+                                setPassiveJobId(null);
+                                setPassiveSlot(null);
+                            }}
+                        >
+                            <span className="inv-item-icon">
+                                <span className="material-symbol">block</span>
+                            </span>
+                            <span className="inv-item-info">
+                                <span className="inv-item-name">Clear slot</span>
+                            </span>
+                        </div>
+                    ) : null}
                 </div>
                 {passiveSkillRows.length > 0 ? (
                     <SkillInfo spec={selectedSkill} />

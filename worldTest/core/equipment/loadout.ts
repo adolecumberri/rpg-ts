@@ -150,6 +150,7 @@ export function equippedItemsOf(character: Character): Item[] {
 export function sectionOfItem(item: Item): EquipmentSection | undefined {
     const type = item.definition.weaponType;
     if (type === WEAPON_TYPES.sword) return 'espadas';
+    if (type === WEAPON_TYPES.knife) return 'espadas';
     if (type === WEAPON_TYPES.bow) return 'arcos';
     if (type === WEAPON_TYPES.staff) return 'varas';
     const slot = item.definition.loadoutSlot;

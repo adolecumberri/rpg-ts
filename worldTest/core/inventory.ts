@@ -3,6 +3,7 @@ import type { Character, Inventory, InventorySlot, Team } from '../../src';
 import type { EquipmentSlot } from '../../src/classes/items/EquipmentManager';
 import { isEquippableCategory } from '../../src/classes/items/Item';
 import { INVENTORY } from './config/inventory';
+import { canEquipItem } from './equipment/loadout';
 
 /**
  * Equips a copy of the item to the character, keeping the stack in the
@@ -15,6 +16,9 @@ export function equipToCharacter(inventory: Inventory, character: Character, ite
     }
 
     const instance = new Item(slot.item.definition);
+    // Same rule the picker and the loadout enforce: job allowlist plus
+    // mastery proficiency. The legacy manager must not bypass it.
+    if (!canEquipItem(character, instance).ok) return false;
     const slotName = instance.definition.slot;
     if (!slotName) {
         return false;

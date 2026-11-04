@@ -14,7 +14,7 @@ import type { LootDrop } from './loot/lootRoller';
 import type { DropTable } from './loot/dropTable';
 import { EncounterTracker } from './encounters/encounterTracker';
 import { SPECIAL_ENCOUNTERS, buildSpecialNpc } from './encounters/specialEncounter';
-import { defaultSkillIds, skillIdsOf } from './skills';
+import { defaultSkillIds, definitionOf, skillIdsOf } from './skills';
 import { clearStatuses } from './statuses';
 import {
     applyGrowthLevels,
@@ -1361,6 +1361,48 @@ export class WorldSession {
         character.secondaryJobId = jobId;
         this.syncKnownSkills();
         return { ok: true, message: `Second skill slot: ${job.title}.` };
+    }
+
+    /**
+     * Equips (or clears) one of the two passive slots. Only passive
+     * skills are accepted; the same passive cannot sit in both slots.
+     * Passive slots are explicit: the skill is on regardless of the job
+     * that teaches it.
+     */
+    setPassiveSlot(
+        characterId: string,
+        slotIndex: number,
+        skillId: string | null,
+    ): { ok: boolean; message: string } {
+        const character = this.team.getCharacter(characterId) ?? this.roster.character(characterId);
+        if (!character) {
+            return { ok: false, message: 'Unknown character.' };
+        }
+        if (slotIndex !== 0 && slotIndex !== 1) {
+            return { ok: false, message: 'Unknown passive slot.' };
+        }
+        const slots = [...(character.passiveSlots ?? [])];
+        while (slots.length < 2) slots.push(null);
+        if (skillId === null) {
+            slots[slotIndex] = null;
+            character.passiveSlots = slots;
+            this.syncKnownSkills();
+            return { ok: true, message: `Passive slot ${slotIndex + 1} cleared.` };
+        }
+        const definition = definitionOf(skillId);
+        if (!definition) {
+            return { ok: false, message: 'Unknown skill.' };
+        }
+        if (!definition.passive) {
+            return { ok: false, message: `${definition.name} is not a passive skill.` };
+        }
+        if (slots[1 - slotIndex] === skillId) {
+            return { ok: false, message: `${definition.name} is already in the other passive slot.` };
+        }
+        slots[slotIndex] = skillId;
+        character.passiveSlots = slots;
+        this.syncKnownSkills();
+        return { ok: true, message: `${definition.name} equipped in passive slot ${slotIndex + 1}.` };
     }
 
     /**

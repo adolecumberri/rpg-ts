@@ -63,6 +63,7 @@ type GameApi = {
     setPosition: (characterId: string, position: TeamPosition) => void;
     changeJob: (characterId: string, jobId: string) => void;
     setSecondaryJob: (characterId: string, jobId: string | null) => void;
+    setPassiveSlot: (characterId: string, slotIndex: number, skillId: string | null) => void;
     findNpc: (npcId: string) => NPC | undefined;
     refresh: () => void;
 };
@@ -217,6 +218,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
         showToast(result.message);
     };
 
+    const setPassiveSlot = (characterId: string, slotIndex: number, skillId: string | null) => {
+        const result = session.setPassiveSlot(characterId, slotIndex, skillId);
+        bump();
+        showToast(result.message);
+    };
+
     const api = useMemo<GameApi>(
         () => ({
             session,
@@ -240,6 +247,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             setPosition,
             changeJob,
             setSecondaryJob,
+            setPassiveSlot,
             findNpc: session.findNpc.bind(session),
             refresh: bump,
             load,

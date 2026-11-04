@@ -7,7 +7,7 @@ import { WEAPON_TYPES } from '../weaponTypes';
 export const ARCHER_JOB = new Job(
     'archer',
     'Archer',
-    [WEAPON_TYPES.bow],
+    [WEAPON_TYPES.bow, WEAPON_TYPES.knife],
     { hp: 26, totalHp: 26, attack: 7, defence: 9, magicDefence: 9, speed: 9, critChance: 10 },
     false,
     { attack: 1.4, defence: 0.8, magicDefence: 1, magic: 0.8, speed: 1.6, critChance: 1.4 },

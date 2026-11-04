@@ -29,8 +29,8 @@ export type ItemTableEntry = {
     // The attack reach the weapon grants its bearer (swords short,
     // bows long, spells default to all).
     rangeOf?: 'short' | 'long' | 'all';
-    // The weapon type a Job must allow to wield this (sword/bow/staff).
-    weaponType?: 'sword' | 'bow' | 'staff';
+    // The weapon type a Job must allow to wield this (sword/bow/staff/knife).
+    weaponType?: 'sword' | 'bow' | 'staff' | 'knife';
     // The loadout slot the item occupies (weapon/offhand/helmet/
     // clothes/accessory).
     loadoutSlot?: 'weapon' | 'offhand' | 'helmet' | 'clothes' | 'accessory';
