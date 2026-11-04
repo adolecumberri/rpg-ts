@@ -193,29 +193,6 @@ export function resolveGeneralAttack(
                 components = hook({ attacker, defender, item, components });
             }
         }
-        // Weapon-class bonuses (Knife Mastery): the bearer's statuses may
-        // scale damage when ANY equipped hole holds a matching weapon type
-        // (the owner's rule: a knife anywhere in the loadout counts). The
-        // legacy equipment manager is included by equippedItemsOf.
-        const weaponTypes = new Set<string>(
-            equippedItemsOf(attacker)
-                .map((item) => item.definition.weaponType)
-                .filter((weaponType): weaponType is NonNullable<typeof weaponType> => Boolean(weaponType)),
-        );
-        if (weaponTypes.size > 0) {
-            let percent = 0;
-            for (const status of attacker.statusManager.statuses.values()) {
-                for (const bonus of status.definition.weaponDamageBonus ?? []) {
-                    if (weaponTypes.has(bonus.weaponType)) percent += bonus.percent;
-                }
-            }
-            if (percent !== 0) {
-                components = components.map((component) => ({
-                    ...component,
-                    amount: Math.round(component.amount * (1 + percent / 100) * 100) / 100,
-                }));
-            }
-        }
     }
 
     // Impact hits: a basic attack applies exactly one. The bearer's

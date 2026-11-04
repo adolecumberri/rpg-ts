@@ -146,6 +146,38 @@ export function hasPassive(character: Character, skillId: string): boolean {
     return (character.passiveSlots ?? []).indexOf(skillId) !== -1;
 }
 
+/** Every passive skill the character currently has (the four places). */
+export function passiveSkillIdsOf(character: Character): string[] {
+    const ids: string[] = [];
+    for (const job of [heldJobOf(character), secondaryJobOf(character)]) {
+        if (!job) continue;
+        for (const plan of job.progression?.skills ?? []) {
+            const passive = plan.passive || definitionOf(plan.skillId)?.passive;
+            if (!passive) continue;
+            if (plan.atJobLevel > jobLevelOf(character, job.id)) continue;
+            if (ids.indexOf(plan.skillId) === -1) ids.push(plan.skillId);
+        }
+    }
+    for (const id of character.passiveSlots ?? []) {
+        if (id && ids.indexOf(id) === -1) ids.push(id);
+    }
+    return ids;
+}
+
+/**
+ * Mastery weapon proficiency: a passive with `mastery.proficiency` widens
+ * the weapon types the character may equip, on top of the held job's
+ * allowlist. Used by equipment validation and by the job-change cleanup.
+ */
+export function masteryAllowsWeapon(character: Character, weaponType: string): boolean {
+    for (const skillId of passiveSkillIdsOf(character)) {
+        const spec = specOf(skillId);
+        if (!spec?.mastery?.proficiency) continue;
+        if (spec.mastery.weaponType === weaponType) return true;
+    }
+    return false;
+}
+
 /**
  * Resolves a skill id against the character's job progression: the spec of
  * the level the character currently has in its held job (level 1 for skills

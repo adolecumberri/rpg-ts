@@ -27,7 +27,7 @@ import {
 } from './constants/jobs';
 import { FaintRegistry, applyCarryStatus, clearCarryStatus } from './fainting';
 import { syncPositionToWeapon } from './combat/range';
-import { grantJobXp, heldJobsOf, ownedJobSkills, secondaryJobSkillsOf } from './jobs/progression';
+import { grantJobXp, heldJobsOf, masteryAllowsWeapon, ownedJobSkills, secondaryJobSkillsOf } from './jobs/progression';
 import { jobUnlockState } from './jobs/unlock';
 import type { BattleReport, BattleTracker } from './combat/battleTracker';
 import { equipInto, equippedItemsOf, firstFreeHole, migrateLegacyEquipment, unequipHole } from './equipment/loadout';
@@ -1271,7 +1271,8 @@ export class WorldSession {
         for (const item of equippedItemsOf(character)) {
             const kind = item.definition.loadoutSlot;
             const weaponBlocked = (kind === 'weapon' || (kind === undefined && item.definition.slot === 'weapon')) &&
-                !job.allowsWeapon(item.definition.weaponType);
+                !job.allowsWeapon(item.definition.weaponType) &&
+                !(item.definition.weaponType && masteryAllowsWeapon(character, item.definition.weaponType));
             const shieldBlocked = kind === 'offhand' && !job.canShield;
             if (!weaponBlocked && !shieldBlocked) continue;
             const loadout = character.loadout;

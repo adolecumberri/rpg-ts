@@ -166,10 +166,10 @@ export type SkillSpec = {
     // Disarm (Weapon Disarm): detach the target's primary weapon for the
     // rest of the battle; the engine restores it at battle end.
     disarmWeapon?: boolean;
-    // X-mastery passives: at battle start the engine checks the weapon
-    // requirement against the equipped holes and, when it fits, applies
-    // the permanent battle status.
-    mastery?: { weaponType?: string; status: StatusDefinition };
+    // X-mastery passives: `proficiency` widens the weapon types the
+    // character may equip; `status` is the battle reward while the
+    // required weapon is equipped (checked at battle start).
+    mastery?: { weaponType?: string; proficiency?: boolean; status?: StatusDefinition };
     // Crew passive: count living allies whose held job is jobId and give
     // each of them attack + count * attackPerMember.
     crew?: { jobId: string; attackPerMember: number };
@@ -802,9 +802,9 @@ const RAW_SKILLS = {
     knife_mastery: {
         id: 'knife_mastery',
         name: 'Knife Mastery',
-        description: 'Passive: while a knife is equipped, knife attacks deal [physical]+20%[/physical] more damage.',
+        description: 'Passive: may wield knives, and while a knife is equipped gains [physical]+5 attack[/physical].',
         targeting: 'SELF',
-        mastery: { weaponType: 'knife', status: knifeMasteryStatus(20) },
+        mastery: { weaponType: 'knife', proficiency: true, status: knifeMasteryStatus(5) },
         passive: true,
     },
     disarm_weapon: {

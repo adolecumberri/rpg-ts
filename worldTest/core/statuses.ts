@@ -695,18 +695,19 @@ export function crewStatus(pirates: number, attackPerMember = 3): StatusDefiniti
     };
 }
 
-/** Knife Mastery: +percent knife weapon damage (read by the attack resolver). */
-export function knifeMasteryStatus(percent = 20): StatusDefinition {
+/** Knife Mastery: +attack while a knife is equipped (the mastery reward). */
+export function knifeMasteryStatus(attackBonus = 5): StatusDefinition {
     return {
         name: 'Knife Mastery',
         polarity: 'positive',
-        description: `Knife attacks deal ${percent}% more damage.`,
+        description: `Knife equipped: +${attackBonus} attack.`,
         applyOn: 'after_turn',
         duration: { type: 'PERMANENT' },
         usageFrequency: 'PER_ACTION',
         triggersOnAdd: true,
-        statsAffected: [],
-        weaponDamageBonus: [{ weaponType: 'knife', percent }],
+        statsAffected: [
+            { from: 'attack', to: 'attack', value: attackBonus, typeOfModification: 'BUFF_FIXED' },
+        ],
     };
 }
 

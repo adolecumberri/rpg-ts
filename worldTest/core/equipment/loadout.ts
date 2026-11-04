@@ -5,6 +5,7 @@ import { WEAPON_TYPES } from '../constants/weaponTypes';
 import { LOADOUT_SLOTS } from '../constants/loadoutSlots';
 import { heldJobOf } from '../constants/jobs';
 import type { WeaponType } from '../jobs/Job';
+import { masteryAllowsWeapon } from '../jobs/progression';
 
 // ---------------------------------------------------------------------------
 // The equipment loadout. Every character has FIVE generic holes (each
@@ -205,12 +206,16 @@ export function canEquipItem(character: Character, item: Item): EquipResult {
     if (kind === 'weapon') {
         const type = item.definition.weaponType;
         if (type && policy.weaponTypes && policy.weaponTypes.indexOf(type) === -1) {
-            return {
-                ok: false,
-                code: 'job-refused',
-                message: 'Your job does not allow you to equip this.',
-                replaced: [],
-            };
+            // Mastery passives widen the allowlist (Knife Mastery lets a
+            // job wield knives it normally refuses).
+            if (!masteryAllowsWeapon(character, type)) {
+                return {
+                    ok: false,
+                    code: 'job-refused',
+                    message: 'Your job does not allow you to equip this.',
+                    replaced: [],
+                };
+            }
         }
     }
     if (kind === 'offhand') {

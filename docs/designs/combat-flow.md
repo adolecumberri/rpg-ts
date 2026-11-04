@@ -52,7 +52,7 @@ Both share `actOnce`.
 | X-mastery passives (Knife Mastery) | **Battle start**, only when the required weapon type is in any equipped hole; then a permanent battle status | `HybridCombat` constructor |
 | Aura statuses | Battle start and after every action | `syncAuras` |
 | Crew X attack bonus | Battle start and after every action (rebuilt when the count changes) | `syncCrew` |
-| Weapon-class bonus (+20% knives) | During each basic attack | `general.ts` (`weaponDamageBonus` statuses) |
+| Mastery reward status (Knife Mastery) | Battle start, only while the matching weapon is equipped | `HybridCombat` constructor |
 | Impact procs (passive) | During each basic attack's impact phase | `impact.ts` |
 | Reactions (passive) | When the bearer is attacked | `damage/reactions.ts` |
 | Skill statuses (Silence-like) | When the skill resolves / at battle start | `skillEffects.ts`, statuses |
@@ -70,9 +70,7 @@ or a weapon-damage bonus status.
 2. `generalAttackResolver`:
    1. base components from `attackComponentsOf` (weapon/attack stats);
    2. every equipped item's `onAttack` hook;
-   3. weapon-class bonus statuses (knife +20% when any equipped hole has that
-      weapon type);
-   4. impact phase: impact hits (Sheen, Phantom, Guinsoo), item `impactBonus`,
+      4. impact phase: impact hits (Sheen, Phantom, Guinsoo), item `impactBonus`,
       and impact procs from passives/items;
    5. component merge;
    6. accuracy roll (skipped for counters), evasion roll;
@@ -113,7 +111,6 @@ or a weapon-damage bonus status.
 | Counter-attacks (physical) | Yes | the same resolver runs with `isCounter`; they can also miss and be evaded like any attack |
 | Skill damage | No | `resolveSkillEffect` has no crit step |
 | Status damage (`onTrigger`, burn, etc.) | No | direct hp changes |
-| Weapon-class bonus (+20%) | It multiplies before crit, so a crit multiplies the boosted value | order in the resolver |
 
 Accuracy/evasion rolls are skipped for counter-attacks; they always land.
 
@@ -150,7 +147,7 @@ Accuracy/evasion rolls are skipped for counter-attacks; they always land.
 4. **Two Disarms**: the old `disarm` skill is now displayed as **Hand Hit**
    (attack −40%, status name "Hand Hit"); `disarm_weapon` is the real unequip.
 5. **Skills never run the attack pipeline**: weapon `onAttack`, impact procs,
-   crit, and the knife `weaponDamageBonus` apply only to basic attacks.
+   crit, and mastery damage bonuses apply only to basic attacks.
    A "normal attack on X targets" is feasible as a multi-target skill routed
    through the attack resolver per target (a small engine addition), not as a
    skill `damageFor`.

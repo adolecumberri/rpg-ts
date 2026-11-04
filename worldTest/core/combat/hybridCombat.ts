@@ -155,7 +155,9 @@ export class HybridCombat {
                         .filter((weaponType): weaponType is NonNullable<typeof weaponType> => Boolean(weaponType));
                     const fits = !spec.mastery.weaponType ||
                         (equippedWeaponTypes as string[]).indexOf(spec.mastery.weaponType) !== -1;
-                    if (fits) applyStatus(combatant.character, spec.mastery.status);
+                    if (fits && spec.mastery.status) {
+                        applyStatus(combatant.character, spec.mastery.status);
+                    }
                 }
             }
         }

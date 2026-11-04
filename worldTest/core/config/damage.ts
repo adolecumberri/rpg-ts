@@ -180,9 +180,6 @@ declare module '@rpg/classes/StatusInstance' {
         // Carrying travels with the character between battles). Dispel
         // and the cleanup skip them.
         persistent?: boolean;
-        // Weapon-class damage multiplier read by the general attack
-        // resolver when the bearer's weapon type matches (Knife Mastery).
-        weaponDamageBonus?: Array<{ weaponType: string; percent: number }>;
         // Crew passive: count living allies whose held job is jobId and
         // grant each of them attack + count * attackPerMember.
         crew?: { jobId: string; attackPerMember: number };

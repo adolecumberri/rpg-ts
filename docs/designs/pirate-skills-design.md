@@ -16,7 +16,7 @@ Ship in this branch:
 2 battle-start passives with team context;
 3 Crew X team status with recompute;
 4 Disarm detach/restore;
-5 knife weapon type + `weaponDamageBonus`;
+5 knife weapon type + mastery proficiency/reward;
 6 Escorbuto debuff status + skill data;
 7 Pirate job (4-skill ladder, `maxLevel 1` for now) and `ALL_JOBS` entry;
 8 tests for each invariant.
@@ -61,8 +61,8 @@ attacker and the defender of an action. Rules for new statuses:
 - Mana regenerates after the faint/stun gates, so a skipped turn regenerates
   nothing.
 New fields live in the worldTest augmentation (`config/damage.ts`), not in the
-library: `weaponDamageBonus?: { weaponType: string; percent: number }[]`,
-`crew?: { jobId: string; attackPerMember: number }`, and a marker field if
+library: `crew?: { jobId: string; attackPerMember: number }` and the mastery
+config on `SkillSpec`; no damage-multiplier status field.
 needed. No `blocksSkills`/`manaRegenBonus` in this branch.
 
 ## 4. Crew (P1)
@@ -116,14 +116,13 @@ must also run on win/lost/fled (single `dispose()` path).
 - The Pirate job lists `knife` in `weaponTypes`; equippability stays a job
   allowlist (`allowsWeapon`, `canEquipItem`), not a passive effect.
 - **Knife Mastery** is an X-mastery passive (the model for future weapon
-  masteries): at battle start the engine checks the requirement (a matching
-  weapon type in any equipped hole). When it fits, it applies a permanent
-  battle status with `weaponDamageBonus` (`{ weaponType: 'knife', percent: 20 }`);
-  when it does not fit, no status is added. Generalizable through
-  `SkillSpec.mastery = { weaponType, status }`. The general attack resolver
-  (`damage/general.ts`) multiplies weapon damage by `1 + sum(percent)/100`
-  while any equipped hole holds that weapon type. Only the general attack
-  pipeline is affected (skill damage is not a weapon attack).
+  masteries). It does two things:
+  1. **Proficiency:** `mastery.proficiency` widens the weapon allowlist, so a
+     job that normally refuses knives may equip them.
+  2. **Reward:** `mastery.status` is a battle-start status applied only while the
+     matching weapon type is in an equipped hole (for now +5 attack with a
+     knife). The status is a normal stat status; there is no damage-multiplier
+     hook in the attack resolver.
 - Name the passive definition `knife_mastery`; `maxLevel 1` until growth.
 
 ## 7. Escorbuto (P1, content)
@@ -176,7 +175,7 @@ Oficio until visible (`jobUnlockState` already filters by flag).
 - Crew: 2 Pirates give Crew +6 attack each; one dies → +3; no Pirates → none.
 - Disarm: weapon removed from stats, restored after win/lost/flee, inventory
   counts unchanged, weaponless target unaffected.
-- Knife Mastery: knife damage +20%; bow damage unchanged.
+- Knife Mastery: knife becomes equippable and grants +5 attack while equipped; bow unchanged.
 - Escorbuto: debuff applied to enemy, expires/cleans at battle end.
 - `finishCombat` clears leaked statuses even if a driver skipped `dispose()`.
 
