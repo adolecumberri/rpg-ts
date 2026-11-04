@@ -5,7 +5,7 @@ import { heldJobOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, 
 import type { SkillSpec } from '@core';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 import type { SpriteAnimation, SpriteSet } from '../../assets/sprites';
-import { spriteFrameStyle, spriteScaleFor } from '../../assets/spriteFrames';
+import { spriteBoxStyle, spriteFrameStyle, spriteScaleFor } from '../../assets/spriteFrames';
 import { ANIMATION_TIMING } from '../../assets/animationTiming';
 import type { BattleEffect } from '../../assets/effects';
 import { OptionsBar } from '../chrome/OptionsBar';
@@ -246,11 +246,16 @@ function ArenaEntity({
             </span>
             <span
                 className="jrpg-sprite-box"
-                style={spriteFrameStyle(
-                    spriteAnimation,
-                    posing && attackAnim ? poseFrame : idleFrame,
-                    spriteScaleFor(ANIMATION_TIMING.arenaSpriteBox, spriteAnimation),
-                )}
+                style={{
+                    // The element MUST be as big as the scaled frame;
+                    // background-size alone gets cropped by the CSS box.
+                    ...spriteBoxStyle(spriteAnimation, ANIMATION_TIMING.arenaSpriteBox),
+                    ...spriteFrameStyle(
+                        spriteAnimation,
+                        posing && attackAnim ? poseFrame : idleFrame,
+                        spriteScaleFor(ANIMATION_TIMING.arenaSpriteBox, spriteAnimation),
+                    ),
+                }}
             />
         </div>
     );

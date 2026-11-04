@@ -7,9 +7,12 @@ export const ANIMATION_TIMING = {
     mageIdleFrameMs: 300,
     attackFrameMs: 180,
     effectFrameMs: 140,
-    // On-screen sprite size in px: every role is scaled to this box, so
-    // 16px and 64px native frames look the same size.
-    arenaSpriteBox: 40,
+    // The sprite's design-pixel box. The arena entity is additionally
+    // scaled 2x by CSS (.jrpg-depth-*), so 28 design px = 56 screen px on
+    // the phone canvas. Every role is scaled to this box, so 16px-native
+    // mage frames and 64px-native archer frames render at the same size.
+    arenaSpriteBox: 28,
+    // Battlefield cards / party menu boxes (plain design pixels).
     fichaSpriteBox: 56,
     squadCardBox: 80,
     // The battle waits at least this long for an action's animation, and
