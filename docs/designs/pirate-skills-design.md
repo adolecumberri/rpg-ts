@@ -78,10 +78,15 @@ start, after `this.combatants` is assigned, the engine:
 4. re-syncs after every action: if X changed, remove the previous `Crew X`
    status and apply the new one (do **not** rely on `syncAuras`, which adds only
    missing names and applies to all teammates).
-Membership rule: "Crew" = holding the crew-granting job. The passive does not
-require a separate marker status. Fainted combatants are excluded from X.
-Count scope: living combatants of the holder's side (includes allied NPCs
-present in the battle, not just the session team).
+Membership rule: a character is Crew when `hasPassive(character, 'crew')` is
+true in any of the four passive places: the held job ladder, the second job
+ladder, passive slot 1 or passive slot 2. No separate marker status is needed.
+X counts living combatants of the side whose held job is the crew job
+(Pirates); fainted combatants are excluded. Count scope: living combatants of
+the side (includes allied NPCs present in the battle, not just the session
+team). Passive slots are stored on the character (`passiveSlots`, saved with
+the character), and their skills join `availableSkillIds` so battle-start
+passives apply from any of the four places.
 
 ## 5. Disarm (P1)
 
