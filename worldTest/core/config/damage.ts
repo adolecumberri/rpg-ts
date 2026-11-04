@@ -130,6 +130,10 @@ declare module '@rpg' {
         // skill slot (undefined = empty slot). Its skills are the ones
         // that job taught the character while it was held.
         secondaryJobId?: string;
+        // worldTest extension: the two passive slots (the 3rd and 4th
+        // skill slots). Passive skills equipped there are always on, even
+        // when the job that teaches them is not held.
+        passiveSlots?: Array<string | null>;
     }
 }
 

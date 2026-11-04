@@ -13,7 +13,7 @@ import { equipInto, equippedItemsOf, unequipHole } from '../equipment/loadout';
 import { canAffordSkill, hpCostOf } from './skillGating';
 import { battleSkillSpecs } from '../skills';
 import type { SkillSpec } from '../skills';
-import { specForSkill } from '../jobs/progression';
+import { hasPassive, specForSkill } from '../jobs/progression';
 import type { ComponentLine } from '../damage/composer';
 import type { WorldSession } from '../session';
 import type { FightDefinition } from '../config/fights';
@@ -176,33 +176,38 @@ export class HybridCombat {
      * jobId carries a "Crew X" status with X = living members of that job.
      * The status is rebuilt when X changes (a Pirate died, a side changed).
      */
+    /**
+     * Crew aura: every living teammate carrying the Crew passive in any of
+     * the four passive places (held job ladder, second job ladder, passive
+     * slot 1, passive slot 2) receives a "Crew X" attack status, where
+     * X = living members of the crew job (the Pirates) on that side. The
+     * status is rebuilt when membership or the count changes.
+     */
     private syncCrew(): void {
         for (const side of ['left', 'right'] as HybridSide[]) {
             const living = this.combatants.filter(
                 (entry) => entry.side === side && entry.character.stats.hp > 0,
             );
-            const configs = new Map<string, { jobId: string; attackPerMember: number }>();
+            const crewMembers = living.filter((entry) => hasPassive(entry.character, 'crew'));
+            // Clear previous Crew statuses first: membership can change.
             for (const member of living) {
-                for (const spec of member.skills ?? []) {
-                    if (spec.passive && spec.crew) configs.set(spec.crew.jobId, spec.crew);
+                for (const status of Array.from(member.character.statusManager.statuses.values())) {
+                    if (status.definition.name === 'Crew') {
+                        member.character.statusManager.removeStatusInstance(status.id);
+                    }
                 }
             }
-            for (const config of configs.values()) {
-                const count = living.filter(
-                    (entry) => entry.character.jobId === config.jobId,
-                ).length;
-                for (const member of living) {
-                    // Drop the previous Crew status; it is rebuilt from the
-                    // live count below (StatusManager refreshes by name).
-                    for (const status of Array.from(member.character.statusManager.statuses.values())) {
-                        if (status.definition.name === 'Crew') {
-                            member.character.statusManager.removeStatusInstance(status.id);
-                        }
-                    }
-                    if (member.character.jobId === config.jobId && count > 0) {
-                        applyStatus(member.character, crewStatus(count, config.attackPerMember));
-                    }
+            if (crewMembers.length === 0) continue;
+            let config: { jobId: string; attackPerMember: number } = { jobId: 'pirate', attackPerMember: 3 };
+            for (const member of living) {
+                for (const spec of member.skills ?? []) {
+                    if (spec.id === 'crew' && spec.crew) config = spec.crew;
                 }
+            }
+            const pirates = living.filter((entry) => entry.character.jobId === config.jobId).length;
+            if (pirates <= 0) continue;
+            for (const member of crewMembers) {
+                applyStatus(member.character, crewStatus(pirates, config.attackPerMember));
             }
         }
     }

@@ -60,6 +60,7 @@ export function buildCharacterFromSave(saved: SavedCharacter): Character {
     // saves load with an empty slot and no history).
     if (saved.heldJobs && saved.heldJobs.length > 0) character.heldJobs = [...saved.heldJobs];
     if (saved.secondaryJobId) character.secondaryJobId = saved.secondaryJobId;
+    if (saved.passiveSlots) character.passiveSlots = [...saved.passiveSlots];
 
     return character;
 }

@@ -130,6 +130,23 @@ export function skillRankOf(character: Character, skillId: string, jobId?: strin
 }
 
 /**
+ * Whether the character has the passive skill equipped/known in any of the
+ * four places a passive can live: the held job's ladder, the second job's
+ * ladder, passive slot 1 or passive slot 2. Job-ladder passives require
+ * the job level that teaches them; passive slots are explicit.
+ */
+export function hasPassive(character: Character, skillId: string): boolean {
+    for (const job of [heldJobOf(character), secondaryJobOf(character)]) {
+        if (!job) continue;
+        const plan = planOf(job, skillId);
+        if (!plan) continue;
+        const passive = plan.passive || definitionOf(skillId)?.passive;
+        if (passive && plan.atJobLevel <= jobLevelOf(character, job.id)) return true;
+    }
+    return (character.passiveSlots ?? []).indexOf(skillId) !== -1;
+}
+
+/**
  * Resolves a skill id against the character's job progression: the spec of
  * the level the character currently has in its held job (level 1 for skills
  * the job does not teach). Own skills are always level 1.

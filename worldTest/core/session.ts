@@ -1416,6 +1416,7 @@ export class WorldSession {
             ...base,
             ...ownedJobSkills(character),
             ...secondaryJobSkillsOf(character),
+            ...(character.passiveSlots ?? []).filter((id): id is string => Boolean(id)),
             ...learned,
         ]) {
             if (ids.indexOf(id) === -1) ids.push(id);
@@ -1436,7 +1437,11 @@ export class WorldSession {
      */
     syncKnownSkills(): void {
         for (const character of [...this.team.getAll(), ...this.roster.all()]) {
-            for (const skillId of [...ownedJobSkills(character), ...secondaryJobSkillsOf(character)]) {
+            for (const skillId of [
+                ...ownedJobSkills(character),
+                ...secondaryJobSkillsOf(character),
+                ...(character.passiveSlots ?? []).filter((id): id is string => Boolean(id)),
+            ]) {
                 this.knownSkillIds.add(skillId);
             }
         }
@@ -1938,6 +1943,7 @@ export class WorldSession {
             // only offers them) and the second slot's job.
             heldJobs: character.heldJobs,
             secondaryJobId: character.secondaryJobId,
+            passiveSlots: character.passiveSlots,
             // The worldTest stats are part of the enhanced Statistics:
             // read them straight from the stats object.
             extraStats: {

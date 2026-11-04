@@ -31,6 +31,8 @@ export type SavedCharacter = {
     heldJobs?: string[];
     // The job feeding the second skill slot (optional: empty slot).
     secondaryJobId?: string;
+    // The two passive slots (optional: empty).
+    passiveSlots?: Array<string | null>;
     // The picture override (optional: characters without one follow
     // the held job's portrait).
     portraitId?: string;
