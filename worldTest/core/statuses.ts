@@ -335,6 +335,27 @@ export function defenceStandStatus(turns = 5, defenceAmount = 60, magicDefenceAm
 }
 
 /**
+ * Captain's Discipline: the captain's passive buff. Unlike the castable
+ * Defence Stand, this lasts the whole battle (PERMANENT), so the status
+ * chip does not show a turn counter.
+ */
+export function captainDisciplineStatus(defenceAmount = 20, magicDefenceAmount = 10): StatusDefinition {
+    return {
+        name: "Captain's Discipline",
+        polarity: 'positive',
+        description: `Passive: defence +${defenceAmount}%, magic defence +${magicDefenceAmount}%.`,
+        applyOn: 'after_turn',
+        duration: { type: 'PERMANENT' },
+        usageFrequency: 'PER_ACTION',
+        triggersOnAdd: true,
+        statsAffected: [
+            { from: 'defence', to: 'defence', value: defenceAmount, typeOfModification: 'BUFF_PERCENTAGE' },
+            { from: 'magicDefence', to: 'magicDefence', value: magicDefenceAmount, typeOfModification: 'BUFF_PERCENTAGE' },
+        ],
+    };
+}
+
+/**
  * Foot Shot (archers): the target limps and opens its guard: speed
  * -80% and defence -30% for `turns` turns (2 by default).
  */

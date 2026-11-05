@@ -11,6 +11,7 @@ import {
     impetuStatus,
     disarmStatus,
     defenceStandStatus,
+    captainDisciplineStatus,
     footShotStatus,
     concentrationStatus,
     astraStatus,
@@ -795,7 +796,7 @@ const RAW_SKILLS = {
         name: "Captain's Discipline",
         description: 'Passive: the captain holds the line with [armor]+20% defence[/armor] and [mr]+10% magic defence[/mr].',
         targeting: 'SELF',
-        statusOnSelf: defenceStandStatus(99, 20, 10),
+        statusOnSelf: captainDisciplineStatus(),
         passive: true,
     },
     // --- Pirate job skills (maxLevel 1 until growth values land) --------
