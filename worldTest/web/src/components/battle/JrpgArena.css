@@ -273,7 +273,14 @@
     image-rendering: pixelated;
 }
 
-.jrpg-enemy-side .jrpg-sprite-box {
+/* The enemy formation faces the allies: flip the sprite wrapper, not the
+   sprite box (the idle-breathe animation owns the box's transform and
+   would overwrite a flip applied there). */
+.jrpg-sprite-flip {
+    display: flex;
+}
+
+.jrpg-enemy-side .jrpg-sprite-flip {
     transform: scaleX(-1);
 }
 

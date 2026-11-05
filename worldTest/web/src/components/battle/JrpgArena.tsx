@@ -177,19 +177,21 @@ function ArenaEntity({
                 />
                 <StatBar value={mana} max={totalMana} type="mana" width={16} height={1} />
             </span>
-            <span
-                className="jrpg-sprite-box"
-                style={{
-                    // The element MUST be as big as the scaled frame;
-                    // background-size alone gets cropped by the CSS box.
-                    ...spriteBoxStyle(spriteAnimation, spriteBox),
-                    ...spriteFrameStyle(
-                        spriteAnimation,
-                        posing && attackAnim ? poseFrame : idleFrame,
-                        spriteScaleFor(spriteBox, spriteAnimation),
-                    ),
-                }}
-            />
+            <span className="jrpg-sprite-flip">
+                <span
+                    className="jrpg-sprite-box"
+                    style={{
+                        // The element MUST be as big as the scaled frame;
+                        // background-size alone gets cropped by the CSS box.
+                        ...spriteBoxStyle(spriteAnimation, spriteBox),
+                        ...spriteFrameStyle(
+                            spriteAnimation,
+                            posing && attackAnim ? poseFrame : idleFrame,
+                            spriteScaleFor(spriteBox, spriteAnimation),
+                        ),
+                    }}
+                />
+            </span>
         </div>
     );
 }
@@ -262,7 +264,13 @@ function TurnOrderStrip({
                         chip.enemy ? 'jrpg-order-chip--enemy' : '',
                         chip.id === activeId ? 'jrpg-order-chip--current' : '',
                     ].join(' ')}
-                    style={chip.animation ? spriteFrameStyle(chip.animation, 0) : undefined}
+                    style={chip.animation ? {
+                        // The chip is a fixed 16px box but the native sheets
+                        // differ (16px mage, 64px archer/warrior): scale the
+                        // background to the chip instead of cropping it.
+                        ...spriteBoxStyle(chip.animation, 16),
+                        ...spriteFrameStyle(chip.animation, 0, 16 / chip.animation.frameWidth),
+                    } : undefined}
                 />
             ))}
         </div>
