@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Character } from '@rpg';
-import { heldJobOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, skillUnavailableReason, intervalFromSpeed } from '@core';
+import { heldJobOf, passiveSkillIdsOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, skillUnavailableReason, intervalFromSpeed } from '@core';
 import type { SkillSpec } from '@core';
 import { SPRITES, spriteRoleOf } from '../../assets/sprites';
 import type { SpriteAnimation, SpriteSet } from '../../assets/sprites';
@@ -511,23 +511,44 @@ export function JrpgArena({
         };
     })();
 
-    // ---- the HUD banner character -------------------------------------
-    const bannerCharacter = allies.find((entry) => entry.id === activeId) ??
+    // ---- the bottom status rail ---------------------------------------
+    // The rail shows the acting unit (or the enemy just selected while
+    // targeting). It replaces the old top banner; the battle menu lives
+    // in its corner.
+    const railSelection = selection[0] ?
+        allies.concat(enemies).find((entry) => entry.id === selection[0]) :
+        undefined;
+    const railFallback = allies.find((entry) => entry.id === activeId) ??
         [activeId, inspectedId]
             .map((id) => allies.concat(enemies).find((entry) => entry.id === id))
             .find(Boolean) ??
         allies[0];
-    const bannerIsTurn = Boolean(bannerCharacter && bannerCharacter.id === activeId);
-    const bannerHp = bannerCharacter ? Math.round(bannerCharacter.stats.hp) : 0;
-    const bannerMaxHp = bannerCharacter ? Math.round(bannerCharacter.stats.totalHp) : 0;
-    const bannerMana = bannerCharacter ? Math.round(bannerCharacter.stats.mana ?? 0) : 0;
-    const bannerTotalMana = bannerCharacter ? Math.round(bannerCharacter.stats.totalMana ?? 0) : 0;
-    const bannerLevel = bannerCharacter ? bannerCharacter.experience.level : 0;
-    const bannerJob = bannerCharacter ? heldJobOf(bannerCharacter)?.title ?? '' : '';
-    const bannerSprite = bannerCharacter ?
-        SPRITES[spriteRoleOf(bannerCharacter) ?? 'warrior'].idle :
+    const railCharacter = railSelection ?? railFallback;
+    const railIsTarget = Boolean(railSelection && enemies.some((entry) => entry.id === railSelection.id));
+    const railIsTurn = Boolean(railCharacter && railCharacter.id === activeId);
+    const railName = railCharacter ? railCharacter.name : '—';
+    const railLevel = railCharacter ? railCharacter.experience.level : 0;
+    const railJob = railCharacter ? heldJobOf(railCharacter)?.title ?? '' : '';
+    const railHp = railCharacter ? Math.round(railCharacter.stats.hp) : 0;
+    const railMaxHp = railCharacter ? Math.round(railCharacter.stats.totalHp) : 0;
+    const railMana = railCharacter ? Math.round(railCharacter.stats.mana ?? 0) : 0;
+    const railTotalMana = railCharacter ? Math.round(railCharacter.stats.totalMana ?? 0) : 0;
+    const railSprite = railCharacter ?
+        SPRITES[spriteRoleOf(railCharacter) ?? 'warrior'].idle :
         undefined;
-    const bannerName = bannerCharacter ? bannerCharacter.name : '—';
+    const railStats = railCharacter ? [
+        { label: 'ATK', value: Math.round(railCharacter.getStat('attack')) },
+        { label: 'DEF', value: Math.round(railCharacter.getStat('defence')) },
+        { label: 'M.DEF', value: Math.round(railCharacter.getStat('magicDefence')) },
+        { label: 'SPD', value: Math.round(railCharacter.getStat('speed')) },
+    ] : [];
+    // Passives stay hidden on the enemy side: the player sees the target's
+    // stats but has to learn its passive by fighting it.
+    const railPassives = railCharacter && !railIsTarget ?
+        passiveSkillIdsOf(railCharacter)
+            .map((id) => specOf(id)?.name ?? id) :
+        [];
+    const railTag = railIsTarget ? '[TARGET]' : railIsTurn ? '[TURN]' : '[INFO]';
 
     const skills = (skillIds ?? [])
         .map((id) => specOf(id))
@@ -646,62 +667,37 @@ export function JrpgArena({
 
     return (
         <div className="jrpg-combat" ref={rootRef}>
-            {/* ---- the battle header: the acting character + menu ------ */}
-            <div className="jrpg-header">
-                <div className="jrpg-turn-left">
-                    <div
-                        className="jrpg-turn-avatar"
-                        style={bannerSprite ? spriteFrameStyle(bannerSprite, 0, 1.375) : undefined}
-                    />
-                    <div className="jrpg-turn-name-group">
-                        <div className="jrpg-turn-name">
-                            {bannerName}
-                            <span className={bannerIsTurn ? 'jrpg-turn-tag' : 'jrpg-info-tag'}>
-                                {bannerIsTurn ? '[TURN]' : '[INFO]'}
-                            </span>
-                        </div>
-                        <div className="jrpg-turn-class">LV. {bannerLevel} · {bannerJob}</div>
-                    </div>
-                </div>
-                <div className="jrpg-header-right">
-                    <div className="jrpg-turn-stats">
-                        <div className="jrpg-stat-pill jrpg-stat-pill--hp">HP {bannerHp}/{bannerMaxHp}</div>
-                        <div className="jrpg-stat-pill jrpg-stat-pill--mana">MANA {bannerMana}/{bannerTotalMana}</div>
-                    </div>
-                    <div className="jrpg-menu-wrap">
-                        <button
-                            type="button"
-                            className="jrpg-menu-btn"
-                            aria-label="Battle menu"
-                            onClick={() => setMenuOpen((value) => !value)}
-                        >
-                            <span />
-                            <span />
-                            <span />
-                        </button>
-                        {menuOpen ? (
-                            <div className="jrpg-menu">
-                                <button
-                                    type="button"
-                                    className="pixel-btn pixel-btn--danger"
-                                    onClick={() => {
-                                        setMenuOpen(false);
-                                        onFlee();
-                                    }}
-                                >
-                                    🏃 Huir
-                                </button>
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
-            </div>
-
             {/* ---- the tilted arena ------------------------------------ */}
             <div
                 className="jrpg-arena"
                 ref={arenaRef}
             >
+                <div className="jrpg-menu-float">
+                    <button
+                        type="button"
+                        className="jrpg-menu-btn"
+                        aria-label="Battle menu"
+                        onClick={() => setMenuOpen((value) => !value)}
+                    >
+                        <span />
+                        <span />
+                        <span />
+                    </button>
+                    {menuOpen ? (
+                        <div className="jrpg-menu">
+                            <button
+                                type="button"
+                                className="pixel-btn pixel-btn--danger"
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    onFlee();
+                                }}
+                            >
+                                🏃 Huir
+                            </button>
+                        </div>
+                    ) : null}
+                </div>
                 <div
                     className="jrpg-camera"
                     style={{
@@ -770,8 +766,64 @@ export function JrpgArena({
                         .filter((entry) => entry.animation)}
                     activeId={order?.[0]?.id ?? activeId}
                 />
+            </div>
 
-                <div className="jrpg-arena-vignette" />
+            {/* ---- the bottom status rail: acting / targeted unit ------ */}
+            <div className="jrpg-status-rail">
+                <div
+                    className="jrpg-rail-avatar"
+                    style={railSprite ? {
+                        ...spriteBoxStyle(railSprite, 40),
+                        ...spriteFrameStyle(railSprite, 0, 40 / railSprite.frameWidth),
+                    } : undefined}
+                />
+                <div className="jrpg-rail-main">
+                    <div className="jrpg-rail-head">
+                        <span className="jrpg-rail-name">
+                            {railName}
+                            <span className={railIsTarget ? 'jrpg-rail-tag jrpg-rail-tag--target' : 'jrpg-rail-tag'}>
+                                {railTag}
+                            </span>
+                        </span>
+                        <span className="jrpg-rail-sub">LV {railLevel} · {railJob}</span>
+                    </div>
+                    <div className="jrpg-rail-bars">
+                        <div className="jrpg-rail-bar-row">
+                            <span className="jrpg-rail-bar-label">HP</span>
+                            <span className="jrpg-rail-bar">
+                                <span
+                                    className="jrpg-rail-bar-fill jrpg-rail-bar-fill--hp"
+                                    style={{ width: `${railMaxHp > 0 ? (railHp / railMaxHp) * 100 : 0}%` }}
+                                />
+                            </span>
+                            <span className="jrpg-rail-num">{railHp}/{railMaxHp}</span>
+                        </div>
+                        <div className="jrpg-rail-bar-row">
+                            <span className="jrpg-rail-bar-label">MP</span>
+                            <span className="jrpg-rail-bar">
+                                <span
+                                    className="jrpg-rail-bar-fill jrpg-rail-bar-fill--mana"
+                                    style={{ width: `${railTotalMana > 0 ? (railMana / railTotalMana) * 100 : 0}%` }}
+                                />
+                            </span>
+                            <span className="jrpg-rail-num">{railMana}/{railTotalMana}</span>
+                        </div>
+                    </div>
+                    <div className="jrpg-rail-footer">
+                        {railStats.map((stat) => (
+                            <span key={stat.label} className="jrpg-rail-stat">
+                                {stat.label} {stat.value}
+                            </span>
+                        ))}
+                        {railIsTarget ? (
+                            <span className="jrpg-rail-passives jrpg-rail-passives--unknown">Passive: ???</span>
+                        ) : railPassives.length > 0 ? (
+                            <span className="jrpg-rail-passives" title={railPassives.join(' · ')}>
+                                Passive: {railPassives.join(' · ')}
+                            </span>
+                        ) : null}
+                    </div>
+                </div>
             </div>
 
             {/* ---- the bottom panel: commands, skills or targets ---- */}

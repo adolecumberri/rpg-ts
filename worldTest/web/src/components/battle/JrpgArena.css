@@ -619,3 +619,156 @@
 .jrpg-stat-pill--mana {
     color: var(--info);
 }
+/* The bottom status rail: the acting (or selected) fighter, replacing the
+   old top banner. It reserves its own height, so it never covers the
+   front row's feet. */
+.jrpg-status-rail {
+    flex: none;
+    height: 96px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: linear-gradient(#1b0e07, #0e0602);
+    border-top: 2px solid #5a3016;
+    color: #e8d5b5;
+    z-index: 26;
+}
+
+.jrpg-rail-avatar {
+    flex: none;
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    image-rendering: pixelated;
+}
+
+.jrpg-rail-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.jrpg-rail-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+}
+
+.jrpg-rail-name {
+    font-family: var(--font-display);
+    font-size: var(--display-sm);
+    color: #ffe9a8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.jrpg-rail-tag {
+    margin-left: 4px;
+    font-size: var(--display-xs);
+    color: var(--gold-strong);
+}
+
+.jrpg-rail-tag--target {
+    color: #fca5a5;
+}
+
+.jrpg-rail-sub {
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: #b08d6a;
+    white-space: nowrap;
+}
+
+.jrpg-rail-bars {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.jrpg-rail-bar-label {
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: #b08d6a;
+}
+
+.jrpg-rail-bar {
+    width: 56px;
+    height: 5px;
+    background: #2a130a;
+    border: 1px solid #4a2410;
+    overflow: hidden;
+}
+
+.jrpg-rail-bar-fill {
+    display: block;
+    height: 100%;
+}
+
+.jrpg-rail-bar-fill--hp {
+    background: #4ade80;
+}
+
+.jrpg-rail-bar-fill--mana {
+    background: #60a5fa;
+}
+
+.jrpg-rail-num {
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: #e8d5b5;
+    min-width: 38px;
+}
+
+.jrpg-rail-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.jrpg-rail-stat {
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: #e8d5b5;
+    white-space: nowrap;
+}
+
+.jrpg-rail-passives {
+    font-family: var(--font-display);
+    font-size: var(--display-xs);
+    color: #9fd3a8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.jrpg-rail-passives--unknown {
+    color: #a1a1aa;
+}
+
+/* The battle menu floats over the arena's top-left corner (the turn strip
+   owns the right corner). */
+.jrpg-menu-float {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 35;
+}
+
+.jrpg-rail-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.jrpg-rail-bar-row {
+    display: grid;
+    grid-template-columns: 20px 64px 44px;
+    align-items: center;
+    gap: 4px;
+}
