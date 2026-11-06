@@ -82,6 +82,7 @@
     opacity: 0.8;
     pointer-events: none;
     animation: jrpg-ember-float 6s infinite linear;
+    z-index: 2;
 }
 
 @keyframes jrpg-ember-float {
@@ -107,7 +108,7 @@
 .jrpg-ground {
     position: absolute;
     width: 380px;
-    height: 440px;
+    height: 474px;
     left: -30px;
     top: 10px;
     transform: rotateX(60deg) translateZ(0);
@@ -322,8 +323,8 @@
 /* The chip renders the fighter's own sprite (16px, pixelated): the
    icon marks who is who in the queue. */
 .jrpg-order-chip {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border: 1px solid #733c1a;
     display: flex;
     align-items: center;
@@ -619,12 +620,13 @@
 .jrpg-stat-pill--mana {
     color: var(--info);
 }
+
 /* The bottom status rail: the acting (or selected) fighter, replacing the
    old top banner. It reserves its own height, so it never covers the
    front row's feet. */
 .jrpg-status-rail {
     flex: none;
-    height: 96px;
+    height: 48px;
     display: flex;
     align-items: center;
     gap: 8px;

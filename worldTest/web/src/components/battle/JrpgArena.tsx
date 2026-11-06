@@ -717,7 +717,7 @@ export function JrpgArena({
                         {actorSpot ? (
                             <div
                                 className="jrpg-active-tile jrpg-active-tile--actor"
-                                style={{ left: actorSpot.x, top: actorSpot.y }}
+                                style={{ left: actorSpot.x, top: actorSpot.y + 6 }}
                             />
                         ) : null}
                         {renderSide('ally', allySpots)}
