@@ -35,7 +35,7 @@ export const CENTER_GAP = 28;
 // The distance between the rows of one side.
 export const ROW_GAP = 56;
 // The sprite render box (design px; the entity CSS draws it at 2x).
-export const SPRITE_BOX = 28;
+export const SPRITE_BOX = 32;
 // Minimum lane pitch: units in one row must not overlap. The maximum is
 // whatever the ground band can give: rows spread across the whole band.
 const LANE_MIN_PITCH = SPRITE_BOX + 4;

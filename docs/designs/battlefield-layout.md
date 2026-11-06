@@ -79,7 +79,7 @@ left to a future auto-battle mode.
   when total combatants are ≤10, so 12v12 is a dev-screen shape. Keep 12 as a
   dev-only target for now, or raise the threshold and fit it in this change?
 - **Density at 9–12:** resolved in implementation: lanes run along the
-  vertical ground band, so 4-unit rows fit at the full 28px sprite box. Revisit
+  vertical ground band, so 4-unit rows fit at the full 32px sprite box. Revisit
   only if real 12v12 readability (bars/status chips) needs spacing changes.
 - **Battlefield cards:** `Battlefield`/`battleUnits` still group by
   `character.position`. Do the cards get re-sourced from formation slots in
@@ -387,7 +387,7 @@ owner can revise them at review.
 
 *   Arena entry threshold is **not** raised. Gameplay keeps its ≤10 total gate;
     7–12 formations are exercised only on the dev screen until a later change.
-*   The sprite box stays at 28 design px for every count. The formation
+*   The sprite box stays at 32 design px for every count. The formation
     spreads lanes vertically, so 12 per side fits without shrinking sprites;
     the entity CSS stays at a uniform 2× scale.
 *   `Battlefield.tsx` / `battleUnits.ts` keep their current row source; they
