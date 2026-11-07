@@ -4,6 +4,7 @@ import mapaSrc from '../../../../assets/maps/mapa.webp';
 import { MAP_PLACE_IDS, MAP_PLACES } from '../../components/WorldMap/mapPlaces';
 import type { MapPlaceId } from '../../components/WorldMap/mapPlaces';
 import { MAP_HEIGHT, MAP_WIDTH } from '../../components/WorldMap/mask';
+import { Modal } from '../../components/chrome/Modal';
 import './MapEditorScreen.css';
 
 /**
@@ -113,10 +114,51 @@ export function MapEditorScreen() {
     const [mode, setMode] = useState<Mode>('idle');
     const [draft, setDraft] = useState<Draft>({ via: [] });
     const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
+    const [openModal, setOpenModal] = useState<'tools' | 'lists' | 'data' | null>(null);
     const [message, setMessage] = useState('Pick a tool, then click the map.');
     const [zoom, setZoom] = useState(0.45);
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const viewportRef = useRef<HTMLDivElement | null>(null);
+    const zoomRef = useRef(zoom);
+    const panRef = useRef(pan);
+
+    useEffect(() => {
+        zoomRef.current = zoom;
+    }, [zoom]);
+
+    useEffect(() => {
+        panRef.current = pan;
+    }, [pan]);
+
+    // Native non-passive wheel listener: the page must not scroll while
+    // the cursor is over the map. React's synthetic wheel handler cannot
+    // reliably prevent the page scroll.
+    useEffect(() => {
+        const node = viewportRef.current;
+        if (!node) return;
+        const onWheel = (event: WheelEvent): void => {
+            event.preventDefault();
+            const rect = node.getBoundingClientRect();
+            const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
+            const currentZoom = zoomRef.current;
+            const currentPan = panRef.current;
+            const nextZoom = clamp(currentZoom * factor, MIN_ZOOM, MAX_ZOOM);
+            const cursorX = event.clientX - rect.left;
+            const cursorY = event.clientY - rect.top;
+            const mapX = (cursorX - currentPan.x) / currentZoom;
+            const mapY = (cursorY - currentPan.y) / currentZoom;
+            const nextPan = {
+                x: cursorX - mapX * nextZoom,
+                y: cursorY - mapY * nextZoom,
+            };
+            zoomRef.current = nextZoom;
+            panRef.current = nextPan;
+            setZoom(nextZoom);
+            setPan(nextPan);
+        };
+        node.addEventListener('wheel', onWheel, { passive: false });
+        return () => node.removeEventListener('wheel', onWheel);
+    }, []);
     const dragRef = useRef<{
         startX: number;
         startY: number;
@@ -283,6 +325,7 @@ export function MapEditorScreen() {
 
     const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>): void => {
         if (event.button !== 0) return;
+        event.preventDefault();
         dragRef.current = {
             startX: event.clientX,
             startY: event.clientY,
@@ -306,23 +349,6 @@ export function MapEditorScreen() {
     const handlePointerUp = (): void => {
         if (dragRef.current?.moved) suppressClickRef.current = true;
         dragRef.current = null;
-    };
-
-    const handleWheel = (event: React.WheelEvent<HTMLDivElement>): void => {
-        const viewport = viewportRef.current;
-        if (!viewport) return;
-        const rect = viewport.getBoundingClientRect();
-        const factor = event.deltaY < 0 ? 1.2 : 1 / 1.2;
-        const nextZoom = clamp(zoom * factor, MIN_ZOOM, MAX_ZOOM);
-        const cursorX = event.clientX - rect.left;
-        const cursorY = event.clientY - rect.top;
-        const mapX = (cursorX - pan.x) / zoom;
-        const mapY = (cursorY - pan.y) / zoom;
-        setZoom(nextZoom);
-        setPan({
-            x: cursorX - mapX * nextZoom,
-            y: cursorY - mapY * nextZoom,
-        });
     };
 
     const centerOn = (placeId: MapPlaceId): void => {
@@ -391,67 +417,39 @@ export function MapEditorScreen() {
         return start ? [start, ...middle] : [];
     }, [draft, pointById]);
 
+    const selectMode = (next: Mode): void => {
+        setMode(next);
+        setDraft({ via: [] });
+        setOpenModal(null);
+        setMessage(
+            next === 'add' ? 'Click the map to add a waypoint.' :
+                next === 'delete' ? 'Click a waypoint rectangle to delete it.' :
+                    next === 'route' ? 'Click the origin place, its waypoints and the destination place.' :
+                        'Click a waypoint or place to inspect it.',
+        );
+    };
+
+    const deleteRoutePair = (routeId: string): void => {
+        const base = routeId.replace(/_rev$/, '');
+        setRoutes((previous) => previous.filter((route) => route.id !== base && route.id !== `${base}_rev`));
+        setMessage('Route removed.');
+    };
+
     return (
         <div className="action-bar-demo map-editor-page pixel-font">
             <div className="action-bar-demo-content">
                 <div className="pixel-panel">
                     <div className="pixel-title">Map Route Editor</div>
-                    <div className="map-editor-toolbar">
-                        <button
-                            type="button"
-                            className={`pixel-btn${mode === 'idle' ? ' pixel-btn--primary' : ''}`}
-                            onClick={() => { setMode('idle'); setDraft({ via: [] }); }}
-                        >
-                            Inspect
+                    <div className="map-editor-topbar">
+                        <button type="button" className="pixel-btn" onClick={() => setOpenModal('tools')}>
+                            Tools
                         </button>
-                        <button
-                            type="button"
-                            className={`pixel-btn${mode === 'add' ? ' pixel-btn--primary' : ''}`}
-                            onClick={() => { setMode('add'); setDraft({ via: [] }); }}
-                        >
-                            Add point
+                        <button type="button" className="pixel-btn" onClick={() => setOpenModal('lists')}>
+                            Waypoints &amp; Routes
                         </button>
-                        <button
-                            type="button"
-                            className={`pixel-btn${mode === 'delete' ? ' pixel-btn--danger' : ''}`}
-                            onClick={() => { setMode('delete'); setDraft({ via: [] }); }}
-                        >
-                            Delete point
+                        <button type="button" className="pixel-btn" onClick={() => setOpenModal('data')}>
+                            Data
                         </button>
-                        <button
-                            type="button"
-                            className={`pixel-btn${mode === 'route' ? ' pixel-btn--primary' : ''}`}
-                            onClick={() => { setMode('route'); setDraft({ via: [] }); }}
-                        >
-                            Route
-                        </button>
-                        <button type="button" className="pixel-btn" onClick={() => setZoom((value) => clamp(value / 1.25, MIN_ZOOM, MAX_ZOOM))}>
-                            −
-                        </button>
-                        <span className="map-editor-zoom">{Math.round(zoom * 100)}%</span>
-                        <button type="button" className="pixel-btn" onClick={() => setZoom((value) => clamp(value * 1.25, MIN_ZOOM, MAX_ZOOM))}>
-                            +
-                        </button>
-                        <button type="button" className="pixel-btn" onClick={() => centerOn('camp')}>
-                            Center camp
-                        </button>
-                    </div>
-                    <div className="map-editor-toolbar">
-                        <button type="button" className="pixel-btn pixel-btn--primary" onClick={exportData}>
-                            Download JSON
-                        </button>
-                        <button type="button" className="pixel-btn" onClick={() => { void copyData(); }}>
-                            Copy JSON
-                        </button>
-                        <button type="button" className="pixel-btn" onClick={clearRoutes}>
-                            Clear routes
-                        </button>
-                        <button type="button" className="pixel-btn pixel-btn--danger" onClick={resetEditor}>
-                            Reset editor
-                        </button>
-                        <span className="map-editor-count">
-                            {points.length} points · {routes.length} directed routes
-                        </span>
                     </div>
                     <div className="map-editor-hint">{message}</div>
                     {mode === 'route' ? (
@@ -467,7 +465,6 @@ export function MapEditorScreen() {
                     <div
                         ref={viewportRef}
                         className="map-editor-viewport"
-                        onWheel={handleWheel}
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
                         onPointerUp={handlePointerUp}
@@ -477,6 +474,7 @@ export function MapEditorScreen() {
                             className="map-editor-world"
                             style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
                             onClick={handleWorldClick}
+                            onDragStart={(event) => event.preventDefault()}
                         >
                             <img
                                 className="map-editor-image"
@@ -544,45 +542,110 @@ export function MapEditorScreen() {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div className="pixel-panel">
-                    <div className="pixel-title">Waypoints</div>
+            <Modal title="Tools" open={openModal === 'tools'} onClose={() => setOpenModal(null)} size="lg">
+                <div className="map-editor-modal">
+                    <div className="pixel-caption">Pick a tool to work on the map.</div>
+                    <div className="map-editor-toolbar">
+                        <button type="button" className={`pixel-btn${mode === 'idle' ? ' pixel-btn--primary' : ''}`} onClick={() => selectMode('idle')}>
+                            Inspect
+                        </button>
+                        <button type="button" className={`pixel-btn${mode === 'add' ? ' pixel-btn--primary' : ''}`} onClick={() => selectMode('add')}>
+                            Add point
+                        </button>
+                        <button type="button" className={`pixel-btn${mode === 'delete' ? ' pixel-btn--danger' : ''}`} onClick={() => selectMode('delete')}>
+                            Delete point
+                        </button>
+                        <button type="button" className={`pixel-btn${mode === 'route' ? ' pixel-btn--primary' : ''}`} onClick={() => selectMode('route')}>
+                            Route
+                        </button>
+                    </div>
+                    <div className="map-editor-toolbar">
+                        <button type="button" className="pixel-btn" onClick={() => setZoom((value) => clamp(value / 1.25, MIN_ZOOM, MAX_ZOOM))}>
+                            −
+                        </button>
+                        <span className="map-editor-zoom">{Math.round(zoom * 100)}%</span>
+                        <button type="button" className="pixel-btn" onClick={() => setZoom((value) => clamp(value * 1.25, MIN_ZOOM, MAX_ZOOM))}>
+                            +
+                        </button>
+                        <button type="button" className="pixel-btn" onClick={() => centerOn('camp')}>
+                            Center camp
+                        </button>
+                    </div>
+                    <div className="pixel-caption">
+                        Drag the map to pan. The wheel zooms at the cursor without scrolling the page.
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal
+                title="Waypoints & Routes"
+                open={openModal === 'lists'}
+                onClose={() => setOpenModal(null)}
+                size="lg"
+            >
+                <div className="map-editor-modal">
+                    <div className="pixel-title">Waypoints ({points.length})</div>
                     {points.length === 0 ? (
-                        <div className="pixel-caption">No waypoints yet. Use “Add point” and click the map.</div>
+                        <div className="pixel-caption">No waypoints yet. Use Tools → Add point.</div>
                     ) : (
                         <div className="map-editor-list">
                             {points.map((point) => (
                                 <div key={point.id} className="map-editor-list-row">
                                     <span>{point.id}</span>
                                     <span className="map-editor-list-meta">{point.x}, {point.y}</span>
-                                    <button
-                                        type="button"
-                                        className="pixel-btn pixel-btn--danger"
-                                        onClick={() => deletePoint(point.id)}
-                                    >
+                                    <button type="button" className="pixel-btn pixel-btn--danger" onClick={() => deletePoint(point.id)}>
                                         Delete
                                     </button>
                                 </div>
                             ))}
                         </div>
                     )}
-                    <div className="pixel-title" style={{ marginTop: 'var(--s2)' }}>Routes</div>
+                    <div className="pixel-title" style={{ marginTop: 'var(--s2)' }}>Routes ({routes.length} directed)</div>
                     {routes.length === 0 ? (
-                        <div className="pixel-caption">No routes yet. Use “Route”, click a place, its waypoints and the destination place.</div>
+                        <div className="pixel-caption">No routes yet. Use Tools → Route.</div>
                     ) : (
                         <div className="map-editor-list">
                             {routes.map((route) => (
                                 <div key={route.id} className="map-editor-list-row">
                                     <span>{placeName(route.from)} → {placeName(route.to)}</span>
-                                    <span className="map-editor-list-meta">
-                                        {route.via.length} wp
-                                    </span>
+                                    <span className="map-editor-list-meta">{route.via.length} wp</span>
+                                    <button type="button" className="pixel-btn pixel-btn--danger" onClick={() => deleteRoutePair(route.id)}>
+                                        Delete
+                                    </button>
                                 </div>
                             ))}
                         </div>
                     )}
                 </div>
-            </div>
+            </Modal>
+
+            <Modal title="Data" open={openModal === 'data'} onClose={() => setOpenModal(null)} size="lg">
+                <div className="map-editor-modal">
+                    <div className="pixel-caption">
+                        {points.length} waypoints · {routes.length} directed routes.
+                        The JSON contains one entry per direction so the reverse route is explicit.
+                    </div>
+                    <div className="map-editor-toolbar">
+                        <button type="button" className="pixel-btn pixel-btn--primary" onClick={exportData}>
+                            Download JSON
+                        </button>
+                        <button type="button" className="pixel-btn" onClick={() => { void copyData(); }}>
+                            Copy JSON
+                        </button>
+                        <button type="button" className="pixel-btn" onClick={clearRoutes}>
+                            Clear routes
+                        </button>
+                        <button type="button" className="pixel-btn pixel-btn--danger" onClick={resetEditor}>
+                            Reset editor
+                        </button>
+                    </div>
+                    <div className="pixel-caption">
+                        The editor autosaves to this browser while you work. Download/Copy is the data to commit.
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

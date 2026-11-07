@@ -178,3 +178,50 @@
     margin-left: auto;
     color: var(--text-dim);
 }
+
+/* The editor page keeps only three buttons and the map: the rest lives in
+   modals so the map gets the available height. */
+.map-editor-page .action-bar-demo-content {
+    overflow: hidden;
+}
+
+.map-editor-page .pixel-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.map-editor-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2);
+    margin-bottom: var(--s2);
+}
+
+.map-editor-topbar .pixel-btn {
+    flex: 1;
+}
+
+.map-editor-viewport {
+    flex: 1;
+    min-height: 260px;
+    height: auto;
+}
+
+.map-editor-modal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    min-height: 0;
+}
+
+.map-editor-modal .map-editor-list {
+    max-height: 300px;
+}
+
+.map-editor-image,
+.map-editor-world {
+    user-select: none;
+    -webkit-user-drag: none;
+}
