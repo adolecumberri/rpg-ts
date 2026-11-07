@@ -1,0 +1,106 @@
+/* The marble-bag dev page. */
+.marble-page {
+    min-height: 0;
+}
+
+.marble-intro {
+    max-width: 52ch;
+    line-height: 1.4;
+}
+
+.marble-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    margin-top: var(--s2);
+}
+
+.marble-actions-note {
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+}
+
+.marble-grid {
+    display: grid;
+    gap: var(--s2);
+}
+
+.marble-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s2);
+}
+
+.marble-card-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    color: var(--gold-bright);
+}
+
+.marble-card-count {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+}
+
+.marble-card-meta {
+    margin-top: var(--s1);
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+}
+
+.marble-card-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2);
+    margin-top: var(--s2);
+}
+
+.marble-entry-row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s2);
+    padding: var(--s1) 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+    font-size: var(--text-sm);
+}
+
+.marble-entry-weight {
+    color: var(--text-dim);
+}
+
+.marble-entries-subtitle {
+    margin-top: var(--s2);
+}
+
+.marble-history-list {
+    margin-top: var(--s1);
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.marble-history-row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s2);
+    padding: var(--s1) 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+    font-size: var(--text-sm);
+}
+
+.marble-history-bag {
+    color: var(--text-dim);
+}
+
+.marble-history-result--good {
+    color: #86efac;
+}
+
+.marble-history-result--bad {
+    color: #fca5a5;
+}
+
+.marble-history-result--item {
+    color: var(--gold-bright);
+}

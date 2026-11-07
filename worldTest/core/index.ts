@@ -7,6 +7,7 @@ export * from './inventory';
 export * from './world';
 export * from './session';
 export * from './loot';
+export * from './random/marbleBag';
 export * from './encounters';
 export * from './damage';
 export * from './skillTree';

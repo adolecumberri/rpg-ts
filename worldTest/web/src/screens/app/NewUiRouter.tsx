@@ -57,6 +57,7 @@ const DEV_PAGES = [
     { id: 'flags', label: 'Flags', symbol: 'flag', caption: 'Toggle every story flag' },
     { id: 'rogue', label: 'Roguelite', symbol: 'casino', caption: 'Team · waves · weapon rewards' },
     { id: 'jobs', label: 'Jobs', symbol: 'work', caption: 'Growth · bonuses · skill ladders' },
+    { id: 'marbles', label: 'Marble Bags', symbol: 'casino', caption: 'Crit · evasion · nested drops' },
 ] as const;
 
 // The submenu opener: row 04 of the main menu.
@@ -81,6 +82,7 @@ const DEV_LOADERS: Record<string, () => Promise<{ default: ComponentType<{ onBac
         flags: () => import('../dev/FlagsScreen').then((m) => ({ default: m.FlagsScreen })),
         rogue: () => import('../dev/RogueliteScreen').then((m) => ({ default: m.RogueliteScreen })),
         jobs: () => import('../dev/JobsScreen').then((m) => ({ default: m.JobsScreen })),
+        marbles: () => import('../dev/MarbleBagScreen').then((m) => ({ default: m.MarbleBagScreen })),
     } : {};
 
 const PAGES = [...MAIN_PAGES, ...DEV_PAGES] as const;
