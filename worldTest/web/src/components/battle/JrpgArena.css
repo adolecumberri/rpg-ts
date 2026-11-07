@@ -774,3 +774,12 @@
     align-items: center;
     gap: 4px;
 }
+/* The fight body keeps the place-view primitives: the battlefield fills
+   the available height, the action bar sits below it. */
+.jrpg-field {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}

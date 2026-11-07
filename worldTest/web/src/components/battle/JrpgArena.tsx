@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Character } from '@rpg';
 import { heldJobOf, passiveSkillIdsOf, specOf, skillEffectSummary, canAffordSkill, skillCostLabel, skillUnavailableReason, intervalFromSpeed } from '@core';
 import type { SkillSpec } from '@core';
@@ -249,13 +250,15 @@ function EffectPlayer({
 function TurnOrderStrip({
     chips,
     activeId,
+    maxChips = 5,
 }: {
     chips: { id: string; enemy: boolean; name?: string; animation?: SpriteAnimation }[];
     activeId?: string;
+    maxChips?: number;
 }) {
     return (
         <div className="jrpg-turn-order-strip">
-            {chips.slice(0, 10).map((chip, index) => (
+            {chips.slice(0, maxChips).map((chip, index) => (
                 <span
                     key={`${chip.id}-${index}`}
                     title={chip.name}
@@ -290,6 +293,7 @@ export function JrpgArena({
     effects,
     onEffectDone,
     acting,
+    maxOrderChips = 5,
     onTarget,
     onInspect,
     onSkill,
@@ -322,6 +326,8 @@ export function JrpgArena({
     // The acting fighter (its entity plays the attack pose one-shot per
     // nonce change).
     acting?: { actorId: string; nonce: number } | null;
+    // How many portraits the turn-order strip shows (default 5).
+    maxOrderChips?: number;
     onTarget: (id: string) => void;
     onInspect: (id: string) => void;
     // Cast a skill; the optional targetIds are the player's picks for
@@ -665,8 +671,40 @@ export function JrpgArena({
         setAttacking(true);
     };
 
+    // The turn-order strip lives in the app header during a fight. The
+    // header slot is rendered by NewUiRouter; look it up after mount
+    // (during the first render the header is not committed yet).
+    const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
+    useEffect(() => {
+        setHeaderSlot(document.getElementById('newui-header-battle-slot'));
+    }, []);
+    const orderStrip = (
+        <TurnOrderStrip
+            chips={(order ?? [...allies, ...enemies].map((entry) => ({
+                id: entry.id,
+                enemy: enemies.some((enemy) => enemy.id === entry.id),
+            }))).map((entry) => {
+                const character = allies.concat(enemies)
+                    .find((candidate) => candidate.id === entry.id);
+                return {
+                    ...entry,
+                    name: character?.name ?? entry.id,
+                    animation: character ?
+                        SPRITES[spriteRoleOf(character) ?? 'warrior'].idle :
+                        undefined,
+                };
+            })
+                // Sprite-only: chips without a picture (no matching
+                // fighter) are dropped, never numbered.
+                .filter((entry) => entry.animation)}
+            activeId={order?.[0]?.id ?? activeId}
+            maxChips={maxOrderChips}
+        />
+    );
+
     return (
         <div className="jrpg-combat" ref={rootRef}>
+            <div className="place-view jrpg-field">
             {/* ---- the tilted arena ------------------------------------ */}
             <div
                 className="jrpg-arena"
@@ -746,26 +784,7 @@ export function JrpgArena({
                     ) : null}
                 </div>
 
-                <TurnOrderStrip
-                    chips={(order ?? [...allies, ...enemies].map((entry) => ({
-                        id: entry.id,
-                        enemy: enemies.some((enemy) => enemy.id === entry.id),
-                    }))).map((entry) => {
-                        const character = allies.concat(enemies)
-                            .find((candidate) => candidate.id === entry.id);
-                        return {
-                            ...entry,
-                            name: character?.name ?? entry.id,
-                            animation: character ?
-                                SPRITES[spriteRoleOf(character) ?? 'warrior'].idle :
-                                undefined,
-                        };
-                    })
-                        // Sprite-only: chips without a picture (no
-                        // matching fighter) are dropped, never numbered.
-                        .filter((entry) => entry.animation)}
-                    activeId={order?.[0]?.id ?? activeId}
-                />
+                {headerSlot ? null : orderStrip}
             </div>
 
             {/* ---- the bottom status rail: acting / targeted unit ------ */}
@@ -825,6 +844,9 @@ export function JrpgArena({
                     </div>
                 </div>
             </div>
+            </div>
+
+            {headerSlot ? createPortal(orderStrip, headerSlot) : null}
 
             {/* ---- the bottom panel: commands, skills or targets ---- */}
             {activeId && skillsOpen ? (

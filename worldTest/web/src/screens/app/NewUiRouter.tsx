@@ -257,22 +257,23 @@ export function NewUiRouter() {
 
     return (
         <div className="newui-shell pixel-font" style={{ position: 'relative' }}>
-            {/* The battle screen brings its own header (the acting
-                character + the battle menu), so the app header hides
-                while a fight is on. */}
-            {!combat ? (
-                <div className="newui-header">
-                    <button
-                        type="button"
-                        className="newui-header-menu pixel-btn"
-                        aria-label="Menu"
-                        aria-expanded={menuOpen}
-                        onClick={toggleMenu}
-                    >
-                        <span className="newui-header-menu-bar" />
-                        <span className="newui-header-menu-bar" />
-                        <span className="newui-header-menu-bar" />
-                    </button>
+            {/* The app header stays while a fight is on; the combat view
+                portals its turn-order strip into the battle slot. */}
+            <div className="newui-header">
+                <button
+                    type="button"
+                    className="newui-header-menu pixel-btn"
+                    aria-label="Menu"
+                    aria-expanded={menuOpen}
+                    onClick={toggleMenu}
+                >
+                    <span className="newui-header-menu-bar" />
+                    <span className="newui-header-menu-bar" />
+                    <span className="newui-header-menu-bar" />
+                </button>
+                {combat ? (
+                    <div id="newui-header-battle-slot" className="newui-header-battle-slot" />
+                ) : (
                     <div className="newui-header-context">
                         <div className="newui-header-region-row">
                             <span className="newui-header-region">{countryLabel}</span>
@@ -289,12 +290,12 @@ export function NewUiRouter() {
                             <span className="newui-header-season">{api.session.calendar.season().icon}</span>
                         </div>
                     </div>
-                    <div className="newui-header-logo">
-                        <span className="newui-header-logo-name">RPG-TS</span>
-                        <span className="newui-header-save">SAVE: OK</span>
-                    </div>
+                )}
+                <div className="newui-header-logo">
+                    <span className="newui-header-logo-name">RPG-TS</span>
+                    <span className="newui-header-save">SAVE: OK</span>
                 </div>
-            ) : null}
+            </div>
 
             <div className="newui-body">
                 <PageBoundary>

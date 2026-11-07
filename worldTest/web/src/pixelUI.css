@@ -537,7 +537,6 @@ f2ca50 // acento
     gap: var(--s2);
     padding: var(--s1) var(--s2);
     background: #220d0d;
-    border-bottom: 2px solid #000;
     box-shadow:
         inset 2px 2px 0 0 rgba(255, 200, 160, 0.28),
         inset -2px -2px 0 0 rgba(0, 0, 0, 0.75),
@@ -3855,4 +3854,19 @@ f2ca50 // acento
 .job-pick-req {
     font-size: var(--text-lg);
     text-align: center;
+}
+/* The combat view portals its turn-order strip into the app header. */
+.newui-header-battle-slot {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.newui-header-battle-slot .jrpg-turn-order-strip {
+    position: static;
+    top: auto;
+    right: auto;
+    z-index: auto;
 }
