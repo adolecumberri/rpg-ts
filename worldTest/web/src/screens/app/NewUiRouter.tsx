@@ -58,6 +58,7 @@ const DEV_PAGES = [
     { id: 'rogue', label: 'Roguelite', symbol: 'casino', caption: 'Team · waves · weapon rewards' },
     { id: 'jobs', label: 'Jobs', symbol: 'work', caption: 'Growth · bonuses · skill ladders' },
     { id: 'marbles', label: 'Marble Bags', symbol: 'casino', caption: 'Crit · evasion · nested drops' },
+    { id: 'mapedit', label: 'Map Editor', symbol: 'map', caption: 'Waypoints · routes · export' },
 ] as const;
 
 // The submenu opener: row 04 of the main menu.
@@ -83,6 +84,7 @@ const DEV_LOADERS: Record<string, () => Promise<{ default: ComponentType<{ onBac
         rogue: () => import('../dev/RogueliteScreen').then((m) => ({ default: m.RogueliteScreen })),
         jobs: () => import('../dev/JobsScreen').then((m) => ({ default: m.JobsScreen })),
         marbles: () => import('../dev/MarbleBagScreen').then((m) => ({ default: m.MarbleBagScreen })),
+        mapedit: () => import('../dev/MapEditorScreen').then((m) => ({ default: m.MapEditorScreen })),
     } : {};
 
 const PAGES = [...MAIN_PAGES, ...DEV_PAGES] as const;

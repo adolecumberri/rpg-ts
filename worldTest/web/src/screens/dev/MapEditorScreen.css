@@ -1,0 +1,180 @@
+/* The map route editor (dev page). */
+
+.map-editor-page {
+    min-height: 0;
+}
+
+.map-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s1);
+    margin-bottom: var(--s2);
+}
+
+.map-editor-zoom {
+    min-width: 44px;
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+    text-align: center;
+}
+
+.map-editor-count {
+    margin-left: auto;
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+}
+
+.map-editor-hint {
+    margin: var(--s1) 0;
+    padding: var(--s1);
+    border-left: 3px solid var(--gold-bright);
+    background: rgba(255, 255, 255, 0.05);
+    font-size: var(--text-sm);
+    color: var(--text-bright);
+}
+
+.map-editor-draft {
+    margin-bottom: var(--s1);
+    font-size: var(--text-sm);
+    color: var(--gold-bright);
+}
+
+.map-editor-viewport {
+    position: relative;
+    width: 100%;
+    height: 420px;
+    overflow: hidden;
+    border: 2px solid #5a3016;
+    background: #0b0502;
+    cursor: grab;
+    touch-action: none;
+}
+
+.map-editor-viewport:active {
+    cursor: grabbing;
+}
+
+.map-editor-world {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+}
+
+.map-editor-image {
+    display: block;
+    image-rendering: pixelated;
+    user-select: none;
+    pointer-events: none;
+}
+
+.map-editor-routes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.map-editor-route {
+    fill: none;
+    stroke: var(--gold-bright);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.55;
+}
+
+.map-editor-route--reverse {
+    stroke: #60a5fa;
+    opacity: 0.35;
+}
+
+.map-editor-route--draft {
+    stroke: #ffffff;
+    stroke-dasharray: 5 4;
+    opacity: 0.9;
+}
+
+.map-editor-place {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--gold-bright);
+    background: rgba(242, 202, 80, 0.25);
+    cursor: pointer;
+    z-index: 3;
+}
+
+.map-editor-place--selected {
+    background: rgba(242, 202, 80, 0.65);
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.map-editor-place-label {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    transform: translateX(-50%);
+    padding: 0 2px;
+    background: rgba(10, 4, 2, 0.85);
+    color: #ffe9a8;
+    font-family: var(--font-display);
+    font-size: 9px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.map-editor-point {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border: 2px solid #ef4444;
+    background: rgba(239, 68, 68, 0.35);
+    cursor: pointer;
+    z-index: 4;
+}
+
+.map-editor-point:hover {
+    background: rgba(239, 68, 68, 0.6);
+}
+
+.map-editor-point--selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px #ef4444;
+}
+
+.map-editor-point-label {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    transform: translateX(-50%);
+    color: #ffd7d7;
+    font-family: var(--font-display);
+    font-size: 8px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.map-editor-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.map-editor-list-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding: var(--s1);
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+    font-size: var(--text-sm);
+}
+
+.map-editor-list-meta {
+    margin-left: auto;
+    color: var(--text-dim);
+}
