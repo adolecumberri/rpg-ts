@@ -225,3 +225,8 @@
     user-select: none;
     -webkit-user-drag: none;
 }
+
+/* Add mode is a click target, not a grab target. */
+.map-editor-viewport--add {
+    cursor: crosshair;
+}

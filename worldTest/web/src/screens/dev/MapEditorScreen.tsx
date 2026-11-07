@@ -165,6 +165,7 @@ export function MapEditorScreen() {
         panX: number;
         panY: number;
         moved: boolean;
+        origin: Element | null;
     } | null>(null);
     const suppressClickRef = useRef(false);
     const initializedRef = useRef(false);
@@ -268,6 +269,10 @@ export function MapEditorScreen() {
     };
 
     const handlePlaceClick = (placeId: MapPlaceId): void => {
+        if (suppressClickRef.current) {
+            suppressClickRef.current = false;
+            return;
+        }
         if (mode !== 'route') {
             setMessage(`${placeName(placeId)} is an endpoint place; switch to Route mode to use it.`);
             return;
@@ -281,6 +286,10 @@ export function MapEditorScreen() {
     };
 
     const handleWaypointClick = (point: Waypoint): void => {
+        if (suppressClickRef.current) {
+            suppressClickRef.current = false;
+            return;
+        }
         if (mode === 'delete') {
             deletePoint(point.id);
             return;
@@ -305,22 +314,20 @@ export function MapEditorScreen() {
         setMessage(`Deleted ${id}.`);
     };
 
-    const handleWorldClick = (event: React.MouseEvent<HTMLDivElement>): void => {
+    const handleWorldClick = (): void => {
         if (suppressClickRef.current) {
             suppressClickRef.current = false;
             return;
         }
-        if (mode !== 'add') {
-            if (mode === 'route') {
-                setMessage('Click a place marker or a waypoint rectangle to build the route.');
-            } else if (mode === 'delete') {
-                setMessage('Click a waypoint rectangle to delete it.');
-            }
-            return;
+        // Adding is handled on pointerup: a click only fires when the
+        // pointer did not turn into a map drag, and waiting for click made
+        // a small hand tremor swallow the waypoint.
+        if (mode === 'add') return;
+        if (mode === 'route') {
+            setMessage('Click a place marker or a waypoint rectangle to build the route.');
+        } else if (mode === 'delete') {
+            setMessage('Click a waypoint rectangle to delete it.');
         }
-        const position = mapPointFromEvent(event);
-        if (!position) return;
-        addPointAt(position.x, position.y);
     };
 
     const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>): void => {
@@ -332,6 +339,7 @@ export function MapEditorScreen() {
             panX: pan.x,
             panY: pan.y,
             moved: false,
+            origin: event.target as Element | null,
         };
         event.currentTarget.setPointerCapture(event.pointerId);
     };
@@ -341,14 +349,26 @@ export function MapEditorScreen() {
         if (!drag) return;
         const dx = event.clientX - drag.startX;
         const dy = event.clientY - drag.startY;
-        if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+        // A small movement is still a click, not a drag.
+        if (!drag.moved && Math.hypot(dx, dy) < 8) return;
         drag.moved = true;
         setPan({ x: drag.panX + dx, y: drag.panY + dy });
     };
 
-    const handlePointerUp = (): void => {
-        if (dragRef.current?.moved) suppressClickRef.current = true;
+    const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>): void => {
+        const drag = dragRef.current;
+        if (!drag) return;
         dragRef.current = null;
+        if (drag.moved) {
+            suppressClickRef.current = true;
+            return;
+        }
+        // In add mode a static pointerup on the map background creates the
+        // waypoint. Marker pointerdowns are left to their own click handlers.
+        if (mode !== 'add') return;
+        if (drag.origin?.closest('.map-editor-place, .map-editor-point')) return;
+        const position = mapPointFromEvent(event);
+        if (position) addPointAt(position.x, position.y);
     };
 
     const centerOn = (placeId: MapPlaceId): void => {
@@ -464,7 +484,7 @@ export function MapEditorScreen() {
 
                     <div
                         ref={viewportRef}
-                        className="map-editor-viewport"
+                        className={`map-editor-viewport${mode === 'add' ? ' map-editor-viewport--add' : ''}`}
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
                         onPointerUp={handlePointerUp}
