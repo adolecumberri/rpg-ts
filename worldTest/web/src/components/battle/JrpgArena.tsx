@@ -280,6 +280,43 @@ function TurnOrderStrip({
     );
 }
 
+/** The battle menu button: the same button chrome as the app header's
+ *  menu, with the fight's options (Huir). It is portaled into the app
+ *  header during a story fight; dev screens keep it floating in the
+ *  arena. */
+function BattleMenuButton({ onFlee }: { onFlee: () => void }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="jrpg-battle-menu">
+            <button
+                type="button"
+                className="newui-header-menu pixel-btn"
+                aria-label="Battle menu"
+                aria-expanded={open}
+                onClick={() => setOpen((value) => !value)}
+            >
+                <span className="newui-header-menu-bar" />
+                <span className="newui-header-menu-bar" />
+                <span className="newui-header-menu-bar" />
+            </button>
+            {open ? (
+                <div className="jrpg-menu">
+                    <button
+                        type="button"
+                        className="pixel-btn pixel-btn--danger"
+                        onClick={() => {
+                            setOpen(false);
+                            onFlee();
+                        }}
+                    >
+                        🏃 Huir
+                    </button>
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 export function JrpgArena({
     allies,
     enemies,
@@ -297,6 +334,7 @@ export function JrpgArena({
     onTarget,
     onInspect,
     onSkill,
+    onFlee,
 }: {
     allies: Character[];
     enemies: Character[];
@@ -650,8 +688,10 @@ export function JrpgArena({
     // header slot is rendered by NewUiRouter; look it up after mount
     // (during the first render the header is not committed yet).
     const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
+    const [headerMenuSlot, setHeaderMenuSlot] = useState<HTMLElement | null>(null);
     useEffect(() => {
         setHeaderSlot(document.getElementById('newui-header-battle-slot'));
+        setHeaderMenuSlot(document.getElementById('newui-header-battle-menu'));
     }, []);
     const orderStrip = (
         <TurnOrderStrip
@@ -685,38 +725,11 @@ export function JrpgArena({
                     className="jrpg-arena"
                     ref={arenaRef}
                 >
-                    {/* <div className="jrpg-menu-float">
-                        <button
-                            type="button"
-                            className="jrpg-menu-btn"
-                            aria-label="Battle menu"
-                            onClick={() => setMenuOpen((value) => !value)}
-                        >
-                            <span />
-                            <span />
-                            <span />
-                        </button>
-                        {menuOpen ? (
-                            <div className="jrpg-menu">
-                                <button
-                                    type="button"
-                                    className="pixel-btn pixel-btn--danger"
-                                    onClick={() => {
-                                        setMenuOpen(false);
-                                        onFlee();
-                                    }}
-                                >
-                                    🏃 Huir
-                                </button>
-                            </div>
-                        ) : null}
-                    </div> */}
-                    {/* <div
-                        className="jrpg-camera"
-                        style={{
-                            transform: `translate(${camera.tx}px, ${camera.ty}px) scale(${camera.scale})`,
-                        }}
-                    > */}
+                    {headerMenuSlot ? null : (
+                        <div className="jrpg-menu-float">
+                            <BattleMenuButton onFlee={onFlee} />
+                        </div>
+                    )}
                     <div className="jrpg-backdrop-wall" />
                     {/* <div className="jrpg-ember" style={{ left: '15%', animationDelay: '0s' }} />
                         <div className="jrpg-ember" style={{ left: '45%', animationDelay: '2.2s' }} />
@@ -824,6 +837,7 @@ export function JrpgArena({
             </div>
 
             {headerSlot ? createPortal(orderStrip, headerSlot) : null}
+            {headerMenuSlot ? createPortal(<BattleMenuButton onFlee={onFlee} />, headerMenuSlot) : null}
 
             {/* ---- the bottom panel: commands, skills or targets ---- */}
             {activeId && skillsOpen ? (

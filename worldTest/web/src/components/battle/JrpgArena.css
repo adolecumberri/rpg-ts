@@ -787,3 +787,19 @@
     flex-direction: column;
     overflow: hidden;
 }
+/* The battle menu button slotted into the app header during a fight. */
+.newui-header-battle-menu {
+    flex: none;
+    display: flex;
+    align-items: center;
+}
+
+.jrpg-battle-menu {
+    position: relative;
+}
+
+.jrpg-battle-menu .jrpg-menu {
+    top: 36px;
+    right: auto;
+    left: 0;
+}

@@ -260,19 +260,24 @@ export function NewUiRouter() {
     return (
         <div className="newui-shell pixel-font" style={{ position: 'relative' }}>
             {/* The app header stays while a fight is on; the combat view
-                portals its turn-order strip into the battle slot. */}
+                portals its battle menu and turn-order strip into the header
+                slots, replacing the app menu button and world context. */}
             <div className="newui-header">
-                <button
-                    type="button"
-                    className="newui-header-menu pixel-btn"
-                    aria-label="Menu"
-                    aria-expanded={menuOpen}
-                    onClick={toggleMenu}
-                >
-                    <span className="newui-header-menu-bar" />
-                    <span className="newui-header-menu-bar" />
-                    <span className="newui-header-menu-bar" />
-                </button>
+                {combat ? (
+                    <div id="newui-header-battle-menu" className="newui-header-battle-menu" />
+                ) : (
+                    <button
+                        type="button"
+                        className="newui-header-menu pixel-btn"
+                        aria-label="Menu"
+                        aria-expanded={menuOpen}
+                        onClick={toggleMenu}
+                    >
+                        <span className="newui-header-menu-bar" />
+                        <span className="newui-header-menu-bar" />
+                        <span className="newui-header-menu-bar" />
+                    </button>
+                )}
                 {combat ? (
                     <div id="newui-header-battle-slot" className="newui-header-battle-slot" />
                 ) : (
