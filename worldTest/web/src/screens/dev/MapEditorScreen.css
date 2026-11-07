@@ -230,3 +230,7 @@
 .map-editor-viewport--add {
     cursor: crosshair;
 }
+
+.map-editor-point {
+    cursor: grab;
+}

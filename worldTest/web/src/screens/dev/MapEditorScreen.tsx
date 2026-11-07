@@ -167,7 +167,14 @@ export function MapEditorScreen() {
         moved: boolean;
         origin: Element | null;
     } | null>(null);
-    const suppressClickRef = useRef(false);
+    const pointDragRef = useRef<{
+        id: string;
+        startX: number;
+        startY: number;
+        baseX: number;
+        baseY: number;
+        moved: boolean;
+    } | null>(null);
     const initializedRef = useRef(false);
 
     useEffect(() => {
@@ -269,10 +276,6 @@ export function MapEditorScreen() {
     };
 
     const handlePlaceClick = (placeId: MapPlaceId): void => {
-        if (suppressClickRef.current) {
-            suppressClickRef.current = false;
-            return;
-        }
         if (mode !== 'route') {
             setMessage(`${placeName(placeId)} is an endpoint place; switch to Route mode to use it.`);
             return;
@@ -286,10 +289,6 @@ export function MapEditorScreen() {
     };
 
     const handleWaypointClick = (point: Waypoint): void => {
-        if (suppressClickRef.current) {
-            suppressClickRef.current = false;
-            return;
-        }
         if (mode === 'delete') {
             deletePoint(point.id);
             return;
@@ -314,25 +313,31 @@ export function MapEditorScreen() {
         setMessage(`Deleted ${id}.`);
     };
 
-    const handleWorldClick = (): void => {
-        if (suppressClickRef.current) {
-            suppressClickRef.current = false;
-            return;
-        }
-        // Adding is handled on pointerup: a click only fires when the
-        // pointer did not turn into a map drag, and waiting for click made
-        // a small hand tremor swallow the waypoint.
-        if (mode === 'add') return;
-        if (mode === 'route') {
-            setMessage('Click a place marker or a waypoint rectangle to build the route.');
-        } else if (mode === 'delete') {
-            setMessage('Click a waypoint rectangle to delete it.');
-        }
-    };
+    const markerElementOf = (origin: Element | null): Element | null =>
+        origin?.closest?.('.map-editor-place, .map-editor-point') ?? null;
 
     const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>): void => {
         if (event.button !== 0) return;
         event.preventDefault();
+        const pointElement = (event.target as Element | null)?.closest?.('.map-editor-point') ?? null;
+        // Dragging a waypoint repositions it instead of panning the map.
+        // Delete and Route modes use the waypoint as a click target.
+        if (pointElement && mode !== 'delete' && mode !== 'route') {
+            const id = pointElement.getAttribute('data-point-id');
+            const point = id ? pointById.get(id) : undefined;
+            if (id && point) {
+                pointDragRef.current = {
+                    id,
+                    startX: event.clientX,
+                    startY: event.clientY,
+                    baseX: point.x,
+                    baseY: point.y,
+                    moved: false,
+                };
+                event.currentTarget.setPointerCapture(event.pointerId);
+                return;
+            }
+        }
         dragRef.current = {
             startX: event.clientX,
             startY: event.clientY,
@@ -345,6 +350,18 @@ export function MapEditorScreen() {
     };
 
     const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>): void => {
+        const pointDrag = pointDragRef.current;
+        if (pointDrag) {
+            const dx = event.clientX - pointDrag.startX;
+            const dy = event.clientY - pointDrag.startY;
+            if (!pointDrag.moved && Math.hypot(dx, dy) < 3) return;
+            pointDrag.moved = true;
+            const nextX = Math.round(pointDrag.baseX + dx / zoom);
+            const nextY = Math.round(pointDrag.baseY + dy / zoom);
+            setPoints((previous) => previous.map((point) =>
+                point.id === pointDrag.id ? { ...point, x: nextX, y: nextY } : point));
+            return;
+        }
         const drag = dragRef.current;
         if (!drag) return;
         const dx = event.clientX - drag.startX;
@@ -356,19 +373,49 @@ export function MapEditorScreen() {
     };
 
     const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>): void => {
+        const pointDrag = pointDragRef.current;
+        if (pointDrag) {
+            pointDragRef.current = null;
+            const point = pointById.get(pointDrag.id);
+            if (pointDrag.moved) {
+                setSelectedPointId(pointDrag.id);
+                setMessage(`Moved ${pointDrag.id} to ${point?.x ?? '?'}, ${point?.y ?? '?'}.`);
+            } else {
+                setSelectedPointId(pointDrag.id);
+                if (point) setMessage(`${point.id}: x ${point.x}, y ${point.y}.`);
+            }
+            return;
+        }
         const drag = dragRef.current;
         if (!drag) return;
         dragRef.current = null;
-        if (drag.moved) {
-            suppressClickRef.current = true;
+        if (drag.moved) return;
+        const marker = markerElementOf(drag.origin);
+        const placeId = marker?.classList.contains('map-editor-place') ?
+            marker.getAttribute('data-place-id') : null;
+        const pointId = marker?.classList.contains('map-editor-point') ?
+            marker.getAttribute('data-point-id') : null;
+        if (mode === 'delete' && pointId) {
+            const point = pointById.get(pointId);
+            if (point) deletePoint(point.id);
             return;
         }
-        // In add mode a static pointerup on the map background creates the
-        // waypoint. Marker pointerdowns are left to their own click handlers.
-        if (mode !== 'add') return;
-        if (drag.origin?.closest('.map-editor-place, .map-editor-point')) return;
-        const position = mapPointFromEvent(event);
-        if (position) addPointAt(position.x, position.y);
+        if (mode === 'route') {
+            if (placeId && isMapPlaceId(placeId)) {
+                handlePlaceClick(placeId);
+            } else if (pointId) {
+                const point = pointById.get(pointId);
+                if (point) handleWaypointClick(point);
+            } else {
+                setMessage('Click a place marker or a waypoint rectangle to build the route.');
+            }
+            return;
+        }
+        if (mode === 'add') {
+            if (marker) return;
+            const position = mapPointFromEvent(event);
+            if (position) addPointAt(position.x, position.y);
+        }
     };
 
     const centerOn = (placeId: MapPlaceId): void => {
@@ -493,7 +540,6 @@ export function MapEditorScreen() {
                         <div
                             className="map-editor-world"
                             style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
-                            onClick={handleWorldClick}
                             onDragStart={(event) => event.preventDefault()}
                         >
                             <img
@@ -533,13 +579,10 @@ export function MapEditorScreen() {
                                 return (
                                     <div
                                         key={place.placeId}
+                                        data-place-id={place.placeId}
                                         className={`map-editor-place${draft.from === place.placeId ? ' map-editor-place--selected' : ''}`}
                                         style={{ left: position.x, top: position.y }}
                                         title={`${place.name} (${place.placeId})`}
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            handlePlaceClick(place.placeId);
-                                        }}
                                     >
                                         <span className="map-editor-place-label">{place.name}</span>
                                     </div>
@@ -548,13 +591,10 @@ export function MapEditorScreen() {
                             {points.map((point) => (
                                 <div
                                     key={point.id}
+                                    data-point-id={point.id}
                                     className={`map-editor-point${selectedPointId === point.id ? ' map-editor-point--selected' : ''}`}
                                     style={{ left: point.x, top: point.y, width: POINT_SIZE, height: POINT_SIZE }}
                                     title={`${point.id} (${point.x}, ${point.y})`}
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        handleWaypointClick(point);
-                                    }}
                                 >
                                     <span className="map-editor-point-label">{point.id}</span>
                                 </div>
