@@ -192,11 +192,14 @@ design px:
     are centered on `GROUND_CENTER`; rows with different unit counts are
     naturally offset, equal-count rows align into a grid. No half-lane brick
     shift: a 4-lane row needs the full band already.
-*   `GROUND_TOP = 174`, `GROUND_BOTTOM = 364` (feet band) move into this module
-    (or a shared CSS variable) so the layout is the single owner of floor
-    geometry. Feet stay on the band: `y` is the feet anchor, the sprite rises
+*   `GROUND_TOP = 174`, `GROUND_BOTTOM = 364` are **fallback** feet bounds. The
+    live arena measures the projected `.jrpg-ground` rect from the DOM and
+    passes that `{ top, bottom }` band into `layoutFormation`; the formation
+    y coordinates are mapped into it. Moving or resizing the tilted floor in
+    CSS therefore moves the fighters with it, with no magic numbers to keep in
+    sync. Feet stay on the band: `y` is the feet anchor, the sprite rises
     above it.
-*   `spriteBoxFor(count)`: 28 design px at every count. Lane spread uses the
+*   `spriteBoxFor(count)`: 32 design px at every count. Lane spread uses the
     vertical band, so a 4-lane row fits without shrinking the sprites. The
     arena passes this box to the sprite style; the entity CSS draws it at 2×.
 
@@ -210,9 +213,9 @@ design px:
 *   Compute placements once per fight from the starting roster order (party
     order for allies, fight order for enemies) and store them in a memo keyed
     on the combatant id list. Dead units keep their placement.
-*   Build the camera bbox from placements plus the sprite and attachment
-    margins; keep the zoom-out-only behavior. Because slots spread across the
-    full ground band, the camera no longer fits only the middle row.
+*   Build the placement map from the measured ground band; the current UI does
+    not apply a zoom camera, so no fit transform is needed. Because slots map
+    into the full ground band, the formation uses the whole floor.
 *   Active tile, target overlays and effect anchors read the same placement
     map instead of `positionOf(tier)`.
 *   Pass the count-derived sprite box to `spriteBoxStyle` / `spriteScaleFor`.
@@ -414,14 +417,14 @@ owner can revise them at review.
         front row, slots in a row are ordered left-to-right for allies before
         mirroring. Lane is a centered multiple of the lane pitch (for a row of
         `c` units: `(k - (c - 1) / 2)`).
-    *   `spriteBoxFor(n)`: `28` at every count (4-lane rows fit the band).
-    *   `layoutFormation(n, side: 'ally' | 'enemy')` returns `{ x, y }` in
-        arena design pixels for each slot: `CENTER_X = 160`, `CENTER_GAP = 28`,
-        `ROW_GAP = 56`, feet band `174..364`, lane pitch
+    *   `spriteBoxFor(n)`: `32` at every count (4-lane rows fit the band).
+    *   `layoutFormation(n, side, band?)` returns `{ x, y }` in arena design
+        pixels for each slot: `CENTER_X = 160`, `CENTER_GAP = 28`,
+        `ROW_GAP = 56`, fallback feet band `174..364`, lane pitch
         `(bandHeight - SPRITE_BOX) / (maxLanes - 1)` (floor `SPRITE_BOX + 4`).
         `x` uses a single sign flip for the side:
-        `x = 160 - sign * (CENTER_GAP + row * ROW_GAP)`; `y` is centered on the
-        band center plus the lane offset.
+        `x = 160 - sign * (CENTER_GAP + row * ROW_GAP)`; `y` is mapped into the
+        measured ground band and clamped to it.
     *   Export the ground-band constants and the `Side` type so the arena and
         the camera share one source of floor geometry.
     *   Return `undefined` for `n > 12`; the caller must not fabricate a

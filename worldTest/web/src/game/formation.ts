@@ -100,22 +100,45 @@ export function formationSlotsFor(count: number): FormationSlot[] | undefined {
 }
 
 /**
+ * The vertical slice of the arena the sprites stand on. The arena measures
+ * the projected ground element and passes its band in, so moving or
+ * resizing the tilted floor automatically moves the fighters with it.
+ */
+export type GroundBand = {
+    top: number;
+    bottom: number;
+};
+
+export const DEFAULT_GROUND_BAND: GroundBand = {
+    top: GROUND_TOP,
+    bottom: GROUND_BOTTOM,
+};
+
+/**
  * The feet positions of a side's formation. The front row sits
  * CENTER_GAP from the skirmish line; each next row steps outward. The
  * side only flips the x sign, so both armies read as a mirror. The y
- * lane is centered on the ground band and clamped so no feet leave the
- * floor.
+ * lane is mapped into the measured ground band and clamped so no feet
+ * leave the floor.
  */
-export function layoutFormation(count: number, side: FormationSide): FormationPlacement[] | undefined {
+export function layoutFormation(
+    count: number,
+    side: FormationSide,
+    band: GroundBand = DEFAULT_GROUND_BAND,
+): FormationPlacement[] | undefined {
     const slots = formationSlotsFor(count);
     if (!slots) return undefined;
     const pitch = lanePitchFor(count);
     const sideSign = side === 'ally' ? 1 : -1;
+    const sourceSpan = GROUND_BOTTOM - GROUND_TOP;
+    const targetSpan = Math.max(1, band.bottom - band.top);
     return slots.map((slot) => {
         const rawY = GROUND_CENTER + slot.lane * pitch;
+        const fraction = (rawY - GROUND_TOP) / sourceSpan;
+        const y = band.top + fraction * targetSpan;
         return {
             x: CENTER_X - sideSign * (CENTER_GAP + slot.row * ROW_GAP),
-            y: Math.min(GROUND_BOTTOM - 6, Math.max(GROUND_TOP + 8, rawY)),
+            y: Math.min(band.bottom - 4, Math.max(band.top + 4, y)),
             row: slot.row,
             lane: slot.lane,
         };

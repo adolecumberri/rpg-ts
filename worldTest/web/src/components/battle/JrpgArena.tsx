@@ -16,8 +16,8 @@ import type { ForecastCombatant } from './CombatForecast';
 import { selectionRulesOf, toggleTarget } from '../../game/targeting';
 import { STAT_CATALOG } from '../../game/statCatalog';
 import type { StatKey } from '../../game/statCatalog';
-import { layoutFormation, spriteBoxFor } from '../../game/formation';
-import type { FormationPlacement, FormationSide } from '../../game/formation';
+import { DEFAULT_GROUND_BAND, layoutFormation, spriteBoxFor } from '../../game/formation';
+import type { FormationPlacement, FormationSide, GroundBand } from '../../game/formation';
 import { Icon } from '../chrome/Icon';
 import { StatBar } from '../chrome/StatBar';
 import './JrpgArena.css';
@@ -297,7 +297,6 @@ export function JrpgArena({
     onTarget,
     onInspect,
     onSkill,
-    onFlee,
 }: {
     allies: Character[];
     enemies: Character[];
@@ -342,7 +341,6 @@ export function JrpgArena({
     const [attacking, setAttacking] = useState(false);
     const [skillsOpen, setSkillsOpen] = useState(false);
     const [pendingSkillId, setPendingSkillId] = useState<string | null>(null);
-    const [menuOpen, setMenuOpen] = useState(false);
     const [selection, setSelection] = useState<string[]>([]);
     // The party panel (the menu's Party entry): the roster list plus the
     // selected member's full stat sheet, for checking the turn order.
@@ -378,23 +376,29 @@ export function JrpgArena({
         setChipTip(null);
     }, [activeId]);
 
-    // ---- the arena camera ---------------------------------------------
-    // The camera zooms out only when the formation does not fit the
-    // arena box (a CSS-transform camera over the DOM, so targeting,
-    // tooltips and animations keep working).
+    // ---- the ground band ----------------------------------------------
+    // The sprites are placed against the projected footprint of the
+    // tilted ground, measured from the DOM. Moving or resizing the floor
+    // in CSS moves the formation with it; there are no magic y numbers
+    // inside the component.
     const arenaRef = useRef<HTMLDivElement | null>(null);
-    const [arenaSize, setArenaSize] = useState({ w: 320, h: 320 });
-    // Measuring on every render is intentional: the arena is sized by
-    // the CSS grid around it, so the camera needs the live rect.
+    const groundRef = useRef<HTMLDivElement | null>(null);
+    const [groundBand, setGroundBand] = useState<GroundBand>(DEFAULT_GROUND_BAND);
+    // Measuring on every render is intentional: the ground is sized and
+    // tilted by CSS, so its projected rect is only known from the DOM.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useLayoutEffect(() => {
-        const node = arenaRef.current;
-        if (!node) return;
-        const rect = node.getBoundingClientRect();
-        setArenaSize((prev) =>
-            Math.abs(prev.w - rect.width) < 0.5 && Math.abs(prev.h - rect.height) < 0.5 ?
-                prev :
-                { w: rect.width, h: rect.height });
+        const arena = arenaRef.current;
+        const ground = groundRef.current;
+        if (!arena || !ground) return;
+        const arenaRect = arena.getBoundingClientRect();
+        const groundRect = ground.getBoundingClientRect();
+        const top = Math.max(0, groundRect.top - arenaRect.top);
+        const bottom = Math.min(arenaRect.height, groundRect.bottom - arenaRect.top);
+        if (bottom - top < 40) return;
+        setGroundBand((prev) =>
+            Math.abs(prev.top - top) < 0.5 && Math.abs(prev.bottom - bottom) < 0.5 ?
+                prev : { top, bottom });
     });
 
     // ---- the arena entities -------------------------------------------
@@ -404,14 +408,14 @@ export function JrpgArena({
     const placementKey = allies.map((entry) => entry.id).join(',') +
         '|' + enemies.map((entry) => entry.id).join(',');
     const allyPlacements = useMemo(
-        () => layoutFormation(allies.length, 'ally') ?? [],
+        () => layoutFormation(allies.length, 'ally', groundBand) ?? [],
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [placementKey],
+        [placementKey, groundBand.top, groundBand.bottom],
     );
     const enemyPlacements = useMemo(
-        () => layoutFormation(enemies.length, 'enemy') ?? [],
+        () => layoutFormation(enemies.length, 'enemy', groundBand) ?? [],
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [placementKey],
+        [placementKey, groundBand.top, groundBand.bottom],
     );
     const allySpots: ArenaSpot[] = allies.map((character, index) => ({
         character,
@@ -487,35 +491,6 @@ export function JrpgArena({
     const actorSpot = activeId ?
         allyPlacements[allies.findIndex((entry) => entry.id === activeId)] :
         undefined;
-
-    // The camera: zoom out until the whole formation (feet anchors plus
-    // the sprite box and the attachment area above the head) fits.
-    const camera = (() => {
-        let minX = Infinity;
-        let maxX = -Infinity;
-        let minY = Infinity;
-        let maxY = -Infinity;
-        for (const spot of [...allySpots, ...enemySpots]) {
-            if (!spot.placement) continue;
-            const box = spriteBoxFor(spot.side === 'ally' ? allies.length : enemies.length);
-            minX = Math.min(minX, spot.placement.x - box / 2 - 6);
-            maxX = Math.max(maxX, spot.placement.x + box / 2 + 6);
-            minY = Math.min(minY, spot.placement.y - box - 26);
-            maxY = Math.max(maxY, spot.placement.y + 8);
-        }
-        if (!Number.isFinite(minX)) return { scale: 1, tx: 0, ty: 0 };
-        const bboxW = Math.max(1, maxX - minX);
-        const bboxH = Math.max(1, maxY - minY);
-        const fit = Math.min(arenaSize.w / bboxW, arenaSize.h / bboxH);
-        const scale = Math.min(1, Math.max(0.7, fit));
-        const cx = (minX + maxX) / 2;
-        const cy = (minY + maxY) / 2;
-        return {
-            scale,
-            tx: arenaSize.w / 2 - cx * scale,
-            ty: arenaSize.h / 2 - cy * scale,
-        };
-    })();
 
     // ---- the bottom status rail ---------------------------------------
     // The rail shows the acting unit (or the enemy just selected while
@@ -705,49 +680,49 @@ export function JrpgArena({
     return (
         <div className="jrpg-combat" ref={rootRef}>
             <div className="place-view jrpg-field">
-            {/* ---- the tilted arena ------------------------------------ */}
-            <div
-                className="jrpg-arena"
-                ref={arenaRef}
-            >
-                <div className="jrpg-menu-float">
-                    <button
-                        type="button"
-                        className="jrpg-menu-btn"
-                        aria-label="Battle menu"
-                        onClick={() => setMenuOpen((value) => !value)}
-                    >
-                        <span />
-                        <span />
-                        <span />
-                    </button>
-                    {menuOpen ? (
-                        <div className="jrpg-menu">
-                            <button
-                                type="button"
-                                className="pixel-btn pixel-btn--danger"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onFlee();
-                                }}
-                            >
-                                🏃 Huir
-                            </button>
-                        </div>
-                    ) : null}
-                </div>
+                {/* ---- the tilted arena ------------------------------------ */}
                 <div
-                    className="jrpg-camera"
-                    style={{
-                        transform: `translate(${camera.tx}px, ${camera.ty}px) scale(${camera.scale})`,
-                    }}
+                    className="jrpg-arena"
+                    ref={arenaRef}
                 >
+                    {/* <div className="jrpg-menu-float">
+                        <button
+                            type="button"
+                            className="jrpg-menu-btn"
+                            aria-label="Battle menu"
+                            onClick={() => setMenuOpen((value) => !value)}
+                        >
+                            <span />
+                            <span />
+                            <span />
+                        </button>
+                        {menuOpen ? (
+                            <div className="jrpg-menu">
+                                <button
+                                    type="button"
+                                    className="pixel-btn pixel-btn--danger"
+                                    onClick={() => {
+                                        setMenuOpen(false);
+                                        onFlee();
+                                    }}
+                                >
+                                    🏃 Huir
+                                </button>
+                            </div>
+                        ) : null}
+                    </div> */}
+                    {/* <div
+                        className="jrpg-camera"
+                        style={{
+                            transform: `translate(${camera.tx}px, ${camera.ty}px) scale(${camera.scale})`,
+                        }}
+                    > */}
                     <div className="jrpg-backdrop-wall" />
-                    <div className="jrpg-ember" style={{ left: '15%', animationDelay: '0s' }} />
-                    <div className="jrpg-ember" style={{ left: '45%', animationDelay: '2.2s' }} />
-                    <div className="jrpg-ember" style={{ left: '78%', animationDelay: '4.1s' }} />
+                    {/* <div className="jrpg-ember" style={{ left: '15%', animationDelay: '0s' }} />
+                        <div className="jrpg-ember" style={{ left: '45%', animationDelay: '2.2s' }} />
+                        <div className="jrpg-ember" style={{ left: '78%', animationDelay: '4.1s' }} /> */}
 
-                    <div className="jrpg-ground">
+                    <div className="jrpg-ground" ref={groundRef}>
                         <div className="jrpg-skirmish-line" />
                     </div>
 
@@ -782,68 +757,70 @@ export function JrpgArena({
                             })}
                         </div>
                     ) : null}
+                    {/* </div> */}
+
+                    {headerSlot ? null : orderStrip}
+
+                    {forecast ? <CombatForecast attack={forecast} /> :
+                        <div className="jrpg-status-rail">
+                            <div
+                                className="jrpg-rail-avatar"
+                                style={railSprite ? {
+                                    ...spriteBoxStyle(railSprite, 40),
+                                    ...spriteFrameStyle(railSprite, 0, 40 / railSprite.frameWidth),
+                                } : undefined}
+                            />
+                            <div className="jrpg-rail-main">
+                                <div className="jrpg-rail-head">
+                                    <span className="jrpg-rail-name">
+                                        {railName}
+                                        <span className={railIsTarget ? 'jrpg-rail-tag jrpg-rail-tag--target' : 'jrpg-rail-tag'}>
+                                            {railTag}
+                                        </span>
+                                    </span>
+                                    <span className="jrpg-rail-sub">LV {railLevel} · {railJob}</span>
+                                </div>
+                                <div className="jrpg-rail-bars">
+                                    <div className="jrpg-rail-bar-row">
+                                        <span className="jrpg-rail-bar-label">HP</span>
+                                        <span className="jrpg-rail-bar">
+                                            <span
+                                                className="jrpg-rail-bar-fill jrpg-rail-bar-fill--hp"
+                                                style={{ width: `${railMaxHp > 0 ? (railHp / railMaxHp) * 100 : 0}%` }}
+                                            />
+                                        </span>
+                                        <span className="jrpg-rail-num">{railHp}/{railMaxHp}</span>
+                                    </div>
+                                    <div className="jrpg-rail-bar-row">
+                                        <span className="jrpg-rail-bar-label">MP</span>
+                                        <span className="jrpg-rail-bar">
+                                            <span
+                                                className="jrpg-rail-bar-fill jrpg-rail-bar-fill--mana"
+                                                style={{ width: `${railTotalMana > 0 ? (railMana / railTotalMana) * 100 : 0}%` }}
+                                            />
+                                        </span>
+                                        <span className="jrpg-rail-num">{railMana}/{railTotalMana}</span>
+                                    </div>
+                                </div>
+                                <div className="jrpg-rail-footer">
+                                    {railStats.map((stat) => (
+                                        <span key={stat.label} className="jrpg-rail-stat">
+                                            {stat.label} {stat.value}
+                                        </span>
+                                    ))}
+                                    {railIsTarget ? (
+                                        <span className="jrpg-rail-passives jrpg-rail-passives--unknown">Passive: ???</span>
+                                    ) : railPassives.length > 0 ? (
+                                        <span className="jrpg-rail-passives" title={railPassives.join(' · ')}>
+                                            Passive: {railPassives.join(' · ')}
+                                        </span>
+                                    ) : null}
+                                </div>
+                            </div>
+                        </div>}
                 </div>
 
-                {headerSlot ? null : orderStrip}
-            </div>
 
-            {/* ---- the bottom status rail: acting / targeted unit ------ */}
-            <div className="jrpg-status-rail">
-                <div
-                    className="jrpg-rail-avatar"
-                    style={railSprite ? {
-                        ...spriteBoxStyle(railSprite, 40),
-                        ...spriteFrameStyle(railSprite, 0, 40 / railSprite.frameWidth),
-                    } : undefined}
-                />
-                <div className="jrpg-rail-main">
-                    <div className="jrpg-rail-head">
-                        <span className="jrpg-rail-name">
-                            {railName}
-                            <span className={railIsTarget ? 'jrpg-rail-tag jrpg-rail-tag--target' : 'jrpg-rail-tag'}>
-                                {railTag}
-                            </span>
-                        </span>
-                        <span className="jrpg-rail-sub">LV {railLevel} · {railJob}</span>
-                    </div>
-                    <div className="jrpg-rail-bars">
-                        <div className="jrpg-rail-bar-row">
-                            <span className="jrpg-rail-bar-label">HP</span>
-                            <span className="jrpg-rail-bar">
-                                <span
-                                    className="jrpg-rail-bar-fill jrpg-rail-bar-fill--hp"
-                                    style={{ width: `${railMaxHp > 0 ? (railHp / railMaxHp) * 100 : 0}%` }}
-                                />
-                            </span>
-                            <span className="jrpg-rail-num">{railHp}/{railMaxHp}</span>
-                        </div>
-                        <div className="jrpg-rail-bar-row">
-                            <span className="jrpg-rail-bar-label">MP</span>
-                            <span className="jrpg-rail-bar">
-                                <span
-                                    className="jrpg-rail-bar-fill jrpg-rail-bar-fill--mana"
-                                    style={{ width: `${railTotalMana > 0 ? (railMana / railTotalMana) * 100 : 0}%` }}
-                                />
-                            </span>
-                            <span className="jrpg-rail-num">{railMana}/{railTotalMana}</span>
-                        </div>
-                    </div>
-                    <div className="jrpg-rail-footer">
-                        {railStats.map((stat) => (
-                            <span key={stat.label} className="jrpg-rail-stat">
-                                {stat.label} {stat.value}
-                            </span>
-                        ))}
-                        {railIsTarget ? (
-                            <span className="jrpg-rail-passives jrpg-rail-passives--unknown">Passive: ???</span>
-                        ) : railPassives.length > 0 ? (
-                            <span className="jrpg-rail-passives" title={railPassives.join(' · ')}>
-                                Passive: {railPassives.join(' · ')}
-                            </span>
-                        ) : null}
-                    </div>
-                </div>
-            </div>
             </div>
 
             {headerSlot ? createPortal(orderStrip, headerSlot) : null}
@@ -878,7 +855,7 @@ export function JrpgArena({
                     // status changes) above the tray, the matchup
                     // cards in places 1+2, cancel 5, green accept 6.
                     <>
-                        {forecast ? <CombatForecast attack={forecast} /> : null}
+
                         <TargetBar
                             size="lg"
                             targets={[]}

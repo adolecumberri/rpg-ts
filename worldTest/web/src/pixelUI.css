@@ -771,7 +771,7 @@ f2ca50 // acento
     flex-direction: column;
     padding: 0;
     background: var(--bg-darker);
-    border-top: var(--s1) solid #000;
+    /* border-top: var(--s1) solid #000; */
     box-shadow: inset 0 var(--s1) 0 var(--border);
     flex: none;
     height: calc(var(--u) * 48);
@@ -3855,6 +3855,7 @@ f2ca50 // acento
     font-size: var(--text-lg);
     text-align: center;
 }
+
 /* The combat view portals its turn-order strip into the app header. */
 .newui-header-battle-slot {
     flex: 1;
