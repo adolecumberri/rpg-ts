@@ -23,9 +23,23 @@ import type { RegionId } from './ids';
  * faro) travel nowhere until the engine defines them: travel then
  * answers "You cannot travel there." on its own.
  */
+// The closed set of map place ids. Adding a place to MAP_PLACES without
+// adding its id here is a compile error (MapPlace.placeId is this union).
+export const MAP_PLACE_IDS = [
+    'farm',
+    'hay_field',
+    'camp',
+    'fergel_north_settlement',
+    'fergel_faro',
+    'playa_sur',
+    'east_field',
+] as const;
+
+export type MapPlaceId = typeof MAP_PLACE_IDS[number];
+
 export type MapPlace = {
     // The engine place id ('farm', ...) or a placeholder until it exists.
-    placeId: string;
+    placeId: MapPlaceId;
     // Display name (the engine name wins when the place exists).
     name: string;
     // Center of the place image on the map (1696x2032).

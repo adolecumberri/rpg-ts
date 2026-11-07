@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import mapaSrc from '../../../../assets/maps/mapa.webp';
-import { MAP_PLACES } from '../../components/WorldMap/mapPlaces';
+import { MAP_PLACE_IDS, MAP_PLACES } from '../../components/WorldMap/mapPlaces';
+import type { MapPlaceId } from '../../components/WorldMap/mapPlaces';
 import { MAP_HEIGHT, MAP_WIDTH } from '../../components/WorldMap/mask';
 import './MapEditorScreen.css';
 
@@ -21,8 +22,8 @@ type Waypoint = {
 
 type MapRoute = {
     id: string;
-    from: string;
-    to: string;
+    from: MapPlaceId;
+    to: MapPlaceId;
     via: string[];
 };
 
@@ -34,7 +35,7 @@ type EditorData = {
 type Mode = 'idle' | 'add' | 'delete' | 'route';
 
 type Draft = {
-    from?: string;
+    from?: MapPlaceId;
     via: string[];
 };
 
@@ -46,6 +47,10 @@ const POINT_SIZE = 20;
 const clamp = (value: number, min: number, max: number): number =>
     Math.min(max, Math.max(min, value));
 
+function isMapPlaceId(value: unknown): value is MapPlaceId {
+    return typeof value === 'string' && (MAP_PLACE_IDS as readonly string[]).includes(value);
+}
+
 function loadStored(): EditorData {
     try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -56,11 +61,14 @@ function loadStored(): EditorData {
                 typeof entry?.id === 'string' && Number.isFinite(entry.x) && Number.isFinite(entry.y)) :
             [];
         const routes = Array.isArray(parsed.routes) ?
-            parsed.routes.filter((entry): entry is MapRoute =>
-                typeof entry?.id === 'string' &&
-                typeof entry.from === 'string' &&
-                typeof entry.to === 'string' &&
-                Array.isArray(entry.via)) :
+            parsed.routes.filter((entry): entry is MapRoute => {
+                const route = entry as Partial<MapRoute>;
+                return typeof route.id === 'string' &&
+                    isMapPlaceId(route.from) &&
+                    isMapPlaceId(route.to) &&
+                    Array.isArray(route.via) &&
+                    route.via.every((id) => typeof id === 'string');
+            }) :
             [];
         return { points, routes };
     } catch {
@@ -77,13 +85,13 @@ function saveStored(data: EditorData): void {
 }
 
 /** The map coordinates of a place (its marker when present). */
-function placePoint(placeId: string): { x: number; y: number } | undefined {
+function placePoint(placeId: MapPlaceId): { x: number; y: number } | undefined {
     const place = MAP_PLACES.find((entry) => entry.placeId === placeId);
     if (!place) return undefined;
     return place.marker ?? { x: place.x, y: place.y };
 }
 
-function placeName(placeId: string): string {
+function placeName(placeId: MapPlaceId): string {
     return MAP_PLACES.find((entry) => entry.placeId === placeId)?.name ?? placeId;
 }
 
@@ -190,7 +198,7 @@ export function MapEditorScreen() {
         setMessage(`${point.id} added to route.`);
     };
 
-    const completeRoute = (from: string, to: string, via: string[]): void => {
+    const completeRoute = (from: MapPlaceId, to: MapPlaceId, via: string[]): void => {
         if (from === to) {
             setMessage('The origin and destination places must be different.');
             return;
@@ -217,7 +225,7 @@ export function MapEditorScreen() {
         setMessage(`Created ${placeName(from)} ↔ ${placeName(to)} (${via.length} waypoint${via.length === 1 ? '' : 's'}).`);
     };
 
-    const handlePlaceClick = (placeId: string): void => {
+    const handlePlaceClick = (placeId: MapPlaceId): void => {
         if (mode !== 'route') {
             setMessage(`${placeName(placeId)} is an endpoint place; switch to Route mode to use it.`);
             return;
@@ -317,7 +325,7 @@ export function MapEditorScreen() {
         });
     };
 
-    const centerOn = (placeId: string): void => {
+    const centerOn = (placeId: MapPlaceId): void => {
         const viewport = viewportRef.current;
         const target = placePoint(placeId);
         if (!viewport || !target) return;
