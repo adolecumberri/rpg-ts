@@ -1,4 +1,5 @@
 import type { Character, IntervalDamageResolver, Item } from '../../../src';
+import { applyDamage, resetVitals, tickBarrier } from '../../../src/classes/Combat/Vitals';
 import { generalAttackResolver } from '../damage/general';
 import { intervalFromSpeed } from '../config/speed';
 import { MANA } from '../config/mana';
@@ -133,6 +134,7 @@ export class HybridCombat {
             // Mana: every fighter starts the battle at startOfBattle.
             const totalMana = combatant.character.stats.totalMana ?? 0;
             combatant.character.stats.mana = Math.min(totalMana, MANA.startOfBattle);
+            resetVitals(combatant.character);
         }
         this.combatants = combatants;
         this.maxTicks = options.maxTicks ?? 1000;
@@ -544,11 +546,16 @@ export class HybridCombat {
     private performAttack(actor: HybridCombatant, target: HybridCombatant): HybridAutoEvent {
         const resolved = this.damageResolver(actor.character, target.character, this.random);
 
-        target.character.stats.hp = Math.max(0, target.character.stats.hp - resolved.damage);
+        const hit = applyDamage(target.character, {
+            attacker: actor.character,
+            components: [{ amount: resolved.damage, kind: 'physical', onHit: true }],
+        });
         target.character.stats.isAlive = target.character.stats.hp > 0 ? 1 : 0;
 
         if (resolved.reflect && resolved.reflect > 0) {
-            actor.character.stats.hp = Math.max(0, actor.character.stats.hp - resolved.reflect);
+            applyDamage(actor.character, {
+                components: [{ amount: resolved.reflect, kind: 'physical' }],
+            });
             actor.character.stats.isAlive = actor.character.stats.hp > 0 ? 1 : 0;
         }
 
@@ -567,7 +574,7 @@ export class HybridCombat {
             tick: this.tick,
             actorId: actor.character.id,
             targetId: target.character.id,
-            damage: resolved.damage,
+            damage: hit.hpDamage,
             damageByKind: resolved.byKind,
             reflect: resolved.reflect,
             reflectByKind: resolved.reflectByKind,
@@ -576,6 +583,7 @@ export class HybridCombat {
             note: resolved.note,
         };
         this.onAction?.(event);
+        tickBarrier(actor.character);
         return event;
     }
 
@@ -660,6 +668,7 @@ export class HybridCombat {
             note: spec.name,
         };
         this.onAction?.(event);
+        tickBarrier(actor.character);
         return event;
     }
 }

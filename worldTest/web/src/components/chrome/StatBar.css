@@ -13,3 +13,9 @@
     height: 100%;
     transition: width 0.25s ease-out;
 }
+
+/* Barrier: a separate grey pool shown above HP. */
+.stat-bar-barrier {
+    background: #231f1c;
+    box-shadow: inset 0 0 0 1px #5b5550;
+}

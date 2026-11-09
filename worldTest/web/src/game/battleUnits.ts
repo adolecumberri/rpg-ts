@@ -18,6 +18,8 @@ export type BattleUnit = {
     row: 'front' | 'center' | 'back';
     hp: number;
     maxHp: number;
+    // The barrier is a battle-scoped pool, separate from HP.
+    barrier?: number;
     level?: number;
     // While true the ficha plays the one-shot attack animation.
     attacking?: boolean;
@@ -50,6 +52,7 @@ export function battleUnitOf(
         row: overrides?.row ?? rowOfPosition(character),
         hp: Math.round(character.stats.hp),
         maxHp: Math.round(character.stats.totalHp),
+        barrier: Math.round(character.vitals.barrier),
         level: character.experience.level,
     };
 }

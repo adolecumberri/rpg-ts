@@ -20,6 +20,13 @@ export interface Statistics {
     // Percent chance (0-100) an attack lands. Below 100 the attack
     // rolls to hit; at 100 (default) every attack lands.
     accuracy?: number;
+    // Life-manipulation stats. Optional for save/literal compatibility;
+    // DEFAULT_STATS supplies the zeros.
+    lifestealPercent?: number;
+    absorptionPercent?: number;
+    regenPercent?: number;
+    healingReductionPercent?: number;
+    barrierGainReductionPercent?: number;
 }
 
 // just an string taht represent an stat in the Stat object.

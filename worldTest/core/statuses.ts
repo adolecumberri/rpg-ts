@@ -1,4 +1,5 @@
 import type { Character } from '../../src';
+import { applyDamage, applyHeal } from '../../src/classes/Combat/Vitals';
 import { StatusInstance } from '../../src/classes/StatusInstance';
 import type { StatusDefinition } from '../../src/classes/StatusInstance';
 import type { ImpactHitContext } from './damage/impact';
@@ -13,8 +14,7 @@ export function burnStatus(): StatusDefinition {
         usageFrequency: 'PER_ACTION',
         statsAffected: [],
         onTrigger: (character) => {
-            character.stats.hp = Math.max(0, character.stats.hp - 8);
-            character.stats.isAlive = character.stats.hp > 0 ? 1 : 0;
+            applyDamage(character, { components: [{ amount: 8, kind: 'true' }] });
         },
     };
 }
@@ -29,8 +29,7 @@ export function poisonStatus(): StatusDefinition {
         usageFrequency: 'PER_ACTION',
         statsAffected: [],
         onTrigger: (character) => {
-            character.stats.hp = Math.max(0, character.stats.hp - 6);
-            character.stats.isAlive = character.stats.hp > 0 ? 1 : 0;
+            applyDamage(character, { components: [{ amount: 6, kind: 'true' }] });
         },
     };
 }
@@ -46,7 +45,7 @@ export function regenStatus(): StatusDefinition {
         statsAffected: [],
         onTrigger: (character) => {
             if (character.stats.hp <= 0) return;
-            character.stats.hp = Math.min(character.stats.totalHp, character.stats.hp + 8);
+            applyHeal(character, 8);
         },
     };
 }
@@ -69,8 +68,7 @@ export function bleedingStatus(): StatusDefinition {
         statsAffected: [],
         onTrigger: (character) => {
             if (character.stats.hp <= 0) return;
-            character.stats.hp = Math.max(0, character.stats.hp - 1);
-            character.stats.isAlive = character.stats.hp > 0 ? 1 : 0;
+            applyDamage(character, { components: [{ amount: 1, kind: 'true' }] });
         },
     };
 }

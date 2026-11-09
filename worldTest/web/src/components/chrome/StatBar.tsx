@@ -17,7 +17,7 @@ export function StatBar({
     max: number;
     width?: number;
     height?: number;
-    type: 'hp' | 'mana' | 'xp' | 'enemy-hp';
+    type: 'hp' | 'mana' | 'xp' | 'enemy-hp' | 'barrier';
 }) {
     let color;
     switch (type) {
@@ -33,11 +33,15 @@ export function StatBar({
     case 'enemy-hp':
         color = 'linear-gradient(to right, var(--enemy-hp-bar), var(--enemy-hp-bar-end))';
         break;
+    case 'barrier':
+        color = 'linear-gradient(to right, var(--barrier-bar), var(--barrier-bar-end))';
+        break;
     }
 
     const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+    const className = type === 'barrier' ? 'stat-bar stat-bar-barrier' : 'stat-bar';
     return (
-        <div className="stat-bar" style={{ width, height }}>
+        <div className={className} style={{ width, height }}>
             <span className="stat-bar-fill" style={{ width: `${pct}%`, background: color }} />
         </div>
     );

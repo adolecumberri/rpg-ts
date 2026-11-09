@@ -9,6 +9,8 @@ import { EquipmentManager } from './items/EquipmentManager';
 import { Skill } from './Skills';
 import { CombatTrigger } from './Combat/Combat.interfaces';
 import { TeamPosition } from '../constants/team.constants';
+import { EMPTY_VITALS } from './Combat/Vitals';
+import type { CombatVitals } from './Combat/Vitals';
 
 type CharacterConstructor = {
     id?: string;
@@ -39,6 +41,8 @@ export class Character {
     statusManager: StatusManager;
     combatTriggers: CombatTrigger[] = [];
     skills: Skill[] = [];
+    // Battle-scoped barrier; never persisted and cleared on battle reset.
+    vitals: CombatVitals;
     // Formation row inside the team: multiplies the taunt weight used
     // when enemies pick random targets.
     position: TeamPosition;
@@ -57,6 +61,7 @@ export class Character {
 
         this.statusManager = params.statusManager || new StatusManager(this);
         this.skills = params.skills ?? [];
+        this.vitals = { ...EMPTY_VITALS };
         this.position = params.position ?? 'front';
     }
 

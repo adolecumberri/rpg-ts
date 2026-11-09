@@ -1,4 +1,5 @@
 import { Character } from '../Character';
+import { applyDamage, applyHeal, resetVitals, tickBarrier } from './Vitals';
 
 export type IntervalCombatSide = 'left' | 'right';
 
@@ -173,6 +174,9 @@ export class IntervalCombat {
         const turns: IntervalCombatTurn[] = [];
         let tick = 0;
         const actionCounts = new Map<string, number>();
+        for (const combatant of [...left, ...right]) {
+            resetVitals(combatant.character);
+        }
 
         while (tick < config.maxTicks && leftAlive.length > 0 && rightAlive.length > 0) {
             tick++;
@@ -214,17 +218,13 @@ export class IntervalCombat {
                 }) ?? null;
 
                 if (action && action.healSelf && actor.character.stats.hp > 0) {
-                    actor.character.stats.hp = Math.min(
-                        actor.character.stats.totalHp,
-                        actor.character.stats.hp + action.healSelf,
-                    );
-                    actor.character.stats.isAlive = 1;
+                    const heal = applyHeal(actor.character, action.healSelf);
                     config.onAction?.({
                         tick,
                         actorId: actor.character.id,
                         targetId: actor.character.id,
                         damage: 0,
-                        healSelf: action.healSelf,
+                        healSelf: heal.applied,
                     });
                 }
 
@@ -259,6 +259,7 @@ export class IntervalCombat {
                         note: resolved.note,
                     });
                 }
+                tickBarrier(actor.character);
             }
 
             leftAlive = alive(left);
@@ -300,12 +301,10 @@ export class IntervalCombat {
             resolved = { damage, byKind: { physical: damage } };
         }
 
-        defender.stats.hp = Math.max(0, defender.stats.hp - resolved.damage);
-        defender.stats.isAlive = defender.stats.hp > 0 ? 1 : 0;
+        applyDamage(defender, { components: [{ amount: resolved.damage, kind: 'physical' }] });
 
         if (resolved.reflect && resolved.reflect > 0) {
-            attacker.stats.hp = Math.max(0, attacker.stats.hp - resolved.reflect);
-            attacker.stats.isAlive = attacker.stats.hp > 0 ? 1 : 0;
+            applyDamage(attacker, { components: [{ amount: resolved.reflect, kind: 'physical' }] });
         }
 
         for (const character of [attacker, defender]) {

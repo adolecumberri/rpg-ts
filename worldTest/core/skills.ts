@@ -129,6 +129,11 @@ export type SkillSpec = {
     damageFor?: (actor: Character) => DamageComponent[];
     // Flat heal applied to every target.
     heal?: number;
+    // Flat barrier granted to every target (before any barrier-gain
+    // reduction the target carries).
+    barrier?: number;
+    // Flat barrier granted to the caster, for defensive skills.
+    barrierSelf?: number;
     // Dynamic heal: computed per target at resolution time (Cure:
     // 60% of the target's hp, capped). Replaces `heal` when present.
     healFor?: (actor: Character, target: Character) => number;
@@ -371,7 +376,7 @@ const RAW_SKILLS = {
     shield_bash: {
         id: 'shield_bash',
         name: 'Shield Bash',
-        description: '40% of your attack as blunt physical damage, and the target is stunned for 1 turn. Needs a shield.',
+        description: '40% of your attack as blunt physical damage, the target is stunned for 1 turn, and you gain a 25 barrier. Needs a shield.',
         targeting: 'ENEMY',
         numberOfTargets: 1,
         damageFor: (actor) => [{
@@ -381,6 +386,7 @@ const RAW_SKILLS = {
             label: 'Shield Bash',
         }],
         statusOnTargets: stunStatus(),
+        barrierSelf: 25,
         manaCost: 10,
         requiresShield: true,
     },

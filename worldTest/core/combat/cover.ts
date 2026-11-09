@@ -1,4 +1,5 @@
 import type { Character } from '../../../src';
+import { applyDamage } from '../../../src/classes/Combat/Vitals';
 import { StatusInstance } from '../../../src/classes/StatusInstance';
 import { coveredStatus } from '../statuses';
 
@@ -59,6 +60,5 @@ export function consumeCover(ally: Character): boolean {
  * Applies the redirected share to the coverer's hp (clamped at 0).
  */
 export function takeCoveredHit(coverer: Character, amount: number): void {
-    coverer.stats.hp = Math.max(0, coverer.stats.hp - amount);
-    coverer.stats.isAlive = coverer.stats.hp > 0 ? 1 : 0;
+    applyDamage(coverer, { components: [{ amount, kind: 'physical' }] });
 }

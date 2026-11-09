@@ -10,6 +10,13 @@ const DEFAULT_STATS = {
     fatigue: 0,
     // Every attack lands unless fatigue lowers the accuracy.
     accuracy: 100,
+    // Life-manipulation stats default to no effect until moved by
+    // equipment, skills or statuses.
+    lifestealPercent: 0,
+    absorptionPercent: 0,
+    regenPercent: 0,
+    healingReductionPercent: 0,
+    barrierGainReductionPercent: 0,
 };
 
 type ModificationTypes = 'BUFF_FIXED' | 'BUFF_PERCENTAGE' | 'DEBUFF_FIXED' | 'DEBUFF_PERCENTAGE';

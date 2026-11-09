@@ -1,4 +1,5 @@
 import type { Character } from '../../../src';
+import { applyDamage, applyHeal, grantBarrier } from '../../../src/classes/Combat/Vitals';
 import type { SkillSpec } from '../skills';
 import { DamageComposer } from '../damage/composer';
 import type { ComponentLine } from '../damage/composer';
@@ -20,6 +21,7 @@ export type SkillTargetEffect = {
     targetId: string;
     damage: number;
     heal: number;
+    barrier?: number;
     statusOnTarget?: string;
     statusesOnTarget?: string[];
     dispelled?: string[];
@@ -75,21 +77,29 @@ export function resolveSkillEffect(
             // A Cover on the target redirects its share to the coverer
             // (through the coverer's mitigation) and is consumed.
             const redirect = applyCoverRedirect(target, components, result.total, { breakdown: options.breakdown });
-            target.stats.hp = Math.max(0, target.stats.hp - redirect.damage);
+            const hit = applyDamage(target, {
+                components: [{ amount: redirect.damage, kind: 'physical' }],
+            });
             target.stats.isAlive = target.stats.hp > 0 ? 1 : 0;
-            effect.damage = redirect.damage;
+            effect.damage = hit.hpDamage;
             effect.breakdown = result.breakdown;
-            totalDamage += redirect.damage;
+            totalDamage += hit.hpDamage;
         }
 
         // Static `heal` or the per-target `healFor` hook (Cure's cap,
         // First Aid's attack scaling).
         const healAmount = spec.healFor ? spec.healFor(actor, target) : spec.heal;
         if (healAmount && target.stats.hp > 0) {
-            const healed = Math.min(healAmount, target.stats.totalHp - target.stats.hp);
-            target.stats.hp += healed;
-            effect.heal = healed;
-            totalHeal += healed;
+            const healed = applyHeal(target, healAmount);
+            effect.heal = healed.applied;
+            totalHeal += healed.applied;
+        }
+
+        // Barrier grant: created with the target's barrier-gain reduction
+        // applied, then pooled with whatever the target already has.
+        if (spec.barrier && target.stats.hp > 0) {
+            const granted = grantBarrier(target, spec.barrier);
+            if (granted > 0) effect.barrier = granted;
         }
 
         // Dispel resolves by the target's side.
@@ -135,6 +145,9 @@ export function resolveSkillEffect(
     let statusOnSelf: string | undefined;
     if (spec.statusOnSelf && applyStatus(actor, spec.statusOnSelf)) {
         statusOnSelf = spec.statusOnSelf.name;
+    }
+    if (spec.barrierSelf && actor.stats.hp > 0) {
+        grantBarrier(actor, spec.barrierSelf);
     }
 
     // Fatigue management: skills change the caster's fatigue (Rest and

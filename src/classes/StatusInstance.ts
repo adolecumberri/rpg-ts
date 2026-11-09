@@ -122,7 +122,8 @@ export class StatusInstance {
 
         // stat Affected es AffectedStatDescriptor
         for (const statAffectedDescriptor of this.definition.statsAffected) {
-            if (!stats[statAffectedDescriptor.from as keyof Stats] || !stats[statAffectedDescriptor.to as keyof Stats]) {
+            if (stats[statAffectedDescriptor.from as keyof Stats] === undefined ||
+                stats[statAffectedDescriptor.to as keyof Stats] === undefined) {
                 console.warn(
                     `Stat "${statAffectedDescriptor.from}" or "${statAffectedDescriptor.to}" ` +
                     'not found in stats object. Skipping status effect application.',

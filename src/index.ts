@@ -1,6 +1,7 @@
 export * from './classes/Character';
 export * from './classes/Combat';
 export * from './classes/Combat/IntervalCombat';
+export * from './classes/Combat/Vitals';
 export * from './classes/CombatBehavior';
 export * from './classes/Experience';
 export * from './classes/Inventory';

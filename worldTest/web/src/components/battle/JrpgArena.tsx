@@ -95,6 +95,7 @@ function ArenaEntity({
 
     const hp = Math.round(character.stats.hp);
     const maxHp = Math.round(character.stats.totalHp);
+    const barrier = Math.round(character.vitals.barrier);
     const mana = Math.round(character.stats.mana ?? 0);
     const totalMana = Math.round(character.stats.totalMana ?? 0);
     const sheet: SpriteSet = SPRITES[spriteRoleOf(character) ?? 'warrior'];
@@ -169,6 +170,15 @@ function ArenaEntity({
             <StatusChips character={character} onTip={onTip} />
             <span className="jrpg-entity-shadow" />
             <span className="jrpg-entity-bars">
+                {barrier > 0 ? (
+                    <StatBar
+                        value={barrier}
+                        max={Math.max(barrier, maxHp)}
+                        type="barrier"
+                        width={16}
+                        height={1}
+                    />
+                ) : null}
                 <StatBar
                     value={hp}
                     max={maxHp}

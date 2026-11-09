@@ -1,4 +1,5 @@
 import type { Character } from '../../../src';
+import { applyDamage } from '../../../src/classes/Combat/Vitals';
 import { DEFAULT_ELEMENTS } from './elements';
 import type { DamageComponent, DamageResult, DefenceLayer, ResolveOptions } from './composer';
 import type { ElementId } from './elements';
@@ -83,8 +84,7 @@ export function defenceLayersOf(character: Character): DefenceLayer[] {
 }
 
 export function applyDamageResult(character: Character, result: DamageResult): void {
-    character.stats.hp = Math.max(0, character.stats.hp - result.total);
-    character.stats.isAlive = character.stats.hp > 0 ? 1 : 0;
+    applyDamage(character, { components: [{ amount: result.total, kind: 'physical' }] });
 }
 
 /**
